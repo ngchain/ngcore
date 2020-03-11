@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ngtypes;
+
+message Account {
+    uint64 ID = 1;
+    bytes owner = 2; // pk -> balance in anonymous fields
+    uint64 nonce = 4;
+    bytes state = 5;
+}

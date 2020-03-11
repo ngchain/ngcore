@@ -1,0 +1,39 @@
+// protoc --gofast_out=. transaction.proto
+syntax = "proto3";
+
+package ngtypes;
+
+// types:
+// 0 = generation
+// 1 = tx
+// 2=
+
+message TxHeader {
+    int32 version = 1;
+    int32 type = 2;
+
+    uint64 convener = 10; // account id required
+    repeated bytes participants = 11; // if to == 0, to = from. can be
+    bytes fee = 12;
+    repeated bytes values = 13;
+
+    uint64 nonce = 14;
+    // extension
+    bytes extra = 20;
+}
+
+message Transaction {
+    TxHeader header = 1;
+    // sign
+    bytes header_hash = 2;
+
+    bytes r = 10;
+    bytes s = 11;
+}
+
+//message Transaction {
+//    TxHeader header = 1
+//    bytes prev_tx_hash = 10;
+//    bytes block_hash = 11;
+//    bytes vault_hash = 12;
+//}

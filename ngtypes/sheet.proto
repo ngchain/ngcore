@@ -1,0 +1,12 @@
+// protoc --gofast_out=. sheet.proto
+syntax = "proto3";
+
+package ngtypes;
+
+import "account.proto";
+
+message Sheet {
+    int32 version = 1;
+    map<uint64, ngtypes.Account> accounts = 10;
+    map<string, bytes> anonymous = 11; // map[b58(publicKey)]balance
+}

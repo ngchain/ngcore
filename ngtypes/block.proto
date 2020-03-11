@@ -1,0 +1,30 @@
+// protoc --gofast_out=. block.proto
+
+syntax = "proto3";
+
+package ngtypes;
+
+import "transaction.proto";
+
+message BlockHeader {
+    int32 version = 1;
+    uint64 height = 2;
+
+    bytes prev_block_hash = 10;
+    bytes prev_vault_hash = 11;
+    bytes trie_hash = 12;
+
+    int64 timestamp = 20;
+    bytes target = 21;
+    bytes nonce = 22;
+}
+
+message Block {
+    int32 network_id = 1;
+
+    BlockHeader header = 10;
+    bytes header_hash = 11;
+    uint32 block_size = 12;
+
+    repeated ngtypes.Transaction transactions = 20; // miner should build the generation by themselves
+}
