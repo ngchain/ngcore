@@ -11,12 +11,11 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# IDE
-.idea
-.vscode
-
 # go module
 go.sum
 
 # Personal Infomation
 *.key
+
+# idea
+.idea/httpRequests
