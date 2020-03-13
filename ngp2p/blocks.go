@@ -2,15 +2,14 @@ package ngp2p
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
 	"log"
 )
 
-func (p *Protocol) Blocks(remotePeerId peer.ID, getblocks *ngtypes.GetBlocksPayload) bool {
+func (p *Protocol) Blocks(s network.Stream, uuid string, getblocks *ngtypes.GetBlocksPayload) bool {
+	log.Printf("%s: Sending Blocks to %s. Message id: %s, Blocks from %d to %d ...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid, getblocks.FromCheckpoint, getblocks.ToCheckpoint)
 	var blocks = make([]*ngtypes.Block, getblocks.ToCheckpoint-getblocks.FromCheckpoint)
 	for i := getblocks.FromCheckpoint + 1; i <= getblocks.ToCheckpoint; i++ {
 		b := p.node.blockChain.GetBlockByHeight(i)
@@ -32,7 +31,7 @@ func (p *Protocol) Blocks(remotePeerId peer.ID, getblocks *ngtypes.GetBlocksPayl
 
 	// create message data
 	req := &ngtypes.P2PMessage{
-		Header:  p.node.NewP2PHeader(uuid.New().String(), false),
+		Header:  p.node.NewP2PHeader(uuid, false),
 		Payload: payload,
 	}
 
@@ -46,14 +45,14 @@ func (p *Protocol) Blocks(remotePeerId peer.ID, getblocks *ngtypes.GetBlocksPayl
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	ok := p.node.sendProtoMessage(remotePeerId, blocksMethod, req)
+	ok := p.node.sendProtoMessage(s.Conn().RemotePeer(), blocksMethod, req)
 	if !ok {
 		return false
 	}
 
 	// store ref request so response handler has access to it
 	p.requests[req.Header.Uuid] = req
-	log.Printf("%s: Blocks to: %s was sent. Message Id: %s, Message: %s", p.node.ID(), remotePeerId, req.Header.Uuid, req.Payload)
+	log.Printf("%s: Blocks to: %s was sent. Message Id: %s", p.node.ID(), s.Conn().RemotePeer(), req.Header.Uuid)
 	return true
 }
 
@@ -103,9 +102,9 @@ func (p *Protocol) onBlocks(s network.Stream) {
 		delete(p.requests, data.Header.Uuid)
 	} else {
 		log.Println("Failed to locate request data object for response")
-		return
+		//return`
 	}
 
-	log.Printf("%s: Received Blocks from %s. Message id:%s. Message: %d.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, blocks.LatestHeight)
+	log.Printf("%s: Received Blocks from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, blocks.Blocks[0].GetHeight(), blocks.Blocks[len(blocks.Blocks)-1].GetHeight(), blocks.LatestHeight)
 	p.doneCh <- true
 }

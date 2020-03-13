@@ -118,11 +118,11 @@ func (s *P2PServer) Serve(port int, isBootstrap bool, sheetManager *sheetManager
 		libp2p.Muxer("/mplex/6.7.0", peerstream_multiplex.DefaultTransport),
 	)
 
-	var ipfsDHT *dht.IpfsDHT
+	var p2pDHT *dht.IpfsDHT
 	newDHT := func(h host.Host) (routing.PeerRouting, error) {
 		var err error
-		ipfsDHT, err = dht.New(ctx, h)
-		return ipfsDHT, err
+		p2pDHT, err = dht.New(ctx, h)
+		return p2pDHT, err
 	}
 
 	localHost, err := libp2p.New(
@@ -155,7 +155,7 @@ func (s *P2PServer) Serve(port int, isBootstrap bool, sheetManager *sheetManager
 		},
 	)
 
-	err = ipfsDHT.Bootstrap(ctx)
+	err = p2pDHT.Bootstrap(ctx)
 	if err != nil {
 		panic(err)
 	}

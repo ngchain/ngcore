@@ -57,7 +57,7 @@ func (p *Protocol) onReject(s network.Stream) {
 		delete(p.requests, data.Header.Uuid)
 	} else {
 		log.Println("Failed to locate request data object for response")
-		return
+		//return
 	}
 
 	log.Printf("%s: Received Reject from %s. Message id:%s. Message: %s.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)

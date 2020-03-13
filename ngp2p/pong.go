@@ -74,22 +74,22 @@ func (p *Protocol) onPong(s network.Stream) {
 		return
 	}
 
+	log.Printf("%s: Received Pong from %s. Message id:%s. Message: %d.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
 	if p.node.blockChain.GetLatestBlockHeight()+ngtypes.CheckRound < pong.BlockHeight {
 		log.Println("start syncManager to sync with", s.Conn().RemotePeer())
 		go p.GetBlocks(s.Conn().RemotePeer(), pong.BlockHeight)
-	}
-
-	// locate request data and remove it if found
-	_, ok := p.requests[data.Header.Uuid]
-	if ok {
-		// remove request from map as we have processed it here
-		delete(p.requests, data.Header.Uuid)
 	} else {
-		log.Println("Failed to locate request data object for response")
-		return
+		// locate request data and remove it if found
+		_, ok := p.requests[data.Header.Uuid]
+		if ok {
+			// remove request from map as we have processed it here
+			delete(p.requests, data.Header.Uuid)
+		} else {
+			log.Println("Failed to locate request data object for response")
+			//return
+		}
 	}
 
-	p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime * ngtypes.CheckRound * ngtypes.CheckRound)
-	log.Printf("%s: Received Pong from %s. Message id:%s. Message: %d.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
+	p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.CheckRound*ngtypes.CheckRound)
 	p.doneCh <- true
 }

@@ -98,5 +98,5 @@ func TestGetGenesisBlock(t *testing.T) {
 
 	d, _ := GetGenesisBlock().Marshal()
 	log.Info("GenesisBlock hex: %x", d)
-	log.Info("GenesisBlock hash: %x" , hash)
+	log.Info("GenesisBlock hash: %x", hash)
 }

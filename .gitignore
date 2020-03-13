@@ -19,3 +19,4 @@ go.sum
 
 # idea
 .idea/httpRequests
+*.db

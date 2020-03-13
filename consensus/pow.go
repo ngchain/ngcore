@@ -143,10 +143,10 @@ func (c *Consensus) GenNewVault(hookBlock *ngtypes.Block) *ngtypes.Vault {
 
 //
 func (c *Consensus) ApplyNewVault(v *ngtypes.Vault) {
-	log.Info("applying new vault:", v)
+	log.Infof("applying new vault @ %d", v.Height)
 	err := c.VaultChain.PutVault(v)
-	if err != nil && err != chain.ErrItemHashInSameHeight {
-		log.Panic(err)
+	if err != nil {
+		log.Error(err)
 	}
 
 	// handle with the new vault

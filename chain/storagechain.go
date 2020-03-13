@@ -1,8 +1,10 @@
 package chain
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"github.com/ngin-network/ngcore/utils"
 	"go.etcd.io/bbolt"
 )
@@ -23,7 +25,7 @@ func NewStorageChain(name []byte, db *bbolt.DB, genesisItem Item) *StorageChain 
 	//	log.Panic(err)
 	//}
 	//
-	//sc.LatestItemHeight, err = sc.GetLatestHeight()
+	//sc.latestItemHeight, err = sc.GetLatestHeight()
 	//if err != nil {
 	//	log.Panic(err)
 	//}
@@ -93,52 +95,65 @@ func (sc *StorageChain) Init(genesisItem Item) {
 	})
 }
 
-func (sc *StorageChain) PutItem(item Item) error {
-	err := sc.Update(func(tx *bbolt.Tx) error {
+func (sc *StorageChain) PutItem(items ...Item) error {
+	latestHash, err := sc.GetLatestHash()
+	if err != nil {
+		return err
+	}
+	if bytes.Compare(latestHash, items[0].GetPrevHash()) != 0 {
+		return fmt.Errorf("items' first prevHash is not matching. Requires %x, but gets %x", latestHash, items[0].GetPrevHash())
+	}
 
+	err = sc.Update(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(sc.BucketName)
 		if bucket == nil {
 			return bbolt.ErrBucketNotFound
 		}
 
-		height := item.GetHeight()
-		if bucket.Get(utils.PackUint64LE(height)) != nil {
-			return ErrItemHashInSameHeight
-		}
+		for i := 0; i < len(items); i++ {
+			item := items[i]
 
-		hash, err := item.CalculateHash()
-		if err != nil {
-			return err
-		}
+			height := item.GetHeight()
+			if bucket.Get(utils.PackUint64LE(height)) != nil {
+				return ErrItemHashInSameHeight
+			}
 
-		raw, err := item.Marshal()
-		if err != nil {
-			return err
-		}
-
-		err = bucket.Put(hash, raw)
-		if err != nil {
-			return err
-		}
-
-		err = bucket.Put(utils.PackUint64LE(height), hash)
-		if err != nil {
-			return err
-		}
-
-		bHeight := make([]byte, 8)
-		latestHeightInDB := bucket.Get([]byte(LatestHeightTag))
-		copy(bHeight, latestHeightInDB)
-
-		if binary.LittleEndian.Uint64(bHeight) < height {
-			err = bucket.Put([]byte(LatestHeightTag), utils.PackUint64LE(height))
+			hash, err := item.CalculateHash()
 			if err != nil {
 				return err
 			}
 
-			err = bucket.Put([]byte(LatestHashTag), hash)
+			raw, err := item.Marshal()
 			if err != nil {
 				return err
+			}
+
+			err = bucket.Put(hash, raw)
+			if err != nil {
+				return err
+			}
+
+			err = bucket.Put(utils.PackUint64LE(height), hash)
+			if err != nil {
+				return err
+			}
+
+			if i == len(items)-1 {
+				bHeight := make([]byte, 8)
+				latestHeightInDB := bucket.Get([]byte(LatestHeightTag))
+				copy(bHeight, latestHeightInDB)
+
+				if binary.LittleEndian.Uint64(bHeight) < height {
+					err = bucket.Put([]byte(LatestHeightTag), utils.PackUint64LE(height))
+					if err != nil {
+						return err
+					}
+
+					err = bucket.Put([]byte(LatestHashTag), hash)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 
@@ -269,14 +284,24 @@ func (sc *StorageChain) GetLatestItem(itemPlaceholder Item) (Item, error) {
 }
 
 func (sc *StorageChain) PutItems(items []Item) error {
-	err := sc.Update(func(tx *bbolt.Tx) error {
+	latestHash, err := sc.GetLatestHash()
+	if err != nil {
+		return err
+	}
+	if bytes.Compare(latestHash, items[0].GetPrevHash()) != 0 {
+		return fmt.Errorf("items' first prevHash is not matching. Requires %x, but gets %x", latestHash, items[0].GetPrevHash())
+	}
+
+	err = sc.Update(func(tx *bbolt.Tx) error {
 
 		bucket := tx.Bucket(sc.BucketName)
 		if bucket == nil {
 			return bbolt.ErrBucketNotFound
 		}
 
-		for _, item := range items {
+		for i := 0; i < len(items); i++ {
+			item := items[i]
+
 			height := item.GetHeight()
 			if bucket.Get(utils.PackUint64LE(height)) != nil {
 				return ErrItemHashInSameHeight

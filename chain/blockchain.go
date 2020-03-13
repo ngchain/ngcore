@@ -65,16 +65,24 @@ func (bc *BlockChain) GetBlockByHeight(height uint64) *ngtypes.Block {
 
 func (bc *BlockChain) GetLatestBlock() *ngtypes.Block {
 	memItem, err := bc.Mem.GetLatestItem()
-	if err != nil || memItem == nil {
+	if err != nil {
 		log.Error(err)
 	}
 
 	dbItem, err := bc.DB.GetLatestItem(new(ngtypes.Block))
-	if err != nil || dbItem == nil {
+	if err != nil {
 		log.Error(err)
 	}
 
-	if dbItem.GetHeight() > memItem.GetHeight() {
+	if dbItem == nil {
+		return memItem.(*ngtypes.Block)
+	}
+
+	if memItem == nil {
+		return dbItem.(*ngtypes.Block)
+	}
+
+	if dbItem.GetHeight() >= memItem.GetHeight() {
 		return dbItem.(*ngtypes.Block)
 	} else {
 		return memItem.(*ngtypes.Block)
@@ -82,7 +90,7 @@ func (bc *BlockChain) GetLatestBlock() *ngtypes.Block {
 }
 
 func (bc *BlockChain) GetLatestBlockHash() []byte {
-	hash := bc.Mem.LatestItemHash
+	hash := bc.Mem.GetLatestItemHash()
 	if hash != nil {
 		return hash
 	}
@@ -98,7 +106,7 @@ func (bc *BlockChain) GetLatestBlockHash() []byte {
 }
 
 func (bc *BlockChain) GetLatestBlockHeight() uint64 {
-	height := bc.Mem.LatestItemHeight
+	height := bc.Mem.latestItemHeight
 	if height != 0 {
 		return height
 	}
