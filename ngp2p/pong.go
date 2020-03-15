@@ -76,11 +76,11 @@ func (p *Protocol) onPong(s network.Stream) {
 
 	log.Printf("%s: Received Pong from %s. Message id:%s. Message: %d.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
 
-	p.node.Remotes.Store(s.Conn().RemotePeer().String(), &RemoteNode{&pong})
+	p.node.RemoteHeights.Store(s.Conn().RemotePeer().String(), pong.BlockHeight)
 
 	if p.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < pong.BlockHeight {
 		log.Println("start syncing with", s.Conn().RemotePeer())
-		go p.GetBlocks(s.Conn().RemotePeer(), pong.BlockHeight)
+		go p.GetChain(s.Conn().RemotePeer(), pong.BlockHeight)
 	} else {
 		log.Println("synced with", s.Conn().RemotePeer())
 		// locate request data and remove it if found

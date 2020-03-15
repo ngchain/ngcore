@@ -5,6 +5,7 @@ syntax = "proto3";
 package ngtypes;
 
 import "block.proto";
+import "vault.proto";
 
 message P2PHeader {
     int32 network_id = 1;
@@ -32,12 +33,12 @@ message PingPongPayload {
     bytes latest_vault_hash = 4;
 }
 
-message GetBlocksPayload {
-    uint64 from_checkpoint = 1;
-    uint64 to_checkpoint = 2;
+message GetChainPayload {
+    uint64 vault_height = 1;
 }
 
-message BlocksPayload {
-    repeated ngtypes.Block blocks = 1;
-    uint64 latest_height = 2;
+message ChainPayload {
+    ngtypes.Vault vault = 1;
+    repeated ngtypes.Block blocks = 2;
+    uint64 latest_height = 3;
 }

@@ -17,15 +17,20 @@ type Consensus struct {
 	Chain      *chain.Chain
 
 	TxPool *txpool.TxPool
+
+	mining bool
+	miner  *Miner
 }
 
-func NewConsensusManager() *Consensus {
+func NewConsensusManager(mining bool) *Consensus {
 	return &Consensus{
 		template:     nil,
 		SheetManager: nil,
 		privateKey:   nil,
 		Chain:        nil,
 		TxPool:       nil,
+
+		mining: mining,
 	}
 }
 

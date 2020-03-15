@@ -10,12 +10,10 @@ import (
 	"log"
 )
 
-func (p *Protocol) GetBlocks(remotePeerId peer.ID, remoteHeight uint64) bool {
+func (p *Protocol) GetChain(remotePeerId peer.ID, remoteHeight uint64) bool {
 	localHeight := p.node.Chain.GetLatestBlockHeight()
-
-	payload, err := proto.Marshal(&ngtypes.GetBlocksPayload{
-		FromCheckpoint: localHeight - (localHeight % ngtypes.BlockCheckRound),
-		ToCheckpoint:   remoteHeight - (remoteHeight % ngtypes.BlockCheckRound),
+	payload, err := proto.Marshal(&ngtypes.GetChainPayload{
+		VaultHeight: localHeight - (localHeight % ngtypes.BlockCheckRound),
 	})
 	if err != nil {
 		log.Println("failed to sign pb data")
@@ -38,7 +36,7 @@ func (p *Protocol) GetBlocks(remotePeerId peer.ID, remoteHeight uint64) bool {
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	ok := p.node.sendProtoMessage(remotePeerId, getblocksMethod, req)
+	ok := p.node.sendProtoMessage(remotePeerId, getChainMethod, req)
 	if !ok {
 		return false
 	}
@@ -49,7 +47,7 @@ func (p *Protocol) GetBlocks(remotePeerId peer.ID, remoteHeight uint64) bool {
 	return true
 }
 
-func (p *Protocol) onGetBlocks(s network.Stream) {
+func (p *Protocol) onGetChain(s network.Stream) {
 	// get request data
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
@@ -67,34 +65,24 @@ func (p *Protocol) onGetBlocks(s network.Stream) {
 		return
 	}
 
-	var getblocks ngtypes.GetBlocksPayload
-	err = proto.Unmarshal(data.Payload, &getblocks)
+	var getchain ngtypes.GetChainPayload
+	err = proto.Unmarshal(data.Payload, &getchain)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
 	if p.node.authenticateMessage(&data, data.Header) {
-		log.Printf("%s: Received getBlocks request from %s. From %d To %d", s.Conn().LocalPeer(), s.Conn().RemotePeer(), getblocks.FromCheckpoint, getblocks.ToCheckpoint)
+		log.Printf("Received getchain request from %s. From Vault@%d", s.Conn().RemotePeer(), getchain.VaultHeight)
 
-		// Blocks
-		if getblocks.FromCheckpoint%ngtypes.BlockCheckRound != 0 {
-			p.Reject(s, data.Header.Uuid)
-			return
-		}
-
-		if getblocks.ToCheckpoint < getblocks.FromCheckpoint {
-			p.Reject(s, data.Header.Uuid)
-			return
-		}
-
+		// Chain
 		localHeight := p.node.Chain.GetLatestBlockHeight()
-		if localHeight < getblocks.ToCheckpoint {
+		if localHeight < getchain.VaultHeight {
 			p.Reject(s, data.Header.Uuid)
 			return
 		}
 
-		p.Blocks(s, data.Header.Uuid, &getblocks)
+		p.Chain(s, data.Header.Uuid, &getchain)
 		return
 	}
 }

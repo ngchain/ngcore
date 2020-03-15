@@ -141,10 +141,12 @@ func (c *Chain) GetLatestVaultHeight() uint64 {
 
 func (c *Chain) PutBlock(block *ngtypes.Block) error {
 	if block.GetHeight()%(ngtypes.BlockCheckRound*ngtypes.VaultCheckRound) == 0 &&
-		c.GetLatestBlockHeight() < block.Header.Height {
+		c.GetLatestBlockHeight() < block.Header.Height &&
+		len(c.mem.BlockHeightMap) >= ngtypes.BlockCheckRound {
 
 		log.Info("dumping blocks from mem to db")
-		items := c.mem.ExportLongestChain(block, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
+		prevBlock := c.GetBlockByHash(block.GetPrevHash())
+		items := c.mem.ExportLongestChain(prevBlock, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
 		if len(items) > 0 {
 			err := c.db.PutChain(items...)
 			if err != nil {
@@ -176,7 +178,27 @@ func (c *Chain) PutVault(vault *ngtypes.Vault) error {
 }
 
 func (c *Chain) GetBlockByHeight(height uint64) *ngtypes.Block {
-	item, err := c.mem.GetBlockByHeight(height)
+	block, err := c.mem.GetBlockByHeight(height)
+	if err != nil {
+		log.Error(err)
+	}
+	if block != nil {
+		return block
+	}
+
+	block, err = c.db.GetBlockByHeight(height)
+	if err != nil {
+		log.Error(err)
+	}
+	if block != nil {
+		return block
+	}
+
+	return nil
+}
+
+func (c *Chain) GetBlockByHash(hash []byte) *ngtypes.Block {
+	item, err := c.mem.GetBlockByHash(hash)
 	if err != nil {
 		log.Error(err)
 	}
@@ -184,7 +206,7 @@ func (c *Chain) GetBlockByHeight(height uint64) *ngtypes.Block {
 		return item
 	}
 
-	item, err = c.db.GetBlockByHeight(height)
+	item, err = c.db.GetBlockByHash(hash)
 	if err != nil {
 		log.Error(err)
 	}
@@ -205,6 +227,26 @@ func (c *Chain) GetVaultByHeight(height uint64) *ngtypes.Vault {
 	}
 
 	item, err = c.db.GetVaultByHeight(height)
+	if err != nil {
+		log.Error(err)
+	}
+	if item != nil {
+		return item
+	}
+
+	return nil
+}
+
+func (c *Chain) GetVaultByHash(hash []byte) *ngtypes.Vault {
+	item, err := c.mem.GetVaultByHash(hash)
+	if err != nil {
+		log.Error(err)
+	}
+	if item != nil {
+		return item
+	}
+
+	item, err = c.db.GetVaultByHash(hash)
 	if err != nil {
 		log.Error(err)
 	}

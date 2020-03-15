@@ -23,14 +23,14 @@ type Miner struct {
 	mu       sync.Mutex
 }
 
-func NewMiner(threadNum int, abortCh chan struct{}, foundCh chan *ngtypes.Block, initJob *ngtypes.Block) *Miner {
+func NewMiner(threadNum int, foundCh chan *ngtypes.Block) *Miner {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	newJobCh := make(chan *ngtypes.Block, 1)
 	m := &Miner{
 		threadNum: threadNum,
 		newJobCh:  newJobCh,
-		abortCh:   abortCh,
+		abortCh:   make(chan struct{}),
 		foundCh:   foundCh,
 	}
 
@@ -50,14 +50,16 @@ func NewMiner(threadNum int, abortCh chan struct{}, foundCh chan *ngtypes.Block,
 		}
 	}()
 
-	for threadID := 0; threadID < m.threadNum; threadID++ {
-		go m.mine(threadID, initJob)
-	}
-
 	return m
 }
 
-func (m *Miner) SetJob(b *ngtypes.Block) {
+func (m *Miner) start(initJob *ngtypes.Block) {
+	for threadID := 0; threadID < m.threadNum; threadID++ {
+		go m.mine(threadID, initJob)
+	}
+}
+
+func (m *Miner) setJob(b *ngtypes.Block) {
 	m.newJobCh <- b
 }
 
@@ -65,18 +67,17 @@ func (m *Miner) mine(threadID int, initJob *ngtypes.Block) {
 	var b = initJob
 	var target = new(big.Int).SetBytes(b.Header.Target)
 
-search:
 	for {
 		select {
 		case newJob := <-m.newJobCh:
 			if !reflect.DeepEqual(b.Header, newJob.Header) {
-				log.Infof("Thread %d mining block @ height: %d", threadID, newJob.Header.Height)
+				log.Debugf("Thread %d mining block@%d", threadID, newJob.Header.Height)
 				b = newJob
 				target = new(big.Int).SetBytes(b.Header.Target)
 			}
 		case <-m.abortCh:
 			// Mining terminated, update stats and abort
-			break search
+			break
 		default:
 			if b == nil || !b.Header.IsUnsealing() {
 				continue

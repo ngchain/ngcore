@@ -9,6 +9,7 @@ import (
 	"github.com/ngin-network/ngcore/consensus"
 	"github.com/ngin-network/ngcore/keyManager"
 	"github.com/ngin-network/ngcore/ngp2p"
+	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/ngin-network/ngcore/rpcServer"
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/storage"
@@ -19,6 +20,7 @@ import (
 	"os/signal"
 	"runtime/pprof"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -101,7 +103,7 @@ var action = func(c *cli.Context) error {
 	sheetManager := sheetManager.NewSheetManager()
 	txPool := txpool.NewTxPool()
 
-	consensusManager := consensus.NewConsensusManager()
+	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
 	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
@@ -111,22 +113,34 @@ var action = func(c *cli.Context) error {
 	go rpc.Serve(rpcPort)
 	localNode := ngp2p.NewP2PNode(p2pTcpPort, isBootstrap, sheetManager, chain, txPool)
 
-	stopCh := make(chan struct{})
+	isSynced := false
+	switchCh := make(chan bool)
+
+	init := new(sync.Once)
 	go func() {
 		for {
-			if localNode.IsSynced() {
-				log.Info("localnode is synced with network")
-				if chain.GetLatestBlockHeight() == 0 {
-					chain.InitWithGenesis()
-				}
-				latestVault := chain.GetLatestVault()
-				sheetManager.Init(latestVault)
-				txPool.Init(latestVault)
-				log.Info("Start PoW")
-				go consensusManager.PoW(isMining, stopCh)
+			if status := localNode.IsSynced(); status && status != isSynced {
+				init.Do(func() {
 
-				return
+					if chain.GetLatestBlockHeight() == 0 {
+						chain.InitWithGenesis()
+					}
+					latestVault := chain.GetLatestVault()
+					sheetManager.Init(latestVault)
+					txPool.Init(latestVault)
+					log.Info("Start PoW consensus")
+					go consensusManager.InitPoW()
+				})
+				log.Info("localnode is synced with network")
+				switchCh <- true
+				isSynced = true
+			} else if !status && status != isSynced {
+				log.Info("localnode is not synced with network, syncing...")
+				switchCh <- false
+				isSynced = false
 			}
+
+			time.Sleep(ngtypes.TargetTime)
 		}
 	}()
 

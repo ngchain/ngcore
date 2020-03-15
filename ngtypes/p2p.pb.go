@@ -244,26 +244,25 @@ func (m *PingPongPayload) GetLatestVaultHash() []byte {
 	return nil
 }
 
-type GetBlocksPayload struct {
-	FromCheckpoint       uint64   `protobuf:"varint,1,opt,name=from_checkpoint,json=fromCheckpoint,proto3" json:"from_checkpoint,omitempty"`
-	ToCheckpoint         uint64   `protobuf:"varint,2,opt,name=to_checkpoint,json=toCheckpoint,proto3" json:"to_checkpoint,omitempty"`
+type GetChainPayload struct {
+	VaultHeight          uint64   `protobuf:"varint,1,opt,name=vault_height,json=vaultHeight,proto3" json:"vault_height,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetBlocksPayload) Reset()         { *m = GetBlocksPayload{} }
-func (m *GetBlocksPayload) String() string { return proto.CompactTextString(m) }
-func (*GetBlocksPayload) ProtoMessage()    {}
-func (*GetBlocksPayload) Descriptor() ([]byte, []int) {
+func (m *GetChainPayload) Reset()         { *m = GetChainPayload{} }
+func (m *GetChainPayload) String() string { return proto.CompactTextString(m) }
+func (*GetChainPayload) ProtoMessage()    {}
+func (*GetChainPayload) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e7fdddb109e6467a, []int{3}
 }
-func (m *GetBlocksPayload) XXX_Unmarshal(b []byte) error {
+func (m *GetChainPayload) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *GetBlocksPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *GetChainPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_GetBlocksPayload.Marshal(b, m, deterministic)
+		return xxx_messageInfo_GetChainPayload.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -273,52 +272,46 @@ func (m *GetBlocksPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, er
 		return b[:n], nil
 	}
 }
-func (m *GetBlocksPayload) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetBlocksPayload.Merge(m, src)
+func (m *GetChainPayload) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetChainPayload.Merge(m, src)
 }
-func (m *GetBlocksPayload) XXX_Size() int {
+func (m *GetChainPayload) XXX_Size() int {
 	return m.Size()
 }
-func (m *GetBlocksPayload) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetBlocksPayload.DiscardUnknown(m)
+func (m *GetChainPayload) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetChainPayload.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_GetBlocksPayload proto.InternalMessageInfo
+var xxx_messageInfo_GetChainPayload proto.InternalMessageInfo
 
-func (m *GetBlocksPayload) GetFromCheckpoint() uint64 {
+func (m *GetChainPayload) GetVaultHeight() uint64 {
 	if m != nil {
-		return m.FromCheckpoint
+		return m.VaultHeight
 	}
 	return 0
 }
 
-func (m *GetBlocksPayload) GetToCheckpoint() uint64 {
-	if m != nil {
-		return m.ToCheckpoint
-	}
-	return 0
-}
-
-type BlocksPayload struct {
-	Blocks               []*Block `protobuf:"bytes,1,rep,name=blocks,proto3" json:"blocks,omitempty"`
-	LatestHeight         uint64   `protobuf:"varint,2,opt,name=latest_height,json=latestHeight,proto3" json:"latest_height,omitempty"`
+type ChainPayload struct {
+	Vault                *Vault   `protobuf:"bytes,1,opt,name=vault,proto3" json:"vault,omitempty"`
+	Blocks               []*Block `protobuf:"bytes,2,rep,name=blocks,proto3" json:"blocks,omitempty"`
+	LatestHeight         uint64   `protobuf:"varint,3,opt,name=latest_height,json=latestHeight,proto3" json:"latest_height,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *BlocksPayload) Reset()         { *m = BlocksPayload{} }
-func (m *BlocksPayload) String() string { return proto.CompactTextString(m) }
-func (*BlocksPayload) ProtoMessage()    {}
-func (*BlocksPayload) Descriptor() ([]byte, []int) {
+func (m *ChainPayload) Reset()         { *m = ChainPayload{} }
+func (m *ChainPayload) String() string { return proto.CompactTextString(m) }
+func (*ChainPayload) ProtoMessage()    {}
+func (*ChainPayload) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e7fdddb109e6467a, []int{4}
 }
-func (m *BlocksPayload) XXX_Unmarshal(b []byte) error {
+func (m *ChainPayload) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *BlocksPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *ChainPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_BlocksPayload.Marshal(b, m, deterministic)
+		return xxx_messageInfo_ChainPayload.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -328,26 +321,33 @@ func (m *BlocksPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return b[:n], nil
 	}
 }
-func (m *BlocksPayload) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BlocksPayload.Merge(m, src)
+func (m *ChainPayload) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ChainPayload.Merge(m, src)
 }
-func (m *BlocksPayload) XXX_Size() int {
+func (m *ChainPayload) XXX_Size() int {
 	return m.Size()
 }
-func (m *BlocksPayload) XXX_DiscardUnknown() {
-	xxx_messageInfo_BlocksPayload.DiscardUnknown(m)
+func (m *ChainPayload) XXX_DiscardUnknown() {
+	xxx_messageInfo_ChainPayload.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_BlocksPayload proto.InternalMessageInfo
+var xxx_messageInfo_ChainPayload proto.InternalMessageInfo
 
-func (m *BlocksPayload) GetBlocks() []*Block {
+func (m *ChainPayload) GetVault() *Vault {
+	if m != nil {
+		return m.Vault
+	}
+	return nil
+}
+
+func (m *ChainPayload) GetBlocks() []*Block {
 	if m != nil {
 		return m.Blocks
 	}
 	return nil
 }
 
-func (m *BlocksPayload) GetLatestHeight() uint64 {
+func (m *ChainPayload) GetLatestHeight() uint64 {
 	if m != nil {
 		return m.LatestHeight
 	}
@@ -358,42 +358,41 @@ func init() {
 	proto.RegisterType((*P2PHeader)(nil), "ngtypes.P2PHeader")
 	proto.RegisterType((*P2PMessage)(nil), "ngtypes.P2PMessage")
 	proto.RegisterType((*PingPongPayload)(nil), "ngtypes.PingPongPayload")
-	proto.RegisterType((*GetBlocksPayload)(nil), "ngtypes.GetBlocksPayload")
-	proto.RegisterType((*BlocksPayload)(nil), "ngtypes.BlocksPayload")
+	proto.RegisterType((*GetChainPayload)(nil), "ngtypes.GetChainPayload")
+	proto.RegisterType((*ChainPayload)(nil), "ngtypes.ChainPayload")
 }
 
 func init() { proto.RegisterFile("p2p.proto", fileDescriptor_e7fdddb109e6467a) }
 
 var fileDescriptor_e7fdddb109e6467a = []byte{
-	// 436 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x92, 0x4d, 0x8e, 0xd3, 0x40,
-	0x10, 0x85, 0x69, 0xe2, 0x24, 0xe3, 0x4a, 0x66, 0x32, 0xb4, 0x58, 0x18, 0x04, 0x91, 0x31, 0x12,
-	0x58, 0xb3, 0xc8, 0xc2, 0xdc, 0x60, 0x58, 0x30, 0x08, 0x21, 0x59, 0xbd, 0x60, 0x85, 0x64, 0x3a,
-	0x76, 0x61, 0x5b, 0x49, 0xdc, 0x96, 0xbb, 0x03, 0xca, 0x4d, 0xb8, 0x02, 0x2b, 0xae, 0xc1, 0x92,
-	0x23, 0xa0, 0x70, 0x11, 0xe4, 0xea, 0xce, 0xcf, 0xec, 0xba, 0xbe, 0x7a, 0x79, 0xf5, 0xaa, 0x62,
-	0xf0, 0xdb, 0xa4, 0x5d, 0xb4, 0x9d, 0x32, 0x8a, 0x8f, 0x9b, 0xd2, 0xec, 0x5a, 0xd4, 0x4f, 0x27,
-	0xcb, 0xb5, 0xca, 0x57, 0x96, 0x46, 0x3f, 0x19, 0xf8, 0x69, 0x92, 0xde, 0xa1, 0x2c, 0xb0, 0xe3,
-	0xcf, 0x01, 0x1a, 0x34, 0xdf, 0x55, 0xb7, 0xca, 0xea, 0x22, 0x60, 0x21, 0x8b, 0x87, 0xc2, 0x77,
-	0xe4, 0x7d, 0xc1, 0x39, 0x78, 0xdb, 0x6d, 0x5d, 0x04, 0x0f, 0x43, 0x16, 0xfb, 0x82, 0xde, 0xfc,
-	0x19, 0xf8, 0xa6, 0xde, 0xa0, 0x36, 0x72, 0xd3, 0x06, 0x83, 0x90, 0xc5, 0x03, 0x71, 0x02, 0x7d,
-	0x77, 0xd9, 0x29, 0x59, 0xe4, 0x52, 0x9b, 0xc0, 0x0b, 0x59, 0x7c, 0x21, 0x4e, 0x80, 0x3f, 0x81,
-	0x8b, 0x16, 0xb1, 0xcb, 0x56, 0xb8, 0x0b, 0x86, 0x21, 0x8b, 0xa7, 0x62, 0xdc, 0xd7, 0x1f, 0x70,
-	0xd7, 0x8f, 0xd2, 0x75, 0xd9, 0x04, 0x23, 0xc2, 0xf4, 0x8e, 0x2a, 0x80, 0x34, 0x49, 0x3f, 0xa2,
-	0xd6, 0xb2, 0x44, 0x7e, 0x03, 0xa3, 0x8a, 0x52, 0x53, 0xce, 0x49, 0xc2, 0x17, 0x6e, 0xc1, 0xc5,
-	0x71, 0x1f, 0xe1, 0x14, 0xfc, 0x31, 0x0c, 0x1b, 0xd5, 0xe4, 0x48, 0xc9, 0x3d, 0x61, 0x0b, 0x1e,
-	0xc0, 0xb8, 0x95, 0xbb, 0xb5, 0x92, 0x05, 0x05, 0xef, 0xa7, 0xdb, 0x32, 0xfa, 0xc5, 0x60, 0x96,
-	0xd6, 0x4d, 0x99, 0xaa, 0xa6, 0x4c, 0x2d, 0xe3, 0x2f, 0x60, 0x4a, 0x87, 0xcb, 0x2a, 0xac, 0xcb,
-	0xca, 0xd0, 0x54, 0x4f, 0xd8, 0x63, 0xde, 0x11, 0xea, 0x25, 0xdf, 0xe4, 0x76, 0x6d, 0x0e, 0x12,
-	0x3b, 0x6d, 0x42, 0xcc, 0x49, 0x6e, 0xe0, 0xd1, 0x5a, 0x1a, 0xd4, 0x26, 0x73, 0x66, 0x52, 0x57,
-	0x6e, 0xfa, 0xcc, 0x36, 0x6e, 0xc9, 0x50, 0xea, 0xea, 0x4c, 0xeb, 0x5c, 0x7b, 0xad, 0x77, 0xae,
-	0xfd, 0x44, 0xce, 0x52, 0x57, 0xd1, 0x17, 0xb8, 0x7e, 0x87, 0xf6, 0xb7, 0xfa, 0x90, 0xf8, 0x35,
-	0xcc, 0xbe, 0x76, 0x6a, 0x93, 0xe5, 0x15, 0xe6, 0xab, 0x56, 0xd5, 0xcd, 0x21, 0xf4, 0x55, 0x8f,
-	0xdf, 0x1e, 0x29, 0x7f, 0x09, 0x97, 0x46, 0x9d, 0xcb, 0x6c, 0xf0, 0xa9, 0x51, 0x27, 0x51, 0xf4,
-	0x19, 0x2e, 0xef, 0xdb, 0xbf, 0x82, 0x11, 0xed, 0xa0, 0x03, 0x16, 0x0e, 0xe2, 0x49, 0x72, 0x75,
-	0xfc, 0x03, 0x48, 0x27, 0x5c, 0xb7, 0x77, 0x77, 0x6b, 0xdc, 0x3b, 0xcb, 0xd4, 0x42, 0x7b, 0x97,
-	0xdb, 0xeb, 0xdf, 0xfb, 0x39, 0xfb, 0xb3, 0x9f, 0xb3, 0xbf, 0xfb, 0x39, 0xfb, 0xf1, 0x6f, 0xfe,
-	0x60, 0x39, 0xa2, 0x0f, 0xf4, 0xcd, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0x38, 0xed, 0x5b, 0xc7,
-	0xc3, 0x02, 0x00, 0x00,
+	// 429 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x64, 0x92, 0xc1, 0x8e, 0xd3, 0x30,
+	0x10, 0x86, 0xf1, 0x36, 0x6d, 0x37, 0xd3, 0x42, 0xc1, 0xe2, 0x60, 0x56, 0x50, 0x85, 0x80, 0x50,
+	0xb4, 0x87, 0x1e, 0x0a, 0x4f, 0xb0, 0x1c, 0x58, 0x84, 0x90, 0x22, 0x1f, 0xb8, 0x46, 0x6e, 0x63,
+	0xc5, 0x51, 0xb3, 0x76, 0x14, 0xbb, 0xa0, 0x1c, 0x79, 0x0b, 0x5e, 0x81, 0x13, 0xaf, 0xc1, 0x91,
+	0x47, 0x40, 0xe5, 0x45, 0x50, 0xc6, 0x66, 0xb7, 0x15, 0x37, 0xcf, 0x3f, 0x7f, 0x66, 0xbe, 0xf9,
+	0x15, 0x88, 0xdb, 0x75, 0xbb, 0x6a, 0x3b, 0xe3, 0x0c, 0x9d, 0xea, 0xca, 0xf5, 0xad, 0xb4, 0x17,
+	0xb3, 0x4d, 0x63, 0xb6, 0x3b, 0xaf, 0x5e, 0xcc, 0x3e, 0x8b, 0x7d, 0xe3, 0x7c, 0x91, 0x7e, 0x27,
+	0x10, 0xe7, 0xeb, 0xfc, 0x5a, 0x8a, 0x52, 0x76, 0xf4, 0x19, 0x80, 0x96, 0xee, 0x8b, 0xe9, 0x76,
+	0x45, 0x5d, 0x32, 0x92, 0x90, 0x6c, 0xcc, 0xe3, 0xa0, 0xbc, 0x2f, 0x29, 0x85, 0x68, 0xbf, 0xaf,
+	0x4b, 0x76, 0x96, 0x90, 0x2c, 0xe6, 0xf8, 0xa6, 0x4f, 0x21, 0x76, 0xf5, 0x8d, 0xb4, 0x4e, 0xdc,
+	0xb4, 0x6c, 0x94, 0x90, 0x6c, 0xc4, 0xef, 0x84, 0xa1, 0xbb, 0xe9, 0x8c, 0x28, 0xb7, 0xc2, 0x3a,
+	0x16, 0x25, 0x24, 0x3b, 0xe7, 0x77, 0x02, 0x7d, 0x02, 0xe7, 0xad, 0x94, 0x5d, 0xb1, 0x93, 0x3d,
+	0x1b, 0x27, 0x24, 0x9b, 0xf3, 0xe9, 0x50, 0x7f, 0x90, 0xfd, 0xb0, 0xca, 0xd6, 0x95, 0x66, 0x13,
+	0x94, 0xf1, 0x9d, 0x2a, 0x80, 0x7c, 0x9d, 0x7f, 0x94, 0xd6, 0x8a, 0x4a, 0xd2, 0x4b, 0x98, 0x28,
+	0xa4, 0x46, 0xce, 0xd9, 0x9a, 0xae, 0xc2, 0xb5, 0xab, 0xdb, 0x7b, 0x78, 0x70, 0xd0, 0xc7, 0x30,
+	0xd6, 0x46, 0x6f, 0x25, 0x92, 0x47, 0xdc, 0x17, 0x94, 0xc1, 0xb4, 0x15, 0x7d, 0x63, 0x44, 0x89,
+	0xe0, 0xc3, 0x76, 0x5f, 0xa6, 0x3f, 0x08, 0x2c, 0xf2, 0x5a, 0x57, 0xb9, 0xd1, 0x55, 0xee, 0x35,
+	0xfa, 0x1c, 0xe6, 0x98, 0x62, 0xa1, 0x64, 0x5d, 0x29, 0x87, 0x5b, 0x23, 0xee, 0x93, 0xbd, 0x46,
+	0x69, 0xb0, 0x60, 0xb6, 0xff, 0x2c, 0x7e, 0x9b, 0xcf, 0x3b, 0x58, 0x2e, 0xe1, 0x51, 0x23, 0x9c,
+	0xb4, 0xae, 0x08, 0xc3, 0x84, 0x55, 0x61, 0xfb, 0xc2, 0x37, 0xae, 0x70, 0xa0, 0xb0, 0xea, 0xc8,
+	0x1b, 0xa6, 0x0e, 0xde, 0xe8, 0xd8, 0xfb, 0x09, 0x27, 0x0b, 0xab, 0xd2, 0x37, 0xb0, 0x78, 0x27,
+	0xdd, 0x5b, 0x25, 0x6a, 0x7d, 0x04, 0x7c, 0x42, 0x43, 0xfe, 0xa3, 0x49, 0xbf, 0x12, 0x98, 0x9f,
+	0x7c, 0xf3, 0x12, 0xc6, 0xd8, 0x0f, 0x99, 0x3e, 0xb8, 0xcd, 0x14, 0x37, 0x71, 0xdf, 0xa4, 0xaf,
+	0x60, 0x82, 0xf4, 0x96, 0x9d, 0x25, 0xa3, 0x13, 0x1b, 0xc2, 0xf3, 0xd0, 0xa5, 0x2f, 0xe0, 0x7e,
+	0x38, 0x20, 0x20, 0x8c, 0x10, 0x61, 0xee, 0x45, 0xcf, 0x70, 0xf5, 0xf0, 0xe7, 0x61, 0x49, 0x7e,
+	0x1d, 0x96, 0xe4, 0xf7, 0x61, 0x49, 0xbe, 0xfd, 0x59, 0xde, 0xdb, 0x4c, 0xf0, 0xd7, 0x7c, 0xfd,
+	0x37, 0x00, 0x00, 0xff, 0xff, 0xf3, 0x2b, 0x5a, 0xc9, 0xca, 0x02, 0x00, 0x00,
 }
 
 func (m *P2PHeader) Marshal() (dAtA []byte, err error) {
@@ -566,7 +565,7 @@ func (m *PingPongPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *GetBlocksPayload) Marshal() (dAtA []byte, err error) {
+func (m *GetChainPayload) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -576,12 +575,12 @@ func (m *GetBlocksPayload) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *GetBlocksPayload) MarshalTo(dAtA []byte) (int, error) {
+func (m *GetChainPayload) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *GetBlocksPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *GetChainPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -590,20 +589,15 @@ func (m *GetBlocksPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if m.ToCheckpoint != 0 {
-		i = encodeVarintP2P(dAtA, i, uint64(m.ToCheckpoint))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.FromCheckpoint != 0 {
-		i = encodeVarintP2P(dAtA, i, uint64(m.FromCheckpoint))
+	if m.VaultHeight != 0 {
+		i = encodeVarintP2P(dAtA, i, uint64(m.VaultHeight))
 		i--
 		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
 
-func (m *BlocksPayload) Marshal() (dAtA []byte, err error) {
+func (m *ChainPayload) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -613,12 +607,12 @@ func (m *BlocksPayload) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *BlocksPayload) MarshalTo(dAtA []byte) (int, error) {
+func (m *ChainPayload) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *BlocksPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *ChainPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -630,7 +624,7 @@ func (m *BlocksPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.LatestHeight != 0 {
 		i = encodeVarintP2P(dAtA, i, uint64(m.LatestHeight))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x18
 	}
 	if len(m.Blocks) > 0 {
 		for iNdEx := len(m.Blocks) - 1; iNdEx >= 0; iNdEx-- {
@@ -643,8 +637,20 @@ func (m *BlocksPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i = encodeVarintP2P(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0xa
+			dAtA[i] = 0x12
 		}
+	}
+	if m.Vault != nil {
+		{
+			size, err := m.Vault.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintP2P(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -742,17 +748,14 @@ func (m *PingPongPayload) Size() (n int) {
 	return n
 }
 
-func (m *GetBlocksPayload) Size() (n int) {
+func (m *GetChainPayload) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if m.FromCheckpoint != 0 {
-		n += 1 + sovP2P(uint64(m.FromCheckpoint))
-	}
-	if m.ToCheckpoint != 0 {
-		n += 1 + sovP2P(uint64(m.ToCheckpoint))
+	if m.VaultHeight != 0 {
+		n += 1 + sovP2P(uint64(m.VaultHeight))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -760,12 +763,16 @@ func (m *GetBlocksPayload) Size() (n int) {
 	return n
 }
 
-func (m *BlocksPayload) Size() (n int) {
+func (m *ChainPayload) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
+	if m.Vault != nil {
+		l = m.Vault.Size()
+		n += 1 + l + sovP2P(uint64(l))
+	}
 	if len(m.Blocks) > 0 {
 		for _, e := range m.Blocks {
 			l = e.Size()
@@ -1302,7 +1309,7 @@ func (m *PingPongPayload) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *GetBlocksPayload) Unmarshal(dAtA []byte) error {
+func (m *GetChainPayload) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1325,17 +1332,17 @@ func (m *GetBlocksPayload) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: GetBlocksPayload: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetChainPayload: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetBlocksPayload: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetChainPayload: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FromCheckpoint", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field VaultHeight", wireType)
 			}
-			m.FromCheckpoint = 0
+			m.VaultHeight = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowP2P
@@ -1345,26 +1352,7 @@ func (m *GetBlocksPayload) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.FromCheckpoint |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ToCheckpoint", wireType)
-			}
-			m.ToCheckpoint = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowP2P
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ToCheckpoint |= uint64(b&0x7F) << shift
+				m.VaultHeight |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1394,7 +1382,7 @@ func (m *GetBlocksPayload) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *BlocksPayload) Unmarshal(dAtA []byte) error {
+func (m *ChainPayload) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1417,13 +1405,49 @@ func (m *BlocksPayload) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: BlocksPayload: wiretype end group for non-group")
+			return fmt.Errorf("proto: ChainPayload: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: BlocksPayload: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ChainPayload: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Vault", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowP2P
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthP2P
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Vault == nil {
+				m.Vault = &Vault{}
+			}
+			if err := m.Vault.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Blocks", wireType)
 			}
@@ -1457,7 +1481,7 @@ func (m *BlocksPayload) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LatestHeight", wireType)
 			}

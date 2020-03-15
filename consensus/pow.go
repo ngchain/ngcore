@@ -3,24 +3,24 @@
 package consensus
 
 import (
+	"crypto/elliptic"
 	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngin-network/ngcore/utils"
 	"github.com/whyrusleeping/go-logging"
-	"golang.org/x/crypto/sha3"
 	"runtime"
 	"time"
-
-	"math/big"
 )
 
 var log = logging.MustGetLogger("consensus")
 
-func (c *Consensus) PoW(mining bool, stopCh chan struct{}) {
-	var m *Miner
+// the main of consensus, shouldn't be shut down
+func (c *Consensus) InitPoW() {
 	foundCh := make(chan *ngtypes.Block)
-	if mining {
+	if c.mining {
 		log.Info("Start mining")
 		// TODO: add mining cpu number flag
-		m = NewMiner(runtime.NumCPU()/2, stopCh, foundCh, c.GetBlockTemplate())
+		c.miner = NewMiner(runtime.NumCPU()/2, foundCh)
+		c.miner.start(c.GetBlockTemplate())
 	}
 
 	updateCh := time.Tick(1 * time.Second)
@@ -33,29 +33,35 @@ func (c *Consensus) PoW(mining bool, stopCh chan struct{}) {
 			// assign the reward/balance to self
 			// if mined the block(not checkpoint) with the pubkey without account -> frozen, cannot tx until get an account
 
-			if mining {
-				go m.SetJob(c.GetBlockTemplate())
+			if c.mining {
+				go c.miner.setJob(c.GetBlockTemplate())
 			}
 		case <-updateCh:
-			if mining {
-				go m.SetJob(c.GetBlockTemplate())
+			if c.mining {
+				go c.miner.setJob(c.GetBlockTemplate())
 			}
-		case <-stopCh:
-			return
-
 		}
 	}
 }
 
+func (c *Consensus) StopMining() {
+	c.miner.start(c.GetBlockTemplate())
+}
+
 func (c *Consensus) GetBlockTemplate() (newUnsealingBlock *ngtypes.Block) {
 	currentBlock := c.Chain.GetLatestBlock()
-	currentVault := c.Chain.GetLatestVault()
-
-	newTarget := c.getNextTarget(currentBlock, currentVault)
+	currentBlockHash, _ := currentBlock.CalculateHash()
 	newBlockHeight := currentBlock.Header.Height + 1
 
-	currentBlockHash := c.Chain.GetLatestBlockHash()
-	currentVaultHash := c.Chain.GetLatestVaultHash()
+	// mining checkpoint
+	currentVault := c.Chain.GetLatestVault()
+	if newBlockHeight%ngtypes.BlockCheckRound == 0 {
+		currentVault = c.GenNewVault(currentVault.GetHeight(), c.Chain.GetLatestVaultHash())
+		c.Chain.PutVault(currentVault)
+	}
+	currentVaultHash, _ := currentVault.CalculateHash()
+
+	newTarget := c.getNextTarget(currentBlock, currentVault)
 
 	newBareBlock := ngtypes.NewBareBlock(
 		newBlockHeight,
@@ -89,12 +95,15 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 	// add block to the chain
 
 	hash, _ := b.CalculateHash()
-	log.Infof("Mined a new Block: %x", hash)
+	log.Infof("Mined a new Block: %x@%d", hash, b.GetHeight())
 
 	// TODO: vault should be generated when made the template
 	if b.Header.IsCheckpoint() {
-		v := c.GenNewVault(b)
-		c.ApplyNewVault(v)
+		v := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
+		err := c.SheetManager.ApplyVault(v)
+		if err != nil {
+			log.Panic(err)
+		}
 	}
 
 	err = c.Chain.PutBlock(b) // chain should verify again
@@ -109,34 +118,13 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 }
 
 // GenNewVault is called when the reached a checkpoint, then generate a
-func (c *Consensus) GenNewVault(hookBlock *ngtypes.Block) *ngtypes.Vault {
-	log.Infof("Mined a new Vault on: %d", hookBlock.Header.Height)
+func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *ngtypes.Vault {
+	log.Infof("Mined a new Vault@%d", prevVaultHeight)
 
 	// Make this value can be DIY by users
-	accountNumber := GetNewAccountIdByHookBlock(hookBlock)
+	accountNumber := utils.RandUint64()
 	log.Infof("New account: %d", accountNumber)
 
-	return ngtypes.NewVault(accountNumber, hookBlock, c.SheetManager.GenerateSheet())
-}
-
-//
-func (c *Consensus) ApplyNewVault(v *ngtypes.Vault) {
-	log.Infof("applying new vault @ %d", v.Height)
-	err := c.Chain.PutVault(v)
-	if err != nil {
-		log.Error(err)
-	}
-
-	// handle with the new vault
-	// register the new Account in txpool
-	err = c.SheetManager.ApplyVault(v)
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
-func GetNewAccountIdByHookBlock(hookBlock *ngtypes.Block) uint64 {
-	//TODO: Make this value can be DIY by users
-	b := sha3.Sum256(hookBlock.HeaderHash)
-	return new(big.Int).SetBytes(b[:]).Uint64()
+	ownerKey := elliptic.Marshal(elliptic.P256(), c.privateKey.PublicKey.X, c.privateKey.PublicKey.Y)
+	return ngtypes.NewVault(accountNumber, ownerKey, prevVaultHeight, prevVaultHash, c.SheetManager.GenerateSheet())
 }

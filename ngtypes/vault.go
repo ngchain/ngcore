@@ -14,28 +14,14 @@ var (
 	ErrMalformedVault   = errors.New("the vault structure is malformed")
 )
 
-func NewVault(newAccountID uint64, hookBlock *Block, currentSheet *Sheet) *Vault {
-	if !hookBlock.Header.IsCheckpoint() {
-		log.Error(ErrNotCheckpoint)
-		return nil
-	}
-
-	if !hookBlock.Header.IsSealed() {
-		log.Error(ErrBlockIsUnsealing)
-		return nil
-	}
-
-	if !hookBlock.VerifyNonce() {
-		log.Error(ErrInvalidHookBlock)
-	}
-
-	newAccount := NewAccount(newAccountID, hookBlock.Transactions[0].Header.Participants[0], nil)
+func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
+	newAccount := NewAccount(newAccountID, ownerKey, nil)
 
 	return &Vault{
-		Height:        hookBlock.Header.Height / BlockCheckRound,
+		Height:        prevVaultHeight + 1,
 		List:          newAccount,
 		Timestamp:     time.Now().Unix(),
-		PrevVaultHash: hookBlock.Header.PrevVaultHash,
+		PrevVaultHash: prevVaultHash,
 		Sheet:         currentSheet,
 	}
 }

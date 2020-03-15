@@ -26,7 +26,7 @@ type LocalNode struct {
 	Chain        *chain.Chain
 	txPool       *txpool.TxPool
 
-	Remotes *sync.Map
+	RemoteHeights *sync.Map // key:id value:height
 }
 
 // Create a new node with its implemented protocols
@@ -37,7 +37,7 @@ func NewLocalNode(host host.Host, done chan bool, sheetManager *sheetManager.She
 		Chain:        chain,
 		txPool:       txPool,
 
-		Remotes: new(sync.Map),
+		RemoteHeights: new(sync.Map),
 	}
 	node.Protocol = RegisterProtocol(node, done)
 	go node.Protocol.Sync()
@@ -154,9 +154,9 @@ func (n *LocalNode) IsSynced() bool {
 	var synced = 0
 	localHeight := n.Chain.GetLatestBlockHeight()
 
-	n.Remotes.Range(func(_, value interface{}) bool {
+	n.RemoteHeights.Range(func(_, value interface{}) bool {
 		total++
-		if localHeight+ngtypes.BlockCheckRound >= value.(*RemoteNode).BlockHeight {
+		if localHeight+ngtypes.BlockCheckRound >= value.(uint64) {
 			synced++
 		}
 		return true

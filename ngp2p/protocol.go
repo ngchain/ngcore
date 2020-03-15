@@ -22,11 +22,8 @@ func RegisterProtocol(node *LocalNode, done chan bool) *Protocol {
 	node.SetStreamHandler(pongMethod, p.onPong)
 	node.SetStreamHandler(rejectMethod, p.onReject)
 
-	node.SetStreamHandler(getblocksMethod, p.onGetBlocks)
-	node.SetStreamHandler(blocksMethod, p.onBlocks)
-
-	node.SetStreamHandler(getvaultsMethod, p.onGetVaults)
-	node.SetStreamHandler(vaultsMethod, p.onVaults)
+	node.SetStreamHandler(getChainMethod, p.onGetChain)
+	node.SetStreamHandler(chainMethod, p.onChain)
 
 	return p
 }

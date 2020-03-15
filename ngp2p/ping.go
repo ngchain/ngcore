@@ -43,7 +43,7 @@ func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 
 	// store ref request so response handler has access to it
 	p.requests[req.Header.Uuid] = req
-	log.Printf("%s: Sent Ping to: %s was sent. Message Id: %s.", p.node.ID(), remotePeerId, req.Header.Uuid)
+	log.Printf("Sent Ping to: %s was sent. Message Id: %s.", remotePeerId, req.Header.Uuid)
 	return true
 }
 

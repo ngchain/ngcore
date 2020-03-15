@@ -1,19 +1,24 @@
-# NgDaemon
+# NgCore
+
 New Golang implement of Ngin Network Node Daemon
+
+## NGIN
+
+NGIN is a totally new chain which is not a fork of ethereum or other chain. It is radically updating.
 
 ## requirements
 
-go version >= 1.12
+go version >= 1.11
 
 ## Features 
 
 ### Fast Sync
 
-Just Need to sync only 3 *Vaulty* and 21 Blocks before running.
+Just Need to sync only 3 *Vaulty* and 30 Blocks before running.
 
 ### Low Storage Usage
 
-3 *Vaulty* and 21 Blocks take few megabytes.
+3 *Vault* and 30 Blocks take few megabytes.
 
 ### Account in Numbers
 

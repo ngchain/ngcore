@@ -94,7 +94,7 @@ func getP2PKey(isBootstrap bool) crypto.PrivKey {
 
 func NewP2PNode(port int, isBootstrap bool, sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
 	doneCh := make(chan bool, 1)
-	priv := getP2PKey(isBootstrap)
+	priv := getP2PKey(true) //isBootstrap)
 
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),

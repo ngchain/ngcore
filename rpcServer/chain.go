@@ -15,7 +15,7 @@ type Chain struct {
 	chain *chain.Chain
 }
 
-/* Blocks */
+/* Chain */
 type DumpAllByHeightReply struct {
 	Table map[string]chain.Item `json:"table"`
 }

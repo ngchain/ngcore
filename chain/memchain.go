@@ -1,7 +1,6 @@
 package chain
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/ngin-network/ngcore/ngtypes"
@@ -102,7 +101,7 @@ func (mc *MemChain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	mc.RLock()
 	defer mc.RUnlock()
 	if item, ok := mc.BlockHashMap[hex.EncodeToString(hash)]; !ok {
-		return nil, ErrNoItemInHash
+		return nil, fmt.Errorf("`cannot find the block by hash:%x", hash)
 	} else {
 		return item, nil
 	}
@@ -111,6 +110,10 @@ func (mc *MemChain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 func (mc *MemChain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	mc.RLock()
 	defer mc.RUnlock()
+
+	if height == 0 {
+		return ngtypes.GetGenesisBlock(), nil
+	}
 
 	hashes, ok := mc.BlockHeightMap[height]
 	if !ok || len(hashes) == 0 {
@@ -130,7 +133,7 @@ func (mc *MemChain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
 	mc.RLock()
 	defer mc.RUnlock()
 	if item, ok := mc.VaultHashMap[hex.EncodeToString(hash)]; !ok {
-		return nil, ErrNoItemInHash
+		return nil, fmt.Errorf("cannot find the vault by hash:%x", hash)
 	} else {
 		return item, nil
 	}
@@ -140,9 +143,13 @@ func (mc *MemChain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 	mc.RLock()
 	defer mc.RUnlock()
 
+	if height == 0 {
+		return ngtypes.GetGenesisVault(), nil
+	}
+
 	hashes, ok := mc.VaultHeightMap[height]
 	if !ok || len(hashes) == 0 {
-		return nil, fmt.Errorf("cannot find the vault@%d", height)
+		return nil, fmt.Errorf("cannot find the vault@%d in memchain", height)
 	}
 
 	for i := 0; i < len(hashes); i++ {
@@ -151,7 +158,7 @@ func (mc *MemChain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("cannot find the vault@%d", height)
+	return nil, fmt.Errorf("cannot find the vault@%d memchain", height)
 }
 
 func (mc *MemChain) GetLatestBlock() (*ngtypes.Block, error) {
@@ -191,6 +198,7 @@ func (mc *MemChain) GetLatestBlockHeight() uint64 {
 func (mc *MemChain) GetLatestVault() (*ngtypes.Vault, error) {
 	mc.RLock()
 	defer mc.RUnlock()
+
 	return mc.GetVaultByHeight(mc.GetLatestVaultHeight())
 }
 
@@ -252,43 +260,33 @@ func (mc *MemChain) DelItems(items ...Item) error {
 }
 
 // ExportAllItem exports all items and then should save them all into storageChain
-func (mc *MemChain) ExportLongestChain(checkpoint *ngtypes.Block, maxLen int) []Item {
+func (mc *MemChain) ExportLongestChain(end *ngtypes.Block, maxLen int) []Item {
 	mc.RLock()
 	defer mc.RUnlock()
 
+	if (end.GetHeight()+1)%ngtypes.BlockCheckRound != 0 {
+		return nil
+	}
+
 	// fetch (lastCP, CP]
 	items := make([]Item, 0, len(mc.BlockHashMap)+len(mc.VaultHashMap))
-	cur := checkpoint
+	cur := end
+	items = append(items, cur)
 
 	for i := 0; i < maxLen; i++ {
-		if bytes.Compare(cur.GetPrevHash(), ngtypes.GenesisBlockHash) != 0 {
-			item, ok := mc.BlockHashMap[hex.EncodeToString(cur.GetPrevHash())]
-			if !ok {
-				log.Errorf("this chain lacks item: %x @ %d", cur.GetPrevHash(), cur.GetHeight()-1)
-				//err := mc.DelItems(items...)
-				//if err != nil {
-				//	log.Error(err)
-				//}
-				return nil
-			}
-
-			items = append(items, item)
-			if cur != checkpoint && cur.IsCheckpoint() {
-				hashes, ok := mc.BlockHeightMap[cur.Header.Height/ngtypes.BlockCheckRound]
-				if !ok || len(hashes) == 0 {
-					log.Error(ErrNoItemInHeight)
-					return nil
-				}
-
-				for i := 0; i < len(hashes); i++ {
-					if v, ok := mc.VaultHashMap[hashes[i]]; ok {
-						items = append(items, v)
-					}
-				}
-			}
-
-			cur = item
+		item, ok := mc.BlockHashMap[hex.EncodeToString(cur.GetPrevHash())]
+		if !ok {
+			log.Errorf("this chain lacks block: %x@%d", cur.GetPrevHash(), cur.GetHeight()-1)
+			return nil
 		}
+		items = append(items, item)
+		if cur.IsCheckpoint() {
+			if v, ok := mc.VaultHashMap[hex.EncodeToString(cur.Header.PrevVaultHash)]; ok {
+				items = append(items, v)
+			}
+		}
+
+		cur = item
 	}
 
 	//err := mc.DelItems(items...)
@@ -301,6 +299,9 @@ func (mc *MemChain) ExportLongestChain(checkpoint *ngtypes.Block, maxLen int) []
 		items[left], items[right] = items[right], items[left]
 	}
 
-	log.Infof("dumped chain from %d to %d", items[0].GetHeight(), items[len(items)-1].GetHeight())
+	if len(items) > 0 {
+		log.Infof("exported chain from %d to %d", items[0].GetHeight(), items[len(items)-1].GetHeight())
+	}
+
 	return items
 }

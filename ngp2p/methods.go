@@ -6,11 +6,8 @@ const pongMethod = "/ngp2p/pong/0.0.1"
 const rejectMethod = "/ngp2p/reject/0.0.1"
 const notfoundMethod = "/ngp2p/notfound/0.0.1"
 
-const getblocksMethod = "/ngp2p/getblocks/0.0.1"
-const blocksMethod = "/ngp2p/blocks/0.0.1"
-
-const getvaultsMethod = "/ngp2p/getvaults/0.0.1"
-const vaultsMethod = "/ngp2p/vaults/0.0.1"
+const getChainMethod = "/ngp2p/getblocks/0.0.1"
+const chainMethod = "/ngp2p/blocks/0.0.1"
 
 const getpoolMethod = "/ngp2p/getpool/0.0.1"
 
