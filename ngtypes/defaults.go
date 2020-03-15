@@ -36,14 +36,20 @@ var (
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()
 )
 
+// PoW
 const (
-	TargetTime = 12 * time.Second
-	CheckRound = 8
+	TargetTime      = 12 * time.Second
+	BlockCheckRound = 10
+	VaultCheckRound = 3
 )
 
 // Units
 var (
-	OneNGIN = new(big.Int).SetUint64(1000000)
-	//MinimalUnit = big.NewInt(1)
-	OneBlockReward = new(big.Int).Mul(OneNGIN, big.NewInt(10)) // 10NG
+	MegaNG         = new(big.Int).Mul(NG, big.NewInt(1000000))
+	MegaNGSymbol   = "MNG"
+	NG             = new(big.Int).SetUint64(1000000)
+	NGSymbol       = "NG"
+	MicroNG        = Big1
+	MicroNGSymbol  = "μNG"
+	OneBlockReward = new(big.Int).Mul(NG, big.NewInt(10)) // 10NG
 )

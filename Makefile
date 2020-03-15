@@ -1,3 +1,3 @@
-daemon:
-	go build ./cmd/daemon
+bazel:
+	gazelle update-repos -from_file=go.mod -prune=true
 

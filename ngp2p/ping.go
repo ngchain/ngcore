@@ -13,7 +13,7 @@ import (
 
 func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 	payload, err := proto.Marshal(&ngtypes.PingPongPayload{
-		BlockHeight: p.node.blockChain.GetLatestBlockHeight(),
+		BlockHeight: p.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
 		log.Println("failed to sign pb data")
@@ -76,7 +76,7 @@ func (p *Protocol) onPing(s network.Stream) {
 	log.Printf("%s: Received ping request from %s. Remote height: %d", s.Conn().LocalPeer(), s.Conn().RemotePeer(), ping.BlockHeight)
 	if p.node.authenticateMessage(&data, data.Header) {
 		// Pong
-		p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.CheckRound*ngtypes.CheckRound)
+		p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
 		go p.Pong(s, data.Header.Uuid)
 		return
 	} else {

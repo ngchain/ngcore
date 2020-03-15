@@ -12,7 +12,7 @@ func (p *Protocol) Blocks(s network.Stream, uuid string, getblocks *ngtypes.GetB
 	log.Printf("%s: Sending Blocks to %s. Message id: %s, Blocks from %d to %d ...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid, getblocks.FromCheckpoint, getblocks.ToCheckpoint)
 	var blocks = make([]*ngtypes.Block, getblocks.ToCheckpoint-getblocks.FromCheckpoint)
 	for i := getblocks.FromCheckpoint + 1; i <= getblocks.ToCheckpoint; i++ {
-		b := p.node.blockChain.GetBlockByHeight(i)
+		b := p.node.Chain.GetBlockByHeight(i)
 		if b == nil {
 			log.Println("Error: missing block @ height:", i)
 			return false
@@ -22,7 +22,7 @@ func (p *Protocol) Blocks(s network.Stream, uuid string, getblocks *ngtypes.GetB
 
 	payload, err := proto.Marshal(&ngtypes.BlocksPayload{
 		Blocks:       blocks,
-		LatestHeight: p.node.blockChain.GetLatestBlockHeight(),
+		LatestHeight: p.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
 		log.Println("failed to sign pb data")
@@ -88,7 +88,7 @@ func (p *Protocol) onBlocks(s network.Stream) {
 	}
 
 	for i := 0; i < len(blocks.Blocks); i++ {
-		err := p.node.blockChain.PutBlock(blocks.Blocks[i])
+		err := p.node.Chain.PutBlock(blocks.Blocks[i])
 		if err != nil {
 			log.Println(err)
 			return

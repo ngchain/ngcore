@@ -5,132 +5,228 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ngin-network/ngcore/ngtypes"
+	"strings"
 	"sync"
 )
 
-func NewMemChain(initCheckpint *ngtypes.Block) *MemChain {
-	if !initCheckpint.IsCheckpoint() {
-		log.Panic("failed to init mem chain: the init block is not a checkpoint")
-	}
+func NewMemChain() *MemChain {
 	mem := &MemChain{
-		HashMap:   &sync.Map{},
-		HeightMap: &sync.Map{},
-
-		latestItemHeight: 0,
+		BlockHashMap:   make(map[string]*ngtypes.Block),
+		BlockHeightMap: make(map[uint64][]string),
+		VaultHashMap:   make(map[string]*ngtypes.Vault),
+		VaultHeightMap: make(map[uint64][]string),
 	}
-	//err := mem.PutItem(initCheckpint)
-	//if err != nil {
-	//	log.Panic(err)
-	//}
-
-	height := initCheckpint.GetHeight()
-
-	hash, err := initCheckpint.CalculateHash()
-	if err != nil {
-		panic(err)
-	}
-
-	mem.HashMap.Store(hex.EncodeToString(hash), initCheckpint)
-	hashes, ok := mem.HeightMap.Load(initCheckpint.GetHeight())
-	if ok {
-		mem.HeightMap.Store(initCheckpint.GetHeight(), append(hashes.([][]byte), hash))
-	} else {
-		mem.HeightMap.Store(initCheckpint.GetHeight(), [][]byte{hash})
-	}
-
-	mem.latestItemHeight = height
 
 	return mem
 }
 
-type MemChain struct {
-	HashMap   *sync.Map
-	HeightMap *sync.Map
+func (mc *MemChain) Init(initCheckpoint *ngtypes.Block, initVault *ngtypes.Vault) {
+	hash, err := initCheckpoint.CalculateHash()
+	if err != nil {
+		panic(err)
+	}
 
-	latestItemHeight uint64
+	mc.BlockHashMap[hex.EncodeToString(hash)] = initCheckpoint
+	hashes, ok := mc.BlockHeightMap[initCheckpoint.GetHeight()]
+	if ok {
+		mc.BlockHeightMap[initCheckpoint.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+	} else {
+		mc.BlockHeightMap[initCheckpoint.GetHeight()] = []string{hex.EncodeToString(hash)}
+	}
+
+	hash, err = initVault.CalculateHash()
+	if err != nil {
+		panic(err)
+	}
+
+	mc.VaultHashMap[hex.EncodeToString(hash)] = initVault
+	hashes, ok = mc.VaultHeightMap[initVault.GetHeight()]
+	if ok {
+		mc.VaultHeightMap[initVault.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+	} else {
+		mc.VaultHeightMap[initVault.GetHeight()] = []string{hex.EncodeToString(hash)}
+	}
+
 }
 
-func (mc *MemChain) PutItem(item Item) error {
-	height := item.GetHeight()
+type MemChain struct {
+	sync.RWMutex
 
-	hash, err := item.CalculateHash()
-	if err != nil {
-		return err
+	BlockHashMap   map[string]*ngtypes.Block
+	BlockHeightMap map[uint64][]string
+
+	VaultHashMap   map[string]*ngtypes.Vault
+	VaultHeightMap map[uint64][]string
+}
+
+func (mc *MemChain) PutItems(items ...Item) error {
+	mc.Lock()
+	defer mc.Unlock()
+
+	for i := 0; i < len(items); i++ {
+		switch item := items[i].(type) {
+		case *ngtypes.Block:
+			hash, err := item.CalculateHash()
+			if err != nil {
+				return err
+			}
+			mc.BlockHashMap[hex.EncodeToString(hash)] = item
+			hashes, ok := mc.BlockHeightMap[item.GetHeight()]
+			if ok {
+				mc.BlockHeightMap[item.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+			} else {
+				mc.BlockHeightMap[item.GetHeight()] = []string{hex.EncodeToString(hash)}
+			}
+		case *ngtypes.Vault:
+			hash, err := item.CalculateHash()
+			if err != nil {
+				return err
+			}
+			mc.VaultHashMap[hex.EncodeToString(hash)] = item
+			hashes, ok := mc.VaultHeightMap[item.GetHeight()]
+			if ok {
+				mc.VaultHeightMap[item.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+			} else {
+				mc.VaultHeightMap[item.GetHeight()] = []string{hex.EncodeToString(hash)}
+			}
+		default:
+			panic(fmt.Sprintf("unknown type in chain: %v", item))
+		}
+
 	}
-
-	mc.HashMap.Store(hex.EncodeToString(hash), item)
-	hashes, ok := mc.HeightMap.Load(item.GetHeight())
-	if ok {
-		mc.HeightMap.Store(item.GetHeight(), append(hashes.([][]byte), hash))
-	} else {
-		mc.HeightMap.Store(item.GetHeight(), [][]byte{hash})
-	}
-
-	mc.latestItemHeight = height
 
 	return nil
 }
 
-func (mc *MemChain) GetItemByHash(hash []byte) (Item, error) {
-	if item, ok := mc.HashMap.Load(hex.EncodeToString(hash)); !ok {
+func (mc *MemChain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
+	mc.RLock()
+	defer mc.RUnlock()
+	if item, ok := mc.BlockHashMap[hex.EncodeToString(hash)]; !ok {
 		return nil, ErrNoItemInHash
 	} else {
-		return item.(Item), nil
+		return item, nil
 	}
 }
 
-func (mc *MemChain) GetItemByHeight(height uint64) (Item, error) {
-	hashes, ok := mc.HeightMap.Load(height)
-	if !ok || len(hashes.([][]byte)) == 0 {
-		return nil, ErrNoItemInHeight
+func (mc *MemChain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
+	mc.RLock()
+	defer mc.RUnlock()
+
+	hashes, ok := mc.BlockHeightMap[height]
+	if !ok || len(hashes) == 0 {
+		return nil, fmt.Errorf("cannot find the block@%d", height)
 	}
 
-	for i := 0; i < len(hashes.([][]byte)); i++ {
-		if item, ok := mc.HashMap.Load(hex.EncodeToString(hashes.([][]byte)[i])); ok {
-			return item.(Item), nil
+	for i := 0; i < len(hashes); i++ {
+		if item, ok := mc.BlockHashMap[hashes[i]]; ok {
+			return item, nil
 		}
 	}
 
-	return nil, ErrNoItemInHeight
+	return nil, fmt.Errorf("cannot find the block@%d", height)
 }
 
-func (mc *MemChain) GetLatestItem() (Item, error) {
-	return mc.GetItemByHeight(mc.latestItemHeight)
+func (mc *MemChain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
+	mc.RLock()
+	defer mc.RUnlock()
+	if item, ok := mc.VaultHashMap[hex.EncodeToString(hash)]; !ok {
+		return nil, ErrNoItemInHash
+	} else {
+		return item, nil
+	}
 }
 
-func (mc *MemChain) GetLatestItemHash() []byte {
-	item, err := mc.GetItemByHeight(mc.latestItemHeight)
+func (mc *MemChain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
+	mc.RLock()
+	defer mc.RUnlock()
+
+	hashes, ok := mc.VaultHeightMap[height]
+	if !ok || len(hashes) == 0 {
+		return nil, fmt.Errorf("cannot find the vault@%d", height)
+	}
+
+	for i := 0; i < len(hashes); i++ {
+		if item, ok := mc.VaultHashMap[hashes[i]]; ok {
+			return item, nil
+		}
+	}
+
+	return nil, fmt.Errorf("cannot find the vault@%d", height)
+}
+
+func (mc *MemChain) GetLatestBlock() (*ngtypes.Block, error) {
+	mc.RLock()
+	defer mc.RUnlock()
+	return mc.GetBlockByHeight(mc.GetLatestBlockHeight())
+}
+
+func (mc *MemChain) GetLatestBlockHash() []byte {
+	mc.RLock()
+	defer mc.RUnlock()
+
+	item, err := mc.GetBlockByHeight(mc.GetLatestBlockHeight())
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	hash, err := item.CalculateHash()
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	return hash
 }
 
-func (mc *MemChain) GetLatestItemHeight() uint64 {
-	return mc.latestItemHeight
-}
+func (mc *MemChain) GetLatestBlockHeight() uint64 {
+	mc.RLock()
+	defer mc.RUnlock()
 
-// ReleaseMap always run after blockchain ExportAllItem, but never after vaultchain's action
-func (mc *MemChain) ReleaseMap(checkpoint *ngtypes.Block) {
-	mc.HeightMap.Range(func(key, value interface{}) bool {
-		height := key.(uint64)
-		if height < checkpoint.GetHeight() {
-			hashes := value.([][]byte)
-			mc.HeightMap.Delete(height)
-			for i := range hashes {
-				mc.HashMap.Delete(hex.EncodeToString(hashes[i]))
-			}
+	var top uint64
+	for height, hashes := range mc.BlockHeightMap {
+		if hashes != nil && top < height {
+			top = height
 		}
-
-		return true
-	})
+	}
+	return top
 }
 
+func (mc *MemChain) GetLatestVault() (*ngtypes.Vault, error) {
+	mc.RLock()
+	defer mc.RUnlock()
+	return mc.GetVaultByHeight(mc.GetLatestVaultHeight())
+}
+
+func (mc *MemChain) GetLatestVaultHash() []byte {
+	mc.RLock()
+	defer mc.RUnlock()
+
+	item, err := mc.GetVaultByHeight(mc.GetLatestVaultHeight())
+	if err != nil {
+		return nil
+	}
+	hash, err := item.CalculateHash()
+	if err != nil {
+		return nil
+	}
+	return hash
+}
+
+func (mc *MemChain) GetLatestVaultHeight() uint64 {
+	mc.RLock()
+	defer mc.RUnlock()
+
+	var top uint64
+	for height, hashes := range mc.VaultHeightMap {
+		if hashes != nil && top < height {
+			top = height
+		}
+	}
+	return top
+}
+
+// TODO
 func (mc *MemChain) DelItems(items ...Item) error {
+	mc.Lock()
+	defer mc.Unlock()
+
 	for i := 0; i < len(items); i++ {
 		if items[i] == nil {
 			continue
@@ -139,49 +235,72 @@ func (mc *MemChain) DelItems(items ...Item) error {
 		if err != nil {
 			return err
 		}
-		mc.HashMap.Delete(hex.EncodeToString(hash))
-		heights, exists := mc.HeightMap.Load(items[i].GetHeight())
+		delete(mc.BlockHashMap, hex.EncodeToString(hash))
+		hashes, exists := mc.BlockHeightMap[items[i].GetHeight()]
 		if !exists {
 			return fmt.Errorf("cannot find height %d", items[i].GetHeight())
 		}
-		h := heights.([][]byte)
-		for i := range h {
-			if bytes.Compare(h[i], hash) == 0 {
-				h = append(h[:i], h[i+1:]...)
+		for i := range hashes {
+			if strings.Compare(hashes[i], hex.EncodeToString(hash)) == 0 {
+				hashes = append(hashes[:i], hashes[i+1:]...)
 				break
 			}
 		}
-		mc.HeightMap.Store(items[i].GetHeight(), heights)
+		mc.BlockHeightMap[items[i].GetHeight()] = hashes
 	}
 	return nil
 }
 
 // ExportAllItem exports all items and then should save them all into storageChain
-func (mc *MemChain) ExportLongestChain(checkpoint Item) []Item {
+func (mc *MemChain) ExportLongestChain(checkpoint *ngtypes.Block, maxLen int) []Item {
+	mc.RLock()
+	defer mc.RUnlock()
+
 	// fetch (lastCP, CP]
-	items := make([]Item, ngtypes.CheckRound)
+	items := make([]Item, 0, len(mc.BlockHashMap)+len(mc.VaultHashMap))
 	cur := checkpoint
 
-	for i := 0; i < ngtypes.CheckRound; i++ {
-		items[ngtypes.CheckRound-1-i] = cur
-
+	for i := 0; i < maxLen; i++ {
 		if bytes.Compare(cur.GetPrevHash(), ngtypes.GenesisBlockHash) != 0 {
-			item, ok := mc.HashMap.Load(hex.EncodeToString(cur.GetPrevHash()))
+			item, ok := mc.BlockHashMap[hex.EncodeToString(cur.GetPrevHash())]
 			if !ok {
-				log.Errorf("this chain lacks block: %x @ %d", cur.GetPrevHash(), cur.GetHeight()-1)
-				err := mc.DelItems(items...)
-				if err != nil {
-					log.Error(err)
-				}
+				log.Errorf("this chain lacks item: %x @ %d", cur.GetPrevHash(), cur.GetHeight()-1)
+				//err := mc.DelItems(items...)
+				//if err != nil {
+				//	log.Error(err)
+				//}
 				return nil
 			}
 
-			cur = item.(Item)
+			items = append(items, item)
+			if cur != checkpoint && cur.IsCheckpoint() {
+				hashes, ok := mc.BlockHeightMap[cur.Header.Height/ngtypes.BlockCheckRound]
+				if !ok || len(hashes) == 0 {
+					log.Error(ErrNoItemInHeight)
+					return nil
+				}
+
+				for i := 0; i < len(hashes); i++ {
+					if v, ok := mc.VaultHashMap[hashes[i]]; ok {
+						items = append(items, v)
+					}
+				}
+			}
+
+			cur = item
 		}
 	}
 
-	err := mc.DelItems(items...)
-	log.Error(err)
+	//err := mc.DelItems(items...)
+	//if err != nil {
+	//	log.Error(err)
+	//}
+
+	// reverse the slice
+	for left, right := 0, len(items)-1; left < right; left, right = left+1, right-1 {
+		items[left], items[right] = items[right], items[left]
+	}
+
 	log.Infof("dumped chain from %d to %d", items[0].GetHeight(), items[len(items)-1].GetHeight())
 	return items
 }

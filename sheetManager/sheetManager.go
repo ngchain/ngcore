@@ -20,14 +20,18 @@ type SheetManager struct {
 	anonymous    *sync.Map //map[string]*big.Int  // TODO: sync.Map
 }
 
-func NewSheetManager(currentVault *ngtypes.Vault) *SheetManager {
+func NewSheetManager() *SheetManager {
 	s := &SheetManager{
-		currentVault: currentVault,
+		currentVault: nil,
 		accounts:     &sync.Map{},
 		anonymous:    &sync.Map{},
 	}
 
 	return s
+}
+
+func (sm *SheetManager) Init(currentVault *ngtypes.Vault) {
+	sm.currentVault = currentVault
 }
 
 func (sm *SheetManager) GetBalance(accountID uint64) (*big.Int, error) {

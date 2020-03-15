@@ -6,12 +6,12 @@ import (
 
 // Protocol type
 type Protocol struct {
-	node     *Node                          // local host
+	node     *LocalNode                     // local host
 	requests map[string]*ngtypes.P2PMessage // used to access request data from response handlers
 	doneCh   chan bool                      // only for demo purposes to stop main from terminating
 }
 
-func RegisterProtocol(node *Node, done chan bool) *Protocol {
+func RegisterProtocol(node *LocalNode, done chan bool) *Protocol {
 	p := &Protocol{
 		node:     node,
 		requests: make(map[string]*ngtypes.P2PMessage),
@@ -24,6 +24,9 @@ func RegisterProtocol(node *Node, done chan bool) *Protocol {
 
 	node.SetStreamHandler(getblocksMethod, p.onGetBlocks)
 	node.SetStreamHandler(blocksMethod, p.onBlocks)
+
+	node.SetStreamHandler(getvaultsMethod, p.onGetVaults)
+	node.SetStreamHandler(vaultsMethod, p.onVaults)
 
 	return p
 }

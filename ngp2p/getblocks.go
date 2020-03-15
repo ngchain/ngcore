@@ -11,11 +11,11 @@ import (
 )
 
 func (p *Protocol) GetBlocks(remotePeerId peer.ID, remoteHeight uint64) bool {
-	localHeight := p.node.blockChain.GetLatestBlockHeight()
+	localHeight := p.node.Chain.GetLatestBlockHeight()
 
 	payload, err := proto.Marshal(&ngtypes.GetBlocksPayload{
-		FromCheckpoint: localHeight - (localHeight % ngtypes.CheckRound),
-		ToCheckpoint:   remoteHeight - (remoteHeight % ngtypes.CheckRound),
+		FromCheckpoint: localHeight - (localHeight % ngtypes.BlockCheckRound),
+		ToCheckpoint:   remoteHeight - (remoteHeight % ngtypes.BlockCheckRound),
 	})
 	if err != nil {
 		log.Println("failed to sign pb data")
@@ -78,7 +78,7 @@ func (p *Protocol) onGetBlocks(s network.Stream) {
 		log.Printf("%s: Received getBlocks request from %s. From %d To %d", s.Conn().LocalPeer(), s.Conn().RemotePeer(), getblocks.FromCheckpoint, getblocks.ToCheckpoint)
 
 		// Blocks
-		if getblocks.FromCheckpoint%ngtypes.CheckRound != 0 {
+		if getblocks.FromCheckpoint%ngtypes.BlockCheckRound != 0 {
 			p.Reject(s, data.Header.Uuid)
 			return
 		}
@@ -88,7 +88,7 @@ func (p *Protocol) onGetBlocks(s network.Stream) {
 			return
 		}
 
-		localHeight := p.node.blockChain.GetLatestBlockHeight()
+		localHeight := p.node.Chain.GetLatestBlockHeight()
 		if localHeight < getblocks.ToCheckpoint {
 			p.Reject(s, data.Header.Uuid)
 			return

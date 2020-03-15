@@ -28,11 +28,15 @@ type TxPool struct {
 	expireCheckCh <-chan time.Time
 }
 
-func NewTxPool(currentVault *ngtypes.Vault) *TxPool {
+func NewTxPool() *TxPool {
 	return &TxPool{
 		Queuing:      make(map[uint64]map[uint64]*ngtypes.Transaction),
-		CurrentVault: currentVault,
+		CurrentVault: nil,
 	}
+}
+
+func (p *TxPool) Init(currentVault *ngtypes.Vault) {
+	p.CurrentVault = currentVault
 }
 
 func (p *TxPool) Run() {

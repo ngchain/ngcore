@@ -3,40 +3,19 @@
 package consensus
 
 import (
-	"crypto/ecdsa"
 	"github.com/ngin-network/ngcore/ngtypes"
-	"github.com/ngin-network/ngcore/sheetManager"
-	"github.com/ngin-network/ngcore/txpool"
-	"runtime"
-	"time"
-
-	"github.com/ngin-network/ngcore/chain"
 	"github.com/whyrusleeping/go-logging"
 	"golang.org/x/crypto/sha3"
+	"runtime"
+	"time"
 
 	"math/big"
 )
 
 var log = logging.MustGetLogger("consensus")
 
-// the pow
-type Consensus struct {
-	template     *ngtypes.Block
-	SheetManager *sheetManager.SheetManager
-
-	privateKey *ecdsa.PrivateKey
-	BlockChain *chain.BlockChain
-	VaultChain *chain.VaultChain
-
-	CurrentBlock *ngtypes.Block
-	CurrentVault *ngtypes.Vault
-
-	TxPool *txpool.TxPool
-}
-
-func (c *Consensus) PoW(mining bool) {
+func (c *Consensus) PoW(mining bool, stopCh chan struct{}) {
 	var m *Miner
-	stopCh := make(chan struct{})
 	foundCh := make(chan *ngtypes.Block)
 	if mining {
 		log.Info("Start mining")
@@ -44,7 +23,7 @@ func (c *Consensus) PoW(mining bool) {
 		m = NewMiner(runtime.NumCPU()/2, stopCh, foundCh, c.GetBlockTemplate())
 	}
 
-	updateCh := time.Tick(2 * time.Second)
+	updateCh := time.Tick(1 * time.Second)
 
 	for {
 		select {
@@ -61,20 +40,22 @@ func (c *Consensus) PoW(mining bool) {
 			if mining {
 				go m.SetJob(c.GetBlockTemplate())
 			}
+		case <-stopCh:
+			return
 
 		}
 	}
 }
 
 func (c *Consensus) GetBlockTemplate() (newUnsealingBlock *ngtypes.Block) {
-	currentBlock := c.BlockChain.GetLatestBlock()
-	currentVault := c.VaultChain.GetLatestVault()
+	currentBlock := c.Chain.GetLatestBlock()
+	currentVault := c.Chain.GetLatestVault()
 
 	newTarget := c.getNextTarget(currentBlock, currentVault)
 	newBlockHeight := currentBlock.Header.Height + 1
 
-	currentBlockHash := c.BlockChain.GetLatestBlockHash()
-	currentVaultHash := c.VaultChain.GetLatestVaultHash()
+	currentBlockHash := c.Chain.GetLatestBlockHash()
+	currentVaultHash := c.Chain.GetLatestVaultHash()
 
 	newBareBlock := ngtypes.NewBareBlock(
 		newBlockHeight,
@@ -109,25 +90,22 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	hash, _ := b.CalculateHash()
 	log.Infof("Mined a new Block: %x", hash)
-	err = c.BlockChain.PutBlock(b) // chain should verify again
+
+	// TODO: vault should be generated when made the template
+	if b.Header.IsCheckpoint() {
+		v := c.GenNewVault(b)
+		c.ApplyNewVault(v)
+	}
+
+	err = c.Chain.PutBlock(b) // chain should verify again
 	if err != nil {
 		log.Warning(err)
 		return
 	}
 
-	if b.Header.IsCheckpoint() {
-		// TODO: If broadcast block only, without Vault?
-		// p2p broadcast block(with V hash) -> Other Node will found it forgot its new V and reject it.
-		go func() {
-			v := c.GenNewVault(b)
-			c.ApplyNewVault(v)
-		}()
-	}
+	c.SheetManager.ApplyBlockTxs(b)
 
-	// block reward to frozen room
-	go c.SheetManager.ApplyBlockTxs(b)
-
-	c.CurrentBlock = c.BlockChain.GetLatestBlock()
+	//c.CurrentBlock = c.BlockChain.GetLatestBlock()
 }
 
 // GenNewVault is called when the reached a checkpoint, then generate a
@@ -138,27 +116,23 @@ func (c *Consensus) GenNewVault(hookBlock *ngtypes.Block) *ngtypes.Vault {
 	accountNumber := GetNewAccountIdByHookBlock(hookBlock)
 	log.Infof("New account: %d", accountNumber)
 
-	return ngtypes.NewVault(accountNumber, c.VaultChain.GetLatestVault(), hookBlock, c.SheetManager.GenerateSheet())
+	return ngtypes.NewVault(accountNumber, hookBlock, c.SheetManager.GenerateSheet())
 }
 
 //
 func (c *Consensus) ApplyNewVault(v *ngtypes.Vault) {
 	log.Infof("applying new vault @ %d", v.Height)
-	err := c.VaultChain.PutVault(v)
+	err := c.Chain.PutVault(v)
 	if err != nil {
 		log.Error(err)
 	}
 
 	// handle with the new vault
 	// register the new Account in txpool
-	log.Info(v)
 	err = c.SheetManager.ApplyVault(v)
 	if err != nil {
 		log.Panic(err)
 	}
-
-	// update
-	c.CurrentVault = c.VaultChain.GetLatestVault()
 }
 
 func GetNewAccountIdByHookBlock(hookBlock *ngtypes.Block) uint64 {

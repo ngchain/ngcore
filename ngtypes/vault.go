@@ -14,7 +14,7 @@ var (
 	ErrMalformedVault   = errors.New("the vault structure is malformed")
 )
 
-func NewVault(newAccountID uint64, prevVault *Vault, hookBlock *Block, currentSheet *Sheet) *Vault {
+func NewVault(newAccountID uint64, hookBlock *Block, currentSheet *Sheet) *Vault {
 	if !hookBlock.Header.IsCheckpoint() {
 		log.Error(ErrNotCheckpoint)
 		return nil
@@ -29,21 +29,13 @@ func NewVault(newAccountID uint64, prevVault *Vault, hookBlock *Block, currentSh
 		log.Error(ErrInvalidHookBlock)
 	}
 
-	prevVaultHash, err := prevVault.CalculateHash()
-	if err != nil {
-		log.Error(err)
-	}
-
 	newAccount := NewAccount(newAccountID, hookBlock.Transactions[0].Header.Participants[0], nil)
 
-	blockHash := hookBlock.Header.CalculateHash()
-
 	return &Vault{
-		Height:        hookBlock.Header.Height / CheckRound,
+		Height:        hookBlock.Header.Height / BlockCheckRound,
 		List:          newAccount,
 		Timestamp:     time.Now().Unix(),
-		PrevVaultHash: prevVaultHash,
-		HookBlockHash: blockHash,
+		PrevVaultHash: hookBlock.Header.PrevVaultHash,
 		Sheet:         currentSheet,
 	}
 }
@@ -56,9 +48,6 @@ func (m *Vault) CalculateHash() ([]byte, error) {
 }
 
 func GetGenesisVault() *Vault {
-	var hookGenesisBlock = GetGenesisBlock()
-	blockHash := hookGenesisBlock.Header.CalculateHash()
-
 	v := &Vault{
 		Height: 0,
 
@@ -66,7 +55,6 @@ func GetGenesisVault() *Vault {
 		Timestamp: genesisTimestamp,
 
 		PrevVaultHash: nil,
-		HookBlockHash: blockHash,
 
 		Sheet: &Sheet{
 			Version:   Version,

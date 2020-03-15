@@ -24,6 +24,5 @@ type GetCurrentSheetReply struct {
 
 func (sm *Sheet) GetCurrentSheet(r *http.Request, args *struct{}, reply *GetCurrentSheetReply) error {
 	reply.Sheet = sm.sm.GenerateSheet()
-	log.Info(reply.Sheet)
 	return nil
 }

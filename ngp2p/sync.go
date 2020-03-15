@@ -7,7 +7,7 @@ import (
 )
 
 func (p *Protocol) Sync() {
-	syncInterval := time.Tick(ngtypes.TargetTime * ngtypes.CheckRound)
+	syncInterval := time.Tick(ngtypes.TargetTime * ngtypes.BlockCheckRound)
 	for {
 		select {
 		case <-syncInterval:

@@ -21,7 +21,7 @@ func (c *Consensus) getNextTarget(block *ngtypes.Block, vault *ngtypes.Vault) *b
 
 	diff := new(big.Int).Div(ngtypes.MaxTarget, target)
 	// when checkpoint
-	if block.Header.Timestamp-vault.Timestamp < int64(ngtypes.TargetTime)*(ngtypes.CheckRound-1) {
+	if block.Header.Timestamp-vault.Timestamp < int64(ngtypes.TargetTime)*(ngtypes.BlockCheckRound-1) {
 		diff = new(big.Int).Add(diff, new(big.Int).Div(diff, big.NewInt(10)))
 	}
 

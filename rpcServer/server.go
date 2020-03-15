@@ -18,7 +18,7 @@ type RpcServer struct {
 	server       *rpc.Server
 }
 
-func NewRPCServer(sheetManager *sheetManager.SheetManager, blockChain *chain.BlockChain, vaultChain *chain.VaultChain, txPool *txpool.TxPool) *RpcServer {
+func NewRPCServer(sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *RpcServer {
 	s := rpc.NewServer()
 	s.RegisterCodec(json.NewCodec(), "application/json")
 	s.RegisterCodec(json.NewCodec(), "*/*")
@@ -28,12 +28,7 @@ func NewRPCServer(sheetManager *sheetManager.SheetManager, blockChain *chain.Blo
 		log.Panic(err)
 	}
 
-	err = s.RegisterService(NewBlockModule(blockChain), "")
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = s.RegisterService(NewVaultModule(vaultChain), "")
+	err = s.RegisterService(NewChainModule(chain), "")
 	if err != nil {
 		log.Panic(err)
 	}

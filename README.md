@@ -9,17 +9,17 @@ go version >= 1.12
 
 ### Fast Sync
 
-Just Need to sync only 2 *treasury* and 12 Blocks.
+Just Need to sync only 3 *Vaulty* and 21 Blocks before running.
 
 ### Low Storage Usage
 
-2 *treasury* and 12 Blocks take few mega bytes.
+3 *Vaulty* and 21 Blocks take few megabytes.
 
-### Number Account
+### Account in Numbers
 
 easy to remember for humankind.
 
-### Rapid Operation
+### Rapid Transaction
 
 with formatted network grid, the message (operations and broadcasts) between nodes will cost the shortest time.
 

@@ -17,15 +17,17 @@ import (
 	"gopkg.in/urfave/cli.v1"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"strings"
 	"syscall"
+	"time"
 )
 
 var log = logging.MustGetLogger("main")
 
-var daemonFlag = cli.BoolFlag{
-	Name:  "daemon, d",
-	Usage: "Start ngcore as a Daemon (background)",
+var strictModeFlag = cli.BoolFlag{
+	Name:  "strict",
+	Usage: "force ngcore starts from the genesis block",
 }
 
 var logFlag = cli.BoolTFlag{
@@ -34,15 +36,9 @@ var logFlag = cli.BoolTFlag{
 }
 
 var p2pTcpPortFlag = cli.IntFlag{
-	Name:  "p2p-tcp-port",
+	Name:  "p2p-port",
 	Usage: "Port for P2P connection",
 	Value: 52520,
-}
-
-var p2pWsPortFlag = cli.IntFlag{
-	Name:  "p2p-ws-port",
-	Usage: "Port for P2P connection",
-	Value: 52530,
 }
 
 var rpcPortFlag = cli.IntFlag{
@@ -74,47 +70,65 @@ var miningFlag = cli.BoolFlag{
 
 // the Main
 var action = func(c *cli.Context) error {
-	var p2pTcpPort, p2pWsPort, rpcPort int
-	var keyPass string
-	var mining, isBootstrap, withProfile bool
+	isBootstrap := c.Bool("bootstrap")
+	isStrictMode := isBootstrap || c.Bool("strict")
+	p2pTcpPort := c.Int("p2p-port")
+	rpcPort := c.Int("rpc-port")
+	isMining := c.Bool("mining")
+	keyPass := c.String("key-pass")
+	withProfile := c.Bool("profile")
 
-	fmt.Println("Loading blockchain")
-	p2pTcpPort = c.Int("p2p-tcp-port")
-	p2pWsPort = c.Int("p2p-ws-port")
-	rpcPort = c.Int("rpc-port")
-	isBootstrap = c.Bool("bootstrap")
-	mining = c.Bool("mining")
-	keyPass = c.String("key-pass")
-	withProfile = c.Bool("profile")
+	if withProfile {
+		f, err := os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	logging.SetLevel(logging.INFO, "")
 
-	localMgr := keyManager.NewKeyManager("ngcore.key", strings.TrimSpace(keyPass))
-	localKey := localMgr.ReadLocalKey()
+	keyManager := keyManager.NewKeyManager("ngcore.key", strings.TrimSpace(keyPass))
+	key := keyManager.ReadLocalKey()
 
 	db := storage.InitStorage()
 
-	blockChain := chain.NewBlockChain(db)
-	vaultChain := chain.NewVaultChain(db)
+	chain := chain.NewChain(db)
+	if isStrictMode {
+		chain.InitWithGenesis()
+	}
+	sheetManager := sheetManager.NewSheetManager()
+	txPool := txpool.NewTxPool()
 
-	sheetManager := sheetManager.NewSheetManager(vaultChain.GetLatestVault())
+	consensusManager := consensus.NewConsensusManager()
+	consensusManager.Init(chain, sheetManager, key, txPool)
 
-	txPool := txpool.NewTxPool(vaultChain.GetLatestVault())
+	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
+	fmt.Printf("LocalNode PublicKey is %v\n", base58.FastBase58Encoding(publicKey[:]))
 
-	consensusManager := consensus.InitConsensusManager(blockChain, vaultChain, sheetManager, localKey, txPool)
-
-	publicKey := elliptic.Marshal(elliptic.P256(), localKey.PublicKey.X, localKey.PublicKey.Y)
-	fmt.Printf("Node PublicKey is %v\n", base58.FastBase58Encoding(publicKey[:]))
-
-	fmt.Println(p2pTcpPort, p2pWsPort, rpcPort, mining, isBootstrap, withProfile) // placeholder
-
-	s := ngp2p.NewP2PServer()
-	s.Serve(p2pTcpPort, isBootstrap, sheetManager, blockChain, vaultChain, txPool)
-
-	go consensusManager.PoW(mining)
-
-	rpc := rpcServer.NewRPCServer(sheetManager, blockChain, vaultChain, txPool)
+	rpc := rpcServer.NewRPCServer(sheetManager, chain, txPool)
 	go rpc.Serve(rpcPort)
+	localNode := ngp2p.NewP2PNode(p2pTcpPort, isBootstrap, sheetManager, chain, txPool)
+
+	stopCh := make(chan struct{})
+	go func() {
+		for {
+			if localNode.IsSynced() {
+				log.Info("localnode is synced with network")
+				if chain.GetLatestBlockHeight() == 0 {
+					chain.InitWithGenesis()
+				}
+				latestVault := chain.GetLatestVault()
+				sheetManager.Init(latestVault)
+				txPool.Init(latestVault)
+				log.Info("Start PoW")
+				go consensusManager.PoW(isMining, stopCh)
+
+				return
+			}
+		}
+	}()
 
 	// notify the exit events
 	var stopSignal = make(chan os.Signal, 1)
@@ -138,7 +152,7 @@ func main() {
 	app.Action = action
 
 	flags := []cli.Flag{
-		daemonFlag, logFlag, p2pTcpPortFlag, p2pWsPortFlag, rpcPortFlag, miningFlag,
+		strictModeFlag, logFlag, p2pTcpPortFlag, rpcPortFlag, miningFlag,
 		isBootstrapFlag, keyPassFlag, profileFlag,
 	}
 

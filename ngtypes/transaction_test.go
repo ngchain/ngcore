@@ -15,7 +15,7 @@ func TestDeserialize(t *testing.T) {
 		0,
 		0,
 		[][]byte{GenesisPK},
-		[]*big.Int{new(big.Int).Mul(OneNGIN, big.NewInt(1000))},
+		[]*big.Int{new(big.Int).Mul(NG, big.NewInt(1000))},
 		Big0,
 		0,
 		nil,

@@ -10,7 +10,7 @@ import (
 
 // IsCheckpoint will check whether the Block is the checkpoint
 func (m *BlockHeader) IsCheckpoint() bool {
-	return m.GetHeight()%CheckRound == 0
+	return m.GetHeight()%BlockCheckRound == 0
 }
 
 func (m *BlockHeader) IsGenesisBlock() bool {

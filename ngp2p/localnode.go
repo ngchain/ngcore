@@ -14,27 +14,30 @@ import (
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/txpool"
 	"log"
+	"sync"
 )
 
 const P2PVersion = "ng/0.0.1"
 
-type Node struct {
+type LocalNode struct {
 	host.Host // lib-p2p host
 	*Protocol
 	sheetManager *sheetManager.SheetManager
-	blockChain   *chain.BlockChain
-	vaultChain   *chain.VaultChain
+	Chain        *chain.Chain
 	txPool       *txpool.TxPool
+
+	Remotes *sync.Map
 }
 
 // Create a new node with its implemented protocols
-func NewNode(host host.Host, done chan bool, sheetManager *sheetManager.SheetManager, blockChain *chain.BlockChain, vaultChain *chain.VaultChain, txPool *txpool.TxPool) *Node {
-	node := &Node{
+func NewLocalNode(host host.Host, done chan bool, sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
+	node := &LocalNode{
 		Host:         host,
 		sheetManager: sheetManager,
-		blockChain:   blockChain,
-		vaultChain:   vaultChain,
+		Chain:        chain,
 		txPool:       txPool,
+
+		Remotes: new(sync.Map),
 	}
 	node.Protocol = RegisterProtocol(node, done)
 	go node.Protocol.Sync()
@@ -44,12 +47,12 @@ func NewNode(host host.Host, done chan bool, sheetManager *sheetManager.SheetMan
 // Authenticate incoming p2p message
 // message: a protobufs go data object
 // data: common p2p message data
-func (n *Node) authenticateMessage(message proto.Message, data *ngtypes.P2PHeader) bool {
+func (n *LocalNode) authenticateMessage(message proto.Message, data *ngtypes.P2PHeader) bool {
 	return true
 }
 
 // sign an outgoing p2p message payload
-func (n *Node) signProtoMessage(message proto.Message) ([]byte, error) {
+func (n *LocalNode) signProtoMessage(message proto.Message) ([]byte, error) {
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
@@ -58,7 +61,7 @@ func (n *Node) signProtoMessage(message proto.Message) ([]byte, error) {
 }
 
 // sign binary data using the local node's private key
-func (n *Node) signData(data []byte) ([]byte, error) {
+func (n *LocalNode) signData(data []byte) ([]byte, error) {
 	key := n.Peerstore().PrivKey(n.ID())
 	res, err := key.Sign(data)
 	return res, err
@@ -69,7 +72,7 @@ func (n *Node) signData(data []byte) ([]byte, error) {
 // signature: author signature provided in the message payload
 // peerId: author peer id from the message payload
 // pubKeyData: author public key from the message payload
-func (n *Node) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
+func (n *LocalNode) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
 		log.Println(err, "Failed to extract key from message key data")
@@ -86,7 +89,7 @@ func (n *Node) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyD
 
 	// verify that message author node id matches the provided node public key
 	if idFromKey != peerId {
-		log.Println(err, "Node id and provided public key mismatch")
+		log.Println(err, "LocalNode id and provided public key mismatch")
 		return false
 	}
 
@@ -101,7 +104,7 @@ func (n *Node) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyD
 
 // helper method - generate message data shared between all node's p2p protocols
 // messageId: unique for requests, copied from request for responses
-func (n *Node) NewP2PHeader(uuid string, broadcast bool) *ngtypes.P2PHeader {
+func (n *LocalNode) NewP2PHeader(uuid string, broadcast bool) *ngtypes.P2PHeader {
 	// Add protobufs bin data for message author public key
 	// this is useful for authenticating  messages forwarded by a node authored by another node
 	peerKey, err := n.Peerstore().PubKey(n.ID()).Bytes()
@@ -123,7 +126,7 @@ func (n *Node) NewP2PHeader(uuid string, broadcast bool) *ngtypes.P2PHeader {
 // helper method - writes a protobuf go data object to a network stream
 // data: reference of protobuf go data object to send (not the object itself)
 // s: network stream to write the data to
-func (n *Node) sendProtoMessage(peerID peer.ID, method protocol.ID, data proto.Message) bool {
+func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data proto.Message) bool {
 	s, err := n.NewStream(context.Background(), peerID, method)
 	if err != nil {
 		log.Println(err)
@@ -144,4 +147,20 @@ func (n *Node) sendProtoMessage(peerID peer.ID, method protocol.ID, data proto.M
 		return false
 	}
 	return true
+}
+
+func (n *LocalNode) IsSynced() bool {
+	var total = 0
+	var synced = 0
+	localHeight := n.Chain.GetLatestBlockHeight()
+
+	n.Remotes.Range(func(_, value interface{}) bool {
+		total++
+		if localHeight+ngtypes.BlockCheckRound >= value.(*RemoteNode).BlockHeight {
+			synced++
+		}
+		return true
+	})
+
+	return float64(synced)/float64(total) > 0.7
 }

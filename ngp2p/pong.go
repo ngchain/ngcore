@@ -13,7 +13,7 @@ func (p *Protocol) Pong(s network.Stream, uuid string) bool {
 	log.Printf("%s: Sending Pong to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid)
 
 	payload, err := proto.Marshal(&ngtypes.PingPongPayload{
-		BlockHeight: p.node.blockChain.GetLatestBlockHeight(),
+		BlockHeight: p.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
 		log.Println("failed to sign pb data")
@@ -75,10 +75,14 @@ func (p *Protocol) onPong(s network.Stream) {
 	}
 
 	log.Printf("%s: Received Pong from %s. Message id:%s. Message: %d.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
-	if p.node.blockChain.GetLatestBlockHeight()+ngtypes.CheckRound < pong.BlockHeight {
-		log.Println("start syncManager to sync with", s.Conn().RemotePeer())
+
+	p.node.Remotes.Store(s.Conn().RemotePeer().String(), &RemoteNode{&pong})
+
+	if p.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < pong.BlockHeight {
+		log.Println("start syncing with", s.Conn().RemotePeer())
 		go p.GetBlocks(s.Conn().RemotePeer(), pong.BlockHeight)
 	} else {
+		log.Println("synced with", s.Conn().RemotePeer())
 		// locate request data and remove it if found
 		_, ok := p.requests[data.Header.Uuid]
 		if ok {
@@ -90,6 +94,6 @@ func (p *Protocol) onPong(s network.Stream) {
 		}
 	}
 
-	p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.CheckRound*ngtypes.CheckRound)
+	p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
 	p.doneCh <- true
 }

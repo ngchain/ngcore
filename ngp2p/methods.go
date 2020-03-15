@@ -10,6 +10,7 @@ const getblocksMethod = "/ngp2p/getblocks/0.0.1"
 const blocksMethod = "/ngp2p/blocks/0.0.1"
 
 const getvaultsMethod = "/ngp2p/getvaults/0.0.1"
+const vaultsMethod = "/ngp2p/vaults/0.0.1"
 
 const getpoolMethod = "/ngp2p/getpool/0.0.1"
 

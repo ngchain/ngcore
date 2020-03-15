@@ -12,7 +12,6 @@ message Vault {
     int64 timestamp = 3;
 
     bytes prev_vault_hash = 10;
-    bytes hook_block_hash = 11;
 
     ngtypes.Sheet sheet = 20;
 

@@ -2,7 +2,7 @@
   <configuration default="false" name="ngcore bootstrap" type="GoApplicationRunConfiguration" factoryName="Go Application" singleton="false">
     <module name="ngcore" />
     <working_directory value="$PROJECT_DIR$/env/bootstrap" />
-    <parameters value="--bootstrap --p2p-tcp-port 5252 --rpc-port 5251" />
+    <parameters value="--bootstrap --p2p-port 5252 --rpc-port 5251" />
     <kind value="PACKAGE" />
     <filePath value="$PROJECT_DIR$/" />
     <package value="github.com/ngin-network/ngcore/cmd/core" />

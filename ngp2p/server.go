@@ -27,16 +27,10 @@ import (
 	"time"
 )
 
-type P2PServer struct {
-}
-
-func NewP2PServer() *P2PServer {
-	return &P2PServer{}
-}
-
 type mdnsNotifee struct {
-	h   host.Host
-	ctx context.Context
+	h          host.Host
+	ctx        context.Context
+	PeerInfoCh chan peer.AddrInfo
 }
 
 func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
@@ -98,7 +92,7 @@ func getP2PKey(isBootstrap bool) crypto.PrivKey {
 	return priv
 }
 
-func (s *P2PServer) Serve(port int, isBootstrap bool, sheetManager *sheetManager.SheetManager, blockChain *chain.BlockChain, vaultChain *chain.VaultChain, txPool *txpool.TxPool) {
+func NewP2PNode(port int, isBootstrap bool, sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
 	doneCh := make(chan bool, 1)
 	priv := getP2PKey(isBootstrap)
 
@@ -142,18 +136,35 @@ func (s *P2PServer) Serve(port int, isBootstrap bool, sheetManager *sheetManager
 		log.Println("Listening P2P on", addr.String()+"/p2p/"+localHost.ID().String())
 	}
 
-	localNode := NewNode(localHost, doneCh, sheetManager, blockChain, vaultChain, txPool)
+	localNode := NewLocalNode(localHost, doneCh, sheetManager, chain, txPool)
 
-	mdns, err := discovery.NewMdnsService(ctx, localHost, time.Second*10, "")
+	mdns, err := discovery.NewMdnsService(ctx, localHost, time.Second*10, "") // using ipfs network
 	if err != nil {
 		panic(err)
 	}
+	peerInfoCh := make(chan peer.AddrInfo)
 	mdns.RegisterNotifee(
 		&mdnsNotifee{
-			h:   localHost,
-			ctx: ctx,
+			h:          localHost,
+			ctx:        ctx,
+			PeerInfoCh: peerInfoCh,
 		},
 	)
+
+	// mdns
+	go func() {
+		for {
+			select {
+			case pi := <-peerInfoCh: // will block untill we discover a peer
+				log.Println("Found peer:", pi, ", connecting")
+				if err := localNode.Connect(ctx, pi); err != nil {
+					log.Println("Connection failed:", err)
+					continue
+				}
+				localNode.Ping(pi.ID)
+			}
+		}
+	}()
 
 	err = p2pDHT.Bootstrap(ctx)
 	if err != nil {
@@ -161,23 +172,27 @@ func (s *P2PServer) Serve(port int, isBootstrap bool, sheetManager *sheetManager
 	}
 
 	if !isBootstrap {
-		for i := range BootstrapNodes {
-			targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])
-			if err != nil {
-				panic(err)
-			}
+		go func() {
+			for i := range BootstrapNodes {
+				targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])
+				if err != nil {
+					panic(err)
+				}
 
-			targetInfo, err := peer.AddrInfoFromP2pAddr(targetAddr)
-			if err != nil {
-				panic(err)
-			}
+				targetInfo, err := peer.AddrInfoFromP2pAddr(targetAddr)
+				if err != nil {
+					panic(err)
+				}
 
-			err = localHost.Connect(ctx, *targetInfo)
-			if err != nil {
-				panic(err)
-			}
+				err = localHost.Connect(ctx, *targetInfo)
+				if err != nil {
+					panic(err)
+				}
 
-			localNode.Ping(targetInfo.ID)
-		}
+				localNode.Ping(targetInfo.ID)
+			}
+		}()
 	}
+
+	return localNode
 }
