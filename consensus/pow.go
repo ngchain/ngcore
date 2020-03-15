@@ -45,20 +45,25 @@ func (c *Consensus) InitPoW() {
 }
 
 func (c *Consensus) StopMining() {
+	log.Info("mining stopping")
+	c.miner.abortCh <- struct{}{}
+}
+
+func (c *Consensus) ResumeMining() {
+	log.Info("mining resuming")
 	c.miner.start(c.GetBlockTemplate())
 }
 
 func (c *Consensus) GetBlockTemplate() (newUnsealingBlock *ngtypes.Block) {
+	if c.template != nil {
+		return c.template
+	}
+
 	currentBlock := c.Chain.GetLatestBlock()
 	currentBlockHash, _ := currentBlock.CalculateHash()
 	newBlockHeight := currentBlock.Header.Height + 1
 
-	// mining checkpoint
 	currentVault := c.Chain.GetLatestVault()
-	if newBlockHeight%ngtypes.BlockCheckRound == 0 {
-		currentVault = c.GenNewVault(currentVault.GetHeight(), c.Chain.GetLatestVaultHash())
-		c.Chain.PutVault(currentVault)
-	}
 	currentVaultHash, _ := currentVault.CalculateHash()
 
 	newTarget := c.getNextTarget(currentBlock, currentVault)
@@ -80,6 +85,8 @@ func (c *Consensus) GetBlockTemplate() (newUnsealingBlock *ngtypes.Block) {
 		log.Error(err)
 	}
 
+	c.template = newUnsealingBlock
+
 	return newUnsealingBlock
 }
 
@@ -98,12 +105,17 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 	log.Infof("Mined a new Block: %x@%d", hash, b.GetHeight())
 
 	// TODO: vault should be generated when made the template
-	if b.Header.IsCheckpoint() {
+	if b.Header.IsHead() {
 		v := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
 		err := c.SheetManager.ApplyVault(v)
 		if err != nil {
 			log.Panic(err)
 		}
+	}
+
+	if b.Header.IsTail() {
+		currentVault := c.GenNewVault(c.Chain.GetLatestVaultHeight(), c.Chain.GetLatestVaultHash())
+		c.Chain.PutVault(currentVault)
 	}
 
 	err = c.Chain.PutBlock(b) // chain should verify again
@@ -114,7 +126,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	c.SheetManager.ApplyBlockTxs(b)
 
-	//c.CurrentBlock = c.BlockChain.GetLatestBlock()
+	c.template = nil
 }
 
 // GenNewVault is called when the reached a checkpoint, then generate a

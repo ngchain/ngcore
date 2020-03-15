@@ -15,7 +15,7 @@ func (c *Consensus) getNextTarget(block *ngtypes.Block, vault *ngtypes.Vault) *b
 	//        * 2^(fatherTime - grandpaTime)
 
 	target := new(big.Int).SetBytes(block.Header.Target)
-	if !block.Header.IsCheckpoint() {
+	if !block.Header.IsHead() {
 		return target
 	}
 

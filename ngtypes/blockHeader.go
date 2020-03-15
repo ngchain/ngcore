@@ -8,9 +8,13 @@ import (
 
 /* Header Start */
 
-// IsCheckpoint will check whether the Block is the checkpoint
-func (m *BlockHeader) IsCheckpoint() bool {
+// IsHead will check whether the Block is the checkpoint
+func (m *BlockHeader) IsHead() bool {
 	return m.GetHeight()%BlockCheckRound == 0
+}
+
+func (m *BlockHeader) IsTail() bool {
+	return m.GetHeight()%BlockCheckRound == BlockCheckRound-1
 }
 
 func (m *BlockHeader) IsGenesisBlock() bool {

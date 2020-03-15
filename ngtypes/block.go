@@ -52,7 +52,7 @@ func (m *Block) IsCheckpoint() bool {
 		return false
 	}
 
-	return m.Header.IsCheckpoint()
+	return m.Header.IsHead()
 }
 
 // ToUnsealing converts a bare block to an unsealing block

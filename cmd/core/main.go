@@ -114,7 +114,6 @@ var action = func(c *cli.Context) error {
 	localNode := ngp2p.NewP2PNode(p2pTcpPort, isBootstrap, sheetManager, chain, txPool)
 
 	isSynced := false
-	switchCh := make(chan bool)
 
 	init := new(sync.Once)
 	go func() {
@@ -132,11 +131,11 @@ var action = func(c *cli.Context) error {
 					go consensusManager.InitPoW()
 				})
 				log.Info("localnode is synced with network")
-				switchCh <- true
+				consensusManager.ResumeMining()
 				isSynced = true
 			} else if !status && status != isSynced {
 				log.Info("localnode is not synced with network, syncing...")
-				switchCh <- false
+				consensusManager.StopMining()
 				isSynced = false
 			}
 
