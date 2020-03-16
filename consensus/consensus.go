@@ -6,10 +6,13 @@ import (
 	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/txpool"
+	"sync"
 )
 
 // the pow
 type Consensus struct {
+	sync.RWMutex
+
 	template     *ngtypes.Block
 	SheetManager *sheetManager.SheetManager
 

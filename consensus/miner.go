@@ -5,7 +5,6 @@ import (
 	"github.com/ngin-network/cryptonight-go"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"math/big"
-	"reflect"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -17,21 +16,24 @@ type Miner struct {
 	threadNum int
 	hashes    int64
 
-	newJobCh chan *ngtypes.Block
-	abortCh  chan struct{}
-	foundCh  chan *ngtypes.Block
-	mu       sync.Mutex
+	status  *atomic.Value
+	abortCh chan struct{}
+	foundCh chan *ngtypes.Block
+	mu      sync.Mutex
+	wg      *sync.WaitGroup
 }
 
 func NewMiner(threadNum int, foundCh chan *ngtypes.Block) *Miner {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	newJobCh := make(chan *ngtypes.Block, 1)
+	status := new(atomic.Value)
+	status.Store(false)
 	m := &Miner{
+		status:    status,
 		threadNum: threadNum,
-		newJobCh:  newJobCh,
 		abortCh:   make(chan struct{}),
 		foundCh:   foundCh,
+		wg:        new(sync.WaitGroup),
 	}
 
 	reportCh := time.Tick(time.Minute)
@@ -53,52 +55,73 @@ func NewMiner(threadNum int, foundCh chan *ngtypes.Block) *Miner {
 	return m
 }
 
-func (m *Miner) start(initJob *ngtypes.Block) {
+func (m *Miner) Start(initJob *ngtypes.Block) {
+	if m.status.Load().(bool) == true {
+		return
+	}
+	m.status.Store(true)
 	for threadID := 0; threadID < m.threadNum; threadID++ {
 		go m.mine(threadID, initJob)
 	}
 }
 
-func (m *Miner) setJob(b *ngtypes.Block) {
-	m.newJobCh <- b
+func (m *Miner) Stop() {
+	if m.status.Load().(bool) == false {
+		return
+	}
+
+	m.status.Store(false)
+	close(m.abortCh)
+	m.wg.Wait()
+	m.abortCh = make(chan struct{})
 }
 
-func (m *Miner) mine(threadID int, initJob *ngtypes.Block) {
-	var b = initJob
-	var target = new(big.Int).SetBytes(b.Header.Target)
+func (m *Miner) mine(threadID int, job *ngtypes.Block) {
+	m.wg.Add(1)
+	var target = new(big.Int).SetBytes(job.Header.Target)
 
 	for {
 		select {
-		case newJob := <-m.newJobCh:
-			if !reflect.DeepEqual(b.Header, newJob.Header) {
-				log.Debugf("Thread %d mining block@%d", threadID, newJob.Header.Height)
-				b = newJob
-				target = new(big.Int).SetBytes(b.Header.Target)
-			}
+		//case newJob := <-m.newJobCh:
+		//	if !reflect.DeepEqual(b.Header, newJob.Header) {
+		//		log.Debugf("Thread %d mining block@%d", threadID, newJob.Header.Height)
+		//		b = newJob
+		//		target = new(big.Int).SetBytes(b.Header.Target)
+		//	}
 		case <-m.abortCh:
 			// Mining terminated, update stats and abort
-			break
+			m.wg.Done()
+			return
 		default:
-			if b == nil || !b.Header.IsUnsealing() {
+			if job == nil || !job.Header.IsUnsealing() {
 				continue
 			}
 
 			// Compute the PoW value of this nonce
 			nonce := make([]byte, 4)
 			fastrand.Read(nonce)
-			blob := b.Header.GetPoWBlob(nonce)
+			blob := job.Header.GetPoWBlob(nonce)
 			hash := cryptonight.Sum(blob, 0)
 			m.hashes++
 
 			if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
-				// Correct nonce found, create a new header with it
-				log.Infof("Thread %d found nonce %x", threadID, nonce)
-				block, err := b.ToSealed(nonce)
-				if err != nil {
-					log.Panic(err)
-				}
-				m.foundCh <- block
+				go m.found(threadID, job, nonce)
 			}
 		}
 	}
+}
+
+func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
+	// Correct nonce found, create a new header with it
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.Stop()
+	log.Infof("Thread %d found nonce %x", t, nonce)
+	block, err := job.ToSealed(nonce)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	m.foundCh <- block
 }

@@ -2,7 +2,7 @@
   <configuration default="false" name="ngcore mining " type="GoApplicationRunConfiguration" factoryName="Go Application" singleton="false">
     <module name="ngcore" />
     <working_directory value="$PROJECT_DIR$/env/mining" />
-    <parameters value="--mining" />
+    <parameters value="--mining " />
     <kind value="PACKAGE" />
     <filePath value="$PROJECT_DIR$/cmd/core/main.go" />
     <package value="github.com/ngin-network/ngcore/cmd/core" />

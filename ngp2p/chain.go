@@ -107,7 +107,7 @@ func (p *Protocol) onChain(s network.Stream) {
 	log.Printf("Received Chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().RemotePeer(), data.Header.Uuid, chain.Blocks[0].GetHeight(), chain.Blocks[len(chain.Blocks)-1].GetHeight(), chain.LatestHeight)
 
 	if p.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < chain.LatestHeight {
-		p.GetChain(s.Conn().RemotePeer(), chain.LatestHeight)
+		p.GetChain(s.Conn().RemotePeer())
 	} else {
 		// locate request data and remove it if found
 		_, ok := p.requests[data.Header.Uuid]

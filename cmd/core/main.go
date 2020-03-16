@@ -128,14 +128,18 @@ var action = func(c *cli.Context) error {
 					sheetManager.Init(latestVault)
 					txPool.Init(latestVault)
 					log.Info("Start PoW consensus")
-					go consensusManager.InitPoW()
+					consensusManager.InitPoW()
 				})
 				log.Info("localnode is synced with network")
-				consensusManager.ResumeMining()
+				if isMining {
+					consensusManager.ResumeMining()
+				}
 				isSynced = true
 			} else if !status && status != isSynced {
 				log.Info("localnode is not synced with network, syncing...")
-				consensusManager.StopMining()
+				if isMining {
+					consensusManager.StopMining()
+				}
 				isSynced = false
 			}
 

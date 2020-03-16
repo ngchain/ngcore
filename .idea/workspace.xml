@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="fix the bug that the vault unlimited increment, and apply stop&amp;resume mining">
+    <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/memchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/memchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/storagechain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/storagechain.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/core/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/core/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/difficulty.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/difficulty.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/consensus.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/consensus.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/miner.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/miner.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/getchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/getchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/pong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pong.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngtypes/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngtypes/blockHeader.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/blockHeader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/vault.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/vault.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -743,7 +752,8 @@
     <MESSAGE value="ton of fixes" />
     <MESSAGE value="huge changes&#10;&#10;1. combine the vaultchain and blockchain&#10;&#10;2. adding bazel for building&#10;&#10;3. add sync status&#10;&#10;4. realign the module init orders in core's main func&#10;&#10;5. some bug fixes on changes above" />
     <MESSAGE value="huge changes&#10;&#10;1. optimize outputs and putting chain&#10;&#10;2. fix the vault &amp; checkpoint order&#10;&#10;3. modify the p2p protocol getblock &amp; getvault, using getchain instead&#10;&#10;4. remove the hookblock requirement when gen vault&#10;&#10;5. delete deprecated files" />
-    <option name="LAST_COMMIT_MESSAGE" value="huge changes&#10;&#10;1. optimize outputs and putting chain&#10;&#10;2. fix the vault &amp; checkpoint order&#10;&#10;3. modify the p2p protocol getblock &amp; getvault, using getchain instead&#10;&#10;4. remove the hookblock requirement when gen vault&#10;&#10;5. delete deprecated files" />
+    <MESSAGE value="some changes &#10;1. fix the bug that the vault unlimited increment&#10; &#10;2. apply stop&amp;resume mining&#10;&#10;3. rename checkpoint to Head, and add Tail&#10;&#10;4. migrate genVault to block(tail) mined period" />
+    <option name="LAST_COMMIT_MESSAGE" value="some changes &#10;1. fix the bug that the vault unlimited increment&#10; &#10;2. apply stop&amp;resume mining&#10;&#10;3. rename checkpoint to Head, and add Tail&#10;&#10;4. migrate genVault to block(tail) mined period" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -753,10 +763,10 @@
     <proxy>https://goproxy.io</proxy>
   </component>
   <component name="WindowStateProjectService">
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584199178840">
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584366278090">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584199178840" />
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584366278090" />
     <state x="716" y="331" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584177391206">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -769,14 +779,14 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584290516430">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584291059317">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584290516430" />
-    <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584290371456">
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584291059317" />
+    <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584368061079">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1212" height="466" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1584290371456" />
+    <state width="1212" height="466" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1584368061079" />
     <state x="651" y="169" key="FileChooserDialogImpl" timestamp="1584163889913">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -798,38 +808,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1396" height="268" key="GridCell.Tab.0.bottom" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.0.bottom" timestamp="1584368913269">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
-    <state width="1396" height="268" key="GridCell.Tab.0.center" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584368913269" />
+    <state width="1393" height="268" key="GridCell.Tab.0.center" timestamp="1584368913269">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
-    <state width="1396" height="268" key="GridCell.Tab.0.left" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584368913269" />
+    <state width="1393" height="268" key="GridCell.Tab.0.left" timestamp="1584368913269">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
-    <state width="1396" height="268" key="GridCell.Tab.0.right" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584368913269" />
+    <state width="1393" height="268" key="GridCell.Tab.0.right" timestamp="1584368913269">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
-    <state width="1396" height="268" key="GridCell.Tab.1.bottom" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584368913269" />
+    <state width="1393" height="268" key="GridCell.Tab.1.bottom" timestamp="1584368862500">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
-    <state width="1396" height="268" key="GridCell.Tab.1.center" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584368862500" />
+    <state width="1393" height="268" key="GridCell.Tab.1.center" timestamp="1584368862500">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
-    <state width="1396" height="268" key="GridCell.Tab.1.left" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584368862500" />
+    <state width="1393" height="268" key="GridCell.Tab.1.left" timestamp="1584368862500">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
-    <state width="1396" height="268" key="GridCell.Tab.1.right" timestamp="1584290461039">
+    <state width="1393" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584368862500" />
+    <state width="1393" height="268" key="GridCell.Tab.1.right" timestamp="1584368862500">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1396" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584290461039" />
+    <state width="1393" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584368862500" />
     <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -850,10 +860,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584178446637" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584288991057">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584318885377">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584288991057" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584318885377" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -870,11 +880,11 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584290550919">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584368773897">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584290550919" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584368773897" />
     <state x="702" y="146" key="refactoring.ChangeSignatureDialog" timestamp="1582879168983">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

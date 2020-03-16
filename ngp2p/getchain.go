@@ -10,10 +10,11 @@ import (
 	"log"
 )
 
-func (p *Protocol) GetChain(remotePeerId peer.ID, remoteHeight uint64) bool {
+func (p *Protocol) GetChain(remotePeerId peer.ID) bool {
 	localHeight := p.node.Chain.GetLatestBlockHeight()
+	vaultHeight := localHeight - (localHeight % ngtypes.BlockCheckRound)
 	payload, err := proto.Marshal(&ngtypes.GetChainPayload{
-		VaultHeight: localHeight - (localHeight % ngtypes.BlockCheckRound),
+		VaultHeight: vaultHeight,
 	})
 	if err != nil {
 		log.Println("failed to sign pb data")
@@ -43,7 +44,7 @@ func (p *Protocol) GetChain(remotePeerId peer.ID, remoteHeight uint64) bool {
 
 	// store ref request so response handler has access to it
 	p.requests[req.Header.Uuid] = req
-	log.Printf("%s: getBlocks to: %s was sent. Message Id: %s, ", p.node.ID(), remotePeerId, req.Header.Uuid)
+	log.Printf("%s: getchain to: %s was sent. Message Id: %s, request vault height: %d", p.node.ID(), remotePeerId, req.Header.Uuid, vaultHeight)
 	return true
 }
 

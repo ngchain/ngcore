@@ -14,7 +14,7 @@ func (m *BlockHeader) IsHead() bool {
 }
 
 func (m *BlockHeader) IsTail() bool {
-	return m.GetHeight()%BlockCheckRound == BlockCheckRound-1
+	return m.GetHeight()%BlockCheckRound+1 == BlockCheckRound
 }
 
 func (m *BlockHeader) IsGenesisBlock() bool {

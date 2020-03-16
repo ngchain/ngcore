@@ -46,12 +46,7 @@ func (m *Block) IsSealed() (bool, error) {
 	return m.Header.IsSealed(), nil
 }
 
-func (m *Block) IsCheckpoint() bool {
-	if m.Header == nil {
-		log.Panic(ErrBlockHeaderMissing)
-		return false
-	}
-
+func (m *Block) IsHead() bool {
 	return m.Header.IsHead()
 }
 
@@ -94,6 +89,7 @@ func (m *Block) VerifyNonce() bool {
 // then you need to add txs and seal with the correct N
 func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *big.Int) *Block {
 	block := &Block{
+		NetworkId: NetworkId,
 		Header: &BlockHeader{
 			Version:       Version,
 			Height:        height,

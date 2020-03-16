@@ -63,35 +63,82 @@ func (mc *MemChain) PutItems(items ...Item) error {
 	defer mc.Unlock()
 
 	for i := 0; i < len(items); i++ {
-		switch item := items[i].(type) {
+		switch items[i].(type) {
 		case *ngtypes.Block:
-			hash, err := item.CalculateHash()
+			block := items[i].(*ngtypes.Block)
+			hash, err := block.CalculateHash()
 			if err != nil {
 				return err
 			}
-			mc.BlockHashMap[hex.EncodeToString(hash)] = item
-			hashes, ok := mc.BlockHeightMap[item.GetHeight()]
+			mc.BlockHashMap[hex.EncodeToString(hash)] = block
+			hashes, ok := mc.BlockHeightMap[block.GetHeight()]
 			if ok {
-				mc.BlockHeightMap[item.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+				mc.BlockHeightMap[block.GetHeight()] = append(hashes, hex.EncodeToString(hash))
 			} else {
-				mc.BlockHeightMap[item.GetHeight()] = []string{hex.EncodeToString(hash)}
+				mc.BlockHeightMap[block.GetHeight()] = []string{hex.EncodeToString(hash)}
 			}
 		case *ngtypes.Vault:
-			hash, err := item.CalculateHash()
+			vault := items[i].(*ngtypes.Vault)
+			hash, err := vault.CalculateHash()
 			if err != nil {
 				return err
 			}
-			mc.VaultHashMap[hex.EncodeToString(hash)] = item
-			hashes, ok := mc.VaultHeightMap[item.GetHeight()]
+			log.Info(vault.GetHeight(), hex.EncodeToString(hash))
+			mc.VaultHashMap[hex.EncodeToString(hash)] = vault
+			hashes, ok := mc.VaultHeightMap[vault.GetHeight()]
 			if ok {
-				mc.VaultHeightMap[item.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+				mc.VaultHeightMap[vault.GetHeight()] = append(hashes, hex.EncodeToString(hash))
 			} else {
-				mc.VaultHeightMap[item.GetHeight()] = []string{hex.EncodeToString(hash)}
+				mc.VaultHeightMap[vault.GetHeight()] = []string{hex.EncodeToString(hash)}
 			}
 		default:
-			panic(fmt.Sprintf("unknown type in chain: %v", item))
+			panic(fmt.Sprintf("unknown type in chain: %v", items[i]))
 		}
+	}
 
+	return nil
+}
+
+func (mc *MemChain) PutBlocks(blocks ...*ngtypes.Block) error {
+	mc.Lock()
+	defer mc.Unlock()
+
+	for i := 0; i < len(blocks); i++ {
+		block := blocks[i]
+		hash, err := block.CalculateHash()
+		if err != nil {
+			return err
+		}
+		mc.BlockHashMap[hex.EncodeToString(hash)] = block
+		hashes, ok := mc.BlockHeightMap[block.GetHeight()]
+		if ok {
+			mc.BlockHeightMap[block.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+		} else {
+			mc.BlockHeightMap[block.GetHeight()] = []string{hex.EncodeToString(hash)}
+		}
+	}
+
+	return nil
+}
+
+func (mc *MemChain) PutVaults(vaults ...*ngtypes.Vault) error {
+	mc.Lock()
+	defer mc.Unlock()
+
+	for i := 0; i < len(vaults); i++ {
+		vault := vaults[i]
+		hash, err := vault.CalculateHash()
+		if err != nil {
+			return err
+		}
+		log.Info(vault.GetHeight(), hex.EncodeToString(hash))
+		mc.VaultHashMap[hex.EncodeToString(hash)] = vault
+		hashes, ok := mc.VaultHeightMap[vault.GetHeight()]
+		if ok {
+			mc.VaultHeightMap[vault.GetHeight()] = append(hashes, hex.EncodeToString(hash))
+		} else {
+			mc.VaultHeightMap[vault.GetHeight()] = []string{hex.EncodeToString(hash)}
+		}
 	}
 
 	return nil
@@ -101,7 +148,7 @@ func (mc *MemChain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	mc.RLock()
 	defer mc.RUnlock()
 	if item, ok := mc.BlockHashMap[hex.EncodeToString(hash)]; !ok {
-		return nil, fmt.Errorf("`cannot find the block by hash:%x", hash)
+		return nil, fmt.Errorf("cannot find block:%x in mem", hash)
 	} else {
 		return item, nil
 	}
@@ -117,7 +164,7 @@ func (mc *MemChain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 
 	hashes, ok := mc.BlockHeightMap[height]
 	if !ok || len(hashes) == 0 {
-		return nil, fmt.Errorf("cannot find the block@%d", height)
+		return nil, fmt.Errorf("cannot find block@%d in mem", height)
 	}
 
 	for i := 0; i < len(hashes); i++ {
@@ -126,14 +173,15 @@ func (mc *MemChain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("cannot find the block@%d", height)
+	return nil, fmt.Errorf("cannot find block@%d in mem", height)
 }
 
 func (mc *MemChain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
 	mc.RLock()
 	defer mc.RUnlock()
+
 	if item, ok := mc.VaultHashMap[hex.EncodeToString(hash)]; !ok {
-		return nil, fmt.Errorf("cannot find the vault by hash:%x", hash)
+		return nil, fmt.Errorf("cannot find vault: %x", hash)
 	} else {
 		return item, nil
 	}
@@ -192,6 +240,7 @@ func (mc *MemChain) GetLatestBlockHeight() uint64 {
 			top = height
 		}
 	}
+
 	return top
 }
 
@@ -273,14 +322,13 @@ func (mc *MemChain) ExportLongestChain(end *ngtypes.Block, maxLen int) []Item {
 	cur := end
 	items = append(items, cur)
 
-	for i := 0; i < maxLen; i++ {
+	for {
 		item, ok := mc.BlockHashMap[hex.EncodeToString(cur.GetPrevHash())]
 		if !ok {
-			log.Errorf("this chain lacks block: %x@%d", cur.GetPrevHash(), cur.GetHeight()-1)
-			return nil
+			break
 		}
 		items = append(items, item)
-		if cur.IsCheckpoint() {
+		if cur.IsHead() {
 			if v, ok := mc.VaultHashMap[hex.EncodeToString(cur.Header.PrevVaultHash)]; ok {
 				items = append(items, v)
 			}
@@ -288,11 +336,6 @@ func (mc *MemChain) ExportLongestChain(end *ngtypes.Block, maxLen int) []Item {
 
 		cur = item
 	}
-
-	//err := mc.DelItems(items...)
-	//if err != nil {
-	//	log.Error(err)
-	//}
 
 	// reverse the slice
 	for left, right := 0, len(items)-1; left < right; left, right = left+1, right-1 {

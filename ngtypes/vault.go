@@ -18,6 +18,7 @@ func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prev
 	newAccount := NewAccount(newAccountID, ownerKey, nil)
 
 	return &Vault{
+		NetworkId:     NetworkId,
 		Height:        prevVaultHeight + 1,
 		List:          newAccount,
 		Timestamp:     time.Now().Unix(),

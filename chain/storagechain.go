@@ -23,6 +23,7 @@ func NewStorageChain(db *bbolt.DB) *storageChain {
 	}
 
 	if c.IsNewChain() {
+		log.Info("is a new chain, initializing...")
 		c.initBuckets()
 	}
 	return c
@@ -85,7 +86,7 @@ func (c *storageChain) PutChain(chain ...Item) error {
 			switch item := chain[i].(type) {
 			case *ngtypes.Block:
 				log.Infof("putting block@%d", item.GetHeight())
-				if item.IsCheckpoint() && vaultBucket.Get(utils.PackUint64LE(item.GetHeight()/ngtypes.BlockCheckRound)) == nil { // noBaseVaultInHeight(height)
+				if item.IsHead() && vaultBucket.Get(utils.PackUint64LE(item.GetHeight()/ngtypes.BlockCheckRound)) == nil { // noBaseVaultInHeight(height)
 					return fmt.Errorf("cannot put block@%d due to no vault@%d gen on this checkpoint, the vault should be put before it)", item.GetHeight(), item.GetHeight()/ngtypes.BlockCheckRound)
 				}
 
@@ -109,10 +110,10 @@ func (c *storageChain) PutChain(chain ...Item) error {
 				}
 			case *ngtypes.Vault:
 				log.Infof("putting vault@%d", item.GetHeight())
-				latestBlockHeightRaw := make([]byte, 8)
-				copy(latestBlockHeightRaw, blockBucket.Get([]byte(LatestHeightTag)))
-				if (binary.LittleEndian.Uint64(latestBlockHeightRaw)+1)%ngtypes.BlockCheckRound != 0 {
-					return fmt.Errorf("failed putting vault@%d: cannot put the vault after @%d", item.GetHeight(), binary.LittleEndian.Uint64(blockBucket.Get([]byte(LatestHeightTag))))
+				latestVaultHeightRaw := make([]byte, 8)
+				copy(latestVaultHeightRaw, vaultBucket.Get([]byte(LatestHeightTag)))
+				if (binary.LittleEndian.Uint64(latestVaultHeightRaw) + 1) != item.Height {
+					return fmt.Errorf("cannot put vault@%d after vault@%d", item.GetHeight(), binary.LittleEndian.Uint64(latestVaultHeightRaw))
 				}
 				hash, _ := item.CalculateHash()
 				raw, _ := item.Marshal()
@@ -153,7 +154,7 @@ func (c *storageChain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
 
 		raw := bucket.Get(hash)
 		if raw == nil {
-			return fmt.Errorf("cannot find vault by hash: %x", hash)
+			return fmt.Errorf("cannot find vault: %x", hash)
 		}
 
 		err := proto.Unmarshal(raw, &vault)
@@ -163,8 +164,11 @@ func (c *storageChain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return &vault, err
+	return &vault, nil
 }
 
 func (c *storageChain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
@@ -201,12 +205,12 @@ func (c *storageChain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 
 		hash := bucket.Get(utils.PackUint64LE(height))
 		if hash == nil {
-			return fmt.Errorf("cannot find the block@%d", height)
+			return fmt.Errorf("cannot find block@%d in storage", height)
 		}
 
 		raw := bucket.Get(hash)
 		if raw == nil {
-			return fmt.Errorf("cannot find block@%d", height)
+			return fmt.Errorf("cannot find block@%d in storage", height)
 		}
 
 		err := proto.Unmarshal(raw, &block)
@@ -239,7 +243,7 @@ func (c *storageChain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 
 		raw := bucket.Get(hash)
 		if raw == nil {
-			return fmt.Errorf("cannot find vault@%x", height)
+			return fmt.Errorf("cannot find vault@%d", height)
 		}
 
 		err := proto.Unmarshal(raw, &vault)

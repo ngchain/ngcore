@@ -1,16 +1,17 @@
 package chain
 
 import (
-	"errors"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/whyrusleeping/go-logging"
 	"go.etcd.io/bbolt"
+	"sync"
 )
 
 var log = logging.MustGetLogger("chain")
 
 // chain order vault0-block0-block1...-block6-vault2-block7...
 type Chain struct {
+	sync.RWMutex
 	db  *storageChain
 	mem *MemChain
 }
@@ -32,86 +33,49 @@ func (c *Chain) InitWithGenesis() {
 }
 
 func (c *Chain) GetLatestBlock() *ngtypes.Block {
-	memItem, err := c.mem.GetLatestBlock()
-	if err != nil {
-		log.Error(err)
-	}
+	c.RLock()
+	defer c.RUnlock()
 
-	dbItem, err := c.db.GetLatestBlock()
-	if err != nil {
-		log.Error(err)
-	}
-
-	if dbItem == nil {
-		return memItem
-	}
-
-	if memItem == nil {
-		return dbItem
-	}
-
-	if dbItem.GetHeight() >= memItem.GetHeight() {
-		return dbItem
-	} else {
-		return memItem
-	}
+	return c.GetBlockByHeight(c.GetLatestBlockHeight())
 }
 
 func (c *Chain) GetLatestVault() *ngtypes.Vault {
-	memItem, err := c.mem.GetLatestVault()
-	if err != nil {
-		log.Error(err)
-	}
+	c.RLock()
+	defer c.RUnlock()
 
-	dbItem, err := c.db.GetLatestVault()
-	if err != nil {
-		log.Error(err)
-	}
-
-	if dbItem == nil {
-		return memItem
-	}
-
-	if memItem == nil {
-		return dbItem
-	}
-
-	if dbItem.GetHeight() >= memItem.GetHeight() {
-		return dbItem
-	} else {
-		return memItem
-	}
+	return c.GetVaultByHeight(c.GetLatestVaultHeight())
 }
 
 func (c *Chain) GetLatestBlockHash() []byte {
-	hash := c.mem.GetLatestBlockHash()
-	if hash != nil {
-		return hash
-	}
+	c.RLock()
+	defer c.RUnlock()
 
-	hash, err := c.db.GetLatestBlockHash()
+	hash, err := c.GetLatestBlock().CalculateHash()
 	if err != nil {
 		log.Error(err)
+		return nil
 	}
 
 	return hash
 }
 
 func (c *Chain) GetLatestVaultHash() []byte {
-	hash := c.mem.GetLatestVaultHash()
-	if hash != nil {
-		return hash
-	}
+	c.RLock()
+	defer c.RUnlock()
 
-	hash, err := c.db.GetLatestVaultHash()
+	hash, err := c.GetLatestVault().CalculateHash()
 	if err != nil {
 		log.Error(err)
+		return nil
 	}
 
 	return hash
 }
 
 func (c *Chain) GetLatestBlockHeight() uint64 {
+	c.RLock()
+	defer c.RUnlock()
+
 	height := c.mem.GetLatestBlockHeight()
 	if height != 0 {
 		return height
@@ -126,6 +90,9 @@ func (c *Chain) GetLatestBlockHeight() uint64 {
 }
 
 func (c *Chain) GetLatestVaultHeight() uint64 {
+	c.RLock()
+	defer c.RUnlock()
+
 	height := c.mem.GetLatestVaultHeight()
 	if height != 0 {
 		return height
@@ -140,26 +107,26 @@ func (c *Chain) GetLatestVaultHeight() uint64 {
 }
 
 func (c *Chain) PutBlock(block *ngtypes.Block) error {
-	if block.GetHeight()%(ngtypes.BlockCheckRound*ngtypes.VaultCheckRound) == 0 &&
-		c.GetLatestBlockHeight() < block.Header.Height &&
-		len(c.mem.BlockHeightMap) >= ngtypes.BlockCheckRound {
+	c.Lock()
+	defer c.Unlock()
 
-		log.Info("dumping blocks from mem to db")
-		prevBlock := c.GetBlockByHash(block.GetPrevHash())
-		items := c.mem.ExportLongestChain(prevBlock, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
-		if len(items) > 0 {
-			err := c.db.PutChain(items...)
-			if err != nil {
-				log.Info("failed to put items:", err)
-				return err
-			}
-			//bc.mem.ReleaseMap(block)
-		} else {
-			return errors.New("chain malformed")
-		}
-	}
+	//if block.GetHeight()%(ngtypes.BlockCheckRound*ngtypes.VaultCheckRound) == 0 &&
+	//	//c.GetLatestBlockHeight() < block.Header.Height &&
+	//	len(c.mem.BlockHeightMap) >= ngtypes.BlockCheckRound {
+	//	go func() {
+	//		log.Info("dumping blocks from mem to db")
+	//		prevBlock := c.GetBlockByHash(block.GetPrevHash())
+	//		items := c.mem.ExportLongestChain(prevBlock, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
+	//		if len(items) > 0 {
+	//			err := c.db.PutChain(items...)
+	//			if err != nil {
+	//				log.Info("failed to put items:", err)
+	//			}
+	//		}
+	//	}()
+	//}
 
-	err := c.mem.PutItems(block)
+	err := c.mem.PutBlocks(block)
 	if err != nil {
 		return err
 	}
@@ -169,7 +136,10 @@ func (c *Chain) PutBlock(block *ngtypes.Block) error {
 
 // PutVault puts an vault into db
 func (c *Chain) PutVault(vault *ngtypes.Vault) error {
-	err := c.mem.PutItems(vault)
+	c.Lock()
+	defer c.Unlock()
+
+	err := c.mem.PutVaults(vault)
 	if err != nil {
 		return err
 	}
@@ -178,6 +148,9 @@ func (c *Chain) PutVault(vault *ngtypes.Vault) error {
 }
 
 func (c *Chain) GetBlockByHeight(height uint64) *ngtypes.Block {
+	c.RLock()
+	defer c.RUnlock()
+
 	block, err := c.mem.GetBlockByHeight(height)
 	if err != nil {
 		log.Error(err)
@@ -198,74 +171,96 @@ func (c *Chain) GetBlockByHeight(height uint64) *ngtypes.Block {
 }
 
 func (c *Chain) GetBlockByHash(hash []byte) *ngtypes.Block {
-	item, err := c.mem.GetBlockByHash(hash)
+	c.RLock()
+	defer c.RUnlock()
+
+	block, err := c.mem.GetBlockByHash(hash)
 	if err != nil {
 		log.Error(err)
 	}
-	if item != nil {
-		return item
+	if block != nil {
+		return block
 	}
 
-	item, err = c.db.GetBlockByHash(hash)
+	block, err = c.db.GetBlockByHash(hash)
 	if err != nil {
 		log.Error(err)
 	}
-	if item != nil {
-		return item
+	if block != nil {
+		return block
 	}
 
 	return nil
 }
 
 func (c *Chain) GetVaultByHeight(height uint64) *ngtypes.Vault {
-	item, err := c.mem.GetVaultByHeight(height)
+	c.RLock()
+	defer c.RUnlock()
+
+	vault, err := c.mem.GetVaultByHeight(height)
 	if err != nil {
 		log.Error(err)
 	}
-	if item != nil {
-		return item
+	if vault != nil {
+		return vault
 	}
 
-	item, err = c.db.GetVaultByHeight(height)
+	vault, err = c.db.GetVaultByHeight(height)
 	if err != nil {
 		log.Error(err)
 	}
-	if item != nil {
-		return item
+	if vault != nil {
+		return vault
 	}
 
 	return nil
 }
 
 func (c *Chain) GetVaultByHash(hash []byte) *ngtypes.Vault {
-	item, err := c.mem.GetVaultByHash(hash)
+	c.RLock()
+	defer c.RUnlock()
+
+	vault, err := c.mem.GetVaultByHash(hash)
 	if err != nil {
 		log.Error(err)
+		log.Info(c.mem.VaultHashMap)
 	}
-	if item != nil {
-		return item
+	if vault != nil {
+		return vault
 	}
 
-	item, err = c.db.GetVaultByHash(hash)
+	vault, err = c.db.GetVaultByHash(hash)
 	if err != nil {
 		log.Error(err)
 	}
-	if item != nil {
-		return item
+	if vault != nil {
+		return vault
 	}
 
 	return nil
 }
 
 func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
+	c.RLock()
+	defer c.RUnlock()
+
 	return c.db.DumpAllBlocksByHeight()
 }
 
 func (c *Chain) DumpAllVaultsByHeight() map[uint64]*ngtypes.Vault {
+	c.RLock()
+	defer c.RUnlock()
+
+	c.RLock()
+	defer c.RUnlock()
+
 	return c.db.DumpAllVaultsByHeight()
 }
 
 func (c *Chain) DumpAllByHash(withBlocks bool, withVaults bool) map[string]Item {
+	c.RLock()
+	defer c.RUnlock()
+
 	kv := make(map[string]Item)
 	if withBlocks {
 		all := c.db.DumpAllBlocksByHash()
