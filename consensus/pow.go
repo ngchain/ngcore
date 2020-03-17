@@ -49,6 +49,9 @@ func (c *Consensus) ResumeMining() {
 }
 
 func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
+	c.RLock()
+	defer c.RUnlock()
+
 	currentBlock := c.Chain.GetLatestBlock()
 	currentBlockHash, _ := currentBlock.CalculateHash()
 	if bytes.Compare(currentBlockHash, c.Chain.GetLatestBlockHash()) != 0 {
@@ -58,10 +61,6 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 
 	currentVault := c.Chain.GetLatestVault()
 	currentVaultHash, _ := currentVault.CalculateHash()
-
-	if bytes.Compare(currentVaultHash, c.Chain.GetLatestVaultHash()) != 0 {
-		panic("")
-	}
 
 	newTarget := c.getNextTarget(currentBlock, currentVault)
 
@@ -100,15 +99,26 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		return
 	}
 
+	prevBlock := c.Chain.GetBlockByHash(b.Header.PrevBlockHash)
+	if prevBlock == nil {
+		log.Warning("Malformed block mined: PrevBlockHash")
+		return
+	}
+
+	prevVault := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
+	if prevVault == nil {
+		log.Warning("Malformed block mined: PrevVaultHash")
+		return
+	}
+
 	hash, _ := b.CalculateHash()
 	log.Infof("Mined a new Block: %x@%d", hash, b.GetHeight())
 
 	// TODO: vault should be generated when made the template
 	if b.Header.IsHead() {
-		v := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
-		err := c.SheetManager.ApplyVault(v)
+		err := c.SheetManager.ApplyVault(prevVault)
 		if err != nil {
-			panic(err)
+			log.Error(err)
 		}
 	}
 

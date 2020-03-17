@@ -4,13 +4,14 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
+	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
 	"math/big"
 )
 
 // Sign will re-sign the Tx with private key
 func (m *TxHeader) Signature(privKey *ecdsa.PrivateKey) (R, S *big.Int, err error) {
-	b, err := m.Marshal()
+	b, err := proto.Marshal(m)
 	if err != nil {
 		log.Error(err)
 	}
@@ -31,11 +32,11 @@ func (m *TxHeader) Check() error {
 }
 
 func (m *TxHeader) CalculateHash() ([]byte, error) {
-	b, err := m.Marshal()
+	raw, err := m.Marshal()
 	if err != nil {
-		log.Error(err)
+		return nil, err
 	}
-	hash := sha3.Sum256(b)
+	hash := sha3.Sum256(raw)
 	return hash[:], nil
 }
 
@@ -46,4 +47,9 @@ func (m *TxHeader) TotalCharge() *big.Int {
 	}
 
 	return new(big.Int).Add(new(big.Int).SetBytes(m.Fee), totalValue)
+}
+
+func (m *TxHeader) Copy() *TxHeader {
+	tx := &m
+	return *tx
 }

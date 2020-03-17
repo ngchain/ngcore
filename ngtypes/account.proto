@@ -1,3 +1,5 @@
+// protoc *.proto --gogoslick_out=.
+
 syntax = "proto3";
 
 package ngtypes;

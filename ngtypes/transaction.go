@@ -45,7 +45,7 @@ func (m *Transaction) Verify(pubKey ecdsa.PublicKey) bool {
 	o.R = nil
 	o.S = nil
 
-	b, err := o.Marshal()
+	b, err := proto.Marshal(o)
 	if err != nil {
 		log.Error(err)
 	}
@@ -83,12 +83,12 @@ func (m *Transaction) HashHex() string {
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx
 func (m *Transaction) CalculateHash() ([]byte, error) {
-	b, err := proto.Marshal(m)
+	raw, err := m.Marshal()
 	if err != nil {
 		log.Error(err)
 	}
 
-	hash := sha3.Sum256(b)
+	hash := sha3.Sum256(raw)
 	return hash[:], nil
 }
 
@@ -161,7 +161,7 @@ func (m *Transaction) Check() error {
 
 // Sign will re-sign the Tx with private key
 func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
-	b, err := m.Marshal()
+	b, err := proto.Marshal(m)
 	if err != nil {
 		log.Error(err)
 	}
@@ -227,7 +227,7 @@ func GetGenesisGeneration() *Transaction {
 		Extra: nil,
 	}
 
-	headerHash, _ := header.Marshal()
+	headerHash, _ := proto.Marshal(header)
 
 	r, _ := hex.DecodeString("db60cdda46c5c4efb1eadd797b27bc785a713c16b5e33d92010cf1828855e577")
 	s, _ := hex.DecodeString("f28ec61c9ec8e889377c34e8359b25f355500b15189c1c7f3f1f2fff61eb7873")

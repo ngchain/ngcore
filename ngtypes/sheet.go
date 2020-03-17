@@ -99,7 +99,10 @@ func (m *Sheet) Copy() *Sheet {
 }
 
 func (m *Sheet) CalculateHash() ([]byte, error) {
-	raw, err := proto.Marshal(m)
+	raw, err := m.Marshal()
+	if err != nil {
+		return nil, err
+	}
 	hash := sha3.Sum256(raw)
-	return hash[:], err
+	return hash[:], nil
 }

@@ -158,10 +158,12 @@ func (m *Block) Copy() *Block {
 }
 
 func (m *Block) CalculateHash() ([]byte, error) {
-	b := m.Copy()
-	raw, err := proto.Marshal(b)
+	raw, err := m.Marshal()
+	if err != nil {
+		return nil, err
+	}
 	hash := sha3.Sum256(raw)
-	return hash[:], err
+	return hash[:], nil
 }
 
 func (m *Block) GetHeight() uint64 {

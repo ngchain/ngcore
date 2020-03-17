@@ -12,6 +12,7 @@
 *.out
 
 # go module
+vendor
 go.sum
 
 # Personal Infomation
@@ -20,3 +21,6 @@ go.sum
 # idea
 .idea/httpRequests
 *.db
+
+# bazel:
+bazel-*

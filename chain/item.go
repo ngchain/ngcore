@@ -1,8 +1,6 @@
 package chain
 
-import (
-	"github.com/gogo/protobuf/proto"
-)
+import "github.com/gogo/protobuf/proto"
 
 const LatestHeightTag = "height"
 const LatestHashTag = "hash"

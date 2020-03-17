@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "chain.go",
+        "server.go",
+        "sheet.go",
+        "test.go",
+        "tx.go",
+    ],
+    importpath = "github.com/ngin-network/ngcore/rpcServer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//chain:go_default_library",
+        "//ngtypes:go_default_library",
+        "//sheetManager:go_default_library",
+        "//txpool:go_default_library",
+        "@com_github_gorilla_rpc//:go_default_library",
+        "@com_github_gorilla_rpc//json:go_default_library",
+        "@com_github_whyrusleeping_go_logging//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["server_test.go"],
+    embed = [":go_default_library"],
+)

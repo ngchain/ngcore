@@ -4,11 +4,14 @@
 package ngtypes
 
 import (
+	bytes "bytes"
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -20,21 +23,17 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Account struct {
-	ID                   uint64   `protobuf:"varint,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Owner                []byte   `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Nonce                uint64   `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	State                []byte   `protobuf:"bytes,5,opt,name=state,proto3" json:"state,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	ID    uint64 `protobuf:"varint,1,opt,name=ID,json=iD,proto3" json:"ID,omitempty"`
+	Owner []byte `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Nonce uint64 `protobuf:"varint,4,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	State []byte `protobuf:"bytes,5,opt,name=state,proto3" json:"state,omitempty"`
 }
 
-func (m *Account) Reset()         { *m = Account{} }
-func (m *Account) String() string { return proto.CompactTextString(m) }
-func (*Account) ProtoMessage()    {}
+func (m *Account) Reset()      { *m = Account{} }
+func (*Account) ProtoMessage() {}
 func (*Account) Descriptor() ([]byte, []int) {
 	return fileDescriptor_8e28828dcb8d24f0, []int{0}
 }
@@ -100,18 +99,74 @@ func init() {
 func init() { proto.RegisterFile("account.proto", fileDescriptor_8e28828dcb8d24f0) }
 
 var fileDescriptor_8e28828dcb8d24f0 = []byte{
-	// 138 bytes of a gzipped FileDescriptorProto
+	// 176 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4d, 0x4c, 0x4e, 0xce,
 	0x2f, 0xcd, 0x2b, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0xcf, 0x4b, 0x2f, 0xa9, 0x2c,
 	0x48, 0x2d, 0x56, 0x8a, 0xe6, 0x62, 0x77, 0x84, 0xc8, 0x08, 0xf1, 0x71, 0x31, 0x79, 0xba, 0x48,
-	0x30, 0x2a, 0x30, 0x6a, 0xb0, 0x04, 0x31, 0x79, 0xba, 0x08, 0x89, 0x70, 0xb1, 0xe6, 0x97, 0xe7,
+	0x30, 0x2a, 0x30, 0x6a, 0xb0, 0x04, 0x31, 0x65, 0xba, 0x08, 0x89, 0x70, 0xb1, 0xe6, 0x97, 0xe7,
 	0xa5, 0x16, 0x49, 0x30, 0x29, 0x30, 0x6a, 0xf0, 0x04, 0x41, 0x38, 0x20, 0xd1, 0xbc, 0xfc, 0xbc,
 	0xe4, 0x54, 0x09, 0x16, 0xb0, 0x42, 0x08, 0x07, 0x24, 0x5a, 0x5c, 0x92, 0x58, 0x92, 0x2a, 0xc1,
-	0x0a, 0x51, 0x0b, 0xe6, 0x38, 0x09, 0x9c, 0x78, 0x24, 0xc7, 0x78, 0xe1, 0x91, 0x1c, 0xe3, 0x83,
-	0x47, 0x72, 0x8c, 0x33, 0x1e, 0xcb, 0x31, 0x24, 0xb1, 0x81, 0xad, 0x37, 0x06, 0x04, 0x00, 0x00,
-	0xff, 0xff, 0x55, 0x47, 0x5d, 0xd0, 0x8f, 0x00, 0x00, 0x00,
+	0x0a, 0x51, 0x0b, 0xe6, 0x38, 0x99, 0x5c, 0x78, 0x28, 0xc7, 0x70, 0xe3, 0xa1, 0x1c, 0xc3, 0x87,
+	0x87, 0x72, 0x8c, 0x0d, 0x8f, 0xe4, 0x18, 0x57, 0x3c, 0x92, 0x63, 0x3c, 0xf1, 0x48, 0x8e, 0xf1,
+	0xc2, 0x23, 0x39, 0xc6, 0x07, 0x8f, 0xe4, 0x18, 0x5f, 0x3c, 0x92, 0x63, 0xf8, 0xf0, 0x48, 0x8e,
+	0x71, 0xc2, 0x63, 0x39, 0x86, 0x0b, 0x8f, 0xe5, 0x18, 0x6e, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03,
+	0x3b, 0xd1, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0xc5, 0x79, 0x64, 0xce, 0xb3, 0x00, 0x00, 0x00,
 }
 
+func (this *Account) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Account)
+	if !ok {
+		that2, ok := that.(Account)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ID != that1.ID {
+		return false
+	}
+	if !bytes.Equal(this.Owner, that1.Owner) {
+		return false
+	}
+	if this.Nonce != that1.Nonce {
+		return false
+	}
+	if !bytes.Equal(this.State, that1.State) {
+		return false
+	}
+	return true
+}
+func (this *Account) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 8)
+	s = append(s, "&ngtypes.Account{")
+	s = append(s, "ID: "+fmt.Sprintf("%#v", this.ID)+",\n")
+	s = append(s, "Owner: "+fmt.Sprintf("%#v", this.Owner)+",\n")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "State: "+fmt.Sprintf("%#v", this.State)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func valueToGoStringAccount(v interface{}, typ string) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
+}
 func (m *Account) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -132,10 +187,6 @@ func (m *Account) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.State) > 0 {
 		i -= len(m.State)
 		copy(dAtA[i:], m.State)
@@ -194,9 +245,6 @@ func (m *Account) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovAccount(uint64(l))
 	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
 	return n
 }
 
@@ -205,6 +253,27 @@ func sovAccount(x uint64) (n int) {
 }
 func sozAccount(x uint64) (n int) {
 	return sovAccount(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (this *Account) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Account{`,
+		`ID:` + fmt.Sprintf("%v", this.ID) + `,`,
+		`Owner:` + fmt.Sprintf("%v", this.Owner) + `,`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`State:` + fmt.Sprintf("%v", this.State) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringAccount(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *Account) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -356,7 +425,6 @@ func (m *Account) Unmarshal(dAtA []byte) error {
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
 			iNdEx += skippy
 		}
 	}

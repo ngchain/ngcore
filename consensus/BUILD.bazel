@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "consensus.go",
+        "defaults.go",
+        "difficulty.go",
+        "generation.go",
+        "miner.go",
+        "pow.go",
+    ],
+    importpath = "github.com/ngin-network/ngcore/consensus",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//chain:go_default_library",
+        "//ngtypes:go_default_library",
+        "//sheetManager:go_default_library",
+        "//txpool:go_default_library",
+        "//utils:go_default_library",
+        "@com_github_nebulouslabs_fastrand//:go_default_library",
+        "@com_github_ngin_network_cryptonight_go//:go_default_library",
+        "@com_github_whyrusleeping_go_logging//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "difficulty_test.go",
+        "miner_test.go",
+        "pow_test.go",
+    ],
+    embed = [":go_default_library"],
+)

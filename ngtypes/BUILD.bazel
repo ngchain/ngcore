@@ -1,0 +1,76 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "ngtypes_proto",
+    srcs = [
+        "account.proto",
+        "block.proto",
+        "p2p.proto",
+        "sheet.proto",
+        "transaction.proto",
+        "vault.proto",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:root_proto",
+        "@gogo_special_proto//github.com/gogo/protobuf/gogoproto",
+    ],
+)
+
+go_proto_library(
+    name = "ngtypes_go_proto",
+    compilers = ["@io_bazel_rules_go//proto:gogoslick_proto"],
+    importpath = "github.com/ngin-network/ngcore/ngtypes",
+    proto = ":ngtypes_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:go_default_library",
+        "@com_github_gogo_protobuf//gogoproto:go_default_library",
+    ],
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "account.go",
+        "block.go",
+        "blockHeader.go",
+        "defaults.go",
+        "doc.go",
+        "sheet.go",
+        "transaction.go",
+        "txHeader.go",
+        "txTrie.go",
+        "vault.go",
+    ],
+    embed = [":ngtypes_go_proto"],
+    importpath = "github.com/ngin-network/ngcore/ngtypes",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_cbergoon_merkletree//:go_default_library",
+        "@com_github_gogo_protobuf//proto:go_default_library",
+        "@com_github_mr_tron_base58//:go_default_library",
+        "@com_github_ngin_network_cryptonight_go//:go_default_library",
+        "@com_github_whyrusleeping_go_logging//:go_default_library",
+        "@org_golang_x_crypto//sha3:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "account_test.go",
+        "block_test.go",
+        "transaction_test.go",
+        "vault_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "@com_github_gogo_protobuf//proto:go_default_library",
+        "@com_github_mr_tron_base58//:go_default_library",
+        "@com_github_nebulouslabs_fastrand//:go_default_library",
+        "@com_github_ngin_network_cryptonight_go//:go_default_library",
+    ],
+)

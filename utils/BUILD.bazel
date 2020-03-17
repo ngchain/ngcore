@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "ecdsa.go",
+        "file.go",
+        "format.go",
+        "helper.go",
+        "serialize.go",
+    ],
+    importpath = "github.com/ngin-network/ngcore/utils",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "file_test.go",
+        "format_test.go",
+        "serialize_test.go",
+    ],
+    embed = [":go_default_library"],
+)

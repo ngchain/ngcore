@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "mgr.go",
+        "status.go",
+    ],
+    importpath = "github.com/ngin-network/ngcore/keyManager",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//utils:go_default_library",
+        "@com_github_mr_tron_base58//:go_default_library",
+        "@com_github_whyrusleeping_go_logging//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["mgr_test.go"],
+    embed = [":go_default_library"],
+)

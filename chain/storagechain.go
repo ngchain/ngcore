@@ -49,14 +49,14 @@ func (c *storageChain) Init(initCheckpoint *ngtypes.Block, initVault *ngtypes.Va
 		vaultBucket := tx.Bucket([]byte(vaultBucketName))
 
 		hash, _ := initCheckpoint.CalculateHash()
-		raw, _ := initCheckpoint.Marshal()
+		raw, _ := proto.Marshal(initCheckpoint)
 		blockBucket.Put(hash, raw)
 		blockBucket.Put(utils.PackUint64LE(initCheckpoint.GetHeight()), raw)
 		blockBucket.Put([]byte(LatestHashTag), hash)
 		blockBucket.Put([]byte(LatestHeightTag), utils.PackUint64LE(initCheckpoint.GetHeight()))
 
 		hash, _ = initVault.CalculateHash()
-		raw, _ = initVault.Marshal()
+		raw, _ = proto.Marshal(initVault)
 		vaultBucket.Put(hash, raw)
 		vaultBucket.Put(utils.PackUint64LE(initVault.GetHeight()), raw)
 		vaultBucket.Put([]byte(LatestHashTag), hash)

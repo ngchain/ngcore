@@ -4,11 +4,16 @@
 package ngtypes
 
 import (
+	bytes "bytes"
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -20,20 +25,16 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type Sheet struct {
-	Version              int32               `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	Accounts             map[uint64]*Account `protobuf:"bytes,10,rep,name=accounts,proto3" json:"accounts,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Anonymous            map[string][]byte   `protobuf:"bytes,11,rep,name=anonymous,proto3" json:"anonymous,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
-	XXX_unrecognized     []byte              `json:"-"`
-	XXX_sizecache        int32               `json:"-"`
+	Version   int32               `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	Accounts  map[uint64]*Account `protobuf:"bytes,10,rep,name=accounts,proto3" json:"accounts,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Anonymous map[string][]byte   `protobuf:"bytes,11,rep,name=anonymous,proto3" json:"anonymous,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
-func (m *Sheet) Reset()         { *m = Sheet{} }
-func (m *Sheet) String() string { return proto.CompactTextString(m) }
-func (*Sheet) ProtoMessage()    {}
+func (m *Sheet) Reset()      { *m = Sheet{} }
+func (*Sheet) ProtoMessage() {}
 func (*Sheet) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2edb8d084c32530c, []int{0}
 }
@@ -41,16 +42,12 @@ func (m *Sheet) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *Sheet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Sheet.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
 	}
+	return b[:n], nil
 }
 func (m *Sheet) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Sheet.Merge(m, src)
@@ -94,24 +91,113 @@ func init() {
 func init() { proto.RegisterFile("sheet.proto", fileDescriptor_2edb8d084c32530c) }
 
 var fileDescriptor_2edb8d084c32530c = []byte{
-	// 232 bytes of a gzipped FileDescriptorProto
+	// 305 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2e, 0xce, 0x48, 0x4d,
 	0x2d, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0xcf, 0x4b, 0x2f, 0xa9, 0x2c, 0x48, 0x2d,
-	0x96, 0xe2, 0x4d, 0x4c, 0x4e, 0xce, 0x2f, 0xcd, 0x83, 0x8a, 0x2b, 0x2d, 0x65, 0xe2, 0x62, 0x0d,
-	0x06, 0xa9, 0x13, 0x92, 0xe0, 0x62, 0x2f, 0x4b, 0x2d, 0x2a, 0xce, 0xcc, 0xcf, 0x93, 0x60, 0x54,
-	0x60, 0xd4, 0x60, 0x0d, 0x82, 0x71, 0x85, 0x2c, 0xb8, 0x38, 0xa0, 0x9a, 0x8a, 0x25, 0xb8, 0x14,
-	0x98, 0x35, 0xb8, 0x8d, 0x64, 0xf4, 0xa0, 0xc6, 0xe9, 0x81, 0xf5, 0xea, 0x39, 0x42, 0xa5, 0x5d,
-	0xf3, 0x4a, 0x8a, 0x2a, 0x83, 0xe0, 0xaa, 0x85, 0xac, 0xb9, 0x38, 0x13, 0xf3, 0xf2, 0xf3, 0x2a,
-	0x73, 0xf3, 0x4b, 0x8b, 0x25, 0xb8, 0xc1, 0x5a, 0x65, 0xd1, 0xb5, 0xc2, 0xe4, 0x21, 0x7a, 0x11,
-	0xea, 0xa5, 0x7c, 0xb9, 0x78, 0x51, 0xcc, 0x15, 0x12, 0xe0, 0x62, 0xce, 0x4e, 0xad, 0x04, 0xbb,
-	0x8e, 0x25, 0x08, 0xc4, 0x14, 0x52, 0xe3, 0x62, 0x2d, 0x4b, 0xcc, 0x29, 0x4d, 0x95, 0x60, 0x52,
-	0x60, 0xd4, 0xe0, 0x36, 0x12, 0x80, 0x9b, 0x0d, 0xd5, 0x18, 0x04, 0x91, 0xb6, 0x62, 0xb2, 0x60,
-	0x94, 0xb2, 0xe1, 0xe2, 0x43, 0xb5, 0x0b, 0xd9, 0x3c, 0x4e, 0x88, 0x79, 0x22, 0xc8, 0xe6, 0xf1,
-	0x20, 0xe9, 0x76, 0x12, 0x38, 0xf1, 0x48, 0x8e, 0xf1, 0xc2, 0x23, 0x39, 0xc6, 0x07, 0x8f, 0xe4,
-	0x18, 0x67, 0x3c, 0x96, 0x63, 0x48, 0x62, 0x03, 0x07, 0xa0, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff,
-	0x81, 0x36, 0xc0, 0x6c, 0x67, 0x01, 0x00, 0x00,
+	0x96, 0xd2, 0x4d, 0xcf, 0x2c, 0xc9, 0x28, 0x4d, 0xd2, 0x4b, 0xce, 0xcf, 0xd5, 0x4f, 0xcf, 0x4f,
+	0xcf, 0xd7, 0x07, 0xcb, 0x27, 0x95, 0xa6, 0x81, 0x79, 0x60, 0x0e, 0x98, 0x05, 0xd1, 0x27, 0xc5,
+	0x9b, 0x98, 0x9c, 0x9c, 0x5f, 0x9a, 0x07, 0x35, 0x46, 0x69, 0x29, 0x13, 0x17, 0x6b, 0x30, 0xc8,
+	0x58, 0x21, 0x09, 0x2e, 0xf6, 0xb2, 0xd4, 0xa2, 0xe2, 0xcc, 0xfc, 0x3c, 0x09, 0x46, 0x05, 0x46,
+	0x0d, 0xd6, 0x20, 0x18, 0x57, 0xc8, 0x82, 0x8b, 0x03, 0xaa, 0xa9, 0x58, 0x82, 0x4b, 0x81, 0x59,
+	0x83, 0xdb, 0x48, 0x46, 0x0f, 0x6a, 0xbb, 0x1e, 0x58, 0xaf, 0x9e, 0x23, 0x54, 0xda, 0x35, 0xaf,
+	0xa4, 0xa8, 0x32, 0x08, 0xae, 0x5a, 0xc8, 0x9a, 0x8b, 0x33, 0x31, 0x2f, 0x3f, 0xaf, 0x32, 0x37,
+	0xbf, 0xb4, 0x58, 0x82, 0x1b, 0xac, 0x55, 0x16, 0x5d, 0x2b, 0x4c, 0x1e, 0xa2, 0x17, 0xa1, 0x5e,
+	0xca, 0x97, 0x8b, 0x17, 0xc5, 0x5c, 0x21, 0x01, 0x2e, 0xe6, 0xec, 0xd4, 0x4a, 0xb0, 0xeb, 0x58,
+	0x82, 0x40, 0x4c, 0x21, 0x35, 0x2e, 0xd6, 0xb2, 0xc4, 0x9c, 0xd2, 0x54, 0x09, 0x26, 0x05, 0x46,
+	0x0d, 0x6e, 0x23, 0x01, 0xb8, 0xd9, 0x50, 0x8d, 0x41, 0x10, 0x69, 0x2b, 0x26, 0x0b, 0x46, 0x29,
+	0x1b, 0x2e, 0x3e, 0x54, 0xbb, 0x90, 0xcd, 0xe3, 0x84, 0x98, 0x27, 0x82, 0x6c, 0x1e, 0x0f, 0x92,
+	0x6e, 0x27, 0x8b, 0x0b, 0x0f, 0xe5, 0x18, 0x6e, 0x3c, 0x94, 0x63, 0xf8, 0xf0, 0x50, 0x8e, 0xb1,
+	0xe1, 0x91, 0x1c, 0xe3, 0x8a, 0x47, 0x72, 0x8c, 0x27, 0x1e, 0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7,
+	0x78, 0xe3, 0x91, 0x1c, 0xe3, 0x83, 0x47, 0x72, 0x8c, 0x2f, 0x1e, 0xc9, 0x31, 0x7c, 0x78, 0x24,
+	0xc7, 0x38, 0xe1, 0xb1, 0x1c, 0xc3, 0x85, 0xc7, 0x72, 0x0c, 0x37, 0x1e, 0xcb, 0x31, 0x24, 0xb1,
+	0x81, 0x03, 0xda, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0xe9, 0x67, 0xf6, 0x1d, 0xbe, 0x01, 0x00,
+	0x00,
 }
 
+func (this *Sheet) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Sheet)
+	if !ok {
+		that2, ok := that.(Sheet)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Version != that1.Version {
+		return false
+	}
+	if len(this.Accounts) != len(that1.Accounts) {
+		return false
+	}
+	for i := range this.Accounts {
+		if !this.Accounts[i].Equal(that1.Accounts[i]) {
+			return false
+		}
+	}
+	if len(this.Anonymous) != len(that1.Anonymous) {
+		return false
+	}
+	for i := range this.Anonymous {
+		if !bytes.Equal(this.Anonymous[i], that1.Anonymous[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *Sheet) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&ngtypes.Sheet{")
+	s = append(s, "Version: "+fmt.Sprintf("%#v", this.Version)+",\n")
+	keysForAccounts := make([]uint64, 0, len(this.Accounts))
+	for k, _ := range this.Accounts {
+		keysForAccounts = append(keysForAccounts, k)
+	}
+	github_com_gogo_protobuf_sortkeys.Uint64s(keysForAccounts)
+	mapStringForAccounts := "map[uint64]*Account{"
+	for _, k := range keysForAccounts {
+		mapStringForAccounts += fmt.Sprintf("%#v: %#v,", k, this.Accounts[k])
+	}
+	mapStringForAccounts += "}"
+	if this.Accounts != nil {
+		s = append(s, "Accounts: "+mapStringForAccounts+",\n")
+	}
+	keysForAnonymous := make([]string, 0, len(this.Anonymous))
+	for k, _ := range this.Anonymous {
+		keysForAnonymous = append(keysForAnonymous, k)
+	}
+	github_com_gogo_protobuf_sortkeys.Strings(keysForAnonymous)
+	mapStringForAnonymous := "map[string][]byte{"
+	for _, k := range keysForAnonymous {
+		mapStringForAnonymous += fmt.Sprintf("%#v: %#v,", k, this.Anonymous[k])
+	}
+	mapStringForAnonymous += "}"
+	if this.Anonymous != nil {
+		s = append(s, "Anonymous: "+mapStringForAnonymous+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func valueToGoStringSheet(v interface{}, typ string) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
+}
 func (m *Sheet) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -132,13 +218,14 @@ func (m *Sheet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Anonymous) > 0 {
+		keysForAnonymous := make([]string, 0, len(m.Anonymous))
 		for k := range m.Anonymous {
-			v := m.Anonymous[k]
+			keysForAnonymous = append(keysForAnonymous, string(k))
+		}
+		github_com_gogo_protobuf_sortkeys.Strings(keysForAnonymous)
+		for iNdEx := len(keysForAnonymous) - 1; iNdEx >= 0; iNdEx-- {
+			v := m.Anonymous[string(keysForAnonymous[iNdEx])]
 			baseI := i
 			if len(v) > 0 {
 				i -= len(v)
@@ -147,9 +234,9 @@ func (m *Sheet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i--
 				dAtA[i] = 0x12
 			}
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintSheet(dAtA, i, uint64(len(k)))
+			i -= len(keysForAnonymous[iNdEx])
+			copy(dAtA[i:], keysForAnonymous[iNdEx])
+			i = encodeVarintSheet(dAtA, i, uint64(len(keysForAnonymous[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 			i = encodeVarintSheet(dAtA, i, uint64(baseI-i))
@@ -158,8 +245,13 @@ func (m *Sheet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 	}
 	if len(m.Accounts) > 0 {
+		keysForAccounts := make([]uint64, 0, len(m.Accounts))
 		for k := range m.Accounts {
-			v := m.Accounts[k]
+			keysForAccounts = append(keysForAccounts, uint64(k))
+		}
+		github_com_gogo_protobuf_sortkeys.Uint64s(keysForAccounts)
+		for iNdEx := len(keysForAccounts) - 1; iNdEx >= 0; iNdEx-- {
+			v := m.Accounts[uint64(keysForAccounts[iNdEx])]
 			baseI := i
 			if v != nil {
 				{
@@ -173,7 +265,7 @@ func (m *Sheet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i--
 				dAtA[i] = 0x12
 			}
-			i = encodeVarintSheet(dAtA, i, uint64(k))
+			i = encodeVarintSheet(dAtA, i, uint64(keysForAccounts[iNdEx]))
 			i--
 			dAtA[i] = 0x8
 			i = encodeVarintSheet(dAtA, i, uint64(baseI-i))
@@ -234,9 +326,6 @@ func (m *Sheet) Size() (n int) {
 			n += mapEntrySize + 1 + sovSheet(uint64(mapEntrySize))
 		}
 	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
 	return n
 }
 
@@ -245,6 +334,46 @@ func sovSheet(x uint64) (n int) {
 }
 func sozSheet(x uint64) (n int) {
 	return sovSheet(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (this *Sheet) String() string {
+	if this == nil {
+		return "nil"
+	}
+	keysForAccounts := make([]uint64, 0, len(this.Accounts))
+	for k, _ := range this.Accounts {
+		keysForAccounts = append(keysForAccounts, k)
+	}
+	github_com_gogo_protobuf_sortkeys.Uint64s(keysForAccounts)
+	mapStringForAccounts := "map[uint64]*Account{"
+	for _, k := range keysForAccounts {
+		mapStringForAccounts += fmt.Sprintf("%v: %v,", k, this.Accounts[k])
+	}
+	mapStringForAccounts += "}"
+	keysForAnonymous := make([]string, 0, len(this.Anonymous))
+	for k, _ := range this.Anonymous {
+		keysForAnonymous = append(keysForAnonymous, k)
+	}
+	github_com_gogo_protobuf_sortkeys.Strings(keysForAnonymous)
+	mapStringForAnonymous := "map[string][]byte{"
+	for _, k := range keysForAnonymous {
+		mapStringForAnonymous += fmt.Sprintf("%v: %v,", k, this.Anonymous[k])
+	}
+	mapStringForAnonymous += "}"
+	s := strings.Join([]string{`&Sheet{`,
+		`Version:` + fmt.Sprintf("%v", this.Version) + `,`,
+		`Accounts:` + mapStringForAccounts + `,`,
+		`Anonymous:` + mapStringForAnonymous + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringSheet(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *Sheet) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -552,7 +681,6 @@ func (m *Sheet) Unmarshal(dAtA []byte) error {
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
 			iNdEx += skippy
 		}
 	}

@@ -110,21 +110,21 @@ func (c *Chain) PutBlock(block *ngtypes.Block) error {
 	c.Lock()
 	defer c.Unlock()
 
-	//if block.GetHeight()%(ngtypes.BlockCheckRound*ngtypes.VaultCheckRound) == 0 &&
-	//	//c.GetLatestBlockHeight() < block.Header.Height &&
-	//	len(c.mem.BlockHeightMap) >= ngtypes.BlockCheckRound {
-	//	go func() {
-	//		log.Info("dumping blocks from mem to db")
-	//		prevBlock := c.GetBlockByHash(block.GetPrevHash())
-	//		items := c.mem.ExportLongestChain(prevBlock, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
-	//		if len(items) > 0 {
-	//			err := c.db.PutChain(items...)
-	//			if err != nil {
-	//				log.Info("failed to put items:", err)
-	//			}
-	//		}
-	//	}()
-	//}
+	if block.GetHeight()%(ngtypes.BlockCheckRound*ngtypes.VaultCheckRound) == 0 &&
+		//c.GetLatestBlockHeight() < block.Header.Height &&
+		len(c.mem.BlockHeightMap) >= ngtypes.BlockCheckRound {
+		go func() {
+			log.Info("dumping blocks from mem to db")
+			prevBlock := c.GetBlockByHash(block.GetPrevHash())
+			items := c.mem.ExportLongestChain(prevBlock, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
+			if len(items) > 0 {
+				err := c.db.PutChain(items...)
+				if err != nil {
+					log.Info("failed to put items:", err)
+				}
+			}
+		}()
+	}
 
 	err := c.mem.PutBlocks(block)
 	if err != nil {

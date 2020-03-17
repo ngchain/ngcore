@@ -4,11 +4,14 @@
 package ngtypes
 
 import (
+	bytes "bytes"
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+	reflect "reflect"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -20,7 +23,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type TxHeader struct {
 	Version      int32    `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
@@ -31,15 +34,11 @@ type TxHeader struct {
 	Values       [][]byte `protobuf:"bytes,13,rep,name=values,proto3" json:"values,omitempty"`
 	Nonce        uint64   `protobuf:"varint,14,opt,name=nonce,proto3" json:"nonce,omitempty"`
 	// extension
-	Extra                []byte   `protobuf:"bytes,20,opt,name=extra,proto3" json:"extra,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Extra []byte `protobuf:"bytes,20,opt,name=extra,proto3" json:"extra,omitempty"`
 }
 
-func (m *TxHeader) Reset()         { *m = TxHeader{} }
-func (m *TxHeader) String() string { return proto.CompactTextString(m) }
-func (*TxHeader) ProtoMessage()    {}
+func (m *TxHeader) Reset()      { *m = TxHeader{} }
+func (*TxHeader) ProtoMessage() {}
 func (*TxHeader) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2cc4e03d2c28c490, []int{0}
 }
@@ -129,17 +128,13 @@ func (m *TxHeader) GetExtra() []byte {
 type Transaction struct {
 	Header *TxHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	// sign
-	HeaderHash           []byte   `protobuf:"bytes,2,opt,name=header_hash,json=headerHash,proto3" json:"header_hash,omitempty"`
-	R                    []byte   `protobuf:"bytes,10,opt,name=r,proto3" json:"r,omitempty"`
-	S                    []byte   `protobuf:"bytes,11,opt,name=s,proto3" json:"s,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	HeaderHash []byte `protobuf:"bytes,2,opt,name=header_hash,json=headerHash,proto3" json:"header_hash,omitempty"`
+	R          []byte `protobuf:"bytes,10,opt,name=r,proto3" json:"r,omitempty"`
+	S          []byte `protobuf:"bytes,11,opt,name=s,proto3" json:"s,omitempty"`
 }
 
-func (m *Transaction) Reset()         { *m = Transaction{} }
-func (m *Transaction) String() string { return proto.CompactTextString(m) }
-func (*Transaction) ProtoMessage()    {}
+func (m *Transaction) Reset()      { *m = Transaction{} }
+func (*Transaction) ProtoMessage() {}
 func (*Transaction) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2cc4e03d2c28c490, []int{1}
 }
@@ -206,27 +201,157 @@ func init() {
 func init() { proto.RegisterFile("transaction.proto", fileDescriptor_2cc4e03d2c28c490) }
 
 var fileDescriptor_2cc4e03d2c28c490 = []byte{
-	// 274 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x90, 0xcd, 0x4a, 0xc4, 0x30,
-	0x14, 0x85, 0x8d, 0xf3, 0xcb, 0x6d, 0x94, 0x99, 0xcb, 0x20, 0xc1, 0x45, 0x2d, 0x5d, 0xd5, 0x4d,
-	0x17, 0xfa, 0x06, 0xae, 0x66, 0x1d, 0x66, 0x2f, 0xb1, 0x5e, 0x6d, 0x41, 0x92, 0x92, 0x64, 0xca,
-	0xf8, 0x26, 0x3e, 0x92, 0x2b, 0xf1, 0x11, 0xa4, 0xbe, 0x88, 0x34, 0xe9, 0x28, 0xee, 0xce, 0x77,
-	0x38, 0x24, 0x7c, 0x17, 0xd6, 0xde, 0x2a, 0xed, 0x54, 0xe5, 0x1b, 0xa3, 0xcb, 0xd6, 0x1a, 0x6f,
-	0x70, 0xa1, 0x9f, 0xfd, 0x6b, 0x4b, 0x2e, 0xff, 0x60, 0xb0, 0xdc, 0x1d, 0xb6, 0xa4, 0x1e, 0xc9,
-	0xa2, 0x80, 0x45, 0x47, 0xd6, 0x35, 0x46, 0x0b, 0x96, 0xb1, 0x62, 0x26, 0x8f, 0x88, 0x08, 0xd3,
-	0x61, 0x2f, 0x4e, 0x43, 0x1d, 0x32, 0x5e, 0xc2, 0xb2, 0x32, 0xba, 0x23, 0x4d, 0x56, 0x40, 0xc6,
-	0x8a, 0xa9, 0xfc, 0x65, 0xcc, 0x81, 0xb7, 0xca, 0xfa, 0xa6, 0x6a, 0x5a, 0xa5, 0xbd, 0x13, 0x49,
-	0x36, 0x29, 0xb8, 0xfc, 0xd7, 0xe1, 0x0a, 0x26, 0x4f, 0x44, 0x82, 0x67, 0xac, 0xe0, 0x72, 0x88,
-	0x78, 0x01, 0xf3, 0x4e, 0xbd, 0xec, 0xc9, 0x89, 0xb3, 0xb0, 0x1f, 0x09, 0x37, 0x30, 0xd3, 0x46,
-	0x57, 0x24, 0xce, 0xc3, 0x37, 0x11, 0x86, 0x96, 0x0e, 0xde, 0x2a, 0xb1, 0x09, 0x2f, 0x44, 0xc8,
-	0xf7, 0x90, 0xec, 0xfe, 0x74, 0xf1, 0x1a, 0xe6, 0x75, 0x90, 0x0b, 0x46, 0xc9, 0xcd, 0xba, 0x1c,
-	0xcd, 0xcb, 0xa3, 0xb5, 0x1c, 0x07, 0x78, 0x05, 0x49, 0x4c, 0xf7, 0xb5, 0x72, 0x75, 0x50, 0xe5,
-	0x12, 0x62, 0xb5, 0x55, 0xae, 0x46, 0x0e, 0x2c, 0x9a, 0x72, 0xc9, 0xec, 0x40, 0x83, 0x57, 0x20,
-	0x77, 0xb7, 0x7a, 0xef, 0x53, 0xf6, 0xd9, 0xa7, 0xec, 0xab, 0x4f, 0xd9, 0xdb, 0x77, 0x7a, 0xf2,
-	0x30, 0x0f, 0x97, 0xbe, 0xfd, 0x09, 0x00, 0x00, 0xff, 0xff, 0xf1, 0xe2, 0x17, 0x7e, 0x7e, 0x01,
-	0x00, 0x00,
+	// 310 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x91, 0xbd, 0x4e, 0xc3, 0x30,
+	0x14, 0x85, 0x73, 0xe9, 0xaf, 0x6e, 0x0c, 0xa2, 0x56, 0x85, 0x2c, 0x06, 0x13, 0x75, 0x0a, 0x4b,
+	0x07, 0xe0, 0x09, 0x98, 0x3a, 0x5b, 0xdd, 0x91, 0x09, 0x86, 0x44, 0x42, 0x4e, 0x64, 0xbb, 0x55,
+	0xd9, 0x78, 0x04, 0x1e, 0x83, 0x47, 0x61, 0x42, 0x1d, 0x3b, 0x52, 0x77, 0x61, 0xec, 0x23, 0xa0,
+	0x38, 0x29, 0x88, 0xed, 0x7c, 0x47, 0x47, 0xb6, 0x3e, 0x5d, 0x1c, 0x39, 0x23, 0xb5, 0x95, 0x99,
+	0x2b, 0x4a, 0x3d, 0xad, 0x4c, 0xe9, 0x4a, 0x3a, 0xd0, 0x4f, 0xee, 0xa5, 0x52, 0x76, 0xf2, 0x09,
+	0x38, 0x9c, 0xaf, 0x66, 0x4a, 0x3e, 0x28, 0x43, 0x19, 0x0e, 0x96, 0xca, 0xd8, 0xa2, 0xd4, 0x0c,
+	0x12, 0x48, 0x7b, 0xe2, 0x80, 0x94, 0x62, 0xb7, 0xde, 0xb3, 0xa3, 0x50, 0x87, 0x4c, 0xcf, 0x71,
+	0x98, 0x95, 0x7a, 0xa9, 0xb4, 0x32, 0x0c, 0x13, 0x48, 0xbb, 0xe2, 0x97, 0xe9, 0x04, 0x49, 0x25,
+	0x8d, 0x2b, 0xb2, 0xa2, 0x92, 0xda, 0x59, 0x16, 0x27, 0x9d, 0x94, 0x88, 0x7f, 0x1d, 0x3d, 0xc5,
+	0xce, 0xa3, 0x52, 0x8c, 0x24, 0x90, 0x12, 0x51, 0x47, 0x7a, 0x86, 0xfd, 0xa5, 0x7c, 0x5e, 0x28,
+	0xcb, 0x8e, 0xc3, 0xbe, 0x25, 0x3a, 0xc6, 0x9e, 0x2e, 0x75, 0xa6, 0xd8, 0x49, 0xf8, 0xa6, 0x81,
+	0xba, 0x55, 0x2b, 0x67, 0x24, 0x1b, 0x87, 0x17, 0x1a, 0x98, 0x2c, 0x30, 0x9e, 0xff, 0xe9, 0xd2,
+	0x4b, 0xec, 0xe7, 0x41, 0x2e, 0x18, 0xc5, 0x57, 0xa3, 0x69, 0x6b, 0x3e, 0x3d, 0x58, 0x8b, 0x76,
+	0x40, 0x2f, 0x30, 0x6e, 0xd2, 0x5d, 0x2e, 0x6d, 0x1e, 0x54, 0x89, 0xc0, 0xa6, 0x9a, 0x49, 0x9b,
+	0x53, 0x82, 0xd0, 0x98, 0x12, 0x01, 0xa6, 0xa6, 0xda, 0x2b, 0x90, 0xbd, 0xbd, 0x59, 0x6f, 0x79,
+	0xb4, 0xd9, 0xf2, 0x68, 0xbf, 0xe5, 0xf0, 0xea, 0x39, 0xbc, 0x7b, 0x0e, 0x1f, 0x9e, 0xc3, 0xda,
+	0x73, 0xf8, 0xf2, 0x1c, 0xbe, 0x3d, 0x8f, 0xf6, 0x9e, 0xc3, 0xdb, 0x8e, 0x47, 0xeb, 0x1d, 0x8f,
+	0x36, 0x3b, 0x1e, 0xdd, 0xf7, 0xc3, 0x35, 0xae, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0xbe, 0xb5,
+	0x88, 0xf2, 0xa2, 0x01, 0x00, 0x00,
 }
 
+func (this *TxHeader) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*TxHeader)
+	if !ok {
+		that2, ok := that.(TxHeader)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Version != that1.Version {
+		return false
+	}
+	if this.Type != that1.Type {
+		return false
+	}
+	if this.Convener != that1.Convener {
+		return false
+	}
+	if len(this.Participants) != len(that1.Participants) {
+		return false
+	}
+	for i := range this.Participants {
+		if !bytes.Equal(this.Participants[i], that1.Participants[i]) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.Fee, that1.Fee) {
+		return false
+	}
+	if len(this.Values) != len(that1.Values) {
+		return false
+	}
+	for i := range this.Values {
+		if !bytes.Equal(this.Values[i], that1.Values[i]) {
+			return false
+		}
+	}
+	if this.Nonce != that1.Nonce {
+		return false
+	}
+	if !bytes.Equal(this.Extra, that1.Extra) {
+		return false
+	}
+	return true
+}
+func (this *Transaction) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Transaction)
+	if !ok {
+		that2, ok := that.(Transaction)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Header.Equal(that1.Header) {
+		return false
+	}
+	if !bytes.Equal(this.HeaderHash, that1.HeaderHash) {
+		return false
+	}
+	if !bytes.Equal(this.R, that1.R) {
+		return false
+	}
+	if !bytes.Equal(this.S, that1.S) {
+		return false
+	}
+	return true
+}
+func (this *TxHeader) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 12)
+	s = append(s, "&ngtypes.TxHeader{")
+	s = append(s, "Version: "+fmt.Sprintf("%#v", this.Version)+",\n")
+	s = append(s, "Type: "+fmt.Sprintf("%#v", this.Type)+",\n")
+	s = append(s, "Convener: "+fmt.Sprintf("%#v", this.Convener)+",\n")
+	s = append(s, "Participants: "+fmt.Sprintf("%#v", this.Participants)+",\n")
+	s = append(s, "Fee: "+fmt.Sprintf("%#v", this.Fee)+",\n")
+	s = append(s, "Values: "+fmt.Sprintf("%#v", this.Values)+",\n")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "Extra: "+fmt.Sprintf("%#v", this.Extra)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Transaction) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 8)
+	s = append(s, "&ngtypes.Transaction{")
+	if this.Header != nil {
+		s = append(s, "Header: "+fmt.Sprintf("%#v", this.Header)+",\n")
+	}
+	s = append(s, "HeaderHash: "+fmt.Sprintf("%#v", this.HeaderHash)+",\n")
+	s = append(s, "R: "+fmt.Sprintf("%#v", this.R)+",\n")
+	s = append(s, "S: "+fmt.Sprintf("%#v", this.S)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func valueToGoStringTransaction(v interface{}, typ string) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
+}
 func (m *TxHeader) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -247,10 +372,6 @@ func (m *TxHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.Extra) > 0 {
 		i -= len(m.Extra)
 		copy(dAtA[i:], m.Extra)
@@ -328,10 +449,6 @@ func (m *Transaction) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
 	if len(m.S) > 0 {
 		i -= len(m.S)
 		copy(dAtA[i:], m.S)
@@ -417,9 +534,6 @@ func (m *TxHeader) Size() (n int) {
 	if l > 0 {
 		n += 2 + l + sovTransaction(uint64(l))
 	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
 	return n
 }
 
@@ -445,9 +559,6 @@ func (m *Transaction) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovTransaction(uint64(l))
 	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
 	return n
 }
 
@@ -456,6 +567,44 @@ func sovTransaction(x uint64) (n int) {
 }
 func sozTransaction(x uint64) (n int) {
 	return sovTransaction(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (this *TxHeader) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&TxHeader{`,
+		`Version:` + fmt.Sprintf("%v", this.Version) + `,`,
+		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
+		`Convener:` + fmt.Sprintf("%v", this.Convener) + `,`,
+		`Participants:` + fmt.Sprintf("%v", this.Participants) + `,`,
+		`Fee:` + fmt.Sprintf("%v", this.Fee) + `,`,
+		`Values:` + fmt.Sprintf("%v", this.Values) + `,`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`Extra:` + fmt.Sprintf("%v", this.Extra) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Transaction) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Transaction{`,
+		`Header:` + strings.Replace(this.Header.String(), "TxHeader", "TxHeader", 1) + `,`,
+		`HeaderHash:` + fmt.Sprintf("%v", this.HeaderHash) + `,`,
+		`R:` + fmt.Sprintf("%v", this.R) + `,`,
+		`S:` + fmt.Sprintf("%v", this.S) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringTransaction(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
 }
 func (m *TxHeader) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -709,7 +858,6 @@ func (m *TxHeader) Unmarshal(dAtA []byte) error {
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
 			iNdEx += skippy
 		}
 	}
@@ -901,7 +1049,6 @@ func (m *Transaction) Unmarshal(dAtA []byte) error {
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
 			iNdEx += skippy
 		}
 	}

@@ -18,6 +18,19 @@ http_archive(
     sha256 = "d8c45ee70ec39a57e7a05e5027c32b1576cc7f16d9dd37135b0eddde45cf1b10",
 )
 
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+git_repository(
+    name = "com_google_protobuf",
+    commit = "09745575a923640154bcf307fba8aedff47f240a",
+    remote = "https://github.com/protocolbuffers/protobuf",
+    shallow_since = "1558721209 -0700",
+)
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+protobuf_deps()
+
 load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
 
 go_rules_dependencies()
@@ -61,27 +74,6 @@ go_repository(
     importpath = "github.com/armon/consul-api",
     sum = "h1:G1bPvciwNyF7IUmKXNt9Ak3m6u9DE1rF+RmtIkBpVdA=",
     version = "v0.0.0-20180202201655-eb2c6b5be1b6",
-)
-
-go_repository(
-    name = "com_github_bazelbuild_bazel_gazelle",
-    importpath = "github.com/bazelbuild/bazel-gazelle",
-    sum = "h1:kRymV9q+24Mbeg25fJehw+gvrtVIlwZZAefOSUq4MzU=",
-    version = "v0.20.0",
-)
-
-go_repository(
-    name = "com_github_bazelbuild_buildtools",
-    importpath = "github.com/bazelbuild/buildtools",
-    sum = "h1:OfyUN/Msd8yqJww6deQ9vayJWw+Jrbe6Qp9giv51QQI=",
-    version = "v0.0.0-20190731111112-f720930ceb60",
-)
-
-go_repository(
-    name = "com_github_bazelbuild_rules_go",
-    importpath = "github.com/bazelbuild/rules_go",
-    sum = "h1:wzbawlkLtl2ze9w/312NHZ84c7kpUCtlkD8HgFY27sw=",
-    version = "v0.0.0-20190719190356-6dae44dc5cab",
 )
 
 go_repository(
@@ -276,8 +268,8 @@ go_repository(
 go_repository(
     name = "com_github_golang_protobuf",
     importpath = "github.com/golang/protobuf",
-    sum = "h1:6nsPYzhq5kReh6QImI3k5qWzO4PEbvbIW2cwSfR/6xs=",
-    version = "v1.3.2",
+    sum = "h1:F768QJ1E9tib+q5Sc8MkdJi1RxLTbRcTf8LJV56aRls=",
+    version = "v1.3.5",
 )
 
 go_repository(

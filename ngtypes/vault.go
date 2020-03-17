@@ -2,9 +2,9 @@ package ngtypes
 
 import (
 	"errors"
+	"github.com/gogo/protobuf/proto"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -28,10 +28,12 @@ func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prev
 }
 
 func (m *Vault) CalculateHash() ([]byte, error) {
-	v := m.Copy()
-	raw, err := proto.Marshal(v)
+	raw, err := m.Marshal()
+	if err != nil {
+		return nil, err
+	}
 	hash := sha3.Sum256(raw)
-	return hash[:], err
+	return hash[:], nil
 }
 
 func GetGenesisVault() *Vault {
