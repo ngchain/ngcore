@@ -22,7 +22,7 @@ go_library(
 )
 
 go_binary(
-    name = "core",
+    name = "ngcore",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
 )

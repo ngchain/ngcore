@@ -13,7 +13,6 @@ go_library(
         "protocol.go",
         "reject.go",
         "server.go",
-        "stream.go",
         "sync.go",
     ],
     importpath = "github.com/ngin-network/ngcore/ngp2p",
@@ -41,5 +40,6 @@ go_library(
         "@com_github_libp2p_go_libp2p_yamux//:go_default_library",
         "@com_github_libp2p_go_tcp_transport//:go_default_library",
         "@com_github_multiformats_go_multiaddr//:go_default_library",
+        "@com_github_whyrusleeping_go_logging//:go_default_library",
     ],
 )

@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "js.go",
+        "lua.go",
+    ],
+    importpath = "github.com/ngin-network/ngcore/vm",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_whyrusleeping_go_logging//:go_default_library",
+        "@com_github_yuin_gopher_lua//:go_default_library",
+    ],
+)

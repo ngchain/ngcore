@@ -5,16 +5,14 @@ go_library(
     srcs = [
         "chain.go",
         "item.go",
-        "memchain.go",
-        "storagechain.go",
     ],
     importpath = "github.com/ngin-network/ngcore/chain",
     visibility = ["//visibility:public"],
     deps = [
         "//ngtypes:go_default_library",
         "//utils:go_default_library",
+        "@com_github_dgraph_io_badger_v2//:go_default_library",
         "@com_github_gogo_protobuf//proto:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",
-        "@io_etcd_go_bbolt//:go_default_library",
     ],
 )

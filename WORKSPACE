@@ -204,6 +204,7 @@ go_repository(
 
 go_repository(
     name = "com_github_dgraph_io_badger",
+    build_file_proto_mode = "disable_global",
     importpath = "github.com/dgraph-io/badger",
     sum = "h1:DshxFxZWXUcO0xX476VJC07Xsr6ZCBVRHKZ93Oh7Evo=",
     version = "v1.6.0",
@@ -275,8 +276,8 @@ go_repository(
 go_repository(
     name = "com_github_golang_snappy",
     importpath = "github.com/golang/snappy",
-    sum = "h1:woRePGFeVFfLKN/pOkfl+p/TAqKOfFu+7KPlMVpok/w=",
-    version = "v0.0.0-20180518054509-2e65f85255db",
+    sum = "h1:Qgr9rKW7uDUkrbSmQeiDsGa8SjGyCOGtuasMWwvp2P4=",
+    version = "v0.0.1",
 )
 
 go_repository(
@@ -1408,4 +1409,69 @@ go_repository(
     importpath = "go.uber.org/zap",
     sum = "h1:ORx85nbTijNz8ljznvCMR1ZBIPKFn3jQrag10X2AsuM=",
     version = "v1.10.0",
+)
+
+go_repository(
+    name = "com_github_cespare_xxhash",
+    importpath = "github.com/cespare/xxhash",
+    sum = "h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=",
+    version = "v1.1.0",
+)
+
+go_repository(
+    name = "com_github_chzyer_logex",
+    importpath = "github.com/chzyer/logex",
+    sum = "h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=",
+    version = "v1.1.10",
+)
+
+go_repository(
+    name = "com_github_chzyer_readline",
+    importpath = "github.com/chzyer/readline",
+    sum = "h1:fY5BOSpyZCqRo5OhCuC+XN+r/bBCmeuuJtjz+bCNIf8=",
+    version = "v0.0.0-20180603132655-2972be24d48e",
+)
+
+go_repository(
+    name = "com_github_chzyer_test",
+    importpath = "github.com/chzyer/test",
+    sum = "h1:q763qf9huN11kDQavWsoZXJNW3xEE4JJyHa5Q25/sd8=",
+    version = "v0.0.0-20180213035817-a1ea475d72b1",
+)
+
+go_repository(
+    name = "com_github_datadog_zstd",
+    importpath = "github.com/DataDog/zstd",
+    sum = "h1:3oxKN3wbHibqx897utPC2LTQU4J+IHWWJO+glkAkpFM=",
+    version = "v1.4.1",
+)
+
+go_repository(
+    name = "com_github_dgraph_io_badger_v2",
+    build_file_proto_mode = "disable_global",
+    importpath = "github.com/dgraph-io/badger/v2",
+    sum = "h1:uBAA5oM9Gz9TrP01v9LxBGztE5rhtGeBxpF1IvxGGtw=",
+    version = "v2.0.2",
+)
+
+go_repository(
+    name = "com_github_dgraph_io_ristretto",
+    build_file_proto_mode = "disable_global",
+    importpath = "github.com/dgraph-io/ristretto",
+    sum = "h1:MQLRM35Pp0yAyBYksjbj1nZI/w6eyRY/mWoM1sFf4kU=",
+    version = "v0.0.2-0.20200115201040-8f368f2f2ab3",
+)
+
+go_repository(
+    name = "com_github_oneofone_xxhash",
+    importpath = "github.com/OneOfOne/xxhash",
+    sum = "h1:KMrpdQIwFcEqXDklaen+P1axHaj9BSKzvpUUfnHldSE=",
+    version = "v1.2.2",
+)
+
+go_repository(
+    name = "com_github_yuin_gopher_lua",
+    importpath = "github.com/yuin/gopher-lua",
+    sum = "h1:ZkM6LRnq40pR1Ox0hTHlnpkcOTuFIDQpZ1IN8rKKhX0=",
+    version = "v0.0.0-20191220021717-ab39c6098bdb",
 )
