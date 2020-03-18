@@ -5,12 +5,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
-	"log"
 )
 
 func (p *Protocol) Reject(s network.Stream, uuid string) {
-	log.Println("Failed to authenticate message")
-	log.Printf("%s: Sending Reject to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid)
+	log.Warning("Failed to authenticate message")
+	log.Infof("Sending Reject to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
 	resp := &ngtypes.P2PMessage{
 		Header:  p.node.NewP2PHeader(uuid, false),
 		Payload: nil,
@@ -19,7 +18,7 @@ func (p *Protocol) Reject(s network.Stream, uuid string) {
 	// sign the data
 	signature, err := p.node.signProtoMessage(resp)
 	if err != nil {
-		log.Println("failed to sign response")
+		log.Errorf("failed to sign response")
 		return
 	}
 
@@ -28,7 +27,7 @@ func (p *Protocol) Reject(s network.Stream, uuid string) {
 
 	// send the response
 	if ok := p.node.sendProtoMessage(s.Conn().RemotePeer(), rejectMethod, resp); ok {
-		log.Printf("%s: Reject to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+		log.Infof("Reject to %s sent.", s.Conn().RemotePeer().String())
 	}
 }
 
@@ -37,7 +36,7 @@ func (p *Protocol) onReject(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		s.Reset()
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 	s.Close()
@@ -46,7 +45,7 @@ func (p *Protocol) onReject(s network.Stream) {
 	var data ngtypes.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 
@@ -56,11 +55,11 @@ func (p *Protocol) onReject(s network.Stream) {
 		// remove request from map as we have processed it here
 		delete(p.requests, data.Header.Uuid)
 	} else {
-		log.Println("Failed to locate request data object for response")
+		log.Error("Failed to locate request data object for response")
 		//return
 	}
 
-	log.Printf("%s: Received Reject from %s. Message id:%s. Message: %s.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)
+	log.Infof("Received Reject from %s. Message id:%s. Message: %s.", s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)
 	p.doneCh <- true
 	p.node.Network().ClosePeer(s.Conn().RemotePeer())
 }

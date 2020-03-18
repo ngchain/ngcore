@@ -21,11 +21,13 @@ import (
 	"github.com/ngin-network/ngcore/chain"
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/txpool"
+	"github.com/whyrusleeping/go-logging"
 	"io/ioutil"
-	"log"
 	"os"
 	"time"
 )
+
+var log = logging.MustGetLogger("p2p")
 
 type mdnsNotifee struct {
 	h          host.Host
@@ -73,7 +75,7 @@ func getP2PKey(isBootstrap bool) crypto.PrivKey {
 				log.Panic(err)
 			}
 
-			log.Println("creating bootstrap key")
+			log.Info("creating bootstrap key")
 			f, err := os.Create("p2p.key")
 			if err != nil {
 				log.Panic(err)
@@ -87,7 +89,7 @@ func getP2PKey(isBootstrap bool) crypto.PrivKey {
 	}
 
 	// new one
-	log.Println("loading new p2p key")
+	log.Infof("loading new p2p key")
 	priv, _, _ := crypto.GenerateKeyPair(crypto.ECDSA, 256)
 	return priv
 }
@@ -133,7 +135,7 @@ func NewP2PNode(port int, isBootstrap bool, sheetManager *sheetManager.SheetMana
 
 	// init
 	for _, addr := range localHost.Addrs() {
-		log.Println("Listening P2P on", addr.String()+"/p2p/"+localHost.ID().String())
+		log.Infof("Listening P2P on", addr.String()+"/p2p/"+localHost.ID().String())
 	}
 
 	localNode := NewLocalNode(localHost, doneCh, sheetManager, chain, txPool)
@@ -156,9 +158,9 @@ func NewP2PNode(port int, isBootstrap bool, sheetManager *sheetManager.SheetMana
 		for {
 			select {
 			case pi := <-peerInfoCh: // will block untill we discover a peer
-				log.Println("Found peer:", pi, ", connecting")
+				log.Infof("Found peer:", pi, ", connecting")
 				if err := localNode.Connect(ctx, pi); err != nil {
-					log.Println("Connection failed:", err)
+					log.Errorf("Connection failed: %s", err)
 					continue
 				}
 				localNode.Ping(pi.ID)

@@ -6,17 +6,16 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
-	"log"
 )
 
 func (p *Protocol) Pong(s network.Stream, uuid string) bool {
-	log.Printf("%s: Sending Pong to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid)
+	log.Infof("%s: Sending Pong to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid)
 
 	payload, err := proto.Marshal(&ngtypes.PingPongPayload{
 		BlockHeight: p.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
-		log.Println("failed to sign pb data")
+		log.Error("failed to sign pb data")
 		return false
 	}
 
@@ -28,7 +27,7 @@ func (p *Protocol) Pong(s network.Stream, uuid string) bool {
 	// sign the data
 	signature, err := p.node.signProtoMessage(resp)
 	if err != nil {
-		log.Println("failed to sign response")
+		log.Error("failed to sign response")
 		return false
 	}
 
@@ -37,7 +36,7 @@ func (p *Protocol) Pong(s network.Stream, uuid string) bool {
 
 	// send the response
 	if ok := p.node.sendProtoMessage(s.Conn().RemotePeer(), pongMethod, resp); ok {
-		log.Printf("%s: Pong to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+		log.Infof("%s: Pong to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
 	}
 	return true
 }
@@ -47,7 +46,7 @@ func (p *Protocol) onPong(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		s.Reset()
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 	s.Close()
@@ -56,40 +55,40 @@ func (p *Protocol) onPong(s network.Stream) {
 	var data ngtypes.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 
 	valid := p.node.authenticateMessage(&data, data.Header)
 
 	if !valid {
-		log.Println("Failed to authenticate message")
+		log.Error("Failed to authenticate message")
 		return
 	}
 
 	var pong ngtypes.PingPongPayload
 	err = proto.Unmarshal(data.Payload, &pong)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 
-	log.Printf("%s: Received Pong from %s. Message id:%s. Message: %d.", s.Conn().LocalPeer(), s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
+	log.Infof("Received Pong from %s. Message id:%s. Message: %d.", s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
 
 	p.node.RemoteHeights.Store(s.Conn().RemotePeer().String(), pong.BlockHeight)
 
 	if p.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < pong.BlockHeight {
-		log.Println("start syncing with", s.Conn().RemotePeer())
+		log.Infof("start syncing with %s", s.Conn().RemotePeer())
 		go p.GetChain(s.Conn().RemotePeer())
 	} else {
-		log.Println("synced with", s.Conn().RemotePeer())
+		log.Infof("synced with %s", s.Conn().RemotePeer())
 		// locate request data and remove it if found
 		_, ok := p.requests[data.Header.Uuid]
 		if ok {
 			// remove request from map as we have processed it here
 			delete(p.requests, data.Header.Uuid)
 		} else {
-			log.Println("Failed to locate request data object for response")
+			log.Errorf("Failed to locate request data object for response")
 			//return
 		}
 	}

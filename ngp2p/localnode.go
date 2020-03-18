@@ -13,11 +13,8 @@ import (
 	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/txpool"
-	"log"
 	"sync"
 )
-
-const P2PVersion = "ng/0.0.1"
 
 type LocalNode struct {
 	host.Host // lib-p2p host
@@ -75,7 +72,7 @@ func (n *LocalNode) signData(data []byte) ([]byte, error) {
 func (n *LocalNode) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
-		log.Println(err, "Failed to extract key from message key data")
+		log.Error(err, "Failed to extract key from message key data")
 		return false
 	}
 
@@ -83,19 +80,19 @@ func (n *LocalNode) verifyData(data []byte, signature []byte, peerId peer.ID, pu
 	idFromKey, err := peer.IDFromPublicKey(key)
 
 	if err != nil {
-		log.Println(err, "Failed to extract peer id from public key")
+		log.Error(err, "Failed to extract peer id from public key")
 		return false
 	}
 
 	// verify that message author node id matches the provided node public key
 	if idFromKey != peerId {
-		log.Println(err, "LocalNode id and provided public key mismatch")
+		log.Error(err, "LocalNode id and provided public key mismatch")
 		return false
 	}
 
 	res, err := key.Verify(data, signature)
 	if err != nil {
-		log.Println(err, "Error authenticating data")
+		log.Error(err, "Error authenticating data")
 		return false
 	}
 
@@ -129,20 +126,20 @@ func (n *LocalNode) NewP2PHeader(uuid string, broadcast bool) *ngtypes.P2PHeader
 func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data proto.Message) bool {
 	s, err := n.NewStream(context.Background(), peerID, method)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return false
 	}
 	writer := io.NewFullWriter(s)
 	err = writer.WriteMsg(data)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		s.Reset()
 		return false
 	}
 	// FullClose closes the stream and waits for the other side to close their half.
 	err = helpers.FullClose(s)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		s.Reset()
 		return false
 	}

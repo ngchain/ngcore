@@ -2,7 +2,6 @@ package ngp2p
 
 import (
 	"github.com/ngin-network/ngcore/ngtypes"
-	"log"
 	"time"
 )
 
@@ -12,7 +11,7 @@ func (p *Protocol) Sync() {
 		select {
 		case <-syncInterval:
 			for _, peer := range p.node.Peerstore().Peers() {
-				log.Printf("pinging to %s", peer)
+				log.Infof("pinging to %s", peer)
 				p.Ping(peer)
 			}
 		}

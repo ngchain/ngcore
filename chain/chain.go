@@ -1,55 +1,65 @@
 package chain
 
 import (
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"github.com/dgraph-io/badger/v2"
 	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngin-network/ngcore/utils"
 	"github.com/whyrusleeping/go-logging"
-	"go.etcd.io/bbolt"
-	"sync"
 )
 
 var log = logging.MustGetLogger("chain")
 
+var (
+	vaultPrefix = []byte("vlt")
+	blockPrefix = []byte("blk")
+)
+
 // chain order vault0-block0-block1...-block6-vault2-block7...
 type Chain struct {
-	sync.RWMutex
-	db  *storageChain
-	mem *MemChain
+	db *badger.DB
 }
 
-func NewChain(db *bbolt.DB) *Chain {
-	sc := NewStorageChain(db)
-
+func NewChain(db *badger.DB) *Chain {
 	chain := &Chain{
-		db:  sc,
-		mem: NewMemChain(),
+		db: db,
 	}
 
 	return chain
 }
 
+func (c *Chain) init(block *ngtypes.Block, vault *ngtypes.Vault) {
+	c.PutBlock(block)
+	c.PutVault(vault)
+}
+
 func (c *Chain) InitWithGenesis() {
-	c.db.Init(ngtypes.GetGenesisBlock(), ngtypes.GetGenesisVault())
-	c.mem.Init(ngtypes.GetGenesisBlock(), ngtypes.GetGenesisVault())
+	c.init(ngtypes.GetGenesisBlock(), ngtypes.GetGenesisVault())
 }
 
 func (c *Chain) GetLatestBlock() *ngtypes.Block {
-	c.RLock()
-	defer c.RUnlock()
+	height := c.GetLatestBlockHeight()
+	block, err := c.GetBlockByHeight(height)
+	if err != nil {
+		log.Error(err)
+	}
 
-	return c.GetBlockByHeight(c.GetLatestBlockHeight())
+	return block
 }
 
 func (c *Chain) GetLatestVault() *ngtypes.Vault {
-	c.RLock()
-	defer c.RUnlock()
+	height := c.GetLatestVaultHeight()
+	vault, err := c.GetVaultByHeight(height)
+	if err != nil {
+		log.Error(err)
+	}
 
-	return c.GetVaultByHeight(c.GetLatestVaultHeight())
+	return vault
 }
 
 func (c *Chain) GetLatestBlockHash() []byte {
-	c.RLock()
-	defer c.RUnlock()
-
 	hash, err := c.GetLatestBlock().CalculateHash()
 	if err != nil {
 		log.Error(err)
@@ -60,9 +70,6 @@ func (c *Chain) GetLatestBlockHash() []byte {
 }
 
 func (c *Chain) GetLatestVaultHash() []byte {
-	c.RLock()
-	defer c.RUnlock()
-
 	hash, err := c.GetLatestVault().CalculateHash()
 	if err != nil {
 		log.Error(err)
@@ -73,212 +80,403 @@ func (c *Chain) GetLatestVaultHash() []byte {
 }
 
 func (c *Chain) GetLatestBlockHeight() uint64 {
-	c.RLock()
-	defer c.RUnlock()
+	var latestHeight uint64
+	err := c.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(append(blockPrefix, LatestHeightTag...))
+		if err != nil {
+			return err
+		}
+		err = item.Value(func(height []byte) error {
+			latestHeight = binary.LittleEndian.Uint64(height)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 
-	height := c.mem.GetLatestBlockHeight()
-	if height != 0 {
-		return height
-	}
-
-	height, err := c.db.GetLatestBlockHeight()
+		return nil
+	})
 	if err != nil {
-		log.Error(err)
+		return 0
 	}
 
-	return height
+	return latestHeight
 }
 
 func (c *Chain) GetLatestVaultHeight() uint64 {
-	c.RLock()
-	defer c.RUnlock()
+	var latestHeight uint64
+	err := c.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(append(vaultPrefix, LatestHeightTag...))
+		if err != nil {
+			return err
+		}
+		err = item.Value(func(height []byte) error {
+			latestHeight = binary.LittleEndian.Uint64(height)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 
-	height := c.mem.GetLatestVaultHeight()
-	if height != 0 {
-		return height
-	}
-
-	height, err := c.db.GetLatestVaultHeight()
+		return nil
+	})
 	if err != nil {
-		log.Error(err)
+		return 0
 	}
 
-	return height
+	return latestHeight
 }
 
 func (c *Chain) PutBlock(block *ngtypes.Block) error {
-	c.Lock()
-	defer c.Unlock()
-
-	if block.Header.IsHead() &&
-		//c.GetLatestBlockHeight() < block.Header.Height &&
-		len(c.mem.BlockHeightMap) > ngtypes.BlockCheckRound &&
-		len(c.mem.VaultHeightMap) > ngtypes.VaultCheckRound {
-		go func() {
-
-			prevHash := block.GetPrevHash() // get last tail
-			if prevHash == nil {            // genesis
-				return
-			}
-			prevBlock := c.GetBlockByHash(prevHash)
-			if prevBlock == nil || prevBlock.Header == nil || !prevBlock.Header.IsTail() {
-				return
-			}
-			log.Info("dumping blocks from mem to db")
-			items := c.mem.ExportLongestChain(prevBlock, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
-			if len(items) > 0 {
-				err := c.db.PutChain(items...)
-				if err != nil {
-					log.Info("failed to put items:", err)
-				}
-			}
-		}()
+	if block == nil {
+		return fmt.Errorf("block is nil")
 	}
-
-	err := c.mem.PutBlocks(block)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err := c.db.Update(func(txn *badger.Txn) error {
+		hash, _ := block.CalculateHash()
+		raw, _ := block.Marshal()
+		err := txn.Set(append(blockPrefix, hash...), raw)
+		if err != nil {
+			return err
+		}
+		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
+		if err != nil {
+			return err
+		}
+		err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
+		if err != nil {
+			return err
+		}
+		err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
 }
 
 // PutVault puts an vault into db
 func (c *Chain) PutVault(vault *ngtypes.Vault) error {
-	c.Lock()
-	defer c.Unlock()
-
-	err := c.mem.PutVaults(vault)
-	if err != nil {
-		return err
+	if vault == nil {
+		return fmt.Errorf("block is nil")
 	}
-
-	return nil
+	err := c.db.Update(func(txn *badger.Txn) error {
+		hash, _ := vault.CalculateHash()
+		raw, _ := vault.Marshal()
+		err := txn.Set(append(blockPrefix, hash...), raw)
+		if err != nil {
+			return err
+		}
+		err = txn.Set(append(blockPrefix, utils.PackUint64LE(vault.Height)...), hash)
+		if err != nil {
+			return err
+		}
+		err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
+		if err != nil {
+			return err
+		}
+		err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
 }
 
-func (c *Chain) GetBlockByHeight(height uint64) *ngtypes.Block {
-	c.RLock()
-	defer c.RUnlock()
+func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
+	if height == 0 {
+		return ngtypes.GetGenesisBlock(), nil
+	}
 
-	block, err := c.mem.GetBlockByHeight(height)
+	var block ngtypes.Block
+	err := c.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(height)...))
+		if err != nil {
+			return err
+		}
+		hash, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+		if hash == nil {
+			return fmt.Errorf("no such block in height")
+		}
+		item, err = txn.Get(append(blockPrefix, hash...))
+		if err != nil {
+			return err
+		}
+		raw, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+		if raw == nil {
+			return fmt.Errorf("no such block in hash")
+		}
+
+		err = block.Unmarshal(raw)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		log.Error(err)
-	}
-	if block != nil {
-		return block
+		return nil, err
 	}
 
-	block, err = c.db.GetBlockByHeight(height)
-	if err != nil {
-		log.Error(err)
-	}
-	if block != nil {
-		return block
-	}
-
-	return nil
+	return &block, nil
 }
 
-func (c *Chain) GetBlockByHash(hash []byte) *ngtypes.Block {
-	c.RLock()
-	defer c.RUnlock()
+func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
+	var block ngtypes.Block
+	err := c.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(append(blockPrefix, hash...))
+		if err != nil {
+			return err
+		}
+		raw, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+		if raw == nil {
+			return fmt.Errorf("no such block in hash")
+		}
 
-	block, err := c.mem.GetBlockByHash(hash)
+		err = block.Unmarshal(raw)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		log.Error(err)
-	}
-	if block != nil {
-		return block
+		return nil, err
 	}
 
-	block, err = c.db.GetBlockByHash(hash)
-	if err != nil {
-		log.Error(err)
-	}
-	if block != nil {
-		return block
-	}
-
-	return nil
+	return &block, nil
 }
 
-func (c *Chain) GetVaultByHeight(height uint64) *ngtypes.Vault {
-	c.RLock()
-	defer c.RUnlock()
+func (c *Chain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
+	if height == 0 {
+		return ngtypes.GetGenesisVault(), nil
+	}
 
-	vault, err := c.mem.GetVaultByHeight(height)
+	var vault ngtypes.Vault
+	err := c.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(append(vaultPrefix, utils.PackUint64LE(height)...))
+		if err != nil {
+			return err
+		}
+		hash, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+		if hash == nil {
+			return fmt.Errorf("no such vault in height")
+		}
+		item, err = txn.Get(append(vaultPrefix, hash...))
+		if err != nil {
+			return err
+		}
+		raw, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+		if raw == nil {
+			return fmt.Errorf("no such vault in hash")
+		}
+
+		err = vault.Unmarshal(raw)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		log.Error(err)
-	}
-	if vault != nil {
-		return vault
+		return nil, err
 	}
 
-	vault, err = c.db.GetVaultByHeight(height)
-	if err != nil {
-		log.Error(err)
-	}
-	if vault != nil {
-		return vault
-	}
-
-	return nil
+	return &vault, nil
 }
 
-func (c *Chain) GetVaultByHash(hash []byte) *ngtypes.Vault {
-	c.RLock()
-	defer c.RUnlock()
+func (c *Chain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
+	var vault ngtypes.Vault
+	err := c.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(append(vaultPrefix, hash...))
+		if err != nil {
+			return err
+		}
+		raw, err := item.ValueCopy(nil)
+		if err != nil {
+			return err
+		}
+		if raw == nil {
+			return fmt.Errorf("no such vault in hash")
+		}
 
-	vault, err := c.mem.GetVaultByHash(hash)
+		err = vault.Unmarshal(raw)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		log.Error(err)
-		log.Info(c.mem.VaultHashMap)
-	}
-	if vault != nil {
-		return vault
+		return nil, err
 	}
 
-	vault, err = c.db.GetVaultByHash(hash)
-	if err != nil {
-		log.Error(err)
-	}
-	if vault != nil {
-		return vault
-	}
-
-	return nil
+	return &vault, nil
 }
 
 func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
-	c.RLock()
-	defer c.RUnlock()
+	table := make(map[uint64]*ngtypes.Block)
+	err := c.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(blockPrefix); it.ValidForPrefix(blockPrefix) && len(it.Item().Key()) == 11; it.Next() {
+			height := binary.LittleEndian.Uint64(it.Item().Key()[3:11])
+			hash, err := it.Item().ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			i, err := txn.Get(append(blockPrefix, hash...))
+			if err != nil {
+				return err
+			}
+			raw, err := i.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			var block ngtypes.Block
+			err = block.Unmarshal(raw)
+			if err != nil {
+				return err
+			}
+			table[height] = &block
+		}
 
-	return c.db.DumpAllBlocksByHeight()
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+
+	return table
+}
+
+func (c *Chain) DumpAllBlocksByHash() map[string]*ngtypes.Block {
+	table := make(map[string]*ngtypes.Block)
+	err := c.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(blockPrefix); it.ValidForPrefix(blockPrefix) && len(it.Item().Key()) == 35; it.Next() {
+			hash := it.Item().Key()[3:35]
+			i, err := txn.Get(append(blockPrefix, hash...))
+			if err != nil {
+				return err
+			}
+			raw, err := i.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			var block ngtypes.Block
+			err = block.Unmarshal(raw)
+			if err != nil {
+				return err
+			}
+			table[hex.EncodeToString(hash)] = &block
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+
+	return table
 }
 
 func (c *Chain) DumpAllVaultsByHeight() map[uint64]*ngtypes.Vault {
-	c.RLock()
-	defer c.RUnlock()
+	table := make(map[uint64]*ngtypes.Vault)
+	err := c.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(vaultPrefix); it.ValidForPrefix(vaultPrefix) && len(it.Item().Key()) == 11; it.Next() {
+			height := binary.LittleEndian.Uint64(it.Item().Key()[3:11])
+			hash, err := it.Item().ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			i, err := txn.Get(append(vaultPrefix, hash...))
+			if err != nil {
+				return err
+			}
+			raw, err := i.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			var vault ngtypes.Vault
+			err = vault.Unmarshal(raw)
+			if err != nil {
+				return err
+			}
+			table[height] = &vault
+		}
 
-	c.RLock()
-	defer c.RUnlock()
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
 
-	return c.db.DumpAllVaultsByHeight()
+	return table
+}
+
+func (c *Chain) DumpAllVaultsByHash() map[string]*ngtypes.Vault {
+	table := make(map[string]*ngtypes.Vault)
+	err := c.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(vaultPrefix); it.ValidForPrefix(vaultPrefix) && len(it.Item().Key()) == 35; it.Next() {
+			hash := it.Item().Key()[3:35]
+			i, err := txn.Get(append(vaultPrefix, hash...))
+			if err != nil {
+				return err
+			}
+			raw, err := i.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			var vault ngtypes.Vault
+			err = vault.Unmarshal(raw)
+			if err != nil {
+				return err
+			}
+			table[hex.EncodeToString(hash)] = &vault
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+
+	return table
 }
 
 func (c *Chain) DumpAllByHash(withBlocks bool, withVaults bool) map[string]Item {
-	c.RLock()
-	defer c.RUnlock()
-
 	kv := make(map[string]Item)
 	if withBlocks {
-		all := c.db.DumpAllBlocksByHash()
+		all := c.DumpAllBlocksByHash()
 		for k, v := range all {
 			kv[k] = v
 		}
 	}
+
 	if withVaults {
-		all := c.db.DumpAllVaultsByHash()
+		all := c.DumpAllVaultsByHash()
 		for k, v := range all {
 			kv[k] = v
 		}

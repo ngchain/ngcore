@@ -99,13 +99,21 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		return
 	}
 
-	prevBlock := c.Chain.GetBlockByHash(b.Header.PrevBlockHash)
+	prevBlock, err := c.Chain.GetBlockByHash(b.Header.PrevBlockHash)
+	if err != nil {
+		log.Error(err)
+		return
+	}
 	if prevBlock == nil {
 		log.Warning("Malformed block mined: PrevBlockHash")
 		return
 	}
 
-	prevVault := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
+	prevVault, err := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
+	if err != nil {
+		log.Error(err)
+		return
+	}
 	if prevVault == nil {
 		log.Warning("Malformed block mined: PrevVaultHash")
 		return

@@ -2,18 +2,23 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/vm/js.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vm/lua.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/memchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/memchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/storagechain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/storagechain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/memchain.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/storagechain.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/chain.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngp2p/getchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/getchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/prototypes.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/prototypes.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/ping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/ping.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/pong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pong.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/reject.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/reject.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/stream.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/sync.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/storage/db.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/ngcore.db" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -682,7 +687,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.ngcore mining ">
+  <component name="RunManager" selected="Go Build.ngcore bootstrap">
     <configuration name="TestDeserialize in github.com/ngin-network/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$/ngtypes" />
@@ -753,7 +758,8 @@
     <MESSAGE value="BugFixes&#10;&#10;1. handle the hash(marshal) bug with stable_marshaler_all&#10;&#10;2. add BUILD.bazel files" />
     <MESSAGE value="bug fixes &#10;&#10;1. assemble the protos into one&#10;&#10;2. avoid go build and bazel conflict&#10;&#10;3. disable libp2p libs' proto" />
     <MESSAGE value="update readme" />
-    <option name="LAST_COMMIT_MESSAGE" value="update readme" />
+    <MESSAGE value="bug fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="bug fix" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -779,10 +785,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584527699647">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584539010794">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584527699647" />
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584539010794" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584368061079">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -868,10 +874,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584178446637" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584527702241">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584539013278">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584527702241" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584539013278" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -901,21 +907,5 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584275105206" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/chain/chain.go</url>
-          <line>79</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/chain/chain.go</url>
-          <line>84</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

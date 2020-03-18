@@ -8,7 +8,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
-	"log"
 )
 
 func (p *Protocol) Ping(remotePeerId peer.ID) bool {
@@ -16,7 +15,7 @@ func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 		BlockHeight: p.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
-		log.Println("failed to sign pb data")
+		log.Errorf("failed to sign pb data")
 		return false
 	}
 
@@ -29,7 +28,7 @@ func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 	// sign the data
 	signature, err := p.node.signProtoMessage(req)
 	if err != nil {
-		log.Println("failed to sign pb data")
+		log.Errorf("failed to sign pb data")
 		return false
 	}
 
@@ -43,7 +42,7 @@ func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 
 	// store ref request so response handler has access to it
 	p.requests[req.Header.Uuid] = req
-	log.Printf("Sent Ping to: %s was sent. Message Id: %s.", remotePeerId, req.Header.Uuid)
+	log.Infof("Sent Ping to: %s was sent. Message Id: %s.", remotePeerId, req.Header.Uuid)
 	return true
 }
 
@@ -53,7 +52,7 @@ func (p *Protocol) onPing(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		s.Reset()
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 	s.Close()
@@ -62,18 +61,18 @@ func (p *Protocol) onPing(s network.Stream) {
 	var data ngtypes.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 
 	var ping ngtypes.PingPongPayload
 	err = proto.Unmarshal(data.Payload, &ping)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return
 	}
 
-	log.Printf("%s: Received ping request from %s. Remote height: %d", s.Conn().LocalPeer(), s.Conn().RemotePeer(), ping.BlockHeight)
+	log.Infof("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
 	if p.node.authenticateMessage(&data, data.Header) {
 		// Pong
 		p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
