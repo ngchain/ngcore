@@ -10,58 +10,31 @@ NGIN is a totally new chain which is not a fork of ethereum or other chain. It i
 
 go version >= 1.11
 
-## Features 
+## Usage
 
-### Fast Sync
-
-Just Need to sync only 3 *Vaulty* and 30 Blocks before running.
-
-### Low Storage Usage
-
-3 *Vault* and 30 Blocks take few megabytes.
-
-### Account in Numbers
-
-easy to remember for humankind.
-
-### Rapid Transaction
-
-with formatted network grid, the message (operations and broadcasts) between nodes will cost the shortest time.
-
-### Multi-platform Friendly
-
-Golang + WebAssembly + Low Storage Usage
-
-### More ...
-
-## FAQ:
-
-- Q: How to gain an account?
-
-
-    There are two methods to get one:
-    
-    1. Continuously mining. when you mined an vault, you will get random new one
-    
-    2. Buy one from others
-
-- Q: Diff between Block, Vault, Tx ... 's hash? 
-
-
-    All hashes are SHA3 hash of the protobuf bytes, including blocks'
-
- 
-- 
-
-## Temp Notice
 ```
-Structure:
-      
-        RPC -+          +--> Consensus -> Vault -> Blocks
-             +--> Mgr --+ 
-        P2p -+          +--> State -+--> Pool -> Txs
-                                    +--> Accounts -> Accounts
+./ngcore
+./ngwallet newtx -to 1567464132546, 7563212343 -value 1NG, 0.1NG  
+``` 
 
+if you wanna start mining(PoW), try `--mining` flag
 
+```
+./ngcore --mining
+```
 
+## Build
+
+### Go
+
+```
+go build ./cmd/ngcore
+```
+
+### Bazel
+
+Bazel works better in linux than windows (personal experience)
+
+```
+bazel build //cmd/ngcore
 ```
