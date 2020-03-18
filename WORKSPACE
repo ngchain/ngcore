@@ -638,6 +638,7 @@ go_repository(
 
 go_repository(
     name = "com_github_libp2p_go_libp2p_core",
+    build_file_proto_mode = "disable_global",
     importpath = "github.com/libp2p/go-libp2p-core",
     sum = "h1:FBQ1fpq2Fo/ClyjojVJ5AKXlKhvNc/B6U0O+7AN1ffE=",
     version = "v0.5.0",
@@ -659,6 +660,7 @@ go_repository(
 
 go_repository(
     name = "com_github_libp2p_go_libp2p_kad_dht",
+    build_file_proto_mode = "disable_global",
     importpath = "github.com/libp2p/go-libp2p-kad-dht",
     sum = "h1:SzsgS12DGegFw5xU9zgYuB7negj9iWALp6fFdtDcGc4=",
     version = "v0.5.1",
@@ -722,6 +724,7 @@ go_repository(
 
 go_repository(
     name = "com_github_libp2p_go_libp2p_record",
+    build_file_proto_mode = "disable_global",
     importpath = "github.com/libp2p/go-libp2p-record",
     sum = "h1:M50VKzWnmUrk/M5/Dz99qO9Xh4vs8ijsK+7HkJvRP+0=",
     version = "v0.1.2",
@@ -736,6 +739,7 @@ go_repository(
 
 go_repository(
     name = "com_github_libp2p_go_libp2p_secio",
+    build_file_proto_mode = "disable_global",
     importpath = "github.com/libp2p/go-libp2p-secio",
     sum = "h1:eNWbJTdyPA7NxhP7J3c5lT97DC5d+u+IldkgCYFTPVA=",
     version = "v0.2.1",

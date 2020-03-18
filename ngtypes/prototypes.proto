@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package ngtypes;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message Account {
+    uint64 ID = 1;
+    bytes owner = 2; // pk -> balance in anonymous fields
+    uint64 nonce = 4;
+    bytes state = 5;
+}
+
+message BlockHeader {
+    int32 version = 1;
+    uint64 height = 2;
+
+    bytes prev_block_hash = 10;
+    bytes prev_vault_hash = 11;
+    bytes trie_hash = 12;
+
+    int64 timestamp = 20;
+    bytes target = 21;
+    bytes nonce = 22;
+}
+
+message Block {
+    int32 network_id = 1;
+
+    BlockHeader header = 10;
+    bytes header_hash = 11;
+    uint32 block_size = 12;
+
+    repeated Transaction transactions = 20; // miner should build the generation by themselves
+}
+
+
+message Sheet {
+    option (gogoproto.stable_marshaler) = true; // !important
+
+    int32 version = 1;
+    map<uint64, Account> accounts = 10;
+    map<string, bytes> anonymous = 11; // map[b58(publicKey)]balance
+}
+
+message TxHeader {
+    int32 version = 1;
+    int32 type = 2;
+
+    uint64 convener = 10; // account id required
+    repeated bytes participants = 11; // if to == 0, to = from. can be
+    bytes fee = 12;
+    repeated bytes values = 13;
+
+    uint64 nonce = 14;
+    // extension
+    bytes extra = 20;
+}
+
+message Transaction {
+    TxHeader header = 1;
+    // sign
+    bytes header_hash = 2;
+
+    bytes r = 10;
+    bytes s = 11;
+}
+
+message Vault {
+    int32 network_id = 1;
+    uint64 height = 2;
+    int64 timestamp = 3;
+
+    bytes prev_vault_hash = 10;
+
+    Sheet sheet = 20;
+
+    Account list = 30;
+    repeated Account delists = 31;
+}
+
+// p2p //
+
+message P2PHeader {
+    int32 network_id = 1;
+
+    string uuid = 2;
+    int64 timestamp = 3;
+    bool broadcast = 4;
+
+    bytes peer_key = 5; // act as the node ID
+    bytes sign = 6;
+}
+
+// a protocol define a set of requests and responses
+message P2PMessage {
+    P2PHeader header = 1;
+    uint64 nonce = 2;
+    bytes payload = 3;
+}
+
+message PingPongPayload {
+    uint64 block_height = 1;
+    uint64 vault_height = 2;
+
+    bytes latest_block_hash = 3;
+    bytes latest_vault_hash = 4;
+}
+
+message GetChainPayload {
+    uint64 vault_height = 1;
+}
+
+message ChainPayload {
+    ngtypes.Vault vault = 1;
+    repeated Block blocks = 2;
+    uint64 latest_height = 3;
+}
+
