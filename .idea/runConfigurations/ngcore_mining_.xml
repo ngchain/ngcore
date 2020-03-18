@@ -5,7 +5,7 @@
     <parameters value="--mining " />
     <kind value="PACKAGE" />
     <filePath value="$PROJECT_DIR$/cmd/core/main.go" />
-    <package value="github.com/ngin-network/ngcore/cmd/core" />
+    <package value="github.com/ngin-network/ngcore/cmd/ngcore" />
     <directory value="$PROJECT_DIR$/" />
     <method v="2" />
   </configuration>

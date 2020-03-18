@@ -12,7 +12,7 @@ import (
 
 func (p *Protocol) GetChain(remotePeerId peer.ID) bool {
 	localHeight := p.node.Chain.GetLatestBlockHeight()
-	vaultHeight := localHeight - (localHeight % ngtypes.BlockCheckRound)
+	vaultHeight := (localHeight + 1) / ngtypes.BlockCheckRound
 	payload, err := proto.Marshal(&ngtypes.GetChainPayload{
 		VaultHeight: vaultHeight,
 	})

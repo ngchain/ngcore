@@ -110,12 +110,21 @@ func (c *Chain) PutBlock(block *ngtypes.Block) error {
 	c.Lock()
 	defer c.Unlock()
 
-	if block.GetHeight()%(ngtypes.BlockCheckRound*ngtypes.VaultCheckRound) == 0 &&
+	if block.Header.IsHead() &&
 		//c.GetLatestBlockHeight() < block.Header.Height &&
-		len(c.mem.BlockHeightMap) >= ngtypes.BlockCheckRound {
+		len(c.mem.BlockHeightMap) > ngtypes.BlockCheckRound &&
+		len(c.mem.VaultHeightMap) > ngtypes.VaultCheckRound {
 		go func() {
+
+			prevHash := block.GetPrevHash() // get last tail
+			if prevHash == nil {            // genesis
+				return
+			}
+			prevBlock := c.GetBlockByHash(prevHash)
+			if prevBlock == nil || prevBlock.Header == nil || !prevBlock.Header.IsTail() {
+				return
+			}
 			log.Info("dumping blocks from mem to db")
-			prevBlock := c.GetBlockByHash(block.GetPrevHash())
 			items := c.mem.ExportLongestChain(prevBlock, ngtypes.BlockCheckRound*ngtypes.VaultCheckRound)
 			if len(items) > 0 {
 				err := c.db.PutChain(items...)

@@ -10,6 +10,7 @@ require (
 	github.com/golang/protobuf v1.3.5 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/rpc v1.2.0
+	github.com/hashicorp/go-memdb v1.1.1
 	github.com/libp2p/go-libp2p v0.6.0
 	github.com/libp2p/go-libp2p-core v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.1
@@ -20,6 +21,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.2.1
 	github.com/ngin-network/cryptonight-go v0.0.0-20190709123010-828e5b02ddcb
 	github.com/whyrusleeping/go-logging v0.0.1
+	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect

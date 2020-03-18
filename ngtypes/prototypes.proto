@@ -34,10 +34,9 @@ message Block {
     repeated Transaction transactions = 20; // miner should build the generation by themselves
 }
 
+option (gogoproto.stable_marshaler_all) = true; // !important
 
 message Sheet {
-    option (gogoproto.stable_marshaler) = true; // !important
-
     int32 version = 1;
     map<uint64, Account> accounts = 10;
     map<string, bytes> anonymous = 11; // map[b58(publicKey)]balance

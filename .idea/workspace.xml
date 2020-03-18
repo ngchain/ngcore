@@ -2,10 +2,18 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/vm/js.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vm/lua.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/core/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/core/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/memchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/memchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/storagechain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/storagechain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/getchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/getchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/prototypes.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/prototypes.proto" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -674,7 +682,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.ngcore bootstrap">
+  <component name="RunManager" selected="Go Build.ngcore mining ">
     <configuration name="TestDeserialize in github.com/ngin-network/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$/ngtypes" />
@@ -744,7 +752,8 @@
     <MESSAGE value="some changes &#10;1. fix the bug that the vault unlimited increment&#10; &#10;2. apply stop&amp;resume mining&#10;&#10;3. rename checkpoint to Head, and add Tail&#10;&#10;4. migrate genVault to block(tail) mined period" />
     <MESSAGE value="BugFixes&#10;&#10;1. handle the hash(marshal) bug with stable_marshaler_all&#10;&#10;2. add BUILD.bazel files" />
     <MESSAGE value="bug fixes &#10;&#10;1. assemble the protos into one&#10;&#10;2. avoid go build and bazel conflict&#10;&#10;3. disable libp2p libs' proto" />
-    <option name="LAST_COMMIT_MESSAGE" value="bug fixes &#10;&#10;1. assemble the protos into one&#10;&#10;2. avoid go build and bazel conflict&#10;&#10;3. disable libp2p libs' proto" />
+    <MESSAGE value="update readme" />
+    <option name="LAST_COMMIT_MESSAGE" value="update readme" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -754,10 +763,10 @@
     <proxy>https://goproxy.io</proxy>
   </component>
   <component name="WindowStateProjectService">
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584366278090">
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584530269168">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584366278090" />
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584530269168" />
     <state x="716" y="331" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584521525021">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -770,10 +779,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584525578679">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584527699647">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584525578679" />
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584527699647" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584368061079">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -803,38 +812,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1387" height="268" key="GridCell.Tab.0.bottom" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.0.bottom" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
-    <state width="1387" height="268" key="GridCell.Tab.0.center" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
+    <state width="1385" height="268" key="GridCell.Tab.0.center" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
-    <state width="1387" height="268" key="GridCell.Tab.0.left" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
+    <state width="1385" height="268" key="GridCell.Tab.0.left" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
-    <state width="1387" height="268" key="GridCell.Tab.0.right" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
+    <state width="1385" height="268" key="GridCell.Tab.0.right" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
-    <state width="1387" height="268" key="GridCell.Tab.1.bottom" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
+    <state width="1385" height="268" key="GridCell.Tab.1.bottom" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
-    <state width="1387" height="268" key="GridCell.Tab.1.center" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
+    <state width="1385" height="268" key="GridCell.Tab.1.center" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
-    <state width="1387" height="268" key="GridCell.Tab.1.left" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
+    <state width="1385" height="268" key="GridCell.Tab.1.left" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
-    <state width="1387" height="268" key="GridCell.Tab.1.right" timestamp="1584526312908">
+    <state width="1385" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
+    <state width="1385" height="268" key="GridCell.Tab.1.right" timestamp="1584537548188">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1387" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584526312908" />
+    <state width="1385" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584537548188" />
     <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -859,10 +868,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584178446637" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584525582217">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584527702241">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584525582217" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584527702241" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -879,11 +888,11 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584506780635">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584532324921">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584506780635" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584532324921" />
     <state x="702" y="146" key="refactoring.ChangeSignatureDialog" timestamp="1582879168983">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -892,5 +901,21 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584275105206" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/chain/chain.go</url>
+          <line>79</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/chain/chain.go</url>
+          <line>84</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

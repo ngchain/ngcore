@@ -83,7 +83,6 @@ func (mc *MemChain) PutItems(items ...Item) error {
 			if err != nil {
 				return err
 			}
-			log.Info(vault.GetHeight(), hex.EncodeToString(hash))
 			mc.VaultHashMap[hex.EncodeToString(hash)] = vault
 			hashes, ok := mc.VaultHeightMap[vault.GetHeight()]
 			if ok {
@@ -131,7 +130,6 @@ func (mc *MemChain) PutVaults(vaults ...*ngtypes.Vault) error {
 		if err != nil {
 			return err
 		}
-		log.Info(vault.GetHeight(), hex.EncodeToString(hash))
 		mc.VaultHashMap[hex.EncodeToString(hash)] = vault
 		hashes, ok := mc.VaultHeightMap[vault.GetHeight()]
 		if ok {
@@ -313,7 +311,8 @@ func (mc *MemChain) ExportLongestChain(end *ngtypes.Block, maxLen int) []Item {
 	mc.RLock()
 	defer mc.RUnlock()
 
-	if (end.GetHeight()+1)%ngtypes.BlockCheckRound != 0 {
+	//end should be tail
+	if !end.Header.IsTail() {
 		return nil
 	}
 

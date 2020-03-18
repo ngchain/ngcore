@@ -51,14 +51,14 @@ func (c *storageChain) Init(initCheckpoint *ngtypes.Block, initVault *ngtypes.Va
 		hash, _ := initCheckpoint.CalculateHash()
 		raw, _ := proto.Marshal(initCheckpoint)
 		blockBucket.Put(hash, raw)
-		blockBucket.Put(utils.PackUint64LE(initCheckpoint.GetHeight()), raw)
+		blockBucket.Put(utils.PackUint64LE(initCheckpoint.GetHeight()), hash)
 		blockBucket.Put([]byte(LatestHashTag), hash)
 		blockBucket.Put([]byte(LatestHeightTag), utils.PackUint64LE(initCheckpoint.GetHeight()))
 
 		hash, _ = initVault.CalculateHash()
 		raw, _ = proto.Marshal(initVault)
 		vaultBucket.Put(hash, raw)
-		vaultBucket.Put(utils.PackUint64LE(initVault.GetHeight()), raw)
+		vaultBucket.Put(utils.PackUint64LE(initVault.GetHeight()), hash)
 		vaultBucket.Put([]byte(LatestHashTag), hash)
 		vaultBucket.Put([]byte(LatestHeightTag), utils.PackUint64LE(initVault.GetHeight()))
 
@@ -96,7 +96,7 @@ func (c *storageChain) PutChain(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				err = blockBucket.Put(utils.PackUint64LE(item.GetHeight()), raw)
+				err = blockBucket.Put(utils.PackUint64LE(item.GetHeight()), hash)
 				if err != nil {
 					return err
 				}
@@ -121,7 +121,7 @@ func (c *storageChain) PutChain(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				err = vaultBucket.Put(utils.PackUint64LE(item.GetHeight()), raw)
+				err = vaultBucket.Put(utils.PackUint64LE(item.GetHeight()), hash)
 				if err != nil {
 					return err
 				}
@@ -238,12 +238,12 @@ func (c *storageChain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 
 		hash := bucket.Get(utils.PackUint64LE(height))
 		if hash == nil {
-			return fmt.Errorf("cannot find the vault@%d", height)
+			return fmt.Errorf("cannot find the vault@%d in storage", height)
 		}
 
 		raw := bucket.Get(hash)
 		if raw == nil {
-			return fmt.Errorf("cannot find vault@%d", height)
+			return fmt.Errorf("cannot find vault@%d in storage", height)
 		}
 
 		err := proto.Unmarshal(raw, &vault)
@@ -253,8 +253,11 @@ func (c *storageChain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return &vault, err
+	return &vault, nil
 }
 
 func (c *storageChain) GetLatestBlockHash() ([]byte, error) {
@@ -274,8 +277,11 @@ func (c *storageChain) GetLatestBlockHash() ([]byte, error) {
 		copy(hash, hashInDB)
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return hash, err
+	return hash, nil
 }
 
 func (c *storageChain) GetLatestVaultHash() ([]byte, error) {
@@ -295,8 +301,11 @@ func (c *storageChain) GetLatestVaultHash() ([]byte, error) {
 		copy(hash, hashInDB)
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return hash, err
+	return hash, nil
 }
 
 func (c *storageChain) GetLatestBlockHeight() (uint64, error) {
@@ -315,8 +324,11 @@ func (c *storageChain) GetLatestBlockHeight() (uint64, error) {
 		height = binary.LittleEndian.Uint64(heightInDB)
 		return nil
 	})
+	if err != nil {
+		return 0, err
+	}
 
-	return height, err
+	return height, nil
 }
 
 func (c *storageChain) GetLatestVaultHeight() (uint64, error) {
@@ -335,8 +347,11 @@ func (c *storageChain) GetLatestVaultHeight() (uint64, error) {
 		height = binary.LittleEndian.Uint64(heightInDB)
 		return nil
 	})
+	if err != nil {
+		return 0, err
+	}
 
-	return height, err
+	return height, nil
 }
 
 func (c *storageChain) GetLatestBlock() (*ngtypes.Block, error) {
