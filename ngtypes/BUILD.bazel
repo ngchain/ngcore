@@ -2,13 +2,6 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 
-proto_library(
-    name = "ngtypes_proto",
-    srcs = ["prototypes.proto"],
-    visibility = ["//visibility:public"],
-    deps = ["@gogo_special_proto//github.com/gogo/protobuf/gogoproto"],
-)
-
 go_proto_library(
     name = "ngtypes_go_proto",
     compilers = ["@io_bazel_rules_go//proto:gogoslick_proto"],
@@ -60,4 +53,11 @@ go_test(
         "@com_github_nebulouslabs_fastrand//:go_default_library",
         "@com_github_ngin_network_cryptonight_go//:go_default_library",
     ],
+)
+
+proto_library(
+    name = "ngtypes_proto",
+    srcs = ["types.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["@gogo_special_proto//github.com/gogo/protobuf/gogoproto"],
 )

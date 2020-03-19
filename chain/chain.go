@@ -30,22 +30,6 @@ func NewChain(db *badger.DB) *Chain {
 	return chain
 }
 
-func (c *Chain) init(block *ngtypes.Block, vault *ngtypes.Vault) {
-	err := c.PutBlock(block)
-	if err != nil {
-		panic(err)
-	}
-	err = c.PutVault(vault)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (c *Chain) InitWithGenesis() {
-	log.Infof("initializing with genesis")
-	c.init(ngtypes.GetGenesisBlock(), ngtypes.GetGenesisVault())
-}
-
 func (c *Chain) GetLatestBlock() *ngtypes.Block {
 	height := c.GetLatestBlockHeight()
 	block, err := c.GetBlockByHeight(height)
@@ -134,9 +118,15 @@ func (c *Chain) GetLatestVaultHeight() uint64 {
 	return latestHeight
 }
 
-func (c *Chain) PutBlock(block *ngtypes.Block) error {
+func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
+	}
+
+	if block.GetHeight() != 0 {
+		if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
+			return fmt.Errorf("has block in same height: %v", b)
+		}
 	}
 
 	err := c.db.Update(func(txn *badger.Txn) error {
@@ -164,11 +154,18 @@ func (c *Chain) PutBlock(block *ngtypes.Block) error {
 	return err
 }
 
-// PutVault puts an vault into db
-func (c *Chain) PutVault(vault *ngtypes.Vault) error {
+// PutNewVault puts an vault into db
+func (c *Chain) PutNewVault(vault *ngtypes.Vault) error {
 	if vault == nil {
 		return fmt.Errorf("block is nil")
 	}
+
+	if vault.GetHeight() != 0 {
+		if v, _ := c.GetVaultByHeight(vault.GetHeight()); v != nil {
+			return fmt.Errorf("has vault in same height: %v", v)
+		}
+	}
+
 	err := c.db.Update(func(txn *badger.Txn) error {
 		hash, _ := vault.CalculateHash()
 		raw, _ := vault.Marshal()

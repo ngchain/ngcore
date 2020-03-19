@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
 )
@@ -12,7 +13,7 @@ import (
 func (p *Protocol) GetChain(remotePeerId peer.ID) bool {
 	localHeight := p.node.Chain.GetLatestBlockHeight()
 	vaultHeight := (localHeight + 1) / ngtypes.BlockCheckRound
-	payload, err := proto.Marshal(&ngtypes.GetChainPayload{
+	payload, err := proto.Marshal(&pb.GetChainPayload{
 		VaultHeight: vaultHeight,
 	})
 	if err != nil {
@@ -21,7 +22,7 @@ func (p *Protocol) GetChain(remotePeerId peer.ID) bool {
 	}
 
 	// create message data
-	req := &ngtypes.P2PMessage{
+	req := &pb.P2PMessage{
 		Header:  p.node.NewP2PHeader(uuid.New().String(), false),
 		Payload: payload,
 	}
@@ -58,14 +59,14 @@ func (p *Protocol) onGetChain(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data ngtypes.P2PMessage
+	var data pb.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	var getchain ngtypes.GetChainPayload
+	var getchain pb.GetChainPayload
 	err = proto.Unmarshal(data.Payload, &getchain)
 	if err != nil {
 		log.Error(err)

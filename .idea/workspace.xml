@@ -2,15 +2,30 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chain/init.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/chain/swicher.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngp2p/bcastblock.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngp2p/bcasttx.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngp2p/broadcast.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngp2p/pb/p2p.proto" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/WORKSPACE" beforeDir="false" afterPath="$PROJECT_DIR$/WORKSPACE" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/chain/BUILD.bazel" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/item.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/item.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/storage/db.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/BUILD.bazel" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/methods.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/methods.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/protocol.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/protocol.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/BUILD.bazel" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/Makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/prototypes.pb.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/prototypes.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.proto" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -762,7 +777,8 @@
     <MESSAGE value="bug fix" />
     <MESSAGE value="migrate db from bbolt to badger v2" />
     <MESSAGE value="runnable under wsl" />
-    <option name="LAST_COMMIT_MESSAGE" value="runnable under wsl" />
+    <MESSAGE value="fix the vlog bug under windows" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix the vlog bug under windows" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -792,10 +808,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584545670861">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584578716753">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584545670861" />
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584578716753" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584368061079">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -829,38 +845,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1380" height="268" key="GridCell.Tab.0.bottom" timestamp="1584578648132">
+    <state width="1377" height="268" key="GridCell.Tab.0.bottom" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
-    <state width="1380" height="268" key="GridCell.Tab.0.center" timestamp="1584578648132">
+    <state width="1377" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
+    <state width="1377" height="268" key="GridCell.Tab.0.center" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
-    <state width="1380" height="268" key="GridCell.Tab.0.left" timestamp="1584578648132">
+    <state width="1377" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
+    <state width="1377" height="268" key="GridCell.Tab.0.left" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
-    <state width="1380" height="268" key="GridCell.Tab.0.right" timestamp="1584578648132">
+    <state width="1377" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
+    <state width="1377" height="268" key="GridCell.Tab.0.right" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
-    <state width="1380" height="268" key="GridCell.Tab.1.bottom" timestamp="1584578648133">
+    <state width="1377" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
+    <state width="1377" height="268" key="GridCell.Tab.1.bottom" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648133" />
-    <state width="1380" height="268" key="GridCell.Tab.1.center" timestamp="1584578648132">
+    <state width="1377" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
+    <state width="1377" height="268" key="GridCell.Tab.1.center" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
-    <state width="1380" height="268" key="GridCell.Tab.1.left" timestamp="1584578648132">
+    <state width="1377" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
+    <state width="1377" height="268" key="GridCell.Tab.1.left" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
-    <state width="1380" height="268" key="GridCell.Tab.1.right" timestamp="1584578648132">
+    <state width="1377" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
+    <state width="1377" height="268" key="GridCell.Tab.1.right" timestamp="1584615423669">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1380" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
+    <state width="1377" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584615423669" />
     <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -885,10 +901,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584547539976" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584545674370">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584578719013">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584545674370" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584578719013" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -905,18 +921,18 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584548780006">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584633283195">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584548780006" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584633283195" />
     <state x="702" y="146" key="refactoring.ChangeSignatureDialog" timestamp="1582879168983">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="702" y="146" key="refactoring.ChangeSignatureDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1582879168983" />
-    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1584275105206">
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1584625778791">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584275105206" />
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584625778791" />
   </component>
 </project>

@@ -98,7 +98,7 @@ var action = func(c *cli.Context) error {
 	defer db.Close()
 
 	chain := chain.NewChain(db)
-	if isStrictMode {
+	if isStrictMode && chain.GetLatestBlockHeight() == 0 {
 		chain.InitWithGenesis()
 		// then sync
 	}

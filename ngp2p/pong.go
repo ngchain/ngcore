@@ -4,6 +4,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
 )
@@ -11,7 +12,7 @@ import (
 func (p *Protocol) Pong(s network.Stream, uuid string) bool {
 	log.Infof("%s: Sending Pong to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid)
 
-	payload, err := proto.Marshal(&ngtypes.PingPongPayload{
+	payload, err := proto.Marshal(&pb.PingPongPayload{
 		BlockHeight: p.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
@@ -19,7 +20,7 @@ func (p *Protocol) Pong(s network.Stream, uuid string) bool {
 		return false
 	}
 
-	resp := &ngtypes.P2PMessage{
+	resp := &pb.P2PMessage{
 		Header:  p.node.NewP2PHeader(uuid, false),
 		Payload: payload,
 	}
@@ -52,7 +53,7 @@ func (p *Protocol) onPong(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data ngtypes.P2PMessage
+	var data pb.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
 		log.Error(err)
@@ -66,7 +67,7 @@ func (p *Protocol) onPong(s network.Stream) {
 		return
 	}
 
-	var pong ngtypes.PingPongPayload
+	var pong pb.PingPongPayload
 	err = proto.Unmarshal(data.Payload, &pong)
 	if err != nil {
 		log.Error(err)

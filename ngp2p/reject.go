@@ -3,14 +3,14 @@ package ngp2p
 import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"io/ioutil"
 )
 
 func (p *Protocol) Reject(s network.Stream, uuid string) {
 	log.Warning("Failed to authenticate message")
 	log.Infof("Sending Reject to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
-	resp := &ngtypes.P2PMessage{
+	resp := &pb.P2PMessage{
 		Header:  p.node.NewP2PHeader(uuid, false),
 		Payload: nil,
 	}
@@ -42,7 +42,7 @@ func (p *Protocol) onReject(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data ngtypes.P2PMessage
+	var data pb.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
 		log.Error(err)

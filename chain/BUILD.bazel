@@ -4,7 +4,9 @@ go_library(
     name = "go_default_library",
     srcs = [
         "chain.go",
+        "init.go",
         "item.go",
+        "swicher.go",
     ],
     importpath = "github.com/ngin-network/ngcore/chain",
     visibility = ["//visibility:public"],

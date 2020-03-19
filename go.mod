@@ -15,6 +15,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.1
 	github.com/libp2p/go-libp2p-mplex v0.2.2
+	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/libp2p/go-libp2p-yamux v0.2.2
 	github.com/libp2p/go-tcp-transport v0.1.1
 	github.com/mr-tron/base58 v1.1.3

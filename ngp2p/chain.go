@@ -3,11 +3,12 @@ package ngp2p
 import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
 )
 
-func (p *Protocol) Chain(s network.Stream, uuid string, getchain *ngtypes.GetChainPayload) bool {
+func (p *Protocol) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayload) bool {
 	log.Infof("Sending Chain to %s. Message id: %s, Chain from vault@%d ...", s.Conn().RemotePeer(), uuid, getchain.VaultHeight)
 	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
 
@@ -27,7 +28,7 @@ func (p *Protocol) Chain(s network.Stream, uuid string, getchain *ngtypes.GetCha
 	if err != nil {
 		log.Errorf("failed to get vault")
 	}
-	payload, err := proto.Marshal(&ngtypes.ChainPayload{
+	payload, err := proto.Marshal(&pb.ChainPayload{
 		Vault:        vault,
 		Blocks:       blocks,
 		LatestHeight: p.node.Chain.GetLatestBlockHeight(),
@@ -38,7 +39,7 @@ func (p *Protocol) Chain(s network.Stream, uuid string, getchain *ngtypes.GetCha
 	}
 
 	// create message data
-	req := &ngtypes.P2PMessage{
+	req := &pb.P2PMessage{
 		Header:  p.node.NewP2PHeader(uuid, false),
 		Payload: payload,
 	}
@@ -74,7 +75,7 @@ func (p *Protocol) onChain(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data ngtypes.P2PMessage
+	var data pb.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
 		log.Error(err)
@@ -88,20 +89,20 @@ func (p *Protocol) onChain(s network.Stream) {
 		return
 	}
 
-	var chain ngtypes.ChainPayload
+	var chain pb.ChainPayload
 	err = proto.Unmarshal(data.Payload, &chain)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	err = p.node.Chain.PutVault(chain.Vault)
+	err = p.node.Chain.PutNewVault(chain.Vault)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 	for i := 0; i < len(chain.Blocks); i++ {
-		err := p.node.Chain.PutBlock(chain.Blocks[i])
+		err := p.node.Chain.PutNewBlock(chain.Blocks[i])
 		if err != nil {
 			log.Error(err)
 			return

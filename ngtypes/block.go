@@ -124,6 +124,7 @@ func GetGenesisBlock() *Block {
 	hash := header.CalculateHash()
 
 	return &Block{
+		NetworkId:    NetworkId,
 		Header:       header,
 		HeaderHash:   hash,
 		Transactions: txs,

@@ -1,0 +1,26 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
+proto_library(
+    name = "pb_proto",
+    srcs = ["p2p.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["//ngtypes:ngtypes_proto"],
+)
+
+go_proto_library(
+    name = "pb_go_proto",
+    compilers = ["@io_bazel_rules_go//proto:gogoslick_proto"],
+    importpath = "github.com/ngin-network/ngcore/ngp2p/pb",
+    proto = ":pb_proto",
+    visibility = ["//visibility:public"],
+    deps = ["//ngtypes:go_default_library"],
+)
+
+go_library(
+    name = "go_default_library",
+    embed = [":pb_go_proto"],
+    importpath = "github.com/ngin-network/ngcore/ngp2p/pb",
+    visibility = ["//visibility:public"],
+)

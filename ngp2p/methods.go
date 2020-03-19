@@ -11,6 +11,6 @@ const chainMethod = "/ngp2p/blocks/0.0.1"
 
 const getpoolMethod = "/ngp2p/getpool/0.0.1"
 
-const bcastblockMethod = "/ngp2p/bcastblock/0.0.1"
-
-const bcasttxMethod = "/ngp2p/bcasttx/0.0.1"
+//const bcastblockMethod = ""
+//
+//

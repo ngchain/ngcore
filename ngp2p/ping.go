@@ -6,12 +6,13 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
 )
 
 func (p *Protocol) Ping(remotePeerId peer.ID) bool {
-	payload, err := proto.Marshal(&ngtypes.PingPongPayload{
+	payload, err := proto.Marshal(&pb.PingPongPayload{
 		BlockHeight: p.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
@@ -20,7 +21,7 @@ func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 	}
 
 	// create message data
-	req := &ngtypes.P2PMessage{
+	req := &pb.P2PMessage{
 		Header:  p.node.NewP2PHeader(uuid.New().String(), false),
 		Payload: payload,
 	}
@@ -58,14 +59,14 @@ func (p *Protocol) onPing(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data ngtypes.P2PMessage
+	var data pb.P2PMessage
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	var ping ngtypes.PingPongPayload
+	var ping pb.PingPongPayload
 	err = proto.Unmarshal(data.Payload, &ping)
 	if err != nil {
 		log.Error(err)

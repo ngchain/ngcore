@@ -1,20 +1,20 @@
 package ngp2p
 
 import (
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngin-network/ngcore/ngp2p/pb"
 )
 
 // Protocol type
 type Protocol struct {
-	node     *LocalNode                     // local host
-	requests map[string]*ngtypes.P2PMessage // used to access request data from response handlers
-	doneCh   chan bool                      // only for demo purposes to stop main from terminating
+	node     *LocalNode                // local host
+	requests map[string]*pb.P2PMessage // used to access request data from response handlers
+	doneCh   chan bool                 // only for demo purposes to stop main from terminating
 }
 
 func RegisterProtocol(node *LocalNode, done chan bool) *Protocol {
 	p := &Protocol{
 		node:     node,
-		requests: make(map[string]*ngtypes.P2PMessage),
+		requests: make(map[string]*pb.P2PMessage),
 		doneCh:   done,
 	}
 	// register handlers

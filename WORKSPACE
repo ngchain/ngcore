@@ -1475,3 +1475,18 @@ go_repository(
     sum = "h1:ZkM6LRnq40pR1Ox0hTHlnpkcOTuFIDQpZ1IN8rKKhX0=",
     version = "v0.0.0-20191220021717-ab39c6098bdb",
 )
+
+go_repository(
+    name = "com_github_libp2p_go_libp2p_pubsub",
+    build_file_proto_mode = "disable_global",
+    importpath = "github.com/libp2p/go-libp2p-pubsub",
+    sum = "h1:ypZaukCFrtD8cNeeb9nnWG4MD2Y1T0p22aQ+f7FKJig=",
+    version = "v0.2.6",
+)
+
+go_repository(
+    name = "com_github_whyrusleeping_timecache",
+    importpath = "github.com/whyrusleeping/timecache",
+    sum = "h1:lYbXeSvJi5zk5GLKVuid9TVjS9a0OmLIDKTfoZBL6Ow=",
+    version = "v0.0.0-20160911033111-cfcb2f1abfee",
+)

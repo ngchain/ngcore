@@ -130,7 +130,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		}
 	}
 
-	err = c.Chain.PutBlock(b) // TODO: chain should verify the block
+	err = c.Chain.PutNewBlock(b) // TODO: chain should verify the block
 	if err != nil {
 		log.Warning(err)
 		return
@@ -140,7 +140,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	if b.Header.IsTail() {
 		currentVault := c.GenNewVault(b.Header.Height/ngtypes.BlockCheckRound, b.Header.PrevVaultHash)
-		err := c.Chain.PutVault(currentVault)
+		err := c.Chain.PutNewVault(currentVault)
 		if err != nil {
 			panic(err)
 		}

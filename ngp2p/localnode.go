@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/ngin-network/ngcore/chain"
+	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/txpool"
@@ -19,6 +20,8 @@ import (
 type LocalNode struct {
 	host.Host // lib-p2p host
 	*Protocol
+	*Broadcaster
+
 	sheetManager *sheetManager.SheetManager
 	Chain        *chain.Chain
 	txPool       *txpool.TxPool
@@ -44,7 +47,7 @@ func NewLocalNode(host host.Host, done chan bool, sheetManager *sheetManager.She
 // Authenticate incoming p2p message
 // message: a protobufs go data object
 // data: common p2p message data
-func (n *LocalNode) authenticateMessage(message proto.Message, data *ngtypes.P2PHeader) bool {
+func (n *LocalNode) authenticateMessage(message proto.Message, data *pb.P2PHeader) bool {
 	return true
 }
 
@@ -101,7 +104,7 @@ func (n *LocalNode) verifyData(data []byte, signature []byte, peerId peer.ID, pu
 
 // helper method - generate message data shared between all node's p2p protocols
 // messageId: unique for requests, copied from request for responses
-func (n *LocalNode) NewP2PHeader(uuid string, broadcast bool) *ngtypes.P2PHeader {
+func (n *LocalNode) NewP2PHeader(uuid string, broadcast bool) *pb.P2PHeader {
 	// Add protobufs bin data for message author public key
 	// this is useful for authenticating  messages forwarded by a node authored by another node
 	peerKey, err := n.Peerstore().PubKey(n.ID()).Bytes()
@@ -110,7 +113,7 @@ func (n *LocalNode) NewP2PHeader(uuid string, broadcast bool) *ngtypes.P2PHeader
 		panic("Failed to get public key for sender from local peer store.")
 	}
 
-	return &ngtypes.P2PHeader{
+	return &pb.P2PHeader{
 		NetworkId: ngtypes.NetworkId,
 		Uuid:      uuid,
 		Timestamp: 0,
