@@ -2,6 +2,9 @@
   <configuration default="false" name="ngcore" type="GoApplicationRunConfiguration" factoryName="Go Application" singleton="false">
     <module name="ngcore" />
     <working_directory value="$PROJECT_DIR$/" />
+    <envs>
+      <env name="CGO_ENABLED" value="0" />
+    </envs>
     <kind value="PACKAGE" />
     <filePath value="$PROJECT_DIR$/" />
     <package value="github.com/ngin-network/ngcore/cmd/ngcore" />

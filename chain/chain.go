@@ -31,11 +31,18 @@ func NewChain(db *badger.DB) *Chain {
 }
 
 func (c *Chain) init(block *ngtypes.Block, vault *ngtypes.Vault) {
-	c.PutBlock(block)
-	c.PutVault(vault)
+	err := c.PutBlock(block)
+	if err != nil {
+		panic(err)
+	}
+	err = c.PutVault(vault)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (c *Chain) InitWithGenesis() {
+	log.Infof("initializing with genesis")
 	c.init(ngtypes.GetGenesisBlock(), ngtypes.GetGenesisVault())
 }
 
@@ -131,9 +138,11 @@ func (c *Chain) PutBlock(block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
 	}
+
 	err := c.db.Update(func(txn *badger.Txn) error {
 		hash, _ := block.CalculateHash()
 		raw, _ := block.Marshal()
+		log.Infof("putting block@%d: %x", block.Header.Height, hash)
 		err := txn.Set(append(blockPrefix, hash...), raw)
 		if err != nil {
 			return err
@@ -163,19 +172,20 @@ func (c *Chain) PutVault(vault *ngtypes.Vault) error {
 	err := c.db.Update(func(txn *badger.Txn) error {
 		hash, _ := vault.CalculateHash()
 		raw, _ := vault.Marshal()
-		err := txn.Set(append(blockPrefix, hash...), raw)
+		log.Infof("putting vault@%d: %x", vault.Height, hash)
+		err := txn.Set(append(vaultPrefix, hash...), raw)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, utils.PackUint64LE(vault.Height)...), hash)
+		err = txn.Set(append(vaultPrefix, utils.PackUint64LE(vault.Height)...), hash)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
+		err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
+		err = txn.Set(append(vaultPrefix, LatestHashTag...), hash)
 		if err != nil {
 			return err
 		}

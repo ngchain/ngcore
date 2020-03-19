@@ -3,6 +3,9 @@
     <module name="ngcore" />
     <working_directory value="$PROJECT_DIR$/env/bootstrap" />
     <parameters value="--bootstrap --p2p-port 5252 --rpc-port 5251" />
+    <envs>
+      <env name="CGO_ENABLED" value="0" />
+    </envs>
     <kind value="PACKAGE" />
     <filePath value="$PROJECT_DIR$/" />
     <package value="github.com/ngin-network/ngcore/cmd/ngcore" />

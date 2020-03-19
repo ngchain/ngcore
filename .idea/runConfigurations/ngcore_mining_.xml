@@ -3,6 +3,9 @@
     <module name="ngcore" />
     <working_directory value="$PROJECT_DIR$/env/mining" />
     <parameters value="--mining " />
+    <envs>
+      <env name="CGO_ENABLED" value="0" />
+    </envs>
     <kind value="PACKAGE" />
     <filePath value="$PROJECT_DIR$/cmd/core/main.go" />
     <package value="github.com/ngin-network/ngcore/cmd/ngcore" />

@@ -3,22 +3,31 @@ package storage
 import (
 	"github.com/dgraph-io/badger/v2"
 	"github.com/whyrusleeping/go-logging"
+	"runtime"
 )
 
 var log = logging.MustGetLogger("storage")
 
 func InitStorage() *badger.DB {
-	s, err := badger.Open(badger.DefaultOptions("data"))
+	options := badger.DefaultOptions("data")
+	if runtime.GOOS == "windows" {
+		options.Truncate = true
+	}
+	s, err := badger.Open(options)
 	if err != nil {
-		log.Panic("failed to open blockchain.db:", err)
+		log.Panic("failed to open storage:", err)
 	}
 	return s
 }
 
 func InitMemStorage() *badger.DB {
-	s, err := badger.Open(badger.DefaultOptions("").WithInMemory(true))
+	options := badger.DefaultOptions("data").WithInMemory(true)
+	if runtime.GOOS == "windows" {
+		options.Truncate = true
+	}
+	s, err := badger.Open(options)
 	if err != nil {
-		log.Panic("failed to open blockchain.db:", err)
+		log.Panic("failed to open storage:", err)
 	}
 	return s
 }

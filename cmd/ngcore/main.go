@@ -73,10 +73,10 @@ var miningFlag = cli.BoolFlag{
 // the Main
 var action = func(c *cli.Context) error {
 	isBootstrap := c.Bool("bootstrap")
+	isMining := c.Bool("mining")
 	isStrictMode := isBootstrap || c.Bool("strict")
 	p2pTcpPort := c.Int("p2p-port")
 	rpcPort := c.Int("rpc-port")
-	isMining := c.Bool("mining")
 	keyPass := c.String("key-pass")
 	withProfile := c.Bool("profile")
 
@@ -95,10 +95,12 @@ var action = func(c *cli.Context) error {
 	key := keyManager.ReadLocalKey()
 
 	db := storage.InitStorage()
+	defer db.Close()
 
 	chain := chain.NewChain(db)
 	if isStrictMode {
 		chain.InitWithGenesis()
+		// then sync
 	}
 	sheetManager := sheetManager.NewSheetManager()
 	txPool := txpool.NewTxPool()
@@ -107,7 +109,7 @@ var action = func(c *cli.Context) error {
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
 	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
-	fmt.Printf("LocalNode PublicKey is %v\n", base58.FastBase58Encoding(publicKey[:]))
+	log.Warningf("PublicKey is %v\n", base58.FastBase58Encoding(publicKey[:]))
 
 	rpc := rpcServer.NewRPCServer(sheetManager, chain, txPool)
 	go rpc.Serve(rpcPort)
@@ -151,6 +153,7 @@ var action = func(c *cli.Context) error {
 	var stopSignal = make(chan os.Signal, 1)
 	signal.Notify(stopSignal, syscall.SIGTERM)
 	signal.Notify(stopSignal, syscall.SIGINT)
+	signal.Notify(stopSignal, syscall.SIGHUP)
 	for {
 		select {
 		case sign := <-stopSignal:

@@ -101,7 +101,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	prevBlock, err := c.Chain.GetBlockByHash(b.Header.PrevBlockHash)
 	if err != nil {
-		log.Error(err)
+		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
 	}
 	if prevBlock == nil {
@@ -111,7 +111,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	prevVault, err := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
 	if err != nil {
-		log.Error(err)
+		log.Error("cannot find the prevVault for new block, rejected:", err)
 		return
 	}
 	if prevVault == nil {

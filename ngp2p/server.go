@@ -135,7 +135,7 @@ func NewP2PNode(port int, isBootstrap bool, sheetManager *sheetManager.SheetMana
 
 	// init
 	for _, addr := range localHost.Addrs() {
-		log.Infof("Listening P2P on", addr.String()+"/p2p/"+localHost.ID().String())
+		log.Infof("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
 	}
 
 	localNode := NewLocalNode(localHost, doneCh, sheetManager, chain, txPool)

@@ -2,13 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/WORKSPACE" beforeDir="false" afterPath="$PROJECT_DIR$/WORKSPACE" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/chain/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/BUILD.bazel" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/storage/BUILD.bazel" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/storage/db.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,7 +66,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$/env/mining" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
+    <property name="settings.editor.selected.configurable" value="debugger.stepping" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -677,7 +679,15 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.ngcore bootstrap">
+  <component name="RunManager" selected="Go Build.ngcore mining ">
+    <configuration name="bootstrap" type="BlazeCommandRunConfigurationType" factoryName="Bazel Command">
+      <blaze-settings handler-id="BlazeCommandGenericRunConfigurationHandlerProvider" blaze-command="bazel run //cmd/core">
+        <blaze-user-exe-flag>--bootstrap</blaze-user-exe-flag>
+      </blaze-settings>
+      <method v="2">
+        <option name="Blaze.BeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestDeserialize in github.com/ngin-network/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$/ngtypes" />
@@ -704,6 +714,7 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Bazel Command.bootstrap" />
       <item itemvalue="Go Build.ngcore bootstrap" />
       <item itemvalue="Go Build.ngcore" />
       <item itemvalue="Go Build.ngcore mining " />
@@ -750,7 +761,8 @@
     <MESSAGE value="update readme" />
     <MESSAGE value="bug fix" />
     <MESSAGE value="migrate db from bbolt to badger v2" />
-    <option name="LAST_COMMIT_MESSAGE" value="migrate db from bbolt to badger v2" />
+    <MESSAGE value="runnable under wsl" />
+    <option name="LAST_COMMIT_MESSAGE" value="runnable under wsl" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -760,10 +772,14 @@
     <proxy>https://goproxy.io</proxy>
   </component>
   <component name="WindowStateProjectService">
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584530269168">
+    <state x="686" y="215" key="#bootstrap" timestamp="1584545779853">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584530269168" />
+    <state x="686" y="215" key="#bootstrap/0.0.1920.1040@0.0.1920.1040" timestamp="1584545779853" />
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584546261181">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584546261181" />
     <state x="716" y="331" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584521525021">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -776,10 +792,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584544813549">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584545670861">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584544813549" />
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584545670861" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584368061079">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -788,6 +804,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="236" y="36" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584522776743" />
+    <state x="660" y="250" key="EnvironmentVariablesDialog" timestamp="1584546247013">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="660" y="250" key="EnvironmentVariablesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584546247013" />
     <state x="651" y="169" key="FileChooserDialogImpl" timestamp="1584163889913">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -809,38 +829,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1384" height="268" key="GridCell.Tab.0.bottom" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.0.bottom" timestamp="1584578648132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
-    <state width="1384" height="268" key="GridCell.Tab.0.center" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
+    <state width="1380" height="268" key="GridCell.Tab.0.center" timestamp="1584578648132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
-    <state width="1384" height="268" key="GridCell.Tab.0.left" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
+    <state width="1380" height="268" key="GridCell.Tab.0.left" timestamp="1584578648132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
-    <state width="1384" height="268" key="GridCell.Tab.0.right" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
+    <state width="1380" height="268" key="GridCell.Tab.0.right" timestamp="1584578648132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
-    <state width="1384" height="268" key="GridCell.Tab.1.bottom" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
+    <state width="1380" height="268" key="GridCell.Tab.1.bottom" timestamp="1584578648133">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
-    <state width="1384" height="268" key="GridCell.Tab.1.center" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648133" />
+    <state width="1380" height="268" key="GridCell.Tab.1.center" timestamp="1584578648132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
-    <state width="1384" height="268" key="GridCell.Tab.1.left" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
+    <state width="1380" height="268" key="GridCell.Tab.1.left" timestamp="1584578648132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
-    <state width="1384" height="268" key="GridCell.Tab.1.right" timestamp="1584544856423">
+    <state width="1380" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
+    <state width="1380" height="268" key="GridCell.Tab.1.right" timestamp="1584578648132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1384" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584544856423" />
+    <state width="1380" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584578648132" />
     <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -861,14 +881,14 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="848" y="184" key="RollbackChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584522714659" />
-    <state x="548" y="143" key="SettingsEditor" timestamp="1584178446637">
+    <state x="548" y="143" key="SettingsEditor" timestamp="1584547539976">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584178446637" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584544816054">
+    <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584547539976" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584545674370">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584544816054" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584545674370" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -885,11 +905,11 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584532324921">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584548780006">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584532324921" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584548780006" />
     <state x="702" y="146" key="refactoring.ChangeSignatureDialog" timestamp="1582879168983">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
