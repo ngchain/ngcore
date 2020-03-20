@@ -26,26 +26,26 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type P2PHeader struct {
+// common
+type Header struct {
 	NetworkId int32  `protobuf:"varint,1,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
 	Uuid      string `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
 	Timestamp int64  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Broadcast bool   `protobuf:"varint,4,opt,name=broadcast,proto3" json:"broadcast,omitempty"`
 	PeerKey   []byte `protobuf:"bytes,5,opt,name=peer_key,json=peerKey,proto3" json:"peer_key,omitempty"`
 	Sign      []byte `protobuf:"bytes,6,opt,name=sign,proto3" json:"sign,omitempty"`
 }
 
-func (m *P2PHeader) Reset()      { *m = P2PHeader{} }
-func (*P2PHeader) ProtoMessage() {}
-func (*P2PHeader) Descriptor() ([]byte, []int) {
+func (m *Header) Reset()      { *m = Header{} }
+func (*Header) ProtoMessage() {}
+func (*Header) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e7fdddb109e6467a, []int{0}
 }
-func (m *P2PHeader) XXX_Unmarshal(b []byte) error {
+func (m *Header) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *P2PHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *Header) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_P2PHeader.Marshal(b, m, deterministic)
+		return xxx_messageInfo_Header.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -55,54 +55,47 @@ func (m *P2PHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (m *P2PHeader) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_P2PHeader.Merge(m, src)
+func (m *Header) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Header.Merge(m, src)
 }
-func (m *P2PHeader) XXX_Size() int {
+func (m *Header) XXX_Size() int {
 	return m.Size()
 }
-func (m *P2PHeader) XXX_DiscardUnknown() {
-	xxx_messageInfo_P2PHeader.DiscardUnknown(m)
+func (m *Header) XXX_DiscardUnknown() {
+	xxx_messageInfo_Header.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_P2PHeader proto.InternalMessageInfo
+var xxx_messageInfo_Header proto.InternalMessageInfo
 
-func (m *P2PHeader) GetNetworkId() int32 {
+func (m *Header) GetNetworkId() int32 {
 	if m != nil {
 		return m.NetworkId
 	}
 	return 0
 }
 
-func (m *P2PHeader) GetUuid() string {
+func (m *Header) GetUuid() string {
 	if m != nil {
 		return m.Uuid
 	}
 	return ""
 }
 
-func (m *P2PHeader) GetTimestamp() int64 {
+func (m *Header) GetTimestamp() int64 {
 	if m != nil {
 		return m.Timestamp
 	}
 	return 0
 }
 
-func (m *P2PHeader) GetBroadcast() bool {
-	if m != nil {
-		return m.Broadcast
-	}
-	return false
-}
-
-func (m *P2PHeader) GetPeerKey() []byte {
+func (m *Header) GetPeerKey() []byte {
 	if m != nil {
 		return m.PeerKey
 	}
 	return nil
 }
 
-func (m *P2PHeader) GetSign() []byte {
+func (m *Header) GetSign() []byte {
 	if m != nil {
 		return m.Sign
 	}
@@ -110,23 +103,23 @@ func (m *P2PHeader) GetSign() []byte {
 }
 
 // a protocol define a set of requests and responses
-type P2PMessage struct {
-	Header  *P2PHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Nonce   uint64     `protobuf:"varint,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	Payload []byte     `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+type Message struct {
+	Header  *Header `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Nonce   uint64  `protobuf:"varint,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	Payload []byte  `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 }
 
-func (m *P2PMessage) Reset()      { *m = P2PMessage{} }
-func (*P2PMessage) ProtoMessage() {}
-func (*P2PMessage) Descriptor() ([]byte, []int) {
+func (m *Message) Reset()      { *m = Message{} }
+func (*Message) ProtoMessage() {}
+func (*Message) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e7fdddb109e6467a, []int{1}
 }
-func (m *P2PMessage) XXX_Unmarshal(b []byte) error {
+func (m *Message) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *P2PMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *Message) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_P2PMessage.Marshal(b, m, deterministic)
+		return xxx_messageInfo_Message.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -136,39 +129,40 @@ func (m *P2PMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (m *P2PMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_P2PMessage.Merge(m, src)
+func (m *Message) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Message.Merge(m, src)
 }
-func (m *P2PMessage) XXX_Size() int {
+func (m *Message) XXX_Size() int {
 	return m.Size()
 }
-func (m *P2PMessage) XXX_DiscardUnknown() {
-	xxx_messageInfo_P2PMessage.DiscardUnknown(m)
+func (m *Message) XXX_DiscardUnknown() {
+	xxx_messageInfo_Message.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_P2PMessage proto.InternalMessageInfo
+var xxx_messageInfo_Message proto.InternalMessageInfo
 
-func (m *P2PMessage) GetHeader() *P2PHeader {
+func (m *Message) GetHeader() *Header {
 	if m != nil {
 		return m.Header
 	}
 	return nil
 }
 
-func (m *P2PMessage) GetNonce() uint64 {
+func (m *Message) GetNonce() uint64 {
 	if m != nil {
 		return m.Nonce
 	}
 	return 0
 }
 
-func (m *P2PMessage) GetPayload() []byte {
+func (m *Message) GetPayload() []byte {
 	if m != nil {
 		return m.Payload
 	}
 	return nil
 }
 
+// wired
 type PingPongPayload struct {
 	BlockHeight     uint64 `protobuf:"varint,1,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
 	VaultHeight     uint64 `protobuf:"varint,2,opt,name=vault_height,json=vaultHeight,proto3" json:"vault_height,omitempty"`
@@ -338,60 +332,195 @@ func (m *ChainPayload) GetLatestHeight() uint64 {
 	return 0
 }
 
+type GetPoolPayload struct {
+}
+
+func (m *GetPoolPayload) Reset()      { *m = GetPoolPayload{} }
+func (*GetPoolPayload) ProtoMessage() {}
+func (*GetPoolPayload) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e7fdddb109e6467a, []int{5}
+}
+func (m *GetPoolPayload) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GetPoolPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GetPoolPayload.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GetPoolPayload) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetPoolPayload.Merge(m, src)
+}
+func (m *GetPoolPayload) XXX_Size() int {
+	return m.Size()
+}
+func (m *GetPoolPayload) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetPoolPayload.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetPoolPayload proto.InternalMessageInfo
+
+type PoolPayload struct {
+	Txs []*ngtypes.Transaction `protobuf:"bytes,1,rep,name=txs,proto3" json:"txs,omitempty"`
+}
+
+func (m *PoolPayload) Reset()      { *m = PoolPayload{} }
+func (*PoolPayload) ProtoMessage() {}
+func (*PoolPayload) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e7fdddb109e6467a, []int{6}
+}
+func (m *PoolPayload) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PoolPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PoolPayload.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PoolPayload) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PoolPayload.Merge(m, src)
+}
+func (m *PoolPayload) XXX_Size() int {
+	return m.Size()
+}
+func (m *PoolPayload) XXX_DiscardUnknown() {
+	xxx_messageInfo_PoolPayload.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PoolPayload proto.InternalMessageInfo
+
+func (m *PoolPayload) GetTxs() []*ngtypes.Transaction {
+	if m != nil {
+		return m.Txs
+	}
+	return nil
+}
+
+// broadcast(pub-sub)
+type BroadcastBlockPayload struct {
+	Vault *ngtypes.Vault `protobuf:"bytes,1,opt,name=vault,proto3" json:"vault,omitempty"`
+	Block *ngtypes.Block `protobuf:"bytes,2,opt,name=block,proto3" json:"block,omitempty"`
+}
+
+func (m *BroadcastBlockPayload) Reset()      { *m = BroadcastBlockPayload{} }
+func (*BroadcastBlockPayload) ProtoMessage() {}
+func (*BroadcastBlockPayload) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e7fdddb109e6467a, []int{7}
+}
+func (m *BroadcastBlockPayload) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *BroadcastBlockPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_BroadcastBlockPayload.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *BroadcastBlockPayload) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BroadcastBlockPayload.Merge(m, src)
+}
+func (m *BroadcastBlockPayload) XXX_Size() int {
+	return m.Size()
+}
+func (m *BroadcastBlockPayload) XXX_DiscardUnknown() {
+	xxx_messageInfo_BroadcastBlockPayload.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BroadcastBlockPayload proto.InternalMessageInfo
+
+func (m *BroadcastBlockPayload) GetVault() *ngtypes.Vault {
+	if m != nil {
+		return m.Vault
+	}
+	return nil
+}
+
+func (m *BroadcastBlockPayload) GetBlock() *ngtypes.Block {
+	if m != nil {
+		return m.Block
+	}
+	return nil
+}
+
 func init() {
-	proto.RegisterType((*P2PHeader)(nil), "pb.P2PHeader")
-	proto.RegisterType((*P2PMessage)(nil), "pb.P2PMessage")
+	proto.RegisterType((*Header)(nil), "pb.Header")
+	proto.RegisterType((*Message)(nil), "pb.Message")
 	proto.RegisterType((*PingPongPayload)(nil), "pb.PingPongPayload")
 	proto.RegisterType((*GetChainPayload)(nil), "pb.GetChainPayload")
 	proto.RegisterType((*ChainPayload)(nil), "pb.ChainPayload")
+	proto.RegisterType((*GetPoolPayload)(nil), "pb.GetPoolPayload")
+	proto.RegisterType((*PoolPayload)(nil), "pb.PoolPayload")
+	proto.RegisterType((*BroadcastBlockPayload)(nil), "pb.BroadcastBlockPayload")
 }
 
 func init() { proto.RegisterFile("p2p.proto", fileDescriptor_e7fdddb109e6467a) }
 
 var fileDescriptor_e7fdddb109e6467a = []byte{
-	// 497 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x64, 0x92, 0xcd, 0x8e, 0xd3, 0x3e,
-	0x14, 0xc5, 0xe3, 0x7e, 0xcd, 0xf4, 0xb6, 0xf3, 0xaf, 0xfe, 0x86, 0x45, 0x40, 0x60, 0x85, 0xf2,
-	0x55, 0x21, 0x91, 0x4a, 0x85, 0x27, 0x18, 0x16, 0x0c, 0x42, 0x48, 0x51, 0x16, 0x2c, 0x90, 0x50,
-	0xe5, 0x24, 0x56, 0x12, 0xb5, 0x75, 0xac, 0xd8, 0x05, 0x75, 0x07, 0x6f, 0xc0, 0x63, 0xc0, 0x8a,
-	0xd7, 0x60, 0xd9, 0xe5, 0x2c, 0x69, 0xba, 0x61, 0x39, 0x8f, 0x80, 0x72, 0x63, 0x98, 0x56, 0x6c,
-	0x2a, 0xfb, 0x9c, 0xd3, 0x7b, 0x7e, 0x8e, 0x2e, 0xf4, 0xd5, 0x4c, 0xf9, 0xaa, 0x2c, 0x4c, 0x41,
-	0x5b, 0x2a, 0xba, 0x7d, 0x43, 0xa6, 0x66, 0xa3, 0x84, 0x9e, 0xe2, 0x6f, 0x63, 0x8c, 0xbf, 0x11,
-	0xe8, 0x07, 0xb3, 0xe0, 0x42, 0xf0, 0x44, 0x94, 0xf4, 0x2e, 0x80, 0x14, 0xe6, 0x63, 0x51, 0x2e,
-	0xe6, 0x79, 0xe2, 0x12, 0x8f, 0x4c, 0xba, 0x61, 0xdf, 0x2a, 0xaf, 0x12, 0x4a, 0xa1, 0xb3, 0x5e,
-	0xe7, 0x89, 0xdb, 0xf2, 0xc8, 0xa4, 0x1f, 0xe2, 0x99, 0xde, 0x81, 0xbe, 0xc9, 0x57, 0x42, 0x1b,
-	0xbe, 0x52, 0x6e, 0xdb, 0x23, 0x93, 0x76, 0x78, 0x2d, 0xd4, 0x6e, 0x54, 0x16, 0x3c, 0x89, 0xb9,
-	0x36, 0x6e, 0xc7, 0x23, 0x93, 0xd3, 0xf0, 0x5a, 0xa0, 0xb7, 0xe0, 0x54, 0x09, 0x51, 0xce, 0x17,
-	0x62, 0xe3, 0x76, 0x3d, 0x32, 0x19, 0x86, 0x27, 0xf5, 0xfd, 0xb5, 0xd8, 0xd4, 0x55, 0x3a, 0x4f,
-	0xa5, 0xdb, 0x43, 0x19, 0xcf, 0xe3, 0x18, 0x20, 0x98, 0x05, 0x6f, 0x84, 0xd6, 0x3c, 0x15, 0xf4,
-	0x21, 0xf4, 0x32, 0xa4, 0x46, 0xce, 0xc1, 0xec, 0xcc, 0x57, 0x91, 0xff, 0xf7, 0x29, 0xa1, 0x35,
-	0xe9, 0x4d, 0xe8, 0xca, 0x42, 0xc6, 0x02, 0xa1, 0x3b, 0x61, 0x73, 0xa1, 0x2e, 0x9c, 0x28, 0xbe,
-	0x59, 0x16, 0x3c, 0x41, 0xe6, 0xba, 0xb8, 0xb9, 0x8e, 0xbf, 0x13, 0x18, 0x05, 0xb9, 0x4c, 0x83,
-	0x42, 0xa6, 0x41, 0xa3, 0xd1, 0x7b, 0x30, 0x8c, 0x96, 0x45, 0xbc, 0x98, 0x67, 0x22, 0x4f, 0x33,
-	0x83, 0x85, 0x9d, 0x70, 0x80, 0xda, 0x05, 0x4a, 0x75, 0xe4, 0x03, 0x5f, 0x2f, 0xcd, 0x9f, 0x48,
-	0xd3, 0x36, 0x40, 0xcd, 0x46, 0x9e, 0xc0, 0xff, 0x4b, 0x6e, 0x84, 0x36, 0x73, 0x3b, 0x8c, 0xeb,
-	0xcc, 0xb6, 0x8f, 0x1a, 0xe3, 0x1c, 0x07, 0x72, 0x9d, 0x1d, 0x64, 0xed, 0xd4, 0x3a, 0xdb, 0x39,
-	0xcc, 0xbe, 0xc5, 0xc9, 0x5c, 0x67, 0xe3, 0xe7, 0x30, 0x7a, 0x29, 0xcc, 0x8b, 0x8c, 0xe7, 0xf2,
-	0x00, 0xf8, 0x88, 0x86, 0xfc, 0x43, 0x33, 0xfe, 0x4c, 0x60, 0x78, 0xf4, 0x9f, 0x07, 0xd0, 0x45,
-	0xdf, 0x7e, 0xce, 0xff, 0x7c, 0xbb, 0x2e, 0x3e, 0x36, 0x85, 0x8d, 0x49, 0x1f, 0x41, 0x0f, 0xe9,
-	0xb5, 0xdb, 0xf2, 0xda, 0x47, 0x31, 0x84, 0x0f, 0xad, 0x4b, 0xef, 0xc3, 0x99, 0x7d, 0x80, 0x45,
-	0x68, 0x23, 0xc2, 0xb0, 0x11, 0x1b, 0x86, 0xf3, 0xf7, 0xdb, 0x1d, 0x73, 0x2e, 0x77, 0xcc, 0xb9,
-	0xda, 0x31, 0xf2, 0xa9, 0x62, 0xe4, 0x6b, 0xc5, 0xc8, 0x8f, 0x8a, 0x91, 0x6d, 0xc5, 0xc8, 0xcf,
-	0x8a, 0x91, 0x5f, 0x15, 0x73, 0xae, 0x2a, 0x46, 0xbe, 0xec, 0x99, 0xb3, 0xdd, 0x33, 0xe7, 0x72,
-	0xcf, 0x9c, 0x77, 0x8f, 0xd3, 0xdc, 0x64, 0xeb, 0xc8, 0x8f, 0x8b, 0xd5, 0x54, 0xa6, 0xb9, 0x7c,
-	0x6a, 0x17, 0x74, 0x2a, 0xd3, 0xb8, 0x28, 0xc5, 0x54, 0xa6, 0x6a, 0xa6, 0xa6, 0x2a, 0x8a, 0x7a,
-	0xb8, 0xe2, 0xcf, 0x7e, 0x07, 0x00, 0x00, 0xff, 0xff, 0xd9, 0xfd, 0xfa, 0x37, 0x08, 0x03, 0x00,
-	0x00,
+	// 539 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x93, 0x3f, 0x8f, 0xd3, 0x30,
+	0x18, 0xc6, 0xe3, 0xeb, 0x3f, 0xfa, 0xb6, 0x5c, 0xc1, 0x1c, 0x52, 0x40, 0x60, 0x95, 0x70, 0x3a,
+	0x2a, 0x24, 0x52, 0xa9, 0xc0, 0x17, 0x28, 0xc3, 0x1d, 0x42, 0x48, 0x55, 0x84, 0x18, 0x90, 0x4e,
+	0x95, 0x93, 0x58, 0x49, 0xd4, 0xd6, 0xb6, 0x62, 0x17, 0xe8, 0x06, 0x1b, 0x23, 0x1f, 0x83, 0x8d,
+	0xaf, 0xc1, 0xd8, 0xf1, 0x46, 0x9a, 0x2e, 0x8c, 0xf7, 0x11, 0x50, 0x1c, 0x03, 0xad, 0x6e, 0x62,
+	0x89, 0xfc, 0x3e, 0xef, 0x93, 0xf7, 0xf9, 0xd9, 0x89, 0xa1, 0x2d, 0x47, 0xd2, 0x97, 0xb9, 0xd0,
+	0x02, 0x1f, 0xc8, 0xf0, 0xee, 0x2d, 0x9e, 0xe8, 0x95, 0x64, 0x6a, 0x68, 0x9e, 0x55, 0xc3, 0xfb,
+	0x82, 0xa0, 0x79, 0xc6, 0x68, 0xcc, 0x72, 0x7c, 0x1f, 0x80, 0x33, 0xfd, 0x41, 0xe4, 0xb3, 0x69,
+	0x16, 0xbb, 0xa8, 0x8f, 0x06, 0x8d, 0xa0, 0x6d, 0x95, 0x97, 0x31, 0xc6, 0x50, 0x5f, 0x2e, 0xb3,
+	0xd8, 0x3d, 0xe8, 0xa3, 0x41, 0x3b, 0x30, 0x6b, 0x7c, 0x0f, 0xda, 0x3a, 0x5b, 0x30, 0xa5, 0xe9,
+	0x42, 0xba, 0xb5, 0x3e, 0x1a, 0xd4, 0x82, 0x7f, 0x02, 0xbe, 0x03, 0xd7, 0x24, 0x63, 0xf9, 0x74,
+	0xc6, 0x56, 0x6e, 0xa3, 0x8f, 0x06, 0xdd, 0xa0, 0x55, 0xd6, 0xaf, 0xd8, 0xaa, 0x1c, 0xa6, 0xb2,
+	0x84, 0xbb, 0x4d, 0x23, 0x9b, 0xb5, 0x77, 0x0e, 0xad, 0xd7, 0x4c, 0x29, 0x9a, 0x30, 0xec, 0x41,
+	0x33, 0x35, 0x50, 0x06, 0xa3, 0x33, 0x02, 0x5f, 0x86, 0x7e, 0x85, 0x19, 0xd8, 0x0e, 0x3e, 0x82,
+	0x06, 0x17, 0x3c, 0x62, 0x06, 0xa8, 0x1e, 0x54, 0x05, 0x76, 0xa1, 0x25, 0xe9, 0x6a, 0x2e, 0x68,
+	0x6c, 0x78, 0xca, 0xc8, 0xaa, 0xf4, 0xbe, 0x23, 0xe8, 0x4d, 0x32, 0x9e, 0x4c, 0x04, 0x4f, 0x26,
+	0x95, 0x86, 0x1f, 0x40, 0x37, 0x9c, 0x8b, 0x68, 0x36, 0x4d, 0x59, 0x96, 0xa4, 0xda, 0xa4, 0xd5,
+	0x83, 0x8e, 0xd1, 0xce, 0x8c, 0x54, 0x5a, 0xde, 0xd3, 0xe5, 0x5c, 0xff, 0xb1, 0x54, 0x69, 0x1d,
+	0xa3, 0x59, 0xcb, 0x63, 0xb8, 0x39, 0xa7, 0x9a, 0x29, 0x3d, 0xb5, 0xc3, 0xa8, 0x4a, 0x6d, 0x7a,
+	0xaf, 0x6a, 0x8c, 0xcd, 0x40, 0xaa, 0xd2, 0x1d, 0xaf, 0x9d, 0x5a, 0x7a, 0xeb, 0xbb, 0xde, 0xb7,
+	0x66, 0x32, 0x55, 0xa9, 0xf7, 0x0c, 0x7a, 0xa7, 0x4c, 0xbf, 0x48, 0x69, 0xc6, 0x77, 0x80, 0xf7,
+	0x68, 0xd0, 0x15, 0x1a, 0xef, 0x33, 0x82, 0xee, 0xde, 0x3b, 0xc7, 0xd0, 0x30, 0x7d, 0x7b, 0x96,
+	0x87, 0xbe, 0xfd, 0x0f, 0x7c, 0x93, 0x14, 0x54, 0x4d, 0x7c, 0x02, 0x4d, 0x43, 0xaf, 0xdc, 0x83,
+	0x7e, 0x6d, 0xcf, 0x66, 0xe0, 0x03, 0xdb, 0xc5, 0x0f, 0xe1, 0xba, 0xdd, 0x80, 0x45, 0xa8, 0x19,
+	0x84, 0x6e, 0x25, 0x5a, 0x86, 0x1b, 0x70, 0x78, 0xca, 0xf4, 0x44, 0x88, 0xb9, 0x85, 0xf0, 0x9e,
+	0x43, 0x67, 0xa7, 0xc4, 0x27, 0x50, 0xd3, 0x1f, 0x95, 0x8b, 0x4c, 0xd4, 0xd1, 0xdf, 0xa8, 0x37,
+	0x39, 0xe5, 0x8a, 0x46, 0x3a, 0x13, 0x3c, 0x28, 0x0d, 0x5e, 0x04, 0xb7, 0xc7, 0xb9, 0xa0, 0x71,
+	0x44, 0xed, 0x21, 0xfe, 0xdf, 0xa6, 0x8e, 0xa1, 0x61, 0xb0, 0xcd, 0x57, 0xbb, 0xba, 0xa7, 0xaa,
+	0x39, 0x3e, 0x5f, 0x6f, 0x88, 0x73, 0xb1, 0x21, 0xce, 0xe5, 0x86, 0xa0, 0x4f, 0x05, 0x41, 0xdf,
+	0x0a, 0x82, 0x7e, 0x14, 0x04, 0xad, 0x0b, 0x82, 0x7e, 0x16, 0x04, 0xfd, 0x2a, 0x88, 0x73, 0x59,
+	0x10, 0xf4, 0x75, 0x4b, 0x9c, 0xf5, 0x96, 0x38, 0x17, 0x5b, 0xe2, 0xbc, 0x7b, 0x94, 0x64, 0x3a,
+	0x5d, 0x86, 0x7e, 0x24, 0x16, 0x43, 0x9e, 0x64, 0xfc, 0x89, 0xbd, 0x2a, 0x43, 0x9e, 0x44, 0x22,
+	0x67, 0x43, 0x9e, 0xc8, 0x91, 0x1c, 0xca, 0x30, 0x6c, 0x9a, 0x9b, 0xf6, 0xf4, 0x77, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0xb3, 0xd5, 0x1a, 0x06, 0x8f, 0x03, 0x00, 0x00,
 }
 
-func (this *P2PHeader) Equal(that interface{}) bool {
+func (this *Header) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*P2PHeader)
+	that1, ok := that.(*Header)
 	if !ok {
-		that2, ok := that.(P2PHeader)
+		that2, ok := that.(Header)
 		if ok {
 			that1 = &that2
 		} else {
@@ -412,9 +541,6 @@ func (this *P2PHeader) Equal(that interface{}) bool {
 	if this.Timestamp != that1.Timestamp {
 		return false
 	}
-	if this.Broadcast != that1.Broadcast {
-		return false
-	}
 	if !bytes.Equal(this.PeerKey, that1.PeerKey) {
 		return false
 	}
@@ -423,14 +549,14 @@ func (this *P2PHeader) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *P2PMessage) Equal(that interface{}) bool {
+func (this *Message) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*P2PMessage)
+	that1, ok := that.(*Message)
 	if !ok {
-		that2, ok := that.(P2PMessage)
+		that2, ok := that.(Message)
 		if ok {
 			that1 = &that2
 		} else {
@@ -545,27 +671,103 @@ func (this *ChainPayload) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *P2PHeader) GoString() string {
+func (this *GetPoolPayload) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GetPoolPayload)
+	if !ok {
+		that2, ok := that.(GetPoolPayload)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *PoolPayload) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PoolPayload)
+	if !ok {
+		that2, ok := that.(PoolPayload)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Txs) != len(that1.Txs) {
+		return false
+	}
+	for i := range this.Txs {
+		if !this.Txs[i].Equal(that1.Txs[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *BroadcastBlockPayload) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*BroadcastBlockPayload)
+	if !ok {
+		that2, ok := that.(BroadcastBlockPayload)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Vault.Equal(that1.Vault) {
+		return false
+	}
+	if !this.Block.Equal(that1.Block) {
+		return false
+	}
+	return true
+}
+func (this *Header) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
-	s = append(s, "&pb.P2PHeader{")
+	s := make([]string, 0, 9)
+	s = append(s, "&pb.Header{")
 	s = append(s, "NetworkId: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
 	s = append(s, "Uuid: "+fmt.Sprintf("%#v", this.Uuid)+",\n")
 	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
-	s = append(s, "Broadcast: "+fmt.Sprintf("%#v", this.Broadcast)+",\n")
 	s = append(s, "PeerKey: "+fmt.Sprintf("%#v", this.PeerKey)+",\n")
 	s = append(s, "Sign: "+fmt.Sprintf("%#v", this.Sign)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *P2PMessage) GoString() string {
+func (this *Message) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 7)
-	s = append(s, "&pb.P2PMessage{")
+	s = append(s, "&pb.Message{")
 	if this.Header != nil {
 		s = append(s, "Header: "+fmt.Sprintf("%#v", this.Header)+",\n")
 	}
@@ -613,6 +815,42 @@ func (this *ChainPayload) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
+func (this *GetPoolPayload) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&pb.GetPoolPayload{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *PoolPayload) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&pb.PoolPayload{")
+	if this.Txs != nil {
+		s = append(s, "Txs: "+fmt.Sprintf("%#v", this.Txs)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *BroadcastBlockPayload) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&pb.BroadcastBlockPayload{")
+	if this.Vault != nil {
+		s = append(s, "Vault: "+fmt.Sprintf("%#v", this.Vault)+",\n")
+	}
+	if this.Block != nil {
+		s = append(s, "Block: "+fmt.Sprintf("%#v", this.Block)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
 func valueToGoStringP2P(v interface{}, typ string) string {
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
@@ -621,7 +859,7 @@ func valueToGoStringP2P(v interface{}, typ string) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
-func (m *P2PHeader) Marshal() (dAtA []byte, err error) {
+func (m *Header) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -631,12 +869,12 @@ func (m *P2PHeader) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *P2PHeader) MarshalTo(dAtA []byte) (int, error) {
+func (m *Header) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *P2PHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Header) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -654,16 +892,6 @@ func (m *P2PHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintP2P(dAtA, i, uint64(len(m.PeerKey)))
 		i--
 		dAtA[i] = 0x2a
-	}
-	if m.Broadcast {
-		i--
-		if m.Broadcast {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x20
 	}
 	if m.Timestamp != 0 {
 		i = encodeVarintP2P(dAtA, i, uint64(m.Timestamp))
@@ -685,7 +913,7 @@ func (m *P2PHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *P2PMessage) Marshal() (dAtA []byte, err error) {
+func (m *Message) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -695,12 +923,12 @@ func (m *P2PMessage) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *P2PMessage) MarshalTo(dAtA []byte) (int, error) {
+func (m *Message) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *P2PMessage) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Message) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -861,6 +1089,113 @@ func (m *ChainPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *GetPoolPayload) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetPoolPayload) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GetPoolPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *PoolPayload) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PoolPayload) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PoolPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Txs) > 0 {
+		for iNdEx := len(m.Txs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Txs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintP2P(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BroadcastBlockPayload) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BroadcastBlockPayload) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *BroadcastBlockPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Block != nil {
+		{
+			size, err := m.Block.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintP2P(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Vault != nil {
+		{
+			size, err := m.Vault.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintP2P(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintP2P(dAtA []byte, offset int, v uint64) int {
 	offset -= sovP2P(v)
 	base := offset
@@ -872,7 +1207,7 @@ func encodeVarintP2P(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *P2PHeader) Size() (n int) {
+func (m *Header) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -888,9 +1223,6 @@ func (m *P2PHeader) Size() (n int) {
 	if m.Timestamp != 0 {
 		n += 1 + sovP2P(uint64(m.Timestamp))
 	}
-	if m.Broadcast {
-		n += 2
-	}
 	l = len(m.PeerKey)
 	if l > 0 {
 		n += 1 + l + sovP2P(uint64(l))
@@ -902,7 +1234,7 @@ func (m *P2PHeader) Size() (n int) {
 	return n
 }
 
-func (m *P2PMessage) Size() (n int) {
+func (m *Message) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -979,33 +1311,73 @@ func (m *ChainPayload) Size() (n int) {
 	return n
 }
 
+func (m *GetPoolPayload) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *PoolPayload) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Txs) > 0 {
+		for _, e := range m.Txs {
+			l = e.Size()
+			n += 1 + l + sovP2P(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *BroadcastBlockPayload) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Vault != nil {
+		l = m.Vault.Size()
+		n += 1 + l + sovP2P(uint64(l))
+	}
+	if m.Block != nil {
+		l = m.Block.Size()
+		n += 1 + l + sovP2P(uint64(l))
+	}
+	return n
+}
+
 func sovP2P(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozP2P(x uint64) (n int) {
 	return sovP2P(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *P2PHeader) String() string {
+func (this *Header) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&P2PHeader{`,
+	s := strings.Join([]string{`&Header{`,
 		`NetworkId:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
 		`Uuid:` + fmt.Sprintf("%v", this.Uuid) + `,`,
 		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
-		`Broadcast:` + fmt.Sprintf("%v", this.Broadcast) + `,`,
 		`PeerKey:` + fmt.Sprintf("%v", this.PeerKey) + `,`,
 		`Sign:` + fmt.Sprintf("%v", this.Sign) + `,`,
 		`}`,
 	}, "")
 	return s
 }
-func (this *P2PMessage) String() string {
+func (this *Message) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&P2PMessage{`,
-		`Header:` + strings.Replace(this.Header.String(), "P2PHeader", "P2PHeader", 1) + `,`,
+	s := strings.Join([]string{`&Message{`,
+		`Header:` + strings.Replace(this.Header.String(), "Header", "Header", 1) + `,`,
 		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`Payload:` + fmt.Sprintf("%v", this.Payload) + `,`,
 		`}`,
@@ -1052,6 +1424,41 @@ func (this *ChainPayload) String() string {
 	}, "")
 	return s
 }
+func (this *GetPoolPayload) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GetPoolPayload{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PoolPayload) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForTxs := "[]*Transaction{"
+	for _, f := range this.Txs {
+		repeatedStringForTxs += strings.Replace(fmt.Sprintf("%v", f), "Transaction", "ngtypes.Transaction", 1) + ","
+	}
+	repeatedStringForTxs += "}"
+	s := strings.Join([]string{`&PoolPayload{`,
+		`Txs:` + repeatedStringForTxs + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *BroadcastBlockPayload) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&BroadcastBlockPayload{`,
+		`Vault:` + strings.Replace(fmt.Sprintf("%v", this.Vault), "Vault", "ngtypes.Vault", 1) + `,`,
+		`Block:` + strings.Replace(fmt.Sprintf("%v", this.Block), "Block", "ngtypes.Block", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func valueToStringP2P(v interface{}) string {
 	rv := reflect.ValueOf(v)
 	if rv.IsNil() {
@@ -1060,7 +1467,7 @@ func valueToStringP2P(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *P2PHeader) Unmarshal(dAtA []byte) error {
+func (m *Header) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1083,10 +1490,10 @@ func (m *P2PHeader) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: P2PHeader: wiretype end group for non-group")
+			return fmt.Errorf("proto: Header: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: P2PHeader: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: Header: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1159,26 +1566,6 @@ func (m *P2PHeader) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Broadcast", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowP2P
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Broadcast = bool(v != 0)
 		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerKey", wireType)
@@ -1271,7 +1658,7 @@ func (m *P2PHeader) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *P2PMessage) Unmarshal(dAtA []byte) error {
+func (m *Message) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1294,10 +1681,10 @@ func (m *P2PMessage) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: P2PMessage: wiretype end group for non-group")
+			return fmt.Errorf("proto: Message: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: P2PMessage: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: Message: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1330,7 +1717,7 @@ func (m *P2PMessage) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Header == nil {
-				m.Header = &P2PHeader{}
+				m.Header = &Header{}
 			}
 			if err := m.Header.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -1762,6 +2149,271 @@ func (m *ChainPayload) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipP2P(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GetPoolPayload) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowP2P
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetPoolPayload: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetPoolPayload: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipP2P(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PoolPayload) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowP2P
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PoolPayload: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PoolPayload: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Txs", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowP2P
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthP2P
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Txs = append(m.Txs, &ngtypes.Transaction{})
+			if err := m.Txs[len(m.Txs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipP2P(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BroadcastBlockPayload) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowP2P
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BroadcastBlockPayload: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BroadcastBlockPayload: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Vault", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowP2P
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthP2P
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Vault == nil {
+				m.Vault = &ngtypes.Vault{}
+			}
+			if err := m.Vault.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Block", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowP2P
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthP2P
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthP2P
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Block == nil {
+				m.Block = &ngtypes.Block{}
+			}
+			if err := m.Block.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipP2P(dAtA[iNdEx:])

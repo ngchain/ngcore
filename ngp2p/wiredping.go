@@ -11,9 +11,9 @@ import (
 	"io/ioutil"
 )
 
-func (p *Protocol) Ping(remotePeerId peer.ID) bool {
+func (w *Wired) Ping(remotePeerId peer.ID) bool {
 	payload, err := proto.Marshal(&pb.PingPongPayload{
-		BlockHeight: p.node.Chain.GetLatestBlockHeight(),
+		BlockHeight: w.node.Chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -21,13 +21,13 @@ func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 	}
 
 	// create message data
-	req := &pb.P2PMessage{
-		Header:  p.node.NewP2PHeader(uuid.New().String(), false),
+	req := &pb.Message{
+		Header:  w.node.NewHeader(uuid.New().String()),
 		Payload: payload,
 	}
 
 	// sign the data
-	signature, err := p.node.signProtoMessage(req)
+	signature, err := w.node.signProtoMessage(req)
 	if err != nil {
 		log.Errorf("failed to sign pb data")
 		return false
@@ -36,19 +36,19 @@ func (p *Protocol) Ping(remotePeerId peer.ID) bool {
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	ok := p.node.sendProtoMessage(remotePeerId, pingMethod, req)
+	ok := w.node.sendProtoMessage(remotePeerId, pingMethod, req)
 	if !ok {
 		return false
 	}
 
 	// store ref request so response handler has access to it
-	p.requests[req.Header.Uuid] = req
+	w.requests[req.Header.Uuid] = req
 	log.Infof("Sent Ping to: %s was sent. Message Id: %s.", remotePeerId, req.Header.Uuid)
 	return true
 }
 
 // remote peer requests handler
-func (p *Protocol) onPing(s network.Stream) {
+func (w *Wired) onPing(s network.Stream) {
 	// get request data
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
@@ -59,7 +59,7 @@ func (p *Protocol) onPing(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data pb.P2PMessage
+	var data pb.Message
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
 		log.Error(err)
@@ -74,14 +74,14 @@ func (p *Protocol) onPing(s network.Stream) {
 	}
 
 	log.Infof("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
-	if p.node.authenticateMessage(&data, data.Header) {
+	if w.node.authenticateMessage(&data, data.Header) {
 		// Pong
-		p.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
-		go p.Pong(s, data.Header.Uuid)
+		w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
+		go w.Pong(s, data.Header.Uuid)
 		return
 	} else {
 		// Reject
-		go p.Reject(s, data.Header.Uuid)
+		go w.Reject(s, data.Header.Uuid)
 		return
 	}
 

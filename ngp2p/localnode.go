@@ -19,12 +19,12 @@ import (
 
 type LocalNode struct {
 	host.Host // lib-p2p host
-	*Protocol
+	*Wired
 	*Broadcaster
 
 	sheetManager *sheetManager.SheetManager
 	Chain        *chain.Chain
-	txPool       *txpool.TxPool
+	TxPool       *txpool.TxPool
 
 	RemoteHeights *sync.Map // key:id value:height
 }
@@ -35,19 +35,20 @@ func NewLocalNode(host host.Host, done chan bool, sheetManager *sheetManager.She
 		Host:         host,
 		sheetManager: sheetManager,
 		Chain:        chain,
-		txPool:       txPool,
+		TxPool:       txPool,
 
 		RemoteHeights: new(sync.Map),
 	}
-	node.Protocol = RegisterProtocol(node, done)
-	go node.Protocol.Sync()
+	node.Broadcaster = registerBroadcaster(node)
+	node.Wired = registerProtocol(node, done)
+	go node.Wired.Sync()
 	return node
 }
 
 // Authenticate incoming p2p message
 // message: a protobufs go data object
 // data: common p2p message data
-func (n *LocalNode) authenticateMessage(message proto.Message, data *pb.P2PHeader) bool {
+func (n *LocalNode) authenticateMessage(message proto.Message, data *pb.Header) bool {
 	return true
 }
 
@@ -102,9 +103,9 @@ func (n *LocalNode) verifyData(data []byte, signature []byte, peerId peer.ID, pu
 	return res
 }
 
-// helper method - generate message data shared between all node's p2p protocols
+// NewHeader is a helper method: generate message data shared between all node's p2p protocols
 // messageId: unique for requests, copied from request for responses
-func (n *LocalNode) NewP2PHeader(uuid string, broadcast bool) *pb.P2PHeader {
+func (n *LocalNode) NewHeader(uuid string) *pb.Header {
 	// Add protobufs bin data for message author public key
 	// this is useful for authenticating  messages forwarded by a node authored by another node
 	peerKey, err := n.Peerstore().PubKey(n.ID()).Bytes()
@@ -113,11 +114,10 @@ func (n *LocalNode) NewP2PHeader(uuid string, broadcast bool) *pb.P2PHeader {
 		panic("Failed to get public key for sender from local peer store.")
 	}
 
-	return &pb.P2PHeader{
+	return &pb.Header{
 		NetworkId: ngtypes.NetworkId,
 		Uuid:      uuid,
 		Timestamp: 0,
-		Broadcast: broadcast,
 		PeerKey:   peerKey,
 		Sign:      nil,
 	}
@@ -132,6 +132,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 		log.Error(err)
 		return false
 	}
+
 	writer := io.NewFullWriter(s)
 	err = writer.WriteMsg(data)
 	if err != nil {
@@ -139,6 +140,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 		s.Reset()
 		return false
 	}
+
 	// FullClose closes the stream and waits for the other side to close their half.
 	err = helpers.FullClose(s)
 	if err != nil {
@@ -146,6 +148,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 		s.Reset()
 		return false
 	}
+
 	return true
 }
 

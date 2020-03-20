@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-func (p *Protocol) Sync() {
+func (w *Wired) Sync() {
 	syncInterval := time.Tick(ngtypes.TargetTime * ngtypes.BlockCheckRound)
 	for {
 		select {
 		case <-syncInterval:
-			for _, peer := range p.node.Peerstore().Peers() {
+			for _, peer := range w.node.Peerstore().Peers() {
 				log.Infof("pinging to %s", peer)
-				p.Ping(peer)
+				w.Ping(peer)
 			}
 		}
 	}

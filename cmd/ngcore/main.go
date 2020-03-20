@@ -2,9 +2,7 @@
 package main
 
 import (
-	"crypto/elliptic"
 	"fmt"
-	"github.com/mr-tron/base58"
 	"github.com/ngin-network/ngcore/chain"
 	"github.com/ngin-network/ngcore/consensus"
 	"github.com/ngin-network/ngcore/keyManager"
@@ -70,8 +68,16 @@ var miningFlag = cli.BoolFlag{
 	Usage: "start mining",
 }
 
+var format = logging.MustStringFormatter(
+	"%{module} %{color}%{time:15:04:05.000} ▶ %{level:.4s}%{color:reset} %{message}",
+)
+
 // the Main
 var action = func(c *cli.Context) error {
+	backend := logging.NewLogBackend(os.Stderr, "", 0)
+	formatter := logging.NewBackendFormatter(backend, format)
+	logging.SetBackend(formatter)
+
 	isBootstrap := c.Bool("bootstrap")
 	isMining := c.Bool("mining")
 	isStrictMode := isBootstrap || c.Bool("strict")
@@ -93,6 +99,7 @@ var action = func(c *cli.Context) error {
 
 	keyManager := keyManager.NewKeyManager("ngcore.key", strings.TrimSpace(keyPass))
 	key := keyManager.ReadLocalKey()
+	keyManager.OutputPublicKey(key)
 
 	db := storage.InitStorage()
 	defer db.Close()
@@ -107,9 +114,6 @@ var action = func(c *cli.Context) error {
 
 	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
-
-	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
-	log.Warningf("PublicKey is %v\n", base58.FastBase58Encoding(publicKey[:]))
 
 	rpc := rpcServer.NewRPCServer(sheetManager, chain, txPool)
 	go rpc.Serve(rpcPort)
@@ -128,9 +132,13 @@ var action = func(c *cli.Context) error {
 					}
 					latestVault := chain.GetLatestVault()
 					sheetManager.Init(latestVault)
-					txPool.Init(latestVault)
+					txPool.Init(latestVault, chain.NewMinedBlockEvent, chain.NewVaultEvent)
+					txPool.Run()
 					log.Info("Start PoW consensus")
-					consensusManager.InitPoW()
+
+					foundCh := make(chan *ngtypes.Block)
+					consensusManager.InitPoW(foundCh)
+
 				})
 				log.Info("localnode is synced with network")
 				if isMining {

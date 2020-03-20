@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var log = logging.MustGetLogger("manager")
+var log = logging.MustGetLogger("key")
 
 // local(self) key, balance, accounts management
 // manage all belongs to the localUser (yourself)
@@ -47,6 +47,11 @@ func (m *KeyManager) ReadLocalKey() *ecdsa.PrivateKey {
 	}
 	m.CurrentKey = key
 	return key
+}
+
+func (m *KeyManager) OutputPublicKey(key *ecdsa.PrivateKey) {
+	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
+	log.Warningf("PublicKey is bs58: %v\n", base58.FastBase58Encoding(publicKey[:]))
 }
 
 func (m *KeyManager) CreateLocalKey() *ecdsa.PrivateKey {

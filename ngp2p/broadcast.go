@@ -16,15 +16,17 @@ type Broadcaster struct {
 	subscriptions map[string]*pubsub.Subscription
 }
 
-func registerPubSub(ctx context.Context, node *LocalNode) *Broadcaster {
+func registerBroadcaster(node *LocalNode) *Broadcaster {
 	var err error
+
 	b := &Broadcaster{
-		PubSub: nil,
-		node:   nil,
-		topics: nil,
+		PubSub:        nil,
+		node:          node,
+		topics:        make(map[string]*pubsub.Topic),
+		subscriptions: make(map[string]*pubsub.Subscription),
 	}
 
-	b.PubSub, err = pubsub.NewGossipSub(ctx, node)
+	b.PubSub, err = pubsub.NewGossipSub(context.Background(), node)
 	if err != nil {
 		panic(err)
 	}
@@ -49,15 +51,38 @@ func registerPubSub(ctx context.Context, node *LocalNode) *Broadcaster {
 		panic(err)
 	}
 
-	go b.bcastBlockHandler(ctx, b.subscriptions[broadcastBlockTopic])
-	go b.bcastTxHandler(ctx, b.subscriptions[broadcastTxTopic])
+	go b.blockListener(b.subscriptions[broadcastBlockTopic])
+	go b.txListener(b.subscriptions[broadcastTxTopic])
+	go func() {
+		for {
+			select {
+			case block := <-b.node.Chain.NewMinedBlockEvent:
+				if block.IsHead() {
+					v, err := b.node.Chain.GetVaultByHash(block.Header.PrevVaultHash)
+					if err != nil {
+						log.Errorf("failed to get vault from new mined block ")
+						continue
+					}
+					b.broadcastBlock(block, v)
+				} else {
+					b.broadcastBlock(block, nil)
+				}
+
+			case tx := <-b.node.TxPool.NewCreatedTxEvent:
+				b.broadcastTx(tx)
+			}
+		}
+	}()
 
 	return b
 }
 
-func (b *Broadcaster) bcastBlockHandler(ctx context.Context, sub *pubsub.Subscription) {
+func (b *Broadcaster) blockListener(sub *pubsub.Subscription) {
 	for {
-		msg, err := sub.Next(ctx)
+		msg, err := sub.Next(context.Background())
+		if msg.GetFrom() == b.node.ID() {
+			continue
+		}
 		if err != nil {
 			log.Error(err)
 			continue
@@ -67,9 +92,12 @@ func (b *Broadcaster) bcastBlockHandler(ctx context.Context, sub *pubsub.Subscri
 	}
 }
 
-func (b *Broadcaster) bcastTxHandler(ctx context.Context, sub *pubsub.Subscription) {
+func (b *Broadcaster) txListener(sub *pubsub.Subscription) {
 	for {
-		msg, err := sub.Next(ctx)
+		msg, err := sub.Next(context.Background())
+		if msg.GetFrom() == b.node.ID() {
+			continue
+		}
 		if err != nil {
 			log.Error(err)
 			continue

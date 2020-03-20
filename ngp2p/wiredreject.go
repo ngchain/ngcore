@@ -7,16 +7,16 @@ import (
 	"io/ioutil"
 )
 
-func (p *Protocol) Reject(s network.Stream, uuid string) {
+func (w *Wired) Reject(s network.Stream, uuid string) {
 	log.Warning("Failed to authenticate message")
 	log.Infof("Sending Reject to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
-	resp := &pb.P2PMessage{
-		Header:  p.node.NewP2PHeader(uuid, false),
+	resp := &pb.Message{
+		Header:  w.node.NewHeader(uuid),
 		Payload: nil,
 	}
 
 	// sign the data
-	signature, err := p.node.signProtoMessage(resp)
+	signature, err := w.node.signProtoMessage(resp)
 	if err != nil {
 		log.Errorf("failed to sign response")
 		return
@@ -26,13 +26,13 @@ func (p *Protocol) Reject(s network.Stream, uuid string) {
 	resp.Header.Sign = signature
 
 	// send the response
-	if ok := p.node.sendProtoMessage(s.Conn().RemotePeer(), rejectMethod, resp); ok {
+	if ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), rejectMethod, resp); ok {
 		log.Infof("Reject to %s sent.", s.Conn().RemotePeer().String())
 	}
 }
 
 // remote reject handler
-func (p *Protocol) onReject(s network.Stream) {
+func (w *Wired) onReject(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		s.Reset()
@@ -42,7 +42,7 @@ func (p *Protocol) onReject(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data pb.P2PMessage
+	var data pb.Message
 	err = proto.Unmarshal(buf, &data)
 	if err != nil {
 		log.Error(err)
@@ -50,16 +50,15 @@ func (p *Protocol) onReject(s network.Stream) {
 	}
 
 	// locate request data and remove it if found
-	_, ok := p.requests[data.Header.Uuid]
+	_, ok := w.requests[data.Header.Uuid]
 	if ok {
 		// remove request from map as we have processed it here
-		delete(p.requests, data.Header.Uuid)
+		delete(w.requests, data.Header.Uuid)
 	} else {
 		log.Error("Failed to locate request data object for response")
 		//return
 	}
 
 	log.Infof("Received Reject from %s. Message id:%s. Message: %s.", s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)
-	p.doneCh <- true
-	p.node.Network().ClosePeer(s.Conn().RemotePeer())
+	w.node.Network().ClosePeer(s.Conn().RemotePeer())
 }

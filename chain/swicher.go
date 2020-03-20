@@ -7,9 +7,10 @@ import (
 	"github.com/ngin-network/ngcore/utils"
 )
 
-// SwitchTo changes the items in db, requires the first one is vault
+// SwitchTo changes the items in db, requiring the first one of chain is an vault. The chain should follow the order vault0-block0-block1...-block6-vault2-block7...
 func (c *Chain) SwitchTo(chain ...Item) error {
-	if len(chain) == 0 {
+	/* Check Start */
+	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
 	}
 
@@ -17,10 +18,26 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 		return err
 	}
 
-	if _, ok := chain[0].(*ngtypes.Vault); !ok {
-		return fmt.Errorf("first one of chain shall be the vault")
+	if firstVault, ok := chain[0].(*ngtypes.Vault); !ok {
+		return fmt.Errorf("first one of chain shall be an vault")
+	} else {
+		_, err := c.GetVaultByHash(firstVault.GetPrevHash())
+		if err != nil {
+			return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
+		}
 	}
 
+	if firstBlock, ok := chain[1].(*ngtypes.Block); !ok {
+		return fmt.Errorf("second one of chain shall be a block")
+	} else {
+		_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
+		if err != nil {
+			return fmt.Errorf("the first block's prevHash is invalid: %s", err)
+		}
+	}
+	/* Check End */
+
+	/* Put start */
 	err := c.db.Update(func(txn *badger.Txn) error {
 		for i := range chain {
 			switch item := chain[i].(type) {

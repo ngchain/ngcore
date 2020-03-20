@@ -14,19 +14,18 @@ import (
 var log = logging.MustGetLogger("consensus")
 
 // the main of consensus, shouldn't be shut down
-func (c *Consensus) InitPoW() {
-	foundCh := make(chan *ngtypes.Block)
+func (c *Consensus) InitPoW(newBlockCh chan *ngtypes.Block) {
 	if c.mining {
 		log.Info("Start mining")
 		// TODO: add mining cpu number flag
-		c.miner = NewMiner(runtime.NumCPU()/2, foundCh)
+		c.miner = NewMiner(runtime.NumCPU()/2, newBlockCh)
 		c.miner.Start(c.GetBlockTemplate())
 	}
 
 	go func() {
 		for {
 			select {
-			case b := <-foundCh:
+			case b := <-newBlockCh:
 				c.MinedNewBlock(b)
 
 				if c.mining {
@@ -35,7 +34,6 @@ func (c *Consensus) InitPoW() {
 			}
 		}
 	}()
-
 }
 
 func (c *Consensus) StopMining() {
@@ -130,7 +128,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		}
 	}
 
-	err = c.Chain.PutNewBlock(b) // TODO: chain should verify the block
+	err = c.Chain.MinedNewBlock(b) // TODO: chain should verify the block
 	if err != nil {
 		log.Warning(err)
 		return
@@ -140,7 +138,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	if b.Header.IsTail() {
 		currentVault := c.GenNewVault(b.Header.Height/ngtypes.BlockCheckRound, b.Header.PrevVaultHash)
-		err := c.Chain.PutNewVault(currentVault)
+		err := c.Chain.MinedNewVault(currentVault)
 		if err != nil {
 			panic(err)
 		}

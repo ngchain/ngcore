@@ -13,6 +13,8 @@ func InitStorage() *badger.DB {
 	if runtime.GOOS == "windows" {
 		options.Truncate = true
 	}
+	options.Logger = log
+
 	s, err := badger.Open(options)
 	if err != nil {
 		log.Panic("failed to open storage:", err)
@@ -21,10 +23,12 @@ func InitStorage() *badger.DB {
 }
 
 func InitMemStorage() *badger.DB {
-	options := badger.DefaultOptions("data").WithInMemory(true)
+	options := badger.DefaultOptions("").WithInMemory(true)
 	if runtime.GOOS == "windows" {
 		options.Truncate = true
 	}
+	options.Logger = log
+
 	s, err := badger.Open(options)
 	if err != nil {
 		log.Panic("failed to open storage:", err)

@@ -5,26 +5,25 @@ option go_package = "github.com/ngin-network/ngcore/ngp2p/pb";
 
 import "ngtypes/types.proto";
 
-// p2p //
-
-message P2PHeader {
+/* common */
+message Header {
     int32 network_id = 1;
 
     string uuid = 2;
     int64 timestamp = 3;
-    bool broadcast = 4;
 
     bytes peer_key = 5; // act as the node ID
     bytes sign = 6;
 }
 
 // a protocol define a set of requests and responses
-message P2PMessage {
-    P2PHeader header = 1;
+message Message {
+    Header header = 1;
     uint64 nonce = 2;
     bytes payload = 3;
 }
 
+/* wired */
 message PingPongPayload {
     uint64 block_height = 1;
     uint64 vault_height = 2;
@@ -43,3 +42,17 @@ message ChainPayload {
     uint64 latest_height = 3;
 }
 
+message GetPoolPayload {
+}
+
+message PoolPayload {
+    repeated ngtypes.Transaction txs = 1;
+}
+
+/* broadcast(pub-sub) */
+message BroadcastBlockPayload {
+    ngtypes.Vault vault = 1;
+    ngtypes.Block block = 2;
+}
+
+// BroadcastTransactionPayload = ngtypes.Transaction

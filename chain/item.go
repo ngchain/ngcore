@@ -20,12 +20,13 @@ type Item interface {
 	GetPrevHash() []byte
 }
 
-func checkChain(chain ...Item) error {
+// checkChain is a helper to check whether the items are aligned as a chain.
+func checkChain(items ...Item) error {
 	var curBlock, prevBlock *ngtypes.Block
 	var curVault, prevVault *ngtypes.Vault
 
-	for i := 0; i < len(chain); i++ {
-		switch item := chain[i-1].(type) {
+	for i := 0; i < len(items); i++ {
+		switch item := items[i-1].(type) {
 		case *ngtypes.Block:
 			if curBlock == nil {
 				curBlock = item
@@ -56,9 +57,9 @@ func checkChain(chain ...Item) error {
 
 			prevVault = curVault
 		}
-		hash, _ := chain[i-1].CalculateHash()
-		if bytes.Compare(hash, chain[i].GetPrevHash()) != 0 {
-			return fmt.Errorf("chain is not a valid chain, item")
+		hash, _ := items[i-1].CalculateHash()
+		if bytes.Compare(hash, items[i].GetPrevHash()) != 0 {
+			return fmt.Errorf("items are not a valid chain, item")
 		}
 	}
 

@@ -69,7 +69,7 @@ func (tx *Tx) SendTx(r *http.Request, args *SendTxArgs, reply *SendTxReply) erro
 		return err
 	}
 
-	err = tx.txPool.PutTxs([]*ngtypes.Transaction{newTx})
+	err = tx.txPool.PutTxs(newTx)
 	if err != nil {
 		return err
 	}
