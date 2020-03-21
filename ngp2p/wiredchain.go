@@ -88,8 +88,8 @@ func (w *Wired) onChain(s network.Stream) {
 		return
 	}
 
-	var payload pb.ChainPayload
-	err = proto.Unmarshal(data.Payload, &payload)
+	var payload = &pb.ChainPayload{}
+	err = proto.Unmarshal(data.Payload, payload)
 	if err != nil {
 		log.Error(err)
 		return
@@ -127,7 +127,8 @@ func (w *Wired) onChain(s network.Stream) {
 		}
 	}
 
+	// continue get chain
 	if w.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < payload.LatestHeight {
-		w.GetChain(s.Conn().RemotePeer(), payload.LatestHeight/ngtypes.BlockCheckRound-3)
+		w.GetChain(s.Conn().RemotePeer(), payload.Vault.Height+1)
 	}
 }

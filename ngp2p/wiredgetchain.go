@@ -79,6 +79,6 @@ func (w *Wired) onGetChain(s network.Stream) {
 		return
 	}
 
-	go w.Chain(s, data.Header.Uuid, vaultHeight)
+	go w.Chain(s, data.Header.Uuid, &getchain)
 	return
 }

@@ -3,24 +3,16 @@
   <component name="ChangeListManager">
     <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/difficulty.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/difficulty.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/broadcastblock.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcastblock.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/broadcasttx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcasttx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wired.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wired.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredping.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredpong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CoverageViewManager">
+    <option name="myElementSize" value="238" />
   </component>
   <component name="DatabaseView">
     <option name="SHOW_INTERMEDIATE" value="true" />
@@ -686,7 +678,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.ngcore mining ">
+  <component name="RunManager" selected="Go Test.gocheck ngcore">
     <configuration name="bootstrap" type="BlazeCommandRunConfigurationType" factoryName="Bazel Command">
       <blaze-settings handler-id="BlazeCommandGenericRunConfigurationHandlerProvider" blaze-command="bazel run //cmd/core">
         <blaze-user-exe-flag>--bootstrap</blaze-user-exe-flag>
@@ -717,6 +709,16 @@
       <pattern value="^TestProtoEncodeToString$" />
       <method v="2" />
     </configuration>
+    <configuration name="gocheck ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gocheck" />
+      <kind value="DIRECTORY" />
+      <package value="github.com/ngin-network/ngcore" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
     <configuration name="rest-api_4#1" type="HttpClient.HttpRequestRunConfigurationType" factoryName="HTTP Request" temporary="true" path="$APPLICATION_CONFIG_DIR$/scratches/rest-api_4.http" runType="Run single request">
       <method v="2" />
     </configuration>
@@ -729,9 +731,11 @@
       <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngin-network/ngcore/utils" />
       <item itemvalue="Go Test.TestDeserialize in github.com/ngin-network/ngcore/ngtypes" />
       <item itemvalue="HTTP Request.rest-api_4#1" />
+      <item itemvalue="Go Test.gocheck ngcore" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Test.gocheck ngcore" />
         <item itemvalue="Go Test.TestDeserialize in github.com/ngin-network/ngcore/ngtypes" />
         <item itemvalue="HTTP Request.rest-api_4#1" />
         <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngin-network/ngcore/utils" />
@@ -774,7 +778,8 @@
     <MESSAGE value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. do a mined/generated/created wrapper for put methods" />
     <MESSAGE value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. make mined/generated/created wrappers for put methods" />
     <MESSAGE value="bugfix&amp;del&#10;&#10;1. del some stale parts&#10;&#10;2. fix the sync bug from p2p cannot recv genesis vault" />
-    <option name="LAST_COMMIT_MESSAGE" value="bugfix&amp;del&#10;&#10;1. del some stale parts&#10;&#10;2. fix the sync bug from p2p cannot recv genesis vault" />
+    <MESSAGE value="add&#10;&#10;1. add switch chain on p2p" />
+    <option name="LAST_COMMIT_MESSAGE" value="add&#10;&#10;1. add switch chain on p2p" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -792,10 +797,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="215" key="#bootstrap/0.0.1920.1040@0.0.1920.1040" timestamp="1584545779853" />
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584546261181">
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584797469395">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584546261181" />
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584797469395" />
     <state x="716" y="331" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584521525021">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -808,10 +813,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584753647022">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584797118461">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584753647022" />
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584797118461" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584715191806">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -901,10 +906,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584717561521" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584753649284">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584797121911">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584753649284" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584797121911" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -921,11 +926,11 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584782200933">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584797324456">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584782200933" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584797324456" />
     <state x="781" y="256" key="ftp.server.browser" timestamp="1584717399128">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -938,5 +943,8 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584625778791" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/ngcore$gocheck_ngcore.out" NAME="gocheck ngcore Coverage Results" MODIFIED="1584797182885" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
   </component>
 </project>
