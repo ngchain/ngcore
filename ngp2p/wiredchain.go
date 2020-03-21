@@ -3,6 +3,7 @@ package ngp2p
 import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/ngin-network/ngcore/chain"
 	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
@@ -82,48 +83,51 @@ func (w *Wired) onChain(s network.Stream) {
 		return
 	}
 
-	valid := w.node.authenticateMessage(&data, data.Header)
-
-	if !valid {
+	if !w.node.verifyResponse(data.Header) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}
 
-	var chain pb.ChainPayload
-	err = proto.Unmarshal(data.Payload, &chain)
+	var payload pb.ChainPayload
+	err = proto.Unmarshal(data.Payload, &payload)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	err = w.node.Chain.PutNewVault(chain.Vault)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	for i := 0; i < len(chain.Blocks); i++ {
-		err := w.node.Chain.PutNewBlock(chain.Blocks[i])
+	log.Infof("Received Chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().RemotePeer(), data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
+	w.node.RemoteHeights.Store(s.Conn().RemotePeer(), payload.LatestHeight)
+
+	localVaultHeight := w.node.Chain.GetLatestVaultHeight()
+	if payload.Vault.Height > localVaultHeight {
+		//append
+		err = w.node.Chain.PutNewBlockWithVault(payload.Vault, payload.Blocks[0])
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		for i := 1; i < len(payload.Blocks); i++ {
+			err := w.node.Chain.PutNewBlock(payload.Blocks[i])
+			if err != nil {
+				log.Error(err)
+				return
+			}
+		}
+	} else {
+		//forkto
+		c := make([]chain.Item, 1, ngtypes.BlockCheckRound+1)
+		c[0] = payload.Vault
+		for i := 1; i < len(payload.Blocks); i++ {
+			c = append(c, payload.Blocks[i])
+		}
+		err := w.node.Chain.SwitchTo(c...)
 		if err != nil {
 			log.Error(err)
 			return
 		}
 	}
 
-	w.node.RemoteHeights.Store(s.Conn().RemotePeer(), chain.LatestHeight)
-
-	log.Infof("Received Chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().RemotePeer(), data.Header.Uuid, chain.Blocks[0].GetHeight(), chain.Blocks[len(chain.Blocks)-1].GetHeight(), chain.LatestHeight)
-
-	if w.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < chain.LatestHeight {
-		w.GetChain(s.Conn().RemotePeer())
-	} else {
-		// locate request data and remove it if found
-		_, ok := w.requests[data.Header.Uuid]
-		if ok {
-			// remove request from map as we have processed it here
-			delete(w.requests, data.Header.Uuid)
-		} else {
-			log.Errorf("Failed to locate request data object for response")
-			//return`
-		}
+	if w.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < payload.LatestHeight {
+		w.GetChain(s.Conn().RemotePeer(), payload.LatestHeight/ngtypes.BlockCheckRound-3)
 	}
 }

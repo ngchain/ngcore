@@ -1,6 +1,7 @@
 package ngp2p
 
 import (
+	"bytes"
 	"github.com/gogo/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -10,10 +11,13 @@ import (
 )
 
 func (w *Wired) Pong(s network.Stream, uuid string) bool {
-	log.Infof("%s: Sending Pong to %s. Message id: %s...", s.Conn().LocalPeer(), s.Conn().RemotePeer(), uuid)
+	log.Infof("Sending Pong to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
 
 	payload, err := proto.Marshal(&pb.PingPongPayload{
-		BlockHeight: w.node.Chain.GetLatestBlockHeight(),
+		BlockHeight:     w.node.Chain.GetLatestBlockHeight(),
+		VaultHeight:     w.node.Chain.GetLatestVaultHeight(),
+		LatestBlockHash: w.node.Chain.GetLatestBlockHash(),
+		LatestVaultHash: w.node.Chain.GetLatestVaultHash(),
 	})
 	if err != nil {
 		log.Error("failed to sign pb data")
@@ -37,7 +41,7 @@ func (w *Wired) Pong(s network.Stream, uuid string) bool {
 
 	// send the response
 	if ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), pongMethod, resp); ok {
-		log.Infof("%s: Pong to %s sent.", s.Conn().LocalPeer().String(), s.Conn().RemotePeer().String())
+		log.Infof("Pong to %s sent.", s.Conn().RemotePeer().String())
 	}
 	return true
 }
@@ -53,46 +57,52 @@ func (w *Wired) onPong(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data pb.Message
-	err = proto.Unmarshal(buf, &data)
+	var data = &pb.Message{}
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	valid := w.node.authenticateMessage(&data, data.Header)
-
-	if !valid {
+	if !w.node.verifyResponse(data.Header) {
 		log.Error("Failed to authenticate message")
 		return
 	}
 
-	var pong pb.PingPongPayload
-	err = proto.Unmarshal(data.Payload, &pong)
+	var pong = &pb.PingPongPayload{}
+	err = proto.Unmarshal(data.Payload, pong)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
 	log.Infof("Received Pong from %s. Message id:%s. Remote height: %d.", s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
+	w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
 
 	w.node.RemoteHeights.Store(s.Conn().RemotePeer().String(), pong.BlockHeight)
 
-	if w.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < pong.BlockHeight {
+	localVaultHeight := w.node.Chain.GetLatestVaultHeight()
+	localVaultHash := w.node.Chain.GetLatestVaultHash()
+	localBlockHeight := w.node.Chain.GetLatestBlockHeight()
+
+	if localVaultHeight < pong.VaultHeight {
+		// start sync
 		log.Infof("start syncing with %s", s.Conn().RemotePeer())
-		go w.GetChain(s.Conn().RemotePeer())
-	} else {
-		log.Infof("synced with %s", s.Conn().RemotePeer())
-		// locate request data and remove it if found
-		_, ok := w.requests[data.Header.Uuid]
-		if ok {
-			// remove request from map as we have processed it here
-			delete(w.requests, data.Header.Uuid)
+		if w.node.isStrictMode {
+			requestHeight := (localBlockHeight + 1) / ngtypes.BlockCheckRound
+			go w.GetChain(s.Conn().RemotePeer(), requestHeight)
 		} else {
-			log.Errorf("Failed to locate request data object for response")
-			//return
+			go w.GetChain(s.Conn().RemotePeer(), pong.VaultHeight-2)
 		}
 	}
 
-	w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
+	if localVaultHeight == pong.VaultHeight && bytes.Compare(localVaultHash, pong.LatestVaultHash) != 0 {
+		// start fork
+		go w.GetChain(s.Conn().RemotePeer(), pong.VaultHeight)
+	}
+
+	if localBlockHeight+ngtypes.BlockCheckRound < pong.BlockHeight {
+		log.Infof("start syncing with %s", s.Conn().RemotePeer())
+		go w.GetChain(s.Conn().RemotePeer())
+	}
 }

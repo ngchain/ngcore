@@ -10,7 +10,7 @@ type Wired struct {
 	requests map[string]*pb.Message // used to access request data from response handlers
 }
 
-func registerProtocol(node *LocalNode, done chan bool) *Wired {
+func registerProtocol(node *LocalNode) *Wired {
 	p := &Wired{
 		node:     node,
 		requests: make(map[string]*pb.Message),

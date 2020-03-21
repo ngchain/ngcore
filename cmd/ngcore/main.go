@@ -117,9 +117,13 @@ var action = func(c *cli.Context) error {
 
 	rpc := rpcServer.NewRPCServer(sheetManager, chain, txPool)
 	go rpc.Serve(rpcPort)
-	localNode := ngp2p.NewP2PNode(p2pTcpPort, isBootstrap, sheetManager, chain, txPool)
 
 	isSynced := false
+
+	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, sheetManager, chain, txPool)
+	if isBootstrap {
+		localNode.Bootstrap()
+	}
 
 	init := new(sync.Once)
 	go func() {

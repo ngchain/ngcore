@@ -139,12 +139,15 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		// when block is not genesis block, checking error
 		if block.GetHeight() != 0 {
 			if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
+				if hashInDB, _ := b.CalculateHash(); bytes.Compare(hash, hashInDB) == 0 {
+					return nil
+				}
 				return fmt.Errorf("has block in same height: %v", b)
 			}
 		}
 
 		if _, err := c.GetBlockByHash(block.GetPrevHash()); err != nil {
-			return fmt.Errorf("no prev block: %x, %v", block.GetPrevHash(), err)
+			return fmt.Errorf("no prev block in storage: %x, %v", block.GetPrevHash(), err)
 		}
 	}
 
@@ -183,6 +186,9 @@ func (c *Chain) PutNewVault(vault *ngtypes.Vault) error {
 		// when vault is not genesis vault, checking error
 		if vault.GetHeight() != 0 {
 			if v, _ := c.GetVaultByHeight(vault.GetHeight()); v != nil {
+				if hashInDB, _ := v.CalculateHash(); bytes.Compare(hash, hashInDB) == 0 {
+					return nil
+				}
 				return fmt.Errorf("has vault in same height: %v", v)
 			}
 		}
@@ -298,7 +304,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 		return ngtypes.GetGenesisBlock(), nil
 	}
 
-	var block ngtypes.Block
+	var block = &ngtypes.Block{}
 	err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(height)...))
 		if err != nil {
@@ -334,7 +340,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 		return nil, err
 	}
 
-	return &block, nil
+	return block, nil
 }
 
 func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
@@ -342,7 +348,7 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 		return ngtypes.GetGenesisBlock(), nil
 	}
 
-	var block ngtypes.Block
+	var block = &ngtypes.Block{}
 	err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, hash...))
 		if err != nil {
@@ -367,7 +373,7 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 		return nil, err
 	}
 
-	return &block, nil
+	return block, nil
 }
 
 func (c *Chain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
@@ -375,7 +381,7 @@ func (c *Chain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 		return ngtypes.GetGenesisVault(), nil
 	}
 
-	var vault ngtypes.Vault
+	var vault = &ngtypes.Vault{}
 	err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(vaultPrefix, utils.PackUint64LE(height)...))
 		if err != nil {
@@ -411,7 +417,7 @@ func (c *Chain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 		return nil, err
 	}
 
-	return &vault, nil
+	return vault, nil
 }
 
 func (c *Chain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
@@ -419,7 +425,7 @@ func (c *Chain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
 		return ngtypes.GetGenesisVault(), nil
 	}
 
-	var vault ngtypes.Vault
+	var vault = &ngtypes.Vault{}
 	err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(vaultPrefix, hash...))
 		if err != nil {
@@ -444,7 +450,7 @@ func (c *Chain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
 		return nil, err
 	}
 
-	return &vault, nil
+	return vault, nil
 }
 
 func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
@@ -466,12 +472,12 @@ func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
 			if err != nil {
 				return err
 			}
-			var block ngtypes.Block
+			var block = &ngtypes.Block{}
 			err = block.Unmarshal(raw)
 			if err != nil {
 				return err
 			}
-			table[height] = &block
+			table[height] = block
 		}
 
 		return nil
@@ -498,12 +504,12 @@ func (c *Chain) DumpAllBlocksByHash() map[string]*ngtypes.Block {
 			if err != nil {
 				return err
 			}
-			var block ngtypes.Block
+			var block = &ngtypes.Block{}
 			err = block.Unmarshal(raw)
 			if err != nil {
 				return err
 			}
-			table[hex.EncodeToString(hash)] = &block
+			table[hex.EncodeToString(hash)] = block
 		}
 
 		return nil
@@ -534,12 +540,12 @@ func (c *Chain) DumpAllVaultsByHeight() map[uint64]*ngtypes.Vault {
 			if err != nil {
 				return err
 			}
-			var vault ngtypes.Vault
+			var vault = &ngtypes.Vault{}
 			err = vault.Unmarshal(raw)
 			if err != nil {
 				return err
 			}
-			table[height] = &vault
+			table[height] = vault
 		}
 
 		return nil
@@ -566,12 +572,12 @@ func (c *Chain) DumpAllVaultsByHash() map[string]*ngtypes.Vault {
 			if err != nil {
 				return err
 			}
-			var vault ngtypes.Vault
+			var vault = &ngtypes.Vault{}
 			err = vault.Unmarshal(raw)
 			if err != nil {
 				return err
 			}
-			table[hex.EncodeToString(hash)] = &vault
+			table[hex.EncodeToString(hash)] = vault
 		}
 
 		return nil

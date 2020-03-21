@@ -13,7 +13,10 @@ import (
 
 func (w *Wired) Ping(remotePeerId peer.ID) bool {
 	payload, err := proto.Marshal(&pb.PingPongPayload{
-		BlockHeight: w.node.Chain.GetLatestBlockHeight(),
+		BlockHeight:     w.node.Chain.GetLatestBlockHeight(),
+		VaultHeight:     w.node.Chain.GetLatestVaultHeight(),
+		LatestBlockHash: w.node.Chain.GetLatestBlockHash(),
+		LatestVaultHash: w.node.Chain.GetLatestVaultHash(),
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -59,30 +62,27 @@ func (w *Wired) onPing(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data pb.Message
-	err = proto.Unmarshal(buf, &data)
+	var data = &pb.Message{}
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
-		return
-	}
-
-	var ping pb.PingPongPayload
-	err = proto.Unmarshal(data.Payload, &ping)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	log.Infof("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
-	if w.node.authenticateMessage(&data, data.Header) {
-		// Pong
-		w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
-		go w.Pong(s, data.Header.Uuid)
-		return
-	} else {
-		// Reject
 		go w.Reject(s, data.Header.Uuid)
 		return
 	}
 
+	var ping = &pb.PingPongPayload{}
+	err = proto.Unmarshal(data.Payload, ping)
+	if err != nil {
+		log.Error(err)
+		go w.Reject(s, data.Header.Uuid)
+		return
+	}
+
+	log.Infof("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
+
+	// Pong
+	w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
+	go w.Pong(s, data.Header.Uuid)
+
+	return
 }

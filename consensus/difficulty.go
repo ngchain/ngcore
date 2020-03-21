@@ -9,13 +9,13 @@ var (
 	MinimumDifficulty = big.NewInt(50 * 10) // because my laptop has 50 h/s, I believe you can either
 )
 
-func (c *Consensus) getNextTarget(block *ngtypes.Block, vault *ngtypes.Vault) *big.Int {
+func GetNextTarget(block *ngtypes.Block, vault *ngtypes.Vault) *big.Int {
 	// algorithm1:
 	// diff = max or min(fatherDiff/fatherTime, grandpaDiff/grandpaTime) * targetTime
 	//        * 2^(fatherTime - grandpaTime)
 
 	target := new(big.Int).SetBytes(block.Header.Target)
-	if !block.Header.IsHead() {
+	if !block.Header.IsTail() {
 		return target
 	}
 

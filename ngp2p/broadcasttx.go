@@ -2,26 +2,12 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 )
 
 func (b *Broadcaster) broadcastTx(tx *ngtypes.Transaction) bool {
-	payload, err := tx.Marshal()
-	if err != nil {
-		log.Errorf("failed to sign pb data")
-		return false
-	}
-
-	// create message data
-	req := &pb.Message{
-		Header:  b.node.NewHeader(uuid.New().String()),
-		Payload: payload,
-	}
-
-	raw, err := req.Marshal()
+	raw, err := tx.Marshal()
 	if err != nil {
 		log.Errorf("failed to sign pb data")
 		return false
@@ -37,16 +23,8 @@ func (b *Broadcaster) broadcastTx(tx *ngtypes.Transaction) bool {
 }
 
 func (b *Broadcaster) onBroadcastTx(msg *pubsub.Message) {
-	raw := msg.Data
-	var message = &pb.Message{}
-	err := message.Unmarshal(raw)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
 	var tx = &ngtypes.Transaction{}
-	err = tx.Unmarshal(message.Payload)
+	err := tx.Unmarshal(msg.Data)
 	if err != nil {
 		log.Error(err)
 		return

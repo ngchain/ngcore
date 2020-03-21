@@ -2,19 +2,29 @@ package ngp2p
 
 import (
 	"context"
+	"fmt"
 	"github.com/gogo/protobuf/io"
 	"github.com/gogo/protobuf/proto"
+	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/routing"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	peerstream_multiplex "github.com/libp2p/go-libp2p-mplex"
+	sm_yamux "github.com/libp2p/go-libp2p-yamux"
+	"github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-tcp-transport"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/ngin-network/ngcore/chain"
 	"github.com/ngin-network/ngcore/ngp2p/pb"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/txpool"
 	"sync"
+	"time"
 )
 
 type LocalNode struct {
@@ -27,29 +37,137 @@ type LocalNode struct {
 	TxPool       *txpool.TxPool
 
 	RemoteHeights *sync.Map // key:id value:height
+	isStrictMode  bool
 }
 
 // Create a new node with its implemented protocols
-func NewLocalNode(host host.Host, done chan bool, sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
-	node := &LocalNode{
-		Host:         host,
-		sheetManager: sheetManager,
-		Chain:        chain,
-		TxPool:       txPool,
+func NewLocalNode(port int, isStrictMode bool, sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
+	ctx := context.Background()
 
-		RemoteHeights: new(sync.Map),
+	priv := getP2PKey(true) //isBootstrap)
+
+	transports := libp2p.ChainOptions(
+		libp2p.Transport(tcp.NewTCPTransport),
+		//libp2p.Transport(ws.New),
+	)
+
+	listenAddrs := libp2p.ListenAddrStrings(
+		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
+		fmt.Sprintf("/ip6/::/tcp/%d", port),
+	)
+
+	muxers := libp2p.ChainOptions(
+		libp2p.Muxer("/yamux/1.0.0", sm_yamux.DefaultTransport),
+		libp2p.Muxer("/mplex/6.7.0", peerstream_multiplex.DefaultTransport),
+	)
+
+	var p2pDHT *dht.IpfsDHT
+	newDHT := func(h host.Host) (routing.PeerRouting, error) {
+		var err error
+		p2pDHT, err = dht.New(ctx, h)
+		return p2pDHT, err
 	}
+
+	localHost, err := libp2p.New(
+		ctx,
+		transports,
+		listenAddrs,
+		muxers,
+		libp2p.Identity(priv),
+		libp2p.Routing(newDHT),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// init
+	for _, addr := range localHost.Addrs() {
+		log.Infof("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
+	}
+
+	mdns, err := discovery.NewMdnsService(ctx, localHost, time.Second*10, "") // using ipfs network
+	if err != nil {
+		panic(err)
+	}
+	peerInfoCh := make(chan peer.AddrInfo)
+	mdns.RegisterNotifee(
+		&mdnsNotifee{
+			h:          localHost,
+			ctx:        ctx,
+			PeerInfoCh: peerInfoCh,
+		},
+	)
+
+	node := &LocalNode{
+		Host:          localHost,
+		Wired:         nil,
+		Broadcaster:   nil,
+		sheetManager:  sheetManager,
+		Chain:         chain,
+		TxPool:        txPool,
+		RemoteHeights: new(sync.Map),
+		isStrictMode:  isStrictMode,
+	}
+
 	node.Broadcaster = registerBroadcaster(node)
-	node.Wired = registerProtocol(node, done)
+	node.Wired = registerProtocol(node)
 	go node.Wired.Sync()
+
+	go func() {
+		for {
+			select {
+			case pi := <-peerInfoCh: // will block untill we discover a peer
+				log.Infof("Found peer:", pi, ", connecting")
+				if err := node.Connect(ctx, pi); err != nil {
+					log.Errorf("Connection failed: %s", err)
+					continue
+				}
+				node.Ping(pi.ID)
+			}
+		}
+	}()
+
+	err = p2pDHT.Bootstrap(ctx)
+	if err != nil {
+		panic(err)
+	}
+
 	return node
+}
+
+func (n *LocalNode) Bootstrap() {
+	ctx := context.Background()
+	for i := range BootstrapNodes {
+		targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])
+		if err != nil {
+			panic(err)
+		}
+
+		targetInfo, err := peer.AddrInfoFromP2pAddr(targetAddr)
+		if err != nil {
+			panic(err)
+		}
+
+		err = n.Connect(ctx, *targetInfo)
+		if err != nil {
+			panic(err)
+		}
+
+		n.Ping(targetInfo.ID)
+	}
 }
 
 // Authenticate incoming p2p message
 // message: a protobufs go data object
 // data: common p2p message data
-func (n *LocalNode) authenticateMessage(message proto.Message, data *pb.Header) bool {
-	return true
+func (n *LocalNode) verifyResponse(header *pb.Header) bool {
+	if _, exists := n.requests[header.Uuid]; exists {
+		// remove request from map as we have processed it here
+		delete(n.requests, header.Uuid)
+		return true
+	}
+
+	return false
 }
 
 // sign an outgoing p2p message payload

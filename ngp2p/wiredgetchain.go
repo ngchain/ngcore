@@ -6,15 +6,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngin-network/ngcore/ngp2p/pb"
-	"github.com/ngin-network/ngcore/ngtypes"
 	"io/ioutil"
 )
 
-func (w *Wired) GetChain(remotePeerId peer.ID) bool {
-	localHeight := w.node.Chain.GetLatestBlockHeight()
-	vaultHeight := (localHeight + 1) / ngtypes.BlockCheckRound
+func (w *Wired) GetChain(remotePeerId peer.ID, requestHeight uint64) bool {
 	payload, err := proto.Marshal(&pb.GetChainPayload{
-		VaultHeight: vaultHeight,
+		VaultHeight: requestHeight,
 	})
 	if err != nil {
 		log.Error("failed to sign pb data")
@@ -44,7 +41,7 @@ func (w *Wired) GetChain(remotePeerId peer.ID) bool {
 
 	// store ref request so response handler has access to it
 	w.requests[req.Header.Uuid] = req
-	log.Infof("getchain to: %s was sent. Message Id: %s, request vault height: %d", remotePeerId, req.Header.Uuid, vaultHeight)
+	log.Infof("getchain to: %s was sent. Message Id: %s, request vault height: %d", remotePeerId, req.Header.Uuid, requestHeight)
 	return true
 }
 
@@ -73,17 +70,15 @@ func (w *Wired) onGetChain(s network.Stream) {
 		return
 	}
 
-	if w.node.authenticateMessage(&data, data.Header) {
-		log.Infof("Received getchain request from %s. From Vault@%d", s.Conn().RemotePeer(), getchain.VaultHeight)
+	log.Infof("Received getchain request from %s. Requested vault@%d", s.Conn().RemotePeer(), getchain.VaultHeight)
 
-		// Chain
-		localHeight := w.node.Chain.GetLatestBlockHeight()
-		if localHeight < getchain.VaultHeight {
-			w.Reject(s, data.Header.Uuid)
-			return
-		}
-
-		w.Chain(s, data.Header.Uuid, &getchain)
+	// Chain
+	localHeight := w.node.Chain.GetLatestBlockHeight()
+	if localHeight < getchain.VaultHeight {
+		go w.Reject(s, data.Header.Uuid)
 		return
 	}
+
+	go w.Chain(s, data.Header.Uuid, vaultHeight)
+	return
 }
