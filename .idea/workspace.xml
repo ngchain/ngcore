@@ -2,36 +2,26 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/chain/mine.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/consensus/forker.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/ngcore.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ngcore.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/genBUILD.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Makefile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/item.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/item.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/swicher.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/swicher.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/blockchainReader/BUILD.bazel" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/blockchainReader/main.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/generation.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/generation.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/vaultchainReader/BUILD.bazel" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/vaultchainReader/main.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/consensus.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/consensus.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/miner.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/miner/miner.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/miner_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/miner/miner_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gen.sh" beforeDir="false" afterPath="$PROJECT_DIR$/genBUILD.bat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/keyManager/mgr.go" beforeDir="false" afterPath="$PROJECT_DIR$/keyManager/mgr.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/bcastblock.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcastblock.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/bcasttx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcasttx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/broadcast.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcast.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/getchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/methods.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/methods.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/pb/p2p.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pb/p2p.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/pb/p2p.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pb/p2p.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/ping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredping.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/pong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/protocol.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wired.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/reject.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredreject.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/bootstraps.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/bootstraps.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngp2p/sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/sync.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpcServer/tx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/storage/db.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/pool.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredpong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,20 +74,22 @@
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/env/mining" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="settings.editor.selected.configurable" value="debugger.stepping" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\C\OneDrive\ngcore" />
+      <recent name="C:\Users\C\OneDrive\ngcore\cmd" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\C\OneDrive\ngcore\consensus\miner" />
       <recent name="C:\Users\C\OneDrive\ngcore\cmd\genesis" />
       <recent name="C:\Users\C\OneDrive\ngcore\consensus" />
       <recent name="C:\Users\C\OneDrive\ngcore\vaultManager" />
       <recent name="C:\Users\C\OneDrive\ngcore\chain" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\C\OneDrive\ngcore\cmd" />
     </key>
   </component>
   <component name="RestClientSettings">
@@ -785,7 +777,9 @@
     <MESSAGE value="runnable under wsl" />
     <MESSAGE value="fix the vlog bug under windows" />
     <MESSAGE value="changes&amp;bugfix&#10;&#10;1. migrate p2p protobufs to ngp2p/pb&#10;&#10;2. adding pubsub (unfinished)&#10;&#10;3. add chain switch(for forking when p2p detected)&#10;&#10;4. fix the bug on init" />
-    <option name="LAST_COMMIT_MESSAGE" value="changes&amp;bugfix&#10;&#10;1. migrate p2p protobufs to ngp2p/pb&#10;&#10;2. adding pubsub (unfinished)&#10;&#10;3. add chain switch(for forking when p2p detected)&#10;&#10;4. fix the bug on init" />
+    <MESSAGE value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. do a mined/generated/created wrapper for put methods" />
+    <MESSAGE value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. make mined/generated/created wrappers for put methods" />
+    <option name="LAST_COMMIT_MESSAGE" value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. make mined/generated/created wrappers for put methods" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -795,6 +789,10 @@
     <proxy>https://goproxy.io</proxy>
   </component>
   <component name="WindowStateProjectService">
+    <state x="552" y="181" key="#Deployment" timestamp="1584717422490">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="552" y="181" key="#Deployment/0.0.1920.1040@0.0.1920.1040" timestamp="1584717422490" />
     <state x="686" y="215" key="#bootstrap" timestamp="1584545779853">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -815,10 +813,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584633471755">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584716396380">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584633471755" />
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584716396380" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584715191806">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -852,38 +850,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1877" height="268" key="GridCell.Tab.0.bottom" timestamp="1584715677900">
+    <state width="1877" height="401" key="GridCell.Tab.0.bottom" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677900" />
-    <state width="1877" height="268" key="GridCell.Tab.0.center" timestamp="1584715677900">
+    <state width="1877" height="401" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
+    <state width="1877" height="401" key="GridCell.Tab.0.center" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677900" />
-    <state width="1877" height="268" key="GridCell.Tab.0.left" timestamp="1584715677900">
+    <state width="1877" height="401" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
+    <state width="1877" height="401" key="GridCell.Tab.0.left" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677900" />
-    <state width="1877" height="268" key="GridCell.Tab.0.right" timestamp="1584715677900">
+    <state width="1877" height="401" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
+    <state width="1877" height="401" key="GridCell.Tab.0.right" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677900" />
-    <state width="1877" height="268" key="GridCell.Tab.1.bottom" timestamp="1584715677849">
+    <state width="1877" height="401" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
+    <state width="1877" height="401" key="GridCell.Tab.1.bottom" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677849" />
-    <state width="1877" height="268" key="GridCell.Tab.1.center" timestamp="1584715677849">
+    <state width="1877" height="401" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
+    <state width="1877" height="401" key="GridCell.Tab.1.center" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677849" />
-    <state width="1877" height="268" key="GridCell.Tab.1.left" timestamp="1584715677849">
+    <state width="1877" height="401" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
+    <state width="1877" height="401" key="GridCell.Tab.1.left" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677849" />
-    <state width="1877" height="268" key="GridCell.Tab.1.right" timestamp="1584715677849">
+    <state width="1877" height="401" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
+    <state width="1877" height="401" key="GridCell.Tab.1.right" timestamp="1584753105915">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="268" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584715677849" />
+    <state width="1877" height="401" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584753105915" />
     <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -904,14 +902,14 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="848" y="184" key="RollbackChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584522714659" />
-    <state x="548" y="143" key="SettingsEditor" timestamp="1584547539976">
+    <state x="548" y="143" key="SettingsEditor" timestamp="1584717561521">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584547539976" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584633473959">
+    <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584717561521" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584716399061">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584633473959" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584716399061" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -928,11 +926,15 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584714540821">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584752431487">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584714540821" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584752431487" />
+    <state x="781" y="256" key="ftp.server.browser" timestamp="1584717399128">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="781" y="256" key="ftp.server.browser/0.0.1920.1040@0.0.1920.1040" timestamp="1584717399128" />
     <state x="702" y="146" key="refactoring.ChangeSignatureDialog" timestamp="1582879168983">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

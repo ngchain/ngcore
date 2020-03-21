@@ -134,18 +134,21 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		return fmt.Errorf("block is nil")
 	}
 
-	if block.GetHeight() != 0 {
-		if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
-			return fmt.Errorf("has block in same height: %v", b)
+	hash, _ := block.CalculateHash()
+	if bytes.Compare(hash, ngtypes.GenesisBlockHash) != 0 {
+		// when block is not genesis block, checking error
+		if block.GetHeight() != 0 {
+			if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
+				return fmt.Errorf("has block in same height: %v", b)
+			}
+		}
+
+		if _, err := c.GetBlockByHash(block.GetPrevHash()); err != nil {
+			return fmt.Errorf("no prev block: %x, %v", block.GetPrevHash(), err)
 		}
 	}
 
-	if _, err := c.GetBlockByHash(block.GetPrevHash()); err != nil {
-		return fmt.Errorf("no prev block: %x, %v", block.GetPrevHash(), err)
-	}
-
 	err := c.db.Update(func(txn *badger.Txn) error {
-		hash, _ := block.CalculateHash()
 		raw, _ := block.Marshal()
 		log.Infof("putting block@%d: %x", block.Header.Height, hash)
 		err := txn.Set(append(blockPrefix, hash...), raw)
@@ -175,18 +178,21 @@ func (c *Chain) PutNewVault(vault *ngtypes.Vault) error {
 		return fmt.Errorf("block is nil")
 	}
 
-	if vault.GetHeight() != 0 {
-		if v, _ := c.GetVaultByHeight(vault.GetHeight()); v != nil {
-			return fmt.Errorf("has vault in same height: %v", v)
+	hash, _ := vault.CalculateHash()
+	if bytes.Compare(hash, ngtypes.GenesisVaultHash) != 0 {
+		// when vault is not genesis vault, checking error
+		if vault.GetHeight() != 0 {
+			if v, _ := c.GetVaultByHeight(vault.GetHeight()); v != nil {
+				return fmt.Errorf("has vault in same height: %v", v)
+			}
+		}
+
+		if _, err := c.GetVaultByHash(vault.GetPrevHash()); err != nil {
+			return fmt.Errorf("no prev vault: %x, %v", vault.GetPrevHash(), err)
 		}
 	}
 
-	if _, err := c.GetVaultByHash(vault.GetPrevHash()); err != nil {
-		return fmt.Errorf("no prev vault: %x, %v", vault.GetPrevHash(), err)
-	}
-
 	err := c.db.Update(func(txn *badger.Txn) error {
-		hash, _ := vault.CalculateHash()
 		raw, _ := vault.Marshal()
 		log.Infof("putting vault@%d: %x", vault.Height, hash)
 		err := txn.Set(append(vaultPrefix, hash...), raw)

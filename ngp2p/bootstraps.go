@@ -1,5 +1,5 @@
 package ngp2p
 
 var BootstrapNodes = []string{
-	"/ip4/127.0.0.1/tcp/5252/p2p/Qmb9b4LC25eFWUr26awf7omb3m513tHrqbNBK6hVqwnPDa",
+	"/ip4/134.175.71.218/tcp/52520/p2p/QmQHQuNSDerXpg8rb3PkUZjnRyeihm9Kq4gB2ZftAqFck8",
 }

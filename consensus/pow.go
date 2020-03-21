@@ -5,6 +5,7 @@ package consensus
 import (
 	"bytes"
 	"crypto/elliptic"
+	"github.com/ngin-network/ngcore/consensus/miner"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/ngin-network/ngcore/utils"
 	"github.com/whyrusleeping/go-logging"
@@ -18,7 +19,7 @@ func (c *Consensus) InitPoW(newBlockCh chan *ngtypes.Block) {
 	if c.mining {
 		log.Info("Start mining")
 		// TODO: add mining cpu number flag
-		c.miner = NewMiner(runtime.NumCPU()/2, newBlockCh)
+		c.miner = miner.NewMiner(runtime.NumCPU()/2, newBlockCh)
 		c.miner.Start(c.GetBlockTemplate())
 	}
 

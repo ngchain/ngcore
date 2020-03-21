@@ -99,7 +99,7 @@ var action = func(c *cli.Context) error {
 
 	keyManager := keyManager.NewKeyManager("ngcore.key", strings.TrimSpace(keyPass))
 	key := keyManager.ReadLocalKey()
-	keyManager.OutputPublicKey(key)
+	keyManager.PrintPublicKey(key)
 
 	db := storage.InitStorage()
 	defer db.Close()

@@ -1,15 +1,18 @@
-package consensus
+package miner
 
 import (
 	"github.com/NebulousLabs/fastrand"
 	"github.com/ngin-network/cryptonight-go"
 	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/whyrusleeping/go-logging"
 	"math/big"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 )
+
+var log = logging.MustGetLogger("miner")
 
 // Miner
 type Miner struct {

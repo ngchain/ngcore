@@ -11,6 +11,9 @@ func (w *Wired) Sync() {
 		select {
 		case <-syncInterval:
 			for _, peer := range w.node.Peerstore().Peers() {
+				if peer == w.node.ID() {
+					continue
+				}
 				log.Infof("pinging to %s", peer)
 				w.Ping(peer)
 			}

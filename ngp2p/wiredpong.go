@@ -74,7 +74,7 @@ func (w *Wired) onPong(s network.Stream) {
 		return
 	}
 
-	log.Infof("Received Pong from %s. Message id:%s. Message: %d.", s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
+	log.Infof("Received Pong from %s. Message id:%s. Remote height: %d.", s.Conn().RemotePeer(), data.Header.Uuid, pong.BlockHeight)
 
 	w.node.RemoteHeights.Store(s.Conn().RemotePeer().String(), pong.BlockHeight)
 

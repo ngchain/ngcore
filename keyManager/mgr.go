@@ -49,7 +49,7 @@ func (m *KeyManager) ReadLocalKey() *ecdsa.PrivateKey {
 	return key
 }
 
-func (m *KeyManager) OutputPublicKey(key *ecdsa.PrivateKey) {
+func (m *KeyManager) PrintPublicKey(key *ecdsa.PrivateKey) {
 	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
 	log.Warningf("PublicKey is bs58: %v\n", base58.FastBase58Encoding(publicKey[:]))
 }

@@ -3,6 +3,7 @@ package consensus
 import (
 	"crypto/ecdsa"
 	"github.com/ngin-network/ngcore/chain"
+	miner2 "github.com/ngin-network/ngcore/consensus/miner"
 	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/ngin-network/ngcore/sheetManager"
 	"github.com/ngin-network/ngcore/txpool"
@@ -22,7 +23,7 @@ type Consensus struct {
 	TxPool *txpool.TxPool
 
 	mining bool
-	miner  *Miner
+	miner  *miner2.Miner
 }
 
 func NewConsensusManager(mining bool) *Consensus {
