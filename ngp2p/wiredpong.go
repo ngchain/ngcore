@@ -94,15 +94,13 @@ func (w *Wired) onPong(s network.Stream) {
 		} else {
 			go w.GetChain(s.Conn().RemotePeer(), pong.VaultHeight-2)
 		}
+		return
 	}
 
 	if localVaultHeight == pong.VaultHeight && bytes.Compare(localVaultHash, pong.LatestVaultHash) != 0 {
 		// start fork
+		log.Infof("start switching to the chain of %s", s.Conn().RemotePeer())
 		go w.GetChain(s.Conn().RemotePeer(), pong.VaultHeight)
-	}
-
-	if localBlockHeight+ngtypes.BlockCheckRound < pong.BlockHeight {
-		log.Infof("start syncing with %s", s.Conn().RemotePeer())
-		go w.GetChain(s.Conn().RemotePeer())
+		return
 	}
 }

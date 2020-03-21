@@ -129,6 +129,6 @@ func (w *Wired) onChain(s network.Stream) {
 
 	// continue get chain
 	if w.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < payload.LatestHeight {
-		w.GetChain(s.Conn().RemotePeer(), payload.Vault.Height+1)
+		go w.GetChain(s.Conn().RemotePeer(), payload.Vault.Height+1)
 	}
 }
