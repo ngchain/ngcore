@@ -1,7 +1,7 @@
 package ngp2p
 
 import (
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes"
 	"time"
 )
 

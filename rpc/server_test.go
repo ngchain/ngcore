@@ -1,4 +1,4 @@
-package rpcServer
+package rpc
 
 import (
 	"testing"

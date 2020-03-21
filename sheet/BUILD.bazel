@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["sheetManager.go"],
-    importpath = "github.com/ngin-network/ngcore/sheetManager",
+    importpath = "github.com/ngchain/ngcore/sheetManager",
     visibility = ["//visibility:public"],
     deps = [
         "//ngtypes:go_default_library",

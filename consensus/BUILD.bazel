@@ -10,7 +10,7 @@ go_library(
         "miner.go",
         "pow.go",
     ],
-    importpath = "github.com/ngin-network/ngcore/consensus",
+    importpath = "github.com/ngchain/ngcore/consensus",
     visibility = ["//visibility:public"],
     deps = [
         "//chain:go_default_library",

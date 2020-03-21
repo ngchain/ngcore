@@ -6,7 +6,7 @@ go_library(
         "js.go",
         "lua.go",
     ],
-    importpath = "github.com/ngin-network/ngcore/vm",
+    importpath = "github.com/ngchain/ngcore/vm",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_whyrusleeping_go_logging//:go_default_library",

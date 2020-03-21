@@ -1,4 +1,4 @@
-package keyManager
+package keytools
 
 import (
 	"reflect"
@@ -6,11 +6,9 @@ import (
 )
 
 func TestKeyMgr_ReadLocalKey(t *testing.T) {
-	mgr := NewKeyManager("ngtest.key", "test")
-	privKey := mgr.CreateLocalKey()
+	privKey := CreateLocalKey("ngtest.key", "test")
 
-	mgr2 := NewKeyManager("ngtest.key", "test")
-	privKey2 := mgr2.ReadLocalKey()
+	privKey2 := ReadLocalKey("ngtest.key", "test")
 
 	if !reflect.DeepEqual(privKey, privKey2) {
 		t.Log(privKey)

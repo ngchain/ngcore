@@ -7,7 +7,7 @@ import (
 	bytes "bytes"
 	fmt "fmt"
 	proto "github.com/gogo/protobuf/proto"
-	ngtypes "github.com/ngin-network/ngcore/ngtypes"
+	ngtypes "github.com/ngchain/ngcore/ngtypes"
 	io "io"
 	math "math"
 	math_bits "math/bits"

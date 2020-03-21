@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ngin-network/ngcore/keyManager"
+	"github.com/ngchain/ngcore/keytools"
 	"strings"
 )
 
@@ -25,10 +25,10 @@ func main() {
 		fmt.Println(`
 commands:
 
-keyTool new [filename] [password]
+keytools new [filename] [password]
 new a ngKey and print key pair to the console
 
-keyTool parse [filename] [password]
+keytools parse [filename] [password]
 read a existed ngKey file and print its data to the console
 
 on default, the filename is ngKey`)
@@ -38,13 +38,11 @@ on default, the filename is ngKey`)
 }
 
 func newKeyPair(filename string, pass string) {
-	localMgr := keyManager.NewKeyManager(strings.TrimSpace(filename), strings.TrimSpace(pass))
-	localMgr.CreateLocalKey()
-	localMgr.PrintKeyPair()
+	key := keytools.CreateLocalKey(strings.TrimSpace(filename), strings.TrimSpace(pass))
+	keytools.PrintKeyPair(key)
 }
 
 func parseKeyFile(filename string, pass string) {
-	localMgr := keyManager.NewKeyManager(strings.TrimSpace(filename), strings.TrimSpace(pass))
-	localMgr.ReadLocalKey()
-	localMgr.PrintKeyPair()
+	key := keytools.ReadLocalKey(strings.TrimSpace(filename), strings.TrimSpace(pass))
+	keytools.PrintKeyPair(key)
 }

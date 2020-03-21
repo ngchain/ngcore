@@ -1,22 +1,27 @@
-package rpcServer
+package rpc
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"fmt"
-	"github.com/ngin-network/ngcore/ngtypes"
-	"github.com/ngin-network/ngcore/txpool"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/sheet"
+	"github.com/ngchain/ngcore/txpool"
 	"math/big"
 	"net/http"
 )
 
 type Tx struct {
 	localKey *ecdsa.PrivateKey
-	txPool   *txpool.TxPool
+
+	txPool       *txpool.TxPool
+	sheetManager *sheet.Manager
 }
 
-func NewTxModule(txPool *txpool.TxPool) *Tx {
+func NewTxModule(txPool *txpool.TxPool, sheet *sheet.Manager) *Tx {
 	return &Tx{
-		txPool: txPool,
+		txPool:       txPool,
+		sheetManager: sheet,
 	}
 }
 
@@ -76,5 +81,24 @@ func (tx *Tx) SendTx(r *http.Request, args *SendTxArgs, reply *SendTxReply) erro
 
 	reply.TxHash = newTx.HashHex()
 
+	return nil
+}
+
+type GetCurrentSheetReply struct {
+	Sheet *ngtypes.Sheet
+}
+
+func (tx *Tx) GetCurrentSheet(r *http.Request, args *struct{}, reply *GetCurrentSheetReply) error {
+	reply.Sheet = tx.sheetManager.GenerateSheet()
+	return nil
+}
+
+type AccountsReply struct {
+	Accounts []*ngtypes.Account
+}
+
+func (tx *Tx) ShowLocalAccounts(r *http.Request, args *struct{}, reply *AccountsReply) error {
+	key := elliptic.Marshal(elliptic.P256(), tx.localKey.PublicKey.X, tx.localKey.PublicKey.Y)
+	reply.Accounts = tx.sheetManager.GetAccountsByPublicKey(key)
 	return nil
 }

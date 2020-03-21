@@ -3,15 +3,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/ngin-network/ngcore/chain"
-	"github.com/ngin-network/ngcore/consensus"
-	"github.com/ngin-network/ngcore/keyManager"
-	"github.com/ngin-network/ngcore/ngp2p"
-	"github.com/ngin-network/ngcore/ngtypes"
-	"github.com/ngin-network/ngcore/rpcServer"
-	"github.com/ngin-network/ngcore/sheetManager"
-	"github.com/ngin-network/ngcore/storage"
-	"github.com/ngin-network/ngcore/txpool"
+	"github.com/ngchain/ngcore/chain"
+	"github.com/ngchain/ngcore/consensus"
+	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/rpc"
+	"github.com/ngchain/ngcore/sheet"
+	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/txpool"
 	"github.com/whyrusleeping/go-logging"
 	"gopkg.in/urfave/cli.v1"
 	"os"
@@ -78,9 +78,9 @@ var action = func(c *cli.Context) error {
 	formatter := logging.NewBackendFormatter(backend, format)
 	logging.SetBackend(formatter)
 
-	isBootstrap := c.Bool("bootstrap")
+	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Bool("mining")
-	isStrictMode := isBootstrap || c.Bool("strict")
+	isStrictMode := isBootstrapNode || c.Bool("strict")
 	p2pTcpPort := c.Int("p2p-port")
 	rpcPort := c.Int("rpc-port")
 	keyPass := c.String("key-pass")
@@ -97,9 +97,8 @@ var action = func(c *cli.Context) error {
 
 	logging.SetLevel(logging.INFO, "")
 
-	keyManager := keyManager.NewKeyManager("ngcore.key", strings.TrimSpace(keyPass))
-	key := keyManager.ReadLocalKey()
-	keyManager.PrintPublicKey(key)
+	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(keyPass))
+	keytools.PrintPublicKey(key)
 
 	db := storage.InitStorage()
 	defer db.Close()
@@ -109,20 +108,20 @@ var action = func(c *cli.Context) error {
 		chain.InitWithGenesis()
 		// then sync
 	}
-	sheetManager := sheetManager.NewSheetManager()
+	sheetManager := sheet.NewSheetManager()
 	txPool := txpool.NewTxPool()
 
 	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
-	rpc := rpcServer.NewRPCServer(sheetManager, chain, txPool)
+	rpc := rpc.NewRPCServer(sheetManager, chain, txPool)
 	go rpc.Serve(rpcPort)
 
 	isSynced := false
 
 	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, sheetManager, chain, txPool)
-	if isBootstrap {
-		localNode.Bootstrap()
+	if !isBootstrapNode {
+		localNode.ConnectBootstrapNodes()
 	}
 
 	init := new(sync.Once)
@@ -165,7 +164,6 @@ var action = func(c *cli.Context) error {
 	var stopSignal = make(chan os.Signal, 1)
 	signal.Notify(stopSignal, syscall.SIGTERM)
 	signal.Notify(stopSignal, syscall.SIGINT)
-	signal.Notify(stopSignal, syscall.SIGHUP)
 	for {
 		select {
 		case sign := <-stopSignal:

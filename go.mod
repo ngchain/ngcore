@@ -1,4 +1,4 @@
-module github.com/ngin-network/ngcore
+module github.com/ngchain/ngcore
 
 go 1.12
 

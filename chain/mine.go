@@ -1,6 +1,6 @@
 package chain
 
-import "github.com/ngin-network/ngcore/ngtypes"
+import "github.com/ngchain/ngcore/ngtypes"
 
 func (c *Chain) MinedNewBlock(block *ngtypes.Block) error {
 	err := c.PutNewBlock(block)

@@ -1,12 +1,12 @@
-package rpcServer
+package rpc
 
 import (
 	"fmt"
 	"github.com/gorilla/rpc"
 	"github.com/gorilla/rpc/json"
-	"github.com/ngin-network/ngcore/chain"
-	"github.com/ngin-network/ngcore/sheetManager"
-	"github.com/ngin-network/ngcore/txpool"
+	"github.com/ngchain/ngcore/chain"
+	"github.com/ngchain/ngcore/sheet"
+	"github.com/ngchain/ngcore/txpool"
 	"github.com/whyrusleeping/go-logging"
 	"net/http"
 )
@@ -14,26 +14,21 @@ import (
 var log = logging.MustGetLogger("rpc")
 
 type RpcServer struct {
-	sheetManager *sheetManager.SheetManager
+	sheetManager *sheet.Manager
 	server       *rpc.Server
 }
 
-func NewRPCServer(sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *RpcServer {
+func NewRPCServer(sheetManager *sheet.Manager, chain *chain.Chain, txPool *txpool.TxPool) *RpcServer {
 	s := rpc.NewServer()
 	s.RegisterCodec(json.NewCodec(), "application/json")
 	s.RegisterCodec(json.NewCodec(), "*/*")
 
-	err := s.RegisterService(NewSheetModule(sheetManager), "")
+	err := s.RegisterService(NewChainModule(chain), "")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	err = s.RegisterService(NewChainModule(chain), "")
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = s.RegisterService(NewTxModule(txPool), "")
+	err = s.RegisterService(NewTxModule(txPool, sheetManager), "")
 	if err != nil {
 		log.Panic(err)
 	}

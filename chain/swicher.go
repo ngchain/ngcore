@@ -3,8 +3,8 @@ package chain
 import (
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
-	"github.com/ngin-network/ngcore/ngtypes"
-	"github.com/ngin-network/ngcore/utils"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // SwitchTo changes the items in db, requiring the first one of chain is an vault. The chain should follow the order vault0-block0-block1...-block6-vault2-block7...

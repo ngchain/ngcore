@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 const (

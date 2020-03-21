@@ -3,8 +3,8 @@ package ngp2p
 import (
 	"context"
 	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/ngin-network/ngcore/ngp2p/pb"
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngp2p/pb"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func (b *Broadcaster) broadcastBlock(block *ngtypes.Block, vault *ngtypes.Vault) bool {

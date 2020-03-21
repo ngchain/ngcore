@@ -5,7 +5,7 @@ load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 go_proto_library(
     name = "ngtypes_go_proto",
     compilers = ["@io_bazel_rules_go//proto:gogoslick_proto"],
-    importpath = "github.com/ngin-network/ngcore/ngtypes",
+    importpath = "github.com/ngchain/ngcore/ngtypes",
     proto = ":ngtypes_proto",
     visibility = ["//visibility:public"],
     deps = ["@com_github_gogo_protobuf//gogoproto:go_default_library"],
@@ -26,7 +26,7 @@ go_library(
         "vault.go",
     ],
     embed = [":ngtypes_go_proto"],
-    importpath = "github.com/ngin-network/ngcore/ngtypes",
+    importpath = "github.com/ngchain/ngcore/ngtypes",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_cbergoon_merkletree//:go_default_library",

@@ -1,7 +1,7 @@
 package ngp2p
 
 import (
-	"github.com/ngin-network/ngcore/ngp2p/pb"
+	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
 // Wired type

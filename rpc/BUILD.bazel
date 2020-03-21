@@ -9,7 +9,7 @@ go_library(
         "test.go",
         "tx.go",
     ],
-    importpath = "github.com/ngin-network/ngcore/rpcServer",
+    importpath = "github.com/ngchain/ngcore/rpcServer",
     visibility = ["//visibility:public"],
     deps = [
         "//chain:go_default_library",

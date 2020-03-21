@@ -3,8 +3,8 @@ package main
 import (
 	"crypto/elliptic"
 	"flag"
-	"github.com/ngin-network/ngcore/keyManager"
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngtypes"
 	"log"
 )
 
@@ -13,12 +13,10 @@ var regen = flag.Bool("regen", false, "regenerate the genesis.key")
 func main() {
 	flag.Parse()
 
-	keyMgr := keyManager.NewKeyManager("genesis.key", "")
-
-	localKey := keyMgr.ReadLocalKey()
+	localKey := keytools.ReadLocalKey("genesis.key", "")
 	if localKey == nil {
 		if *regen {
-			localKey = keyMgr.CreateLocalKey()
+			localKey = keytools.CreateLocalKey("genesis.key", "")
 		} else {
 			log.Panic("genesis.key is missing")
 		}

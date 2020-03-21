@@ -3,7 +3,7 @@ package ngp2p
 import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/ngin-network/ngcore/ngp2p/pb"
+	"github.com/ngchain/ngcore/ngp2p/pb"
 	"io/ioutil"
 )
 

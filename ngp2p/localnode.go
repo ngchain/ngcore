@@ -18,11 +18,11 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/ngin-network/ngcore/chain"
-	"github.com/ngin-network/ngcore/ngp2p/pb"
-	"github.com/ngin-network/ngcore/ngtypes"
-	"github.com/ngin-network/ngcore/sheetManager"
-	"github.com/ngin-network/ngcore/txpool"
+	"github.com/ngchain/ngcore/chain"
+	"github.com/ngchain/ngcore/ngp2p/pb"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/sheet"
+	"github.com/ngchain/ngcore/txpool"
 	"sync"
 	"time"
 )
@@ -32,7 +32,7 @@ type LocalNode struct {
 	*Wired
 	*Broadcaster
 
-	sheetManager *sheetManager.SheetManager
+	sheetManager *sheet.Manager
 	Chain        *chain.Chain
 	TxPool       *txpool.TxPool
 
@@ -41,7 +41,7 @@ type LocalNode struct {
 }
 
 // Create a new node with its implemented protocols
-func NewLocalNode(port int, isStrictMode bool, sheetManager *sheetManager.SheetManager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
+func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
 	ctx := context.Background()
 
 	priv := getP2PKey(true) //isBootstrap)
@@ -135,7 +135,7 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *sheetManager.SheetM
 	return node
 }
 
-func (n *LocalNode) Bootstrap() {
+func (n *LocalNode) ConnectBootstrapNodes() {
 	ctx := context.Background()
 	for i := range BootstrapNodes {
 		targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])

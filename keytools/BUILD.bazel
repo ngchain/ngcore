@@ -6,7 +6,7 @@ go_library(
         "mgr.go",
         "status.go",
     ],
-    importpath = "github.com/ngin-network/ngcore/keyManager",
+    importpath = "github.com/ngchain/ngcore/keyManager",
     visibility = ["//visibility:public"],
     deps = [
         "//utils:go_default_library",

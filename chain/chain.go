@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
-	"github.com/ngin-network/ngcore/ngtypes"
-	"github.com/ngin-network/ngcore/utils"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 	"github.com/whyrusleeping/go-logging"
 )
 

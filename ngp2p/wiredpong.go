@@ -5,8 +5,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/ngin-network/ngcore/ngp2p/pb"
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngp2p/pb"
+	"github.com/ngchain/ngcore/ngtypes"
 	"io/ioutil"
 )
 

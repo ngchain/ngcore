@@ -5,9 +5,9 @@ package consensus
 import (
 	"bytes"
 	"crypto/elliptic"
-	"github.com/ngin-network/ngcore/consensus/miner"
-	"github.com/ngin-network/ngcore/ngtypes"
-	"github.com/ngin-network/ngcore/utils"
+	"github.com/ngchain/ngcore/consensus/miner"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 	"github.com/whyrusleeping/go-logging"
 	"runtime"
 )

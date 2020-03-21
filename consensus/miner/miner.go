@@ -2,8 +2,8 @@ package miner
 
 import (
 	"github.com/NebulousLabs/fastrand"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngin-network/cryptonight-go"
-	"github.com/ngin-network/ngcore/ngtypes"
 	"github.com/whyrusleeping/go-logging"
 	"math/big"
 	"runtime"

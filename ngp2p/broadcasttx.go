@@ -3,7 +3,7 @@ package ngp2p
 import (
 	"context"
 	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func (b *Broadcaster) broadcastTx(tx *ngtypes.Transaction) bool {

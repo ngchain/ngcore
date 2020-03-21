@@ -1,7 +1,7 @@
-package rpcServer
+package rpc
 
 import (
-	"github.com/ngin-network/ngcore/chain"
+	"github.com/ngchain/ngcore/chain"
 	"net/http"
 )
 

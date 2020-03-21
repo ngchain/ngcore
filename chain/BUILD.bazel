@@ -8,7 +8,7 @@ go_library(
         "item.go",
         "swicher.go",
     ],
-    importpath = "github.com/ngin-network/ngcore/chain",
+    importpath = "github.com/ngchain/ngcore/chain",
     visibility = ["//visibility:public"],
     deps = [
         "//ngtypes:go_default_library",

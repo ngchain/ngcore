@@ -3,7 +3,7 @@ package consensus
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
 )
 

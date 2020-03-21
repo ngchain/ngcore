@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
 )
 

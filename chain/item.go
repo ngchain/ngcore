@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
-	"github.com/ngin-network/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 const LatestHeightTag = "height"
