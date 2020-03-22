@@ -1,71 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="rename&#10;&#10;1. rename managers&#10;&#10;2. rename package host">
-      <change afterPath="$PROJECT_DIR$/rpc/p2p.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sheet/account.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sheet/handler.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sheet/helper.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sheet/manager.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sheet/sheet.go" afterDir="false" />
+    <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/go_build_github_com_ngin_network_ngcore_cmd_genesis.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/go_build_github_com_ngchain_ngcore_cmd_genesis.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/chain/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/chain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/init.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chain/item.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/item.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/mine.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/mine.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/swicher.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/swicher.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/genesis/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/genesis/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/keytool/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/keytools/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/keytool/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/keytools/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/consensus.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/consensus.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/difficulty.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/difficulty.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/generation.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/generation.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/miner/miner.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/miner/miner.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/genBUILD.bat" beforeDir="false" afterPath="$PROJECT_DIR$/genBUILD.bat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/genBUILD.sh" beforeDir="false" afterPath="$PROJECT_DIR$/genBUILD.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/keyManager/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/keytools/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/keyManager/mgr.go" beforeDir="false" afterPath="$PROJECT_DIR$/keytools/tools.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/keyManager/mgr_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/keytools/tools_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/keyManager/status.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/broadcastblock.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcastblock.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/broadcasttx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcasttx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/pb/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pb/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/pb/p2p.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pb/p2p.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/pb/p2p.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pb/p2p.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/sync.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wired.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wired.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredping.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredpong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredreject.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredreject.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/types.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/chain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/server_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/sheet.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/test.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpcServer/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/tx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sheetManager/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/sheet/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sheetManager/sheetManager.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/storage/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/pool.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/utils/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vm/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/vm/BUILD.bazel" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/vault_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/vault_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/server_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server_test.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,7 +18,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageViewManager">
-    <option name="myElementSize" value="238" />
+    <option name="myElementSize" value="262" />
   </component>
   <component name="DatabaseView">
     <option name="SHOW_INTERMEDIATE" value="true" />
@@ -739,7 +684,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Test.gocheck ngcore">
+  <component name="RunManager" selected="Go Build.ngcore mining ">
     <configuration name="bootstrap" type="BlazeCommandRunConfigurationType" factoryName="Bazel Command">
       <blaze-settings handler-id="BlazeCommandGenericRunConfigurationHandlerProvider" blaze-command="bazel run //cmd/core">
         <blaze-user-exe-flag>--bootstrap</blaze-user-exe-flag>
@@ -748,34 +693,47 @@
         <option name="Blaze.BeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestDeserialize in github.com/ngin-network/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestDeserialize in github.com/ngchain/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$/ngtypes" />
       <framework value="gotest" />
       <kind value="PACKAGE" />
-      <package value="github.com/ngin-network/ngcore/ngtypes" />
+      <package value="github.com/ngchain/ngcore/ngtypes" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
       <pattern value="^TestDeserialize$" />
       <method v="2" />
     </configuration>
-    <configuration name="TestProtoEncodeToString in github.com/ngin-network/ngcore/utils" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestProtoEncodeToString in github.com/ngchain/ngcore/utils" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$/utils" />
       <framework value="gotest" />
       <kind value="PACKAGE" />
-      <package value="github.com/ngin-network/ngcore/utils" />
+      <package value="github.com/ngchain/ngcore/utils" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
       <pattern value="^TestProtoEncodeToString$" />
       <method v="2" />
     </configuration>
-    <configuration name="gocheck ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="go test ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$" />
+      <envs>
+        <env name="CGO_ENABLED" value="0" />
+      </envs>
+      <framework value="gotest" />
+      <kind value="DIRECTORY" />
+      <package value="github.com/ngchain/ngcore" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="gocheck github.com/ngchain/ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$" />
       <framework value="gocheck" />
-      <kind value="DIRECTORY" />
-      <package value="github.com/ngin-network/ngcore" />
+      <kind value="PACKAGE" />
+      <package value="github.com/ngchain/ngcore" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
@@ -788,18 +746,20 @@
       <item itemvalue="Go Build.ngcore bootstrap" />
       <item itemvalue="Go Build.ngcore" />
       <item itemvalue="Go Build.ngcore mining " />
-      <item itemvalue="Go Build.go build github.com/ngin-network/ngcore/cmd/genesis" />
-      <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngin-network/ngcore/utils" />
-      <item itemvalue="Go Test.TestDeserialize in github.com/ngin-network/ngcore/ngtypes" />
-      <item itemvalue="Go Test.gocheck ngcore" />
+      <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
+      <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngchain/ngcore/utils" />
+      <item itemvalue="Go Test.TestDeserialize in github.com/ngchain/ngcore/ngtypes" />
+      <item itemvalue="Go Test.gocheck github.com/ngchain/ngcore" />
+      <item itemvalue="Go Test.go test ngcore" />
       <item itemvalue="HTTP Request.rest-api_4#1" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Test.gocheck ngcore" />
-        <item itemvalue="Go Test.TestDeserialize in github.com/ngin-network/ngcore/ngtypes" />
+        <item itemvalue="Go Test.go test ngcore" />
+        <item itemvalue="Go Test.gocheck github.com/ngchain/ngcore" />
+        <item itemvalue="Go Test.TestDeserialize in github.com/ngchain/ngcore/ngtypes" />
         <item itemvalue="HTTP Request.rest-api_4#1" />
-        <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngin-network/ngcore/utils" />
+        <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngchain/ngcore/utils" />
       </list>
     </recent_temporary>
   </component>
@@ -840,7 +800,8 @@
     <MESSAGE value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. make mined/generated/created wrappers for put methods" />
     <MESSAGE value="bugfix&amp;del&#10;&#10;1. del some stale parts&#10;&#10;2. fix the sync bug from p2p cannot recv genesis vault" />
     <MESSAGE value="add&#10;&#10;1. add switch chain on p2p" />
-    <option name="LAST_COMMIT_MESSAGE" value="add&#10;&#10;1. add switch chain on p2p" />
+    <MESSAGE value="rename&#10;&#10;1. rename managers&#10;&#10;2. rename package host&#10;&#10;3. fix bootstrap bug" />
+    <option name="LAST_COMMIT_MESSAGE" value="rename&#10;&#10;1. rename managers&#10;&#10;2. rename package host&#10;&#10;3. fix bootstrap bug" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -858,10 +819,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="215" key="#bootstrap/0.0.1920.1040@0.0.1920.1040" timestamp="1584545779853" />
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584797469395">
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584836469139">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584797469395" />
+    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584836469139" />
     <state x="716" y="331" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584521525021">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -870,14 +831,22 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="185" key="#go_build_server.go/0.0.1920.1040@0.0.1920.1040" timestamp="1583301727421" />
+    <state x="686" y="174" key="#gocheck_github.com/ngchain/ngcore" timestamp="1584836429274">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="686" y="174" key="#gocheck_github.com/ngchain/ngcore/0.0.1920.1040@0.0.1920.1040" timestamp="1584836429274" />
     <state x="686" y="190" key="#ngcore_bootstrap_node" timestamp="1583812221827">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584809198367">
+    <state x="686" y="190" key="#ngcore_mining_" timestamp="1584836284321">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584809198367" />
+    <state x="686" y="190" key="#ngcore_mining_/0.0.1920.1040@0.0.1920.1040" timestamp="1584836284321" />
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584809239675">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584809239675" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584715191806">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -911,38 +880,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1877" height="329" key="GridCell.Tab.0.bottom" timestamp="1584798148752">
+    <state width="1877" height="401" key="GridCell.Tab.0.bottom" timestamp="1584837091080">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="329" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584798148752" />
-    <state width="1877" height="329" key="GridCell.Tab.0.center" timestamp="1584798148752">
+    <state width="1877" height="401" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
+    <state width="1877" height="401" key="GridCell.Tab.0.center" timestamp="1584837091080">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="329" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584798148752" />
-    <state width="1877" height="329" key="GridCell.Tab.0.left" timestamp="1584798148752">
+    <state width="1877" height="401" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
+    <state width="1877" height="401" key="GridCell.Tab.0.left" timestamp="1584837091080">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="329" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584798148752" />
-    <state width="1877" height="329" key="GridCell.Tab.0.right" timestamp="1584798148752">
+    <state width="1877" height="401" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
+    <state width="1877" height="401" key="GridCell.Tab.0.right" timestamp="1584837091080">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="329" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584798148752" />
-    <state width="1877" height="401" key="GridCell.Tab.1.bottom" timestamp="1584764331405">
+    <state width="1877" height="401" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
+    <state width="1877" height="401" key="GridCell.Tab.1.bottom" timestamp="1584837090998">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584764331405" />
-    <state width="1877" height="401" key="GridCell.Tab.1.center" timestamp="1584764331405">
+    <state width="1877" height="401" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
+    <state width="1877" height="401" key="GridCell.Tab.1.center" timestamp="1584837090998">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584764331405" />
-    <state width="1877" height="401" key="GridCell.Tab.1.left" timestamp="1584764331405">
+    <state width="1877" height="401" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
+    <state width="1877" height="401" key="GridCell.Tab.1.left" timestamp="1584837090998">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584764331405" />
-    <state width="1877" height="401" key="GridCell.Tab.1.right" timestamp="1584764331405">
+    <state width="1877" height="401" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
+    <state width="1877" height="401" key="GridCell.Tab.1.right" timestamp="1584837090998">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584764331405" />
+    <state width="1877" height="401" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
     <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -967,10 +936,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584717561521" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584798673287">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584809244340">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584798673287" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584809244340" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -987,11 +956,11 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584807635788">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584837365098">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584807635788" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584837365098" />
     <state x="781" y="256" key="ftp.server.browser" timestamp="1584717399128">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -1006,6 +975,7 @@
     <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584625778791" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/ngcore$go_test_ngcore.out" NAME="go test ngcore Coverage Results" MODIFIED="1584836840925" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
     <SUITE FILE_PATH="coverage/ngcore$gocheck_ngcore.out" NAME="gocheck ngcore Coverage Results" MODIFIED="1584797182885" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
   </component>
 </project>

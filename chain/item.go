@@ -25,8 +25,8 @@ func checkChain(items ...Item) error {
 	var curBlock, prevBlock *ngtypes.Block
 	var curVault, prevVault *ngtypes.Vault
 
-	for i := 0; i < len(items); i++ {
-		switch item := items[i-1].(type) {
+	for i := 1; i < len(items); i++ {
+		switch item := items[i].(type) {
 		case *ngtypes.Block:
 			if curBlock == nil {
 				curBlock = item

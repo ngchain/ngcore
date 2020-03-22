@@ -80,7 +80,7 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 	}
 
 	if newUnsealingBlock.IsHead() {
-		log.Infof("new block based on new vault: %x", newBareBlock.Header.PrevVaultHash)
+		log.Infof("using new vault: %x", newBareBlock.Header.PrevVaultHash)
 	}
 
 	return newUnsealingBlock
