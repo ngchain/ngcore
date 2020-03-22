@@ -3,11 +3,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/chain"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/rpc"
 	"github.com/ngchain/ngcore/sheet"
 	"github.com/ngchain/ngcore/storage"
@@ -18,7 +17,6 @@ import (
 	"os/signal"
 	"runtime/pprof"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -69,7 +67,7 @@ var miningFlag = cli.BoolFlag{
 }
 
 var format = logging.MustStringFormatter(
-	"%{module} %{color}%{time:15:04:05.000} ▶ %{level:.4s}%{color:reset} %{message}",
+	"%{time:15:04:05.000}: %{color}[%{module}] ▶ %{level}%{color:reset} %{message}",
 )
 
 // the Main
@@ -103,7 +101,7 @@ var action = func(c *cli.Context) error {
 	db := storage.InitStorage()
 	defer db.Close()
 
-	chain := chain.NewChain(db)
+	chain := ngchain.NewChain(db)
 	if isStrictMode && chain.GetLatestBlockHeight() == 0 {
 		chain.InitWithGenesis()
 		// then sync
@@ -114,51 +112,30 @@ var action = func(c *cli.Context) error {
 	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
-	rpc := rpc.NewRPCServer(sheetManager, chain, txPool)
+	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, sheetManager, chain, txPool)
+	rpc := rpc.NewRPCServer(localNode, sheetManager, chain, txPool)
 	go rpc.Serve(rpcPort)
 
-	isSynced := false
+	localNode.OnSynced = func() {
+		consensusManager.ResumeMining()
+	}
 
-	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, sheetManager, chain, txPool)
+	localNode.OnNotSynced = func() {
+		consensusManager.StopMining()
+	}
+
 	if !isBootstrapNode {
 		localNode.ConnectBootstrapNodes()
 	}
 
-	init := new(sync.Once)
-	go func() {
-		for {
-			if status := localNode.IsSynced(); status && status != isSynced {
-				init.Do(func() {
+	localNode.Init(func() {
+		latestVault := chain.GetLatestVault()
+		sheetManager.Init(latestVault)
+		txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
+		txPool.Run()
 
-					if chain.GetLatestBlockHeight() == 0 {
-						chain.InitWithGenesis()
-					}
-					latestVault := chain.GetLatestVault()
-					sheetManager.Init(latestVault)
-					txPool.Init(latestVault, chain.NewMinedBlockEvent, chain.NewVaultEvent)
-					txPool.Run()
-					log.Info("Start PoW consensus")
-
-					foundCh := make(chan *ngtypes.Block)
-					consensusManager.InitPoW(foundCh)
-
-				})
-				log.Info("localnode is synced with network")
-				if isMining {
-					consensusManager.ResumeMining()
-				}
-				isSynced = true
-			} else if !status && status != isSynced {
-				log.Info("localnode is not synced with network, syncing...")
-				if isMining {
-					consensusManager.StopMining()
-				}
-				isSynced = false
-			}
-
-			time.Sleep(ngtypes.TargetTime)
-		}
-	}()
+		consensusManager.InitPoW()
+	})
 
 	// notify the exit events
 	var stopSignal = make(chan os.Signal, 1)

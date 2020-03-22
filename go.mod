@@ -28,6 +28,7 @@ require (
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
 	go.etcd.io/bbolt v1.3.3
+	go.uber.org/atomic v1.4.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200319234117-63522dbf7eec // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect

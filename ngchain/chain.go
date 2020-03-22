@@ -1,4 +1,4 @@
-package chain
+package ngchain
 
 import (
 	"bytes"
@@ -22,8 +22,9 @@ var (
 type Chain struct {
 	db *badger.DB
 
-	NewMinedBlockEvent chan *ngtypes.Block
-	NewVaultEvent      chan *ngtypes.Vault
+	MinedBlockToP2PCh    chan *ngtypes.Block
+	MinedBlockToTxPoolCh chan *ngtypes.Block
+	NewVaultToTxPoolCh   chan *ngtypes.Vault
 }
 
 // NewChain will return a Chain, but no initialization
@@ -31,8 +32,9 @@ func NewChain(db *badger.DB) *Chain {
 	chain := &Chain{
 		db: db,
 
-		NewMinedBlockEvent: make(chan *ngtypes.Block),
-		NewVaultEvent:      make(chan *ngtypes.Vault),
+		MinedBlockToP2PCh:    make(chan *ngtypes.Block),
+		MinedBlockToTxPoolCh: make(chan *ngtypes.Block),
+		NewVaultToTxPoolCh:   make(chan *ngtypes.Vault),
 	}
 
 	return chain
@@ -126,177 +128,6 @@ func (c *Chain) GetLatestVaultHeight() uint64 {
 	}
 
 	return latestHeight
-}
-
-// PutNewVault puts a new vault into db
-func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
-	if block == nil {
-		return fmt.Errorf("block is nil")
-	}
-
-	hash, _ := block.CalculateHash()
-	if bytes.Compare(hash, ngtypes.GenesisBlockHash) != 0 {
-		// when block is not genesis block, checking error
-		if block.GetHeight() != 0 {
-			if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
-				if hashInDB, _ := b.CalculateHash(); bytes.Compare(hash, hashInDB) == 0 {
-					return nil
-				}
-				return fmt.Errorf("has block in same height: %v", b)
-			}
-		}
-
-		if _, err := c.GetBlockByHash(block.GetPrevHash()); err != nil {
-			return fmt.Errorf("no prev block in storage: %x, %v", block.GetPrevHash(), err)
-		}
-	}
-
-	err := c.db.Update(func(txn *badger.Txn) error {
-		raw, _ := block.Marshal()
-		log.Infof("putting block@%d: %x", block.Header.Height, hash)
-		err := txn.Set(append(blockPrefix, hash...), raw)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	return err
-}
-
-// PutNewVault puts a new vault into db
-func (c *Chain) PutNewVault(vault *ngtypes.Vault) error {
-	if vault == nil {
-		return fmt.Errorf("block is nil")
-	}
-
-	hash, _ := vault.CalculateHash()
-	if bytes.Compare(hash, ngtypes.GenesisVaultHash) != 0 {
-		// when vault is not genesis vault, checking error
-		if vault.GetHeight() != 0 {
-			if v, _ := c.GetVaultByHeight(vault.GetHeight()); v != nil {
-				if hashInDB, _ := v.CalculateHash(); bytes.Compare(hash, hashInDB) == 0 {
-					return nil
-				}
-				return fmt.Errorf("has vault in same height: %v", v)
-			}
-		}
-
-		if _, err := c.GetVaultByHash(vault.GetPrevHash()); err != nil {
-			return fmt.Errorf("no prev vault: %x, %v", vault.GetPrevHash(), err)
-		}
-	}
-
-	err := c.db.Update(func(txn *badger.Txn) error {
-		raw, _ := vault.Marshal()
-		log.Infof("putting vault@%d: %x", vault.Height, hash)
-		err := txn.Set(append(vaultPrefix, hash...), raw)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(vaultPrefix, utils.PackUint64LE(vault.Height)...), hash)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(vaultPrefix, LatestHashTag...), hash)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	return err
-}
-
-// PutNewVault puts a new vault into db
-func (c *Chain) PutNewBlockWithVault(vault *ngtypes.Vault, block *ngtypes.Block) error {
-	if vault == nil {
-		return fmt.Errorf("block is nil")
-	}
-
-	if vault.GetHeight() != 0 {
-		if v, _ := c.GetVaultByHeight(vault.GetHeight()); v != nil {
-			return fmt.Errorf("has vault in same height: %v", v)
-		}
-	}
-
-	if block.GetHeight() != 0 {
-		if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
-			return fmt.Errorf("has block in same height: %v", b)
-		}
-	}
-
-	if _, err := c.GetBlockByHash(block.GetPrevHash()); err != nil {
-		return err
-	}
-
-	if !block.IsHead() {
-		return fmt.Errorf("requires a head block to call PutNewBlockWithVault")
-	}
-
-	vaultHash, _ := vault.CalculateHash()
-
-	if bytes.Compare(vaultHash, block.Header.PrevVaultHash) != 0 {
-		return fmt.Errorf("vault hash is not matching block's prev vault hash")
-	}
-
-	err := c.db.Update(func(txn *badger.Txn) error {
-		raw, _ := vault.Marshal()
-		log.Infof("putting vault@%d: %x", vault.Height, vaultHash)
-		err := txn.Set(append(vaultPrefix, vaultHash...), raw)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(vaultPrefix, utils.PackUint64LE(vault.Height)...), vaultHash)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(vaultPrefix, LatestHashTag...), vaultHash)
-		if err != nil {
-			return err
-		}
-
-		blockHash, _ := block.CalculateHash()
-		raw, _ = block.Marshal()
-		log.Infof("putting block@%d: %x", block.Header.Height, blockHash)
-		err = txn.Set(append(blockPrefix, blockHash...), raw)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), blockHash)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(blockPrefix, LatestHashTag...), blockHash)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	return err
 }
 
 func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {

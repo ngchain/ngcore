@@ -50,10 +50,10 @@ func (w *Wired) onReject(s network.Stream) {
 	}
 
 	// locate request data and remove it if found
-	_, ok := w.requests[data.Header.Uuid]
+	_, ok := w.requests.Load(data.Header.Uuid)
 	if ok {
 		// remove request from map as we have processed it here
-		delete(w.requests, data.Header.Uuid)
+		w.requests.Delete(data.Header.Uuid)
 	} else {
 		log.Error("Failed to locate request data object for response")
 		//return

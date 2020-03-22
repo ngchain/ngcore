@@ -45,7 +45,7 @@ func (w *Wired) Ping(remotePeerId peer.ID) bool {
 	}
 
 	// store ref request so response handler has access to it
-	w.requests[req.Header.Uuid] = req
+	w.requests.Store(req.Header.Uuid, req)
 	log.Infof("Sent Ping to: %s was sent. Message Id: %s.", remotePeerId, req.Header.Uuid)
 	return true
 }

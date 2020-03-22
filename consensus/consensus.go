@@ -2,8 +2,8 @@ package consensus
 
 import (
 	"crypto/ecdsa"
-	"github.com/ngchain/ngcore/chain"
 	miner2 "github.com/ngchain/ngcore/consensus/miner"
+	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/sheet"
 	"github.com/ngchain/ngcore/txpool"
@@ -18,7 +18,7 @@ type Consensus struct {
 	SheetManager *sheet.Manager
 
 	privateKey *ecdsa.PrivateKey
-	Chain      *chain.Chain
+	Chain      *ngchain.Chain
 
 	TxPool *txpool.TxPool
 
@@ -38,7 +38,7 @@ func NewConsensusManager(mining bool) *Consensus {
 	}
 }
 
-func (c *Consensus) Init(chain *chain.Chain, sheetManager *sheet.Manager, privateKey *ecdsa.PrivateKey, txPool *txpool.TxPool) {
+func (c *Consensus) Init(chain *ngchain.Chain, sheetManager *sheet.Manager, privateKey *ecdsa.PrivateKey, txPool *txpool.TxPool) {
 	c.privateKey = privateKey
 	c.SheetManager = sheetManager
 	c.Chain = chain

@@ -15,26 +15,27 @@ import (
 var log = logging.MustGetLogger("consensus")
 
 // the main of consensus, shouldn't be shut down
-func (c *Consensus) InitPoW(newBlockCh chan *ngtypes.Block) {
+func (c *Consensus) InitPoW() {
+	log.Info("Initializing PoW consensus")
+
 	if c.mining {
-		log.Info("Start mining")
 		// TODO: add mining cpu number flag
-		c.miner = miner.NewMiner(runtime.NumCPU()/2, newBlockCh)
+		c.miner = miner.NewMiner(runtime.NumCPU() / 2)
 		c.miner.Start(c.GetBlockTemplate())
-	}
 
-	go func() {
-		for {
-			select {
-			case b := <-newBlockCh:
-				c.MinedNewBlock(b)
+		go func() {
+			for {
+				select {
+				case b := <-c.miner.FoundBlockCh:
+					c.MinedNewBlock(b)
 
-				if c.mining {
-					c.miner.Start(c.GetBlockTemplate())
+					if c.mining {
+						c.miner.Start(c.GetBlockTemplate())
+					}
 				}
 			}
-		}
-	}()
+		}()
+	}
 }
 
 func (c *Consensus) StopMining() {

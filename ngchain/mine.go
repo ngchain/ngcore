@@ -1,4 +1,4 @@
-package chain
+package ngchain
 
 import "github.com/ngchain/ngcore/ngtypes"
 
@@ -8,7 +8,8 @@ func (c *Chain) MinedNewBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	c.NewMinedBlockEvent <- block
+	c.MinedBlockToP2PCh <- block
+	c.MinedBlockToTxPoolCh <- block
 
 	return nil
 }
@@ -20,7 +21,7 @@ func (c *Chain) MinedNewVault(vault *ngtypes.Vault) error {
 	}
 
 	// for txpool
-	c.NewVaultEvent <- vault
+	c.NewVaultToTxPoolCh <- vault
 
 	return nil
 }

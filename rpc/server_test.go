@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewRPCServer(t *testing.T) {
-	rpc := NewRPCServer(nil, nil, nil)
+	rpc := NewRPCServer(nil, nil, nil, nil)
 	go rpc.Serve(1337)
 
 	go func() {

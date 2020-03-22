@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/gorilla/rpc"
 	"github.com/gorilla/rpc/json"
-	"github.com/ngchain/ngcore/chain"
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/sheet"
 	"github.com/ngchain/ngcore/txpool"
 	"github.com/whyrusleeping/go-logging"
@@ -18,7 +19,7 @@ type RpcServer struct {
 	server       *rpc.Server
 }
 
-func NewRPCServer(sheetManager *sheet.Manager, chain *chain.Chain, txPool *txpool.TxPool) *RpcServer {
+func NewRPCServer(p2pManager *ngp2p.LocalNode, sheetManager *sheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *RpcServer {
 	s := rpc.NewServer()
 	s.RegisterCodec(json.NewCodec(), "application/json")
 	s.RegisterCodec(json.NewCodec(), "*/*")

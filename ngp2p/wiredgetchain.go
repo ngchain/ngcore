@@ -40,7 +40,7 @@ func (w *Wired) GetChain(remotePeerId peer.ID, requestHeight uint64) bool {
 	}
 
 	// store ref request so response handler has access to it
-	w.requests[req.Header.Uuid] = req
+	w.requests.Store(req.Header.Uuid, req)
 	log.Infof("getchain to: %s was sent. Message Id: %s, request vault height: %d", remotePeerId, req.Header.Uuid, requestHeight)
 	return true
 }
@@ -63,8 +63,8 @@ func (w *Wired) onGetChain(s network.Stream) {
 		return
 	}
 
-	var getchain pb.GetChainPayload
-	err = proto.Unmarshal(data.Payload, &getchain)
+	var getchain = &pb.GetChainPayload{}
+	err = proto.Unmarshal(data.Payload, getchain)
 	if err != nil {
 		log.Error(err)
 		return
@@ -79,6 +79,6 @@ func (w *Wired) onGetChain(s network.Stream) {
 		return
 	}
 
-	go w.Chain(s, data.Header.Uuid, &getchain)
+	go w.Chain(s, data.Header.Uuid, getchain)
 	return
 }

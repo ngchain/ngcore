@@ -3,12 +3,13 @@ package ngp2p
 import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/ngchain/ngcore/chain"
+	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
 	"io/ioutil"
 )
 
+// Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
 func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayload) bool {
 	log.Infof("Sending Chain to %s. Message id: %s, Chain from vault@%d ...", s.Conn().RemotePeer(), uuid, getchain.VaultHeight)
 	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
@@ -20,7 +21,6 @@ func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayloa
 		}
 		if b == nil {
 			log.Errorf("missing block@%d", i)
-			return false
 		}
 		blocks = append(blocks, b)
 	}
@@ -61,7 +61,7 @@ func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayloa
 	}
 
 	// store ref request so response handler has access to it
-	w.requests[req.Header.Uuid] = req
+	w.requests.Store(req.Header.Uuid, req)
 	log.Infof("Chain to: %s was sent. Message Id: %s", s.Conn().RemotePeer(), req.Header.Uuid)
 	return true
 }
@@ -98,25 +98,43 @@ func (w *Wired) onChain(s network.Stream) {
 	log.Infof("Received Chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().RemotePeer(), data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
 	w.node.RemoteHeights.Store(s.Conn().RemotePeer(), payload.LatestHeight)
 
+	// init
+	if !w.node.isStrictMode && !w.node.isInitialized.Load() {
+		c := []ngchain.Item{payload.Vault}
+		for i := 0; i < len(payload.Blocks); i++ {
+			c = append(c, payload.Blocks[i])
+		}
+
+		err = w.node.Chain.InitWithChain(c...)
+		if err != nil {
+			log.Error(err)
+		}
+
+		if w.node.Chain.GetLatestBlockHeight() == payload.LatestHeight {
+			w.node.isInitialized.Store(true)
+			log.Infof("p2p init finished")
+		} else {
+			go w.GetChain(s.Conn().RemotePeer(), w.node.Chain.GetLatestVaultHeight()+1)
+		}
+		return
+	}
+
 	localVaultHeight := w.node.Chain.GetLatestVaultHeight()
 	if payload.Vault.Height > localVaultHeight {
 		//append
-		err = w.node.Chain.PutNewBlockWithVault(payload.Vault, payload.Blocks[0])
+		c := []ngchain.Item{payload.Vault}
+		for i := 0; i < len(payload.Blocks); i++ {
+			c = append(c, payload.Blocks[i])
+		}
+
+		err = w.node.Chain.PutNewChain(c...)
 		if err != nil {
 			log.Error(err)
 			return
 		}
-		for i := 1; i < len(payload.Blocks); i++ {
-			err := w.node.Chain.PutNewBlock(payload.Blocks[i])
-			if err != nil {
-				log.Error(err)
-				return
-			}
-		}
 	} else {
 		//forkto
-		c := make([]chain.Item, 1, ngtypes.BlockCheckRound+1)
-		c[0] = payload.Vault
+		c := []ngchain.Item{payload.Vault}
 		for i := 1; i < len(payload.Blocks); i++ {
 			c = append(c, payload.Blocks[i])
 		}
@@ -128,7 +146,7 @@ func (w *Wired) onChain(s network.Stream) {
 	}
 
 	// continue get chain
-	if w.node.Chain.GetLatestBlockHeight()+ngtypes.BlockCheckRound < payload.LatestHeight {
+	if w.node.Chain.GetLatestBlockHeight() < payload.LatestHeight {
 		go w.GetChain(s.Conn().RemotePeer(), payload.Vault.Height+1)
 	}
 }

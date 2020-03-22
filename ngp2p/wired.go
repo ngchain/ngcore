@@ -1,19 +1,19 @@
 package ngp2p
 
 import (
-	"github.com/ngchain/ngcore/ngp2p/pb"
+	"sync"
 )
 
 // Wired type
 type Wired struct {
-	node     *LocalNode             // local host
-	requests map[string]*pb.Message // used to access request data from response handlers
+	node     *LocalNode // local host
+	requests *sync.Map  //map[string]*pb.Message // used to access request data from response handlers
 }
 
 func registerProtocol(node *LocalNode) *Wired {
 	p := &Wired{
 		node:     node,
-		requests: make(map[string]*pb.Message),
+		requests: new(sync.Map),
 	}
 	// register handlers
 	node.SetStreamHandler(pingMethod, p.onPing)

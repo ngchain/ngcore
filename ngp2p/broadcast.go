@@ -56,7 +56,7 @@ func registerBroadcaster(node *LocalNode) *Broadcaster {
 	go func() {
 		for {
 			select {
-			case block := <-b.node.Chain.NewMinedBlockEvent:
+			case block := <-b.node.Chain.MinedBlockToP2PCh:
 				if block.IsHead() {
 					v, err := b.node.Chain.GetVaultByHash(block.Header.PrevVaultHash)
 					if err != nil {

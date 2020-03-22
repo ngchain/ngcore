@@ -85,6 +85,11 @@ func (w *Wired) onPong(s network.Stream) {
 	localVaultHash := w.node.Chain.GetLatestVaultHash()
 	localBlockHeight := w.node.Chain.GetLatestBlockHeight()
 
+	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.Chain.GetLatestBlockHeight() == 0 {
+		go w.GetChain(s.Conn().RemotePeer(), pong.VaultHeight-2)
+		return
+	}
+
 	if localVaultHeight < pong.VaultHeight {
 		// start sync
 		log.Infof("start syncing with %s", s.Conn().RemotePeer())

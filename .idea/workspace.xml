@@ -2,14 +2,34 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/go_build_github_com_ngin_network_ngcore_cmd_genesis.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/go_build_github_com_ngchain_ngcore_cmd_genesis.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_bootstrap.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cmd/ngcore/init.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngchain/put.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngp2p/init.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chain/item.go" beforeDir="false" afterPath="$PROJECT_DIR$/chain/item.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/BUILD.bazel" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/init.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/item.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/item.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/mine.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/mine.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chain/swicher.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/swicher.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/consensus.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/consensus.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/miner/miner.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/miner/miner.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/vault_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/vault_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/pow_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/broadcast.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcast.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/broadcastblock.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcastblock.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/sync.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wired.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wired.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredping.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredpong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredreject.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredreject.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rpc/server_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server_test.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -801,7 +821,8 @@
     <MESSAGE value="bugfix&amp;del&#10;&#10;1. del some stale parts&#10;&#10;2. fix the sync bug from p2p cannot recv genesis vault" />
     <MESSAGE value="add&#10;&#10;1. add switch chain on p2p" />
     <MESSAGE value="rename&#10;&#10;1. rename managers&#10;&#10;2. rename package host&#10;&#10;3. fix bootstrap bug" />
-    <option name="LAST_COMMIT_MESSAGE" value="rename&#10;&#10;1. rename managers&#10;&#10;2. rename package host&#10;&#10;3. fix bootstrap bug" />
+    <MESSAGE value="bugfix&#10;&#10;1. switch chain index -1" />
+    <option name="LAST_COMMIT_MESSAGE" value="bugfix&#10;&#10;1. switch chain index -1" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -843,10 +864,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="686" y="190" key="#ngcore_mining_/0.0.1920.1040@0.0.1920.1040" timestamp="1584836284321" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584809239675">
+    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1584837997957">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584809239675" />
+    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1584837997957" />
     <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584715191806">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -880,38 +901,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1877" height="401" key="GridCell.Tab.0.bottom" timestamp="1584837091080">
+    <state width="1877" height="401" key="GridCell.Tab.0.bottom" timestamp="1584892538846">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
-    <state width="1877" height="401" key="GridCell.Tab.0.center" timestamp="1584837091080">
+    <state width="1877" height="401" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538846" />
+    <state width="1877" height="401" key="GridCell.Tab.0.center" timestamp="1584892538846">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
-    <state width="1877" height="401" key="GridCell.Tab.0.left" timestamp="1584837091080">
+    <state width="1877" height="401" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538846" />
+    <state width="1877" height="401" key="GridCell.Tab.0.left" timestamp="1584892538846">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
-    <state width="1877" height="401" key="GridCell.Tab.0.right" timestamp="1584837091080">
+    <state width="1877" height="401" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538846" />
+    <state width="1877" height="401" key="GridCell.Tab.0.right" timestamp="1584892538846">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584837091080" />
-    <state width="1877" height="401" key="GridCell.Tab.1.bottom" timestamp="1584837090998">
+    <state width="1877" height="401" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538846" />
+    <state width="1877" height="401" key="GridCell.Tab.1.bottom" timestamp="1584892538847">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
-    <state width="1877" height="401" key="GridCell.Tab.1.center" timestamp="1584837090998">
+    <state width="1877" height="401" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538847" />
+    <state width="1877" height="401" key="GridCell.Tab.1.center" timestamp="1584892538846">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
-    <state width="1877" height="401" key="GridCell.Tab.1.left" timestamp="1584837090998">
+    <state width="1877" height="401" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538846" />
+    <state width="1877" height="401" key="GridCell.Tab.1.left" timestamp="1584892538846">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
-    <state width="1877" height="401" key="GridCell.Tab.1.right" timestamp="1584837090998">
+    <state width="1877" height="401" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538846" />
+    <state width="1877" height="401" key="GridCell.Tab.1.right" timestamp="1584892538846">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584837090998" />
+    <state width="1877" height="401" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1584892538846" />
     <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -936,10 +957,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584717561521" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584809244340">
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1584838000965">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584809244340" />
+    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1584838000965" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -956,11 +977,11 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584837365098">
+    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1584895270611">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584837365098" />
+    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584895270611" />
     <state x="781" y="256" key="ftp.server.browser" timestamp="1584717399128">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -969,10 +990,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="702" y="146" key="refactoring.ChangeSignatureDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1582879168983" />
-    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1584625778791">
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1584856791113">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584625778791" />
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584856791113" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/ngcore$go_test_ngcore.out" NAME="go test ngcore Coverage Results" MODIFIED="1584836840925" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />

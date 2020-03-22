@@ -17,12 +17,12 @@ import (
 	sm_yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/ngchain/ngcore/chain"
+	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/sheet"
 	"github.com/ngchain/ngcore/txpool"
+	"go.uber.org/atomic"
 	"sync"
 	"time"
 )
@@ -32,8 +32,15 @@ type LocalNode struct {
 	*Wired
 	*Broadcaster
 
+	mu            sync.Mutex
+	isInitialized *atomic.Bool
+
+	isSyncedCh  chan bool
+	OnSynced    func()
+	OnNotSynced func()
+
 	sheetManager *sheet.Manager
-	Chain        *chain.Chain
+	Chain        *ngchain.Chain
 	TxPool       *txpool.TxPool
 
 	RemoteHeights *sync.Map // key:id value:height
@@ -41,7 +48,7 @@ type LocalNode struct {
 }
 
 // Create a new node with its implemented protocols
-func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chain *chain.Chain, txPool *txpool.TxPool) *LocalNode {
+func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
 	ctx := context.Background()
 
 	priv := getP2PKey(true) //isBootstrap)
@@ -99,9 +106,15 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chai
 	)
 
 	node := &LocalNode{
-		Host:          localHost,
-		Wired:         nil,
-		Broadcaster:   nil,
+		Host:        localHost,
+		Wired:       nil,
+		Broadcaster: nil,
+
+		isInitialized: atomic.NewBool(false),
+		isSyncedCh:    make(chan bool),
+		OnSynced:      nil,
+		OnNotSynced:   nil,
+
 		sheetManager:  sheetManager,
 		Chain:         chain,
 		TxPool:        txPool,
@@ -111,8 +124,10 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chai
 
 	node.Broadcaster = registerBroadcaster(node)
 	node.Wired = registerProtocol(node)
+
 	go node.Wired.Sync()
 
+	// mdns seeding
 	go func() {
 		for {
 			select {
@@ -135,35 +150,13 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chai
 	return node
 }
 
-func (n *LocalNode) ConnectBootstrapNodes() {
-	ctx := context.Background()
-	for i := range BootstrapNodes {
-		targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])
-		if err != nil {
-			panic(err)
-		}
-
-		targetInfo, err := peer.AddrInfoFromP2pAddr(targetAddr)
-		if err != nil {
-			panic(err)
-		}
-
-		err = n.Connect(ctx, *targetInfo)
-		if err != nil {
-			panic(err)
-		}
-
-		n.Ping(targetInfo.ID)
-	}
-}
-
 // Authenticate incoming p2p message
 // message: a protobufs go data object
 // data: common p2p message data
 func (n *LocalNode) verifyResponse(header *pb.Header) bool {
-	if _, exists := n.requests[header.Uuid]; exists {
+	if _, exists := n.requests.Load(header.Uuid); exists {
 		// remove request from map as we have processed it here
-		delete(n.requests, header.Uuid)
+		n.requests.Delete(header.Uuid)
 		return true
 	}
 
@@ -268,20 +261,4 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 	}
 
 	return true
-}
-
-func (n *LocalNode) IsSynced() bool {
-	var total = 0
-	var synced = 0
-	localHeight := n.Chain.GetLatestBlockHeight()
-
-	n.RemoteHeights.Range(func(_, value interface{}) bool {
-		total++
-		if localHeight+ngtypes.BlockCheckRound >= value.(uint64) {
-			synced++
-		}
-		return true
-	})
-
-	return float64(synced)/float64(total) > 0.7
 }

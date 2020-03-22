@@ -1,23 +1,23 @@
 package rpc
 
 import (
-	"github.com/ngchain/ngcore/chain"
+	"github.com/ngchain/ngcore/ngchain"
 	"net/http"
 )
 
-func NewChainModule(chain *chain.Chain) *Chain {
+func NewChainModule(chain *ngchain.Chain) *Chain {
 	return &Chain{
 		chain: chain,
 	}
 }
 
 type Chain struct {
-	chain *chain.Chain
+	chain *ngchain.Chain
 }
 
 /* Chain */
 type DumpAllByHeightReply struct {
-	Table map[string]chain.Item `json:"table"`
+	Table map[string]ngchain.Item `json:"table"`
 }
 
 func (c *Chain) DumpAllByHash(r *http.Request, args *struct{}, reply *DumpAllByHeightReply) error {

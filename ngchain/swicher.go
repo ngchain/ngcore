@@ -1,6 +1,7 @@
-package chain
+package ngchain
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -21,18 +22,24 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 	if firstVault, ok := chain[0].(*ngtypes.Vault); !ok {
 		return fmt.Errorf("first one of chain shall be an vault")
 	} else {
-		_, err := c.GetVaultByHash(firstVault.GetPrevHash())
-		if err != nil {
-			return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
+		if hash, _ := firstVault.CalculateHash(); bytes.Compare(hash, ngtypes.GenesisVaultHash) != 0 {
+			// not genesis
+			_, err := c.GetVaultByHash(firstVault.GetPrevHash())
+			if err != nil {
+				return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
+			}
 		}
 	}
 
 	if firstBlock, ok := chain[1].(*ngtypes.Block); !ok {
 		return fmt.Errorf("second one of chain shall be a block")
 	} else {
-		_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
-		if err != nil {
-			return fmt.Errorf("the first block's prevHash is invalid: %s", err)
+		if hash, _ := firstBlock.CalculateHash(); bytes.Compare(hash, ngtypes.GenesisBlockHash) != 0 {
+			// not genesis
+			_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
+			if err != nil {
+				return fmt.Errorf("the first block@%d's prevHash is invalid: %s", firstBlock.GetHeight(), err)
+			}
 		}
 	}
 	/* Check End */

@@ -5,10 +5,10 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngin-network/cryptonight-go"
 	"github.com/whyrusleeping/go-logging"
+	"go.uber.org/atomic"
 	"math/big"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -17,26 +17,21 @@ var log = logging.MustGetLogger("miner")
 // Miner
 type Miner struct {
 	threadNum int
-	hashes    int64
+	hashes    atomic.Int64
 
-	status  *atomic.Value
-	abortCh chan struct{}
-	foundCh chan *ngtypes.Block
-	mu      sync.Mutex
-	wg      *sync.WaitGroup
+	isRunning    *atomic.Bool // bool
+	abortCh      chan struct{}
+	FoundBlockCh chan *ngtypes.Block
 }
 
-func NewMiner(threadNum int, foundCh chan *ngtypes.Block) *Miner {
+func NewMiner(threadNum int) *Miner {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	status := new(atomic.Value)
-	status.Store(false)
 	m := &Miner{
-		status:    status,
-		threadNum: threadNum,
-		abortCh:   make(chan struct{}),
-		foundCh:   foundCh,
-		wg:        new(sync.WaitGroup),
+		isRunning:    atomic.NewBool(false),
+		threadNum:    threadNum,
+		abortCh:      make(chan struct{}),
+		FoundBlockCh: make(chan *ngtypes.Block),
 	}
 
 	reportCh := time.Tick(time.Minute)
@@ -47,9 +42,9 @@ func NewMiner(threadNum int, foundCh chan *ngtypes.Block) *Miner {
 			select {
 			case <-reportCh:
 				go func() {
-					hashes := atomic.LoadInt64(&m.hashes)
+					hashes := m.hashes.Load()
 					log.Infof("Total Hashrate: %d h/s", hashes/elapsed)
-					atomic.AddInt64(&m.hashes, -hashes)
+					m.hashes.Add(-hashes)
 				}()
 			}
 		}
@@ -59,28 +54,29 @@ func NewMiner(threadNum int, foundCh chan *ngtypes.Block) *Miner {
 }
 
 func (m *Miner) Start(initJob *ngtypes.Block) {
-	if m.status.Load().(bool) == true {
+	if m.isRunning.Load() == true {
 		return
 	}
-	m.status.Store(true)
+	m.isRunning.Store(true)
+	m.abortCh = make(chan struct{})
+
+	once := new(sync.Once)
 	for threadID := 0; threadID < m.threadNum; threadID++ {
-		go m.mine(threadID, initJob)
+		go m.mine(threadID, initJob, once)
 	}
 }
 
 func (m *Miner) Stop() {
-	if m.status.Load().(bool) == false {
+	if m.isRunning.Load() == false {
 		return
 	}
 
-	m.status.Store(false)
+	m.isRunning.Store(false)
 	close(m.abortCh)
-	m.wg.Wait()
-	m.abortCh = make(chan struct{})
+	<-m.abortCh // wait
 }
 
-func (m *Miner) mine(threadID int, job *ngtypes.Block) {
-	m.wg.Add(1)
+func (m *Miner) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 	var target = new(big.Int).SetBytes(job.Header.Target)
 
 	for {
@@ -93,7 +89,6 @@ func (m *Miner) mine(threadID int, job *ngtypes.Block) {
 		//	}
 		case <-m.abortCh:
 			// Mining terminated, update stats and abort
-			m.wg.Done()
 			return
 		default:
 			if job == nil || !job.Header.IsUnsealing() {
@@ -105,26 +100,28 @@ func (m *Miner) mine(threadID int, job *ngtypes.Block) {
 			fastrand.Read(nonce)
 			blob := job.Header.GetPoWBlob(nonce)
 			hash := cryptonight.Sum(blob, 0)
-			m.hashes++
+			m.hashes.Inc()
 
 			if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
-				go m.found(threadID, job, nonce)
+				go once.Do(func() {
+					m.found(threadID, job, nonce)
+				})
+				return
 			}
 		}
 	}
 }
 
 func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
-	// Correct nonce found, create a new header with it
-	m.mu.Lock()
-	defer m.mu.Unlock()
 
+	// Correct nonce found
 	m.Stop()
-	log.Infof("Thread %d found nonce %x", t, nonce)
+
+	log.Debugf("Thread %d found nonce %x", t, nonce)
 	block, err := job.ToSealed(nonce)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	m.foundCh <- block
+	m.FoundBlockCh <- block
 }
