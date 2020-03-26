@@ -23,7 +23,7 @@ import (
 
 var log = logging.MustGetLogger("main")
 
-var strictModeFlag = cli.BoolFlag{
+var strictModeFlag = cli.BoolTFlag{
 	Name:  "strict",
 	Usage: "force ngcore starts from the genesis block",
 }
@@ -78,7 +78,7 @@ var action = func(c *cli.Context) error {
 
 	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Bool("mining")
-	isStrictMode := isBootstrapNode || c.Bool("strict")
+	isStrictMode := isBootstrapNode || c.BoolT("strict")
 	p2pTcpPort := c.Int("p2p-port")
 	rpcPort := c.Int("rpc-port")
 	keyPass := c.String("key-pass")

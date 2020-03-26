@@ -21,8 +21,10 @@ func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayloa
 		}
 		if b == nil {
 			log.Errorf("missing block@%d", i)
+			break
+		} else {
+			blocks = append(blocks, b)
 		}
-		blocks = append(blocks, b)
 	}
 
 	vault, err := w.node.Chain.GetVaultByHeight(getchain.VaultHeight)
