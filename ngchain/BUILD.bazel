@@ -6,9 +6,11 @@ go_library(
         "chain.go",
         "init.go",
         "item.go",
+        "mine.go",
+        "put.go",
         "swicher.go",
     ],
-    importpath = "github.com/ngchain/ngcore/chain",
+    importpath = "github.com/ngchain/ngcore/ngchain",
     visibility = ["//visibility:public"],
     deps = [
         "//ngtypes:go_default_library",

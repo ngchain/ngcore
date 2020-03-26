@@ -67,7 +67,7 @@ var miningFlag = cli.BoolFlag{
 }
 
 var format = logging.MustStringFormatter(
-	"%{time:15:04:05.000}: %{color}[%{module}] ▶ %{level}%{color:reset} %{message}",
+	"%{time:15:04:05.000} %{color}[%{module}] ▶ %{level}%{color:reset} %{message}",
 )
 
 // the Main
@@ -113,8 +113,8 @@ var action = func(c *cli.Context) error {
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
 	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, sheetManager, chain, txPool)
-	rpc := rpc.NewRPCServer(localNode, sheetManager, chain, txPool)
-	go rpc.Serve(rpcPort)
+	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensusManager, localNode, sheetManager, txPool)
+	go rpc.Run()
 
 	localNode.OnSynced = func() {
 		consensusManager.ResumeMining()

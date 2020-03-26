@@ -7,10 +7,12 @@ go_library(
         "file.go",
         "format.go",
         "helper.go",
+        "json.go",
         "serialize.go",
     ],
     importpath = "github.com/ngchain/ngcore/utils",
     visibility = ["//visibility:public"],
+    deps = ["@com_github_json_iterator_go//:go_default_library"],
 )
 
 go_test(

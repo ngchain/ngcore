@@ -6,8 +6,8 @@ import (
 )
 
 func TestNewRPCServer(t *testing.T) {
-	rpc := NewRPCServer(nil, nil, nil, nil)
-	go rpc.Serve(1337)
+	rpc := NewServer("127.0.0.1", 52521, nil, nil, nil, nil)
+	go rpc.Run()
 
 	go func() {
 		finished := time.After(2 * time.Minute)

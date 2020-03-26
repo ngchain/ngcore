@@ -6,7 +6,7 @@ go_library(
     importpath = "github.com/ngchain/ngcore/cmd/genesis",
     visibility = ["//visibility:private"],
     deps = [
-        "//keyManager:go_default_library",
+        "//keytools:go_default_library",
         "//ngtypes:go_default_library",
     ],
 )
