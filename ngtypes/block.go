@@ -3,6 +3,7 @@ package ngtypes
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
 	"math/big"
@@ -54,6 +55,15 @@ func (m *Block) IsHead() bool {
 func (m *Block) ToUnsealing(txsWithGen []*Transaction) (*Block, error) {
 	if m.Header == nil {
 		return nil, ErrBlockHeaderMissing
+	}
+
+	for i := 0; i < len(txsWithGen); i++ {
+		if i == 0 && txsWithGen[i].GetType() != 0 {
+			return nil, fmt.Errorf("first tx shall be a generation")
+		}
+		if i != 0 && txsWithGen[i].GetType() == 0 {
+			return nil, fmt.Errorf("except first, other tx shall not be a generation")
+		}
 	}
 
 	b := m.Copy()

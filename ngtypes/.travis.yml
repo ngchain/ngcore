@@ -1,10 +1,9 @@
-language:
-    - go
+language: "go"
 
 go:
-    - "1.13"
-    - master
+  - "1.13"
+  - master
 
 script:
-    - go vet ./...
-    - go test ./...
+  - go vet ./...
+  - go test ./...

@@ -8,7 +8,7 @@ import (
 )
 
 // CreateGeneration will create a generation Tx for new Block
-func (c *Consensus) CreateGeneration(privateKey *ecdsa.PrivateKey, blockHeight uint64, currentBlockHash, currentVaultHash, extraData []byte) *ngtypes.Transaction {
+func (c *Consensus) CreateGeneration(privateKey *ecdsa.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Transaction {
 	publicKeyBytes := elliptic.Marshal(privateKey.PublicKey, privateKey.PublicKey.X, privateKey.PublicKey.Y)
 	gen := ngtypes.NewUnsignedTransaction(
 		0,

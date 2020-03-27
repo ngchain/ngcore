@@ -13,14 +13,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	peerstream_multiplex "github.com/libp2p/go-libp2p-mplex"
-	sm_yamux "github.com/libp2p/go-libp2p-yamux"
+	multiplex "github.com/libp2p/go-libp2p-mplex"
+	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
+	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/sheet"
 	"github.com/ngchain/ngcore/txpool"
 	"go.uber.org/atomic"
 	"sync"
@@ -39,7 +39,7 @@ type LocalNode struct {
 	OnSynced    func()
 	OnNotSynced func()
 
-	sheetManager *sheet.Manager
+	sheetManager *ngsheet.Manager
 	Chain        *ngchain.Chain
 	TxPool       *txpool.TxPool
 
@@ -48,7 +48,7 @@ type LocalNode struct {
 }
 
 // Create a new node with its implemented protocols
-func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
+func NewLocalNode(port int, isStrictMode bool, sheetManager *ngsheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
 	ctx := context.Background()
 
 	priv := getP2PKey(true) //isBootstrap)
@@ -64,8 +64,8 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *sheet.Manager, chai
 	)
 
 	muxers := libp2p.ChainOptions(
-		libp2p.Muxer("/yamux/1.0.0", sm_yamux.DefaultTransport),
-		libp2p.Muxer("/mplex/6.7.0", peerstream_multiplex.DefaultTransport),
+		libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
+		libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
 	)
 
 	var p2pDHT *dht.IpfsDHT

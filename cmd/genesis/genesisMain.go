@@ -36,7 +36,7 @@ func main() {
 		Extra: nil,
 	}
 
-	// TODO: before init network should manually init the R & S
+	// FIXME: before init network, manually init the R & S
 	R, S, err := header.Signature(localKey)
 	if err != nil {
 		log.Panic(err)

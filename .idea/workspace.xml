@@ -1,32 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="2f47304c-ab89-4545-aa05-043ba8370e57" name="Default Changelist" comment="">
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="rename&amp;add&#10;&#10;1. rename sheet to ngsheet&#10;&#10;2. expand txpool&#10;&#10;3. add sendtx rpc">
+      <change afterPath="$PROJECT_DIR$/consensus/check.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngsheet/nonce.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/txpool/check.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/txpool/get.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/txpool/put.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/C.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/C.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/ngcore.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ngcore.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/consensus.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/consensus.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/defaults.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/generation.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/generation.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngchain/mine.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/mine.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/.travis.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/account_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/account_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/defaults.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/defaults.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/transaction.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/transaction_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/types.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/types.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/handler.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/p2p.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/p2p.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/test.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sheet/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/BUILD.bazel" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sheet/account.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/account.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sheet/handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/apply.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sheet/helper.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/check.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sheet/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/sheet.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/pool.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
-  </component>
-  <component name="CoverageViewManager">
-    <option name="myElementSize" value="262" />
-  </component>
-  <component name="DatabaseView">
-    <option name="SHOW_INTERMEDIATE" value="true" />
-    <option name="GROUP_DATA_SOURCES" value="true" />
-    <option name="GROUP_SCHEMA" value="true" />
-    <option name="GROUP_CONTENTS" value="false" />
-    <option name="SORT_POSITIONED" value="false" />
-    <option name="SHOW_EMPTY_GROUPS" value="false" />
-    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
-    <option name="HIDDEN_KINDS">
-      <set />
-    </option>
-    <expand />
-    <select />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -42,679 +62,40 @@
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="false" />
   </component>
-  <component name="ProjectId" id="1V9F2G27a6TS7vk4znYlt8iTlWk" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectId" id="1Zh9JfIQYIu3gBFwJMlVdkxmlos" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showExcludedFiles" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
     <property name="DefaultGoTemplateProperty" value="Go File" />
-    <property name="GO_FMT" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="configurable.Global.GOPATH.is.expanded" value="true" />
-    <property name="configurable.Module.GOPATH.is.expanded" value="false" />
-    <property name="configurable.Project.GOPATH.is.expanded" value="true" />
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$USER_HOME$/Desktop/jsonrpc2" />
-    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
-    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="last_opened_file_path" value="$USER_HOME$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
-  <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\C\OneDrive\ngcore" />
-      <recent name="C:\Users\C\OneDrive\ngcore\cmd" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\C\OneDrive\ngcore\consensus\miner" />
-      <recent name="C:\Users\C\OneDrive\ngcore\cmd\genesis" />
-      <recent name="C:\Users\C\OneDrive\ngcore\consensus" />
-      <recent name="C:\Users\C\OneDrive\ngcore\vaultManager" />
-      <recent name="C:\Users\C\OneDrive\ngcore\chain" />
-    </key>
-  </component>
-  <component name="RestClientSettings">
-    <option name="REQUEST_HISTORY">
-      <list>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;id&quot;: 1, &quot;method&quot;: &quot;Sheet.GetCurrentSheet&quot;, &quot;params&quot;: [{}] }" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;id&quot;: 1, &quot;method&quot;: &quot;VaultChain.DumpDB&quot;, &quot;params&quot;: [{}] }" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;id&quot;: 1, &quot;method&quot;: &quot;BlockChain.DumpDB&quot;, &quot;params&quot;: [{}] }" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;id&quot;: 1, &quot;method&quot;: &quot;BlockChain.DumpMem&quot;, &quot;params&quot;: [{}] }" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="parametersEnabled" value="true" />
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;id&quot;: 1, &quot;method&quot;: &quot;BlockChain.DumpMem&quot;, &quot;params&quot;: [{}] }" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="parametersEnabled" value="true" />
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;id&quot;: 1, &quot;method&quot;: &quot;BlockChain.DumpMem&quot;, params: [{}]}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;&quot;id&quot;: 1,&#10;&quot;method&quot;: &quot;Sheet.GetCurrentSheet&quot;,&#10;&quot;params&quot;: [{}]&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;&quot;id&quot;: 1,&#10;&quot;method&quot;: &quot;SheetModule.GetCurrentSheet&quot;,&#10;&quot;params&quot;: [{}]&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;&quot;id&quot;: 1,&#10;&quot;method&quot;: &quot;SheetModule.GetCurrentSheet&quot;&#10;&quot;params&quot;: [{}]&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://127.0.0.1:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Content-Type" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;  &quot;id&quot;: 999,&#10;  &quot;method&quot;: &quot;Test.Ping&quot;,&#10;  &quot;params&quot;: []&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://127.0.0.1:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Content-Type" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;  &quot;id&quot;: 999,&#10;  &quot;method&quot;: &quot;Test.Ping&quot;,&#10;  &quot;params&quot;: null&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://127.0.0.1:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Content-Type" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;  &quot;id&quot;: 999,&#10;  &quot;method&quot;: &quot;Test.Ping&quot;,&#10;  &quot;params&quot;: [{}]&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://127.0.0.1:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Content-Type" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;  &quot;id&quot;: 999,&#10;  &quot;method&quot;: &quot;Test.Ping&quot;,&#10;  &quot;params&quot;: [{&quot;a&quot;:  &quot;b&quot;}]&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://127.0.0.1:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Content-Type" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;  &quot;id&quot;: 999,&#10;  &quot;method&quot;: &quot;test.ping&quot;,&#10;  &quot;params&quot;: [{&quot;a&quot;:  &quot;b&quot;}]&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://127.0.0.1:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Content-Type" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;  &quot;id&quot;: 999,&#10;  &quot;value&quot;: &quot;content&quot;&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="https://httpbin.org/post" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Content-Type" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&#10;  &quot;id&quot;: 999,&#10;  &quot;value&quot;: &quot;content&quot;&#10;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: [{&quot;a&quot;: &quot;b&quot;}]}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: [{&quot;a&quot;: &quot;b&quot;}]}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: [{&quot;a&quot;: &quot;b&quot;}]}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: {}}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: null}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: [&quot;hello&quot;, &quot;123&quot;]}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: [&quot;hello&quot;]}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;, &quot;params&quot;: []}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping&quot;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;Test.Ping}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;ping}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="GET" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;ping}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="application/json" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;ping&quot;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="POST" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;ping&quot;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-        <RestClientRequest>
-          <option name="httpMethod" value="GET" />
-          <option name="urlBase" value="http://localhost:52521/resources" />
-          <option name="urlPath" value="" />
-          <option name="headers">
-            <list>
-              <KeyValuePair>
-                <option name="key" value="Accept" />
-                <option name="value" value="*/*" />
-              </KeyValuePair>
-              <KeyValuePair>
-                <option name="key" value="Cache-Control" />
-                <option name="value" value="no-cache" />
-              </KeyValuePair>
-            </list>
-          </option>
-          <option name="haveTextToSend" value="true" />
-          <option name="textToSend" value="{&quot;method&quot;: &quot;ping&quot;}" />
-          <option name="filesToSend" value="" />
-        </RestClientRequest>
-      </list>
-    </option>
-  </component>
-  <component name="RunManager" selected="Go Build.ngcore mining ">
-    <configuration name="bootstrap" type="BlazeCommandRunConfigurationType" factoryName="Bazel Command">
-      <blaze-settings handler-id="BlazeCommandGenericRunConfigurationHandlerProvider" blaze-command="bazel run //cmd/core">
-        <blaze-user-exe-flag>--bootstrap</blaze-user-exe-flag>
-      </blaze-settings>
-      <method v="2">
-        <option name="Blaze.BeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestDeserialize in github.com/ngchain/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="Go Test.go test ngcore">
+    <configuration name="go build github.com/ngchain/ngcore" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
-      <working_directory value="$PROJECT_DIR$/ngtypes" />
-      <framework value="gotest" />
+      <working_directory value="$PROJECT_DIR$" />
       <kind value="PACKAGE" />
-      <package value="github.com/ngchain/ngcore/ngtypes" />
+      <package value="github.com/ngchain/ngcore" />
       <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestDeserialize$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestProtoEncodeToString in github.com/ngchain/ngcore/utils" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="ngcore" />
-      <working_directory value="$PROJECT_DIR$/utils" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="github.com/ngchain/ngcore/utils" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestProtoEncodeToString$" />
       <method v="2" />
     </configuration>
     <configuration name="go test ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$" />
-      <envs>
-        <env name="CGO_ENABLED" value="0" />
-      </envs>
       <framework value="gotest" />
       <kind value="DIRECTORY" />
       <package value="github.com/ngchain/ngcore" />
@@ -722,257 +103,88 @@
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
-    <configuration name="gocheck github.com/ngchain/ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="gocheck ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$" />
       <framework value="gocheck" />
-      <kind value="PACKAGE" />
+      <kind value="DIRECTORY" />
       <package value="github.com/ngchain/ngcore" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
-    <configuration name="rest-api_4#1" type="HttpClient.HttpRequestRunConfigurationType" factoryName="HTTP Request" temporary="true" path="$APPLICATION_CONFIG_DIR$/scratches/rest-api_4.http" runType="Run single request">
-      <method v="2" />
-    </configuration>
-    <list>
-      <item itemvalue="Bazel Command.bootstrap" />
-      <item itemvalue="Go Build.ngcore bootstrap" />
-      <item itemvalue="Go Build.ngcore" />
-      <item itemvalue="Go Build.ngcore mining " />
-      <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
-      <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngchain/ngcore/utils" />
-      <item itemvalue="Go Test.TestDeserialize in github.com/ngchain/ngcore/ngtypes" />
-      <item itemvalue="Go Test.gocheck github.com/ngchain/ngcore" />
-      <item itemvalue="Go Test.go test ngcore" />
-      <item itemvalue="HTTP Request.rest-api_4#1" />
-    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Go Test.go test ngcore" />
-        <item itemvalue="Go Test.gocheck github.com/ngchain/ngcore" />
-        <item itemvalue="Go Test.TestDeserialize in github.com/ngchain/ngcore/ngtypes" />
-        <item itemvalue="HTTP Request.rest-api_4#1" />
-        <item itemvalue="Go Test.TestProtoEncodeToString in github.com/ngchain/ngcore/utils" />
+        <item itemvalue="Go Test.gocheck ngcore" />
+        <item itemvalue="Go Build.go build github.com/ngchain/ngcore" />
       </list>
     </recent_temporary>
   </component>
-  <component name="ServiceViewManager">
-    <option name="viewStates">
-      <list>
-        <serviceView>
-          <treeState>
-            <expand />
-            <select />
-          </treeState>
-        </serviceView>
-      </list>
-    </option>
-  </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="1" />
-  </component>
-  <component name="UpdateCopyrightCheckinHandler">
-    <option name="UPDATE_COPYRIGHT" value="true" />
-  </component>
-  <component name="VcsManagerConfiguration">
-    <option name="CHECK_CODE_CLEANUP_BEFORE_PROJECT_COMMIT" value="true" />
-    <MESSAGE value="add .idea" />
-    <MESSAGE value="ton of fixes" />
-    <MESSAGE value="huge changes&#10;&#10;1. combine the vaultchain and blockchain&#10;&#10;2. adding bazel for building&#10;&#10;3. add sync status&#10;&#10;4. realign the module init orders in core's main func&#10;&#10;5. some bug fixes on changes above" />
-    <MESSAGE value="huge changes&#10;&#10;1. optimize outputs and putting chain&#10;&#10;2. fix the vault &amp; checkpoint order&#10;&#10;3. modify the p2p protocol getblock &amp; getvault, using getchain instead&#10;&#10;4. remove the hookblock requirement when gen vault&#10;&#10;5. delete deprecated files" />
-    <MESSAGE value="some changes &#10;1. fix the bug that the vault unlimited increment&#10; &#10;2. apply stop&amp;resume mining&#10;&#10;3. rename checkpoint to Head, and add Tail&#10;&#10;4. migrate genVault to block(tail) mined period" />
-    <MESSAGE value="BugFixes&#10;&#10;1. handle the hash(marshal) bug with stable_marshaler_all&#10;&#10;2. add BUILD.bazel files" />
-    <MESSAGE value="bug fixes &#10;&#10;1. assemble the protos into one&#10;&#10;2. avoid go build and bazel conflict&#10;&#10;3. disable libp2p libs' proto" />
-    <MESSAGE value="update readme" />
-    <MESSAGE value="bug fix" />
-    <MESSAGE value="migrate db from bbolt to badger v2" />
-    <MESSAGE value="runnable under wsl" />
-    <MESSAGE value="fix the vlog bug under windows" />
-    <MESSAGE value="changes&amp;bugfix&#10;&#10;1. migrate p2p protobufs to ngp2p/pb&#10;&#10;2. adding pubsub (unfinished)&#10;&#10;3. add chain switch(for forking when p2p detected)&#10;&#10;4. fix the bug on init" />
-    <MESSAGE value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. do a mined/generated/created wrapper for put methods" />
-    <MESSAGE value="changes&amp;additions&#10;&#10;1. rename protocol to wired&#10;&#10;2. add broadcast(block&amp;tx)&#10;&#10;3. better log formatter&#10;&#10;4. add a few methods' descriptions&#10;&#10;5. make mined/generated/created wrappers for put methods" />
-    <MESSAGE value="bugfix&amp;del&#10;&#10;1. del some stale parts&#10;&#10;2. fix the sync bug from p2p cannot recv genesis vault" />
-    <MESSAGE value="add&#10;&#10;1. add switch chain on p2p" />
-    <MESSAGE value="rename&#10;&#10;1. rename managers&#10;&#10;2. rename package host&#10;&#10;3. fix bootstrap bug" />
-    <MESSAGE value="bugfix&#10;&#10;1. switch chain index -1" />
-    <MESSAGE value="Tons of changes&#10;&#10;1. rename chain to ngchain&#10;&#10;2. add the fast running (without strict mode)&#10;&#10;3. optimize the main init flow" />
-    <MESSAGE value="migrating jsonrpc v1 to v2" />
-    <option name="LAST_COMMIT_MESSAGE" value="migrating jsonrpc v1 to v2" />
-    <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
-    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
-    <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
+    <option name="version" value="2" />
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
-    <proxy>https://goproxy.io</proxy>
+    <environment>
+      <map>
+        <entry key="GOPROXY" value="direct" />
+      </map>
+    </environment>
+    <proxy>direct</proxy>
   </component>
   <component name="WindowStateProjectService">
-    <state x="552" y="181" key="#Deployment" timestamp="1584717422490">
+    <state x="552" y="181" key="#Go_Modules_(vgo)" timestamp="1585280398146">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="181" key="#Deployment/0.0.1920.1040@0.0.1920.1040" timestamp="1584717422490" />
-    <state x="686" y="215" key="#bootstrap" timestamp="1584545779853">
+    <state x="552" y="181" key="#Go_Modules_(vgo)/0.0.1920.1040@0.0.1920.1040" timestamp="1585280398146" />
+    <state x="586" y="198" key="#Inspections" timestamp="1585283136480">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="686" y="215" key="#bootstrap/0.0.1920.1040@0.0.1920.1040" timestamp="1584545779853" />
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1584836469139">
+    <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1585283136480" />
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585312890985">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="380" y="143" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584836469139" />
-    <state x="716" y="331" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584521525021">
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585312890985" />
+    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1585300522955">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="716" y="331" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1920.1040@0.0.1920.1040" timestamp="1584521525021" />
-    <state x="686" y="185" key="#go_build_server.go" timestamp="1583301727421">
+    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585300522955" />
+    <state x="577" y="90" key="CommitChangelistDialog2" timestamp="1585313068543">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="686" y="185" key="#go_build_server.go/0.0.1920.1040@0.0.1920.1040" timestamp="1583301727421" />
-    <state x="686" y="174" key="#gocheck_github.com/ngchain/ngcore" timestamp="1584836429274">
+    <state x="577" y="90" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585313068543" />
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585281455596">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="686" y="174" key="#gocheck_github.com/ngchain/ngcore/0.0.1920.1040@0.0.1920.1040" timestamp="1584836429274" />
-    <state x="686" y="190" key="#ngcore_bootstrap_node" timestamp="1583812221827">
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455596" />
+    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1585281455595">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="686" y="190" key="#ngcore_bootstrap_node/0.0.1920.1040@0.0.1920.1040" timestamp="1583812221827" />
-    <state x="686" y="190" key="#ngcore_mining_" timestamp="1584836284321">
+    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
+    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1585281455595">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="686" y="190" key="#ngcore_mining_/0.0.1920.1040@0.0.1920.1040" timestamp="1584836284321" />
-    <state x="598" y="26" key="CommitChangelistDialog2" timestamp="1585228709681">
+    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
+    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1585281455595">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="598" y="26" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585228709681" />
-    <state width="1212" height="466" key="DebuggerActiveHint" timestamp="1584715191806">
+    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
+    <state x="540" y="262" key="IDE.errors.dialog" timestamp="1585307603049">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1212" height="466" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1584715191806" />
-    <state x="236" y="36" key="DiffContextDialog" timestamp="1584522776743">
+    <state x="540" y="262" key="IDE.errors.dialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585307603049" />
+    <state x="713" y="221" key="RollbackChangesDialog" timestamp="1585312920939">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="236" y="36" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584522776743" />
-    <state x="660" y="250" key="EnvironmentVariablesDialog" timestamp="1584546247013">
+    <state x="713" y="221" key="RollbackChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585312920939" />
+    <state x="329" y="329" key="SettingsEditor" timestamp="1585300868767">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="660" y="250" key="EnvironmentVariablesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584546247013" />
-    <state x="651" y="169" key="FileChooserDialogImpl" timestamp="1584966218645">
+    <state x="329" y="329" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585300868767" />
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585292046191">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="463" y="118" key="FileChooserDialogImpl/0.0.1366.728@0.0.1366.728" timestamp="1577755566312" />
-    <state x="651" y="169" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1584966218645" />
-    <state width="1877" height="280" key="GridCell.Tab.-1.bottom" timestamp="1583233787846">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="280" key="GridCell.Tab.-1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1877" height="280" key="GridCell.Tab.-1.center" timestamp="1583233787846">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="280" key="GridCell.Tab.-1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1877" height="280" key="GridCell.Tab.-1.left" timestamp="1583233787846">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="280" key="GridCell.Tab.-1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1877" height="280" key="GridCell.Tab.-1.right" timestamp="1583233787846">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="280" key="GridCell.Tab.-1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233787846" />
-    <state width="1877" height="401" key="GridCell.Tab.0.bottom" timestamp="1585229290760">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290760" />
-    <state width="1877" height="401" key="GridCell.Tab.0.center" timestamp="1585229290760">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290760" />
-    <state width="1877" height="401" key="GridCell.Tab.0.left" timestamp="1585229290760">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290760" />
-    <state width="1877" height="401" key="GridCell.Tab.0.right" timestamp="1585229290760">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290760" />
-    <state width="1877" height="401" key="GridCell.Tab.1.bottom" timestamp="1585229290690">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290690" />
-    <state width="1877" height="401" key="GridCell.Tab.1.center" timestamp="1585229290690">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290690" />
-    <state width="1877" height="401" key="GridCell.Tab.1.left" timestamp="1585229290690">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290690" />
-    <state width="1877" height="401" key="GridCell.Tab.1.right" timestamp="1585229290690">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1877" height="401" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585229290690" />
-    <state width="1848" height="123" key="GridCell.Tab.2.bottom" timestamp="1583233793392">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1848" height="123" key="GridCell.Tab.2.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1583233793392" />
-    <state width="1848" height="123" key="GridCell.Tab.2.center" timestamp="1583233793392">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1848" height="123" key="GridCell.Tab.2.center/0.0.1920.1040@0.0.1920.1040" timestamp="1583233793392" />
-    <state width="1848" height="123" key="GridCell.Tab.2.left" timestamp="1583233793392">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1848" height="123" key="GridCell.Tab.2.left/0.0.1920.1040@0.0.1920.1040" timestamp="1583233793392" />
-    <state width="1848" height="123" key="GridCell.Tab.2.right" timestamp="1583233793392">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1848" height="123" key="GridCell.Tab.2.right/0.0.1920.1040@0.0.1920.1040" timestamp="1583233793392" />
-    <state x="848" y="184" key="RollbackChangesDialog" timestamp="1584522714659">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="848" y="184" key="RollbackChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584522714659" />
-    <state x="548" y="143" key="SettingsEditor" timestamp="1584717561521">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="548" y="143" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1584717561521" />
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2" timestamp="1585228714108">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="552" y="256" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585228714108" />
-    <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1584290295641">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="968" height="528" key="XDebugger.FullValuePopup/0.0.1920.1040@0.0.1920.1040" timestamp="1584290295641" />
-    <state x="92" y="92" width="1736" height="856" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1584078371483">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="92" y="92" width="1736" height="856" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1584078371483" />
-    <state x="0" y="699" width="1864" height="114" key="dock-window-1" timestamp="1583326480241">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="0" y="699" width="1864" height="114" key="dock-window-1/0.0.1920.1040@0.0.1920.1040" timestamp="1583326480241" />
-    <state x="22" y="676" width="1864" height="178" key="dock-window-2" timestamp="1583234986018">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="22" y="676" width="1864" height="178" key="dock-window-2/0.0.1920.1040@0.0.1920.1040" timestamp="1583234986018" />
-    <state x="533" y="0" width="854" height="960" key="find.popup" timestamp="1585230040941">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="379" y="0" width="607" height="728" key="find.popup/0.0.1366.728@0.0.1366.728" timestamp="1577677003195" />
-    <state x="533" y="0" width="854" height="960" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585230040941" />
-    <state x="781" y="256" key="ftp.server.browser" timestamp="1584717399128">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="781" y="256" key="ftp.server.browser/0.0.1920.1040@0.0.1920.1040" timestamp="1584717399128" />
-    <state x="702" y="146" key="refactoring.ChangeSignatureDialog" timestamp="1582879168983">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="702" y="146" key="refactoring.ChangeSignatureDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1582879168983" />
-    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1584856791113">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1584856791113" />
-  </component>
-  <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/ngcore$go_test_ngcore.out" NAME="go test ngcore Coverage Results" MODIFIED="1584836840925" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
-    <SUITE FILE_PATH="coverage/ngcore$gocheck_ngcore.out" NAME="gocheck ngcore Coverage Results" MODIFIED="1584797182885" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585292046191" />
   </component>
 </project>

@@ -24,11 +24,6 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 	// new genesisBlock
 	runtime.GOMAXPROCS(3)
 
-	//coinBase := operation.GetCoinbaseOperation()
-	//ops := []*operation.Operation{coinBase}
-	//pk, _ := base58.FastBase58Decoding(GenesisPK)
-	//genesisMTree := [32]byte{} //operation.GetMTreeHash(ops)
-
 	b := NewBareBlock(2, nil, nil, GenesisTarget)
 	b, err := b.ToUnsealing(nil)
 	if err != nil {

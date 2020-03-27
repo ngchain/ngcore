@@ -5,7 +5,7 @@ import (
 	"github.com/maoxs2/go-jsonrpc2/jsonrpc2http"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/sheet"
+	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/txpool"
 	"github.com/whyrusleeping/go-logging"
 )
@@ -13,19 +13,25 @@ import (
 var log = logging.MustGetLogger("rpc")
 
 type Server struct {
-	consensus *consensus.Consensus
+	consensus    *consensus.Consensus
+	sheetManager *ngsheet.Manager
+	txPool       *txpool.TxPool
+
 	localNode *ngp2p.LocalNode
 	*jsonrpc2http.Server
 }
 
-func NewServer(host string, port int, consensus *consensus.Consensus, localNode *ngp2p.LocalNode, sheetManager *sheet.Manager, pool *txpool.TxPool) *Server {
+func NewServer(host string, port int, consensus *consensus.Consensus, localNode *ngp2p.LocalNode, sheetManager *ngsheet.Manager, txPool *txpool.TxPool) *Server {
 	addr := fmt.Sprintf("%s:%d", host, port)
 
 	s := &Server{
-		consensus: consensus,
-		localNode: localNode,
-		Server:    nil,
+		sheetManager: sheetManager,
+		consensus:    consensus,
+		txPool:       txPool,
+		localNode:    localNode,
+		Server:       nil,
 	}
+
 	s.Server = jsonrpc2http.NewServer(addr, NewHTTPHandler(s))
 	return s
 }

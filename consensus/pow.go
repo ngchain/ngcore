@@ -15,12 +15,15 @@ import (
 var log = logging.MustGetLogger("consensus")
 
 // the main of consensus, shouldn't be shut down
-func (c *Consensus) InitPoW() {
+func (c *Consensus) InitPoW(workerNum int) {
 	log.Info("Initializing PoW consensus")
 
+	if workerNum == 0 {
+		workerNum = runtime.NumCPU()
+	}
+
 	if c.mining {
-		// TODO: add mining cpu number flag
-		c.miner = miner.NewMiner(runtime.NumCPU() / 2)
+		c.miner = miner.NewMiner(workerNum)
 		c.miner.Start(c.GetBlockTemplate())
 
 		go func() {
@@ -73,8 +76,8 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 
 	extraData := []byte("ngCore")
 
-	Gen := c.CreateGeneration(c.privateKey, newBlockHeight, currentBlockHash, currentVaultHash, extraData)
-	txsWithGen := append([]*ngtypes.Transaction{Gen}, c.TxPool.GetPackTxs(MaxTxsSize)...)
+	Gen := c.CreateGeneration(c.PrivateKey, newBlockHeight, extraData)
+	txsWithGen := append([]*ngtypes.Transaction{Gen}, c.TxPool.GetPackTxs()...)
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
 		log.Error(err)
@@ -130,13 +133,17 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		}
 	}
 
-	err = c.Chain.MinedNewBlock(b) // TODO: chain should verify the block
+	err = c.Chain.MinedNewBlock(b)
 	if err != nil {
 		log.Warning(err)
 		return
 	}
 
-	c.SheetManager.ApplyBlockTxs(b)
+	err = c.SheetManager.ApplyTxs(b.Transactions...)
+	if err != nil {
+		log.Warning(err)
+		return
+	}
 
 	if b.Header.IsTail() {
 		currentVault := c.GenNewVault(b.Header.Height/ngtypes.BlockCheckRound, b.Header.PrevVaultHash)
@@ -155,7 +162,7 @@ func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *n
 	accountNumber := utils.RandUint64()
 	log.Infof("New account: %d", accountNumber)
 
-	ownerKey := elliptic.Marshal(elliptic.P256(), c.privateKey.PublicKey.X, c.privateKey.PublicKey.Y)
+	ownerKey := elliptic.Marshal(elliptic.P256(), c.PrivateKey.PublicKey.X, c.PrivateKey.PublicKey.Y)
 
 	newVault := ngtypes.NewVault(accountNumber, ownerKey, prevVaultHeight, prevVaultHash, c.SheetManager.GenerateSheet())
 	hash, _ := newVault.CalculateHash()

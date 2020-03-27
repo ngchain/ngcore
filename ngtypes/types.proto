@@ -52,6 +52,7 @@ message TxHeader {
     repeated bytes values = 13;
 
     uint64 nonce = 14;
+
     // extension
     bytes extra = 20;
 }

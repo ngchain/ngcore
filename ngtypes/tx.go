@@ -25,7 +25,31 @@ var (
 // types:
 // 0 = generation
 // 1 = tx
-// 2=
+// 2= state(contract)
+
+// NewUnsignedTransaction will return an Unsigned Operation, must using Signature()
+func NewUnsignedTransaction(txType int32, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
+	header := &TxHeader{
+		Version:      Version,
+		Type:         txType,
+		Convener:     convener,
+		Participants: participants,
+		Fee:          fee.Bytes(),
+		Values:       BigIntsToBytesList(values),
+		Nonce:        nonce,
+		Extra:        extraData,
+	}
+
+	hash, _ := header.CalculateHash()
+
+	return &Transaction{
+		Header:     header,
+		HeaderHash: hash,
+
+		R: nil,
+		S: nil,
+	}
+}
 
 // IsSigned will return whether the op has been signed
 func (m *Transaction) IsSigned() bool {
@@ -53,8 +77,8 @@ func (m *Transaction) Verify(pubKey ecdsa.PublicKey) bool {
 	return ecdsa.Verify(&pubKey, b, new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S))
 }
 
-// ReadableID = txs in string
-func (m *Transaction) Bs58Bytes() string {
+// Bs58 is a tx's ReadableID in string
+func (m *Transaction) Bs58() string {
 	b, err := proto.Marshal(m)
 	if err != nil {
 		log.Error(err)
@@ -62,7 +86,7 @@ func (m *Transaction) Bs58Bytes() string {
 	return base58.FastBase58Encoding(b)
 }
 
-// HashHex
+// HashHex is a tx's ReadableID in string
 func (m *Transaction) HashHex() string {
 	b, err := m.CalculateHash()
 	if err != nil {
@@ -126,30 +150,6 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 		bytesList[i] = bigInts[i].Bytes()
 	}
 	return bytesList
-}
-
-// NewUnsignedTransaction will return an Unsigned Operation, must using Signature()
-func NewUnsignedTransaction(txType int32, sender uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
-	header := &TxHeader{
-		Version:      Version,
-		Type:         txType,
-		Convener:     sender,
-		Participants: participants,
-		Fee:          fee.Bytes(),
-		Values:       BigIntsToBytesList(values),
-		Nonce:        nonce,
-		Extra:        extraData,
-	}
-
-	hash, _ := header.CalculateHash()
-
-	return &Transaction{
-		Header:     header,
-		HeaderHash: hash,
-
-		R: nil,
-		S: nil,
-	}
 }
 
 func (m *Transaction) Check() error {
@@ -229,9 +229,10 @@ func GetGenesisGeneration() *Transaction {
 
 	headerHash, _ := proto.Marshal(header)
 
+	// FIXME: before init network should manually init the R & S
 	r, _ := hex.DecodeString("db60cdda46c5c4efb1eadd797b27bc785a713c16b5e33d92010cf1828855e577")
 	s, _ := hex.DecodeString("f28ec61c9ec8e889377c34e8359b25f355500b15189c1c7f3f1f2fff61eb7873")
-	// TODO: before init network should manually init the R & S
+
 	return &Transaction{
 		Header:     header,
 		HeaderHash: headerHash,

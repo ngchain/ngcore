@@ -3,7 +3,7 @@ package ngchain
 import "github.com/ngchain/ngcore/ngtypes"
 
 func (c *Chain) MinedNewBlock(block *ngtypes.Block) error {
-	err := c.PutNewBlock(block)
+	err := c.PutNewBlock(block) // chain will verify the block
 	if err != nil {
 		return err
 	}

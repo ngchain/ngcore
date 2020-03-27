@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (s *Server) AddNode(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) addNodeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params string
 	utils.Json.Unmarshal(msg.Params, &params)
 	targetAddr, err := multiaddr.NewMultiaddr(params)
@@ -27,5 +27,7 @@ func (s *Server) AddNode(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage 
 	}
 
 	s.localNode.Ping(targetInfo.ID)
-	return nil
+
+	ok, _ := utils.Json.Marshal(true)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }

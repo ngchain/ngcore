@@ -41,12 +41,12 @@ go build ./cmd/ngcore
 Bazel works better in linux than windows (personal experience)
 
 ```bash
-// BUILD.bazel files are not always updated with codes, it would be better update them (with gazelle)
+# BUILD.bazel files are not always updated with codes, it would be better update them (with gazelle)
 bazel run //:gazelle -- -go_prefix github.com/ngchain/ngcore
 
-// update repos from go.mod
+# update repos from go.mod
 bazel run //:gazelle -- update-repos -from_file=go.mod
 
-// build the ngcore
+# build the ngcore
 bazel build //cmd/ngcore
 ```

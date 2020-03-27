@@ -7,8 +7,8 @@ import (
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/rpc"
-	"github.com/ngchain/ngcore/sheet"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/txpool"
 	"github.com/whyrusleeping/go-logging"
@@ -61,9 +61,10 @@ var keyPassFlag = cli.StringFlag{
 	Value: "",
 }
 
-var miningFlag = cli.BoolFlag{
+var miningFlag = cli.IntFlag{
 	Name:  "mining",
-	Usage: "start mining",
+	Value: -1,
+	Usage: "Value is the worker number on mining. Mining starts when value is not negative. And when value equals to 0, use all cpu cores",
 }
 
 var format = logging.MustStringFormatter(
@@ -77,7 +78,7 @@ var action = func(c *cli.Context) error {
 	logging.SetBackend(formatter)
 
 	isBootstrapNode := c.Bool("bootstrap")
-	isMining := c.Bool("mining")
+	isMining := c.Int("mining") >= 0
 	isStrictMode := isBootstrapNode || c.BoolT("strict")
 	p2pTcpPort := c.Int("p2p-port")
 	rpcPort := c.Int("rpc-port")
@@ -106,8 +107,8 @@ var action = func(c *cli.Context) error {
 		chain.InitWithGenesis()
 		// then sync
 	}
-	sheetManager := sheet.NewSheetManager()
-	txPool := txpool.NewTxPool()
+	sheetManager := ngsheet.NewSheetManager()
+	txPool := txpool.NewTxPool(sheetManager)
 
 	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
@@ -134,7 +135,7 @@ var action = func(c *cli.Context) error {
 		txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
 		txPool.Run()
 
-		consensusManager.InitPoW()
+		consensusManager.InitPoW(c.Int("mining"))
 	})
 
 	// notify the exit events
