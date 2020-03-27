@@ -24,8 +24,8 @@ go_library(
     deps = [
         "//ngchain:go_default_library",
         "//ngp2p/pb:go_default_library",
+        "//ngsheet:go_default_library",
         "//ngtypes:go_default_library",
-        "//sheet:go_default_library",
         "//txpool:go_default_library",
         "@com_github_gogo_protobuf//io:go_default_library",
         "@com_github_gogo_protobuf//proto:go_default_library",

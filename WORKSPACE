@@ -1893,8 +1893,8 @@ go_repository(
 go_repository(
     name = "com_github_maoxs2_go_jsonrpc2",
     importpath = "github.com/maoxs2/go-jsonrpc2",
-    sum = "h1:+T3x+yy/3c7JPG0PyLK63qDGAfOjs6Rlja7ZcXtFUN0=",
-    version = "v0.0.0-20200326123631-d1ff299b7b74",
+    sum = "h1:iO8GM9xWv3iRzA1sBVhyhEJAbjGR9gJo/2K8TYufPfY=",
+    version = "v0.0.0-20200326130745-a6a35812420f",
 )
 
 go_repository(

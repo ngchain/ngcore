@@ -20,7 +20,7 @@ go_library(
         "defaults.go",
         "doc.go",
         "sheet.go",
-        "transaction.go",
+        "tx.go",
         "txHeader.go",
         "txTrie.go",
         "vault.go",
@@ -43,7 +43,7 @@ go_test(
     srcs = [
         "account_test.go",
         "block_test.go",
-        "transaction_test.go",
+        "tx_test.go",
         "vault_test.go",
     ],
     embed = [":go_default_library"],

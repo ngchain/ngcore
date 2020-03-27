@@ -2,10 +2,16 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = ["pool.go"],
+    srcs = [
+        "check.go",
+        "get.go",
+        "pool.go",
+        "put.go",
+    ],
     importpath = "github.com/ngchain/ngcore/txpool",
     visibility = ["//visibility:public"],
     deps = [
+        "//ngsheet:go_default_library",
         "//ngtypes:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",
     ],

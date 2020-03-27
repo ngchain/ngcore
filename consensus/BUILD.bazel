@@ -3,8 +3,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
+        "check.go",
         "consensus.go",
-        "defaults.go",
         "difficulty.go",
         "forker.go",
         "generation.go",
@@ -15,8 +15,8 @@ go_library(
     deps = [
         "//consensus/miner:go_default_library",
         "//ngchain:go_default_library",
+        "//ngsheet:go_default_library",
         "//ngtypes:go_default_library",
-        "//sheet:go_default_library",
         "//txpool:go_default_library",
         "//utils:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",

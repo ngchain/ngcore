@@ -152,8 +152,6 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 			panic(err)
 		}
 	}
-
-	c.template = nil
 }
 
 // GenNewVault is called when the reached a checkpoint, then generate a
