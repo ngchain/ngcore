@@ -34,13 +34,6 @@ func (m *Manager) ApplyTxs(txs ...*ngtypes.Transaction) error {
 		return err
 	}
 
-	for _, tx := range txs {
-		err = tx.Check()
-		if err != nil {
-			return err
-		}
-	}
-
 	m.accountsMu.Lock()
 	defer m.accountsMu.Unlock()
 

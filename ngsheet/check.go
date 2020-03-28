@@ -3,11 +3,9 @@ package ngsheet
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"encoding/hex"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// TODO
 // CheckTx will check the influenced accounts which mentioned in op, and verify their balance and nonce
 func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 	// checkFrom
@@ -23,22 +21,18 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 	defer m.anonymousMu.RUnlock()
 
 	for _, tx := range txs {
+		// check tx is sgined
 		if !tx.IsSigned() {
 			return ngtypes.ErrTxIsNotSigned
 		}
 
 		switch tx.GetType() {
 		case 0:
-			x, y := elliptic.Unmarshal(elliptic.P256(), tx.GetParticipants()[0])
-			publicKey := ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     x,
-				Y:     y,
-			}
-			if !tx.Verify(publicKey) {
-				return ngtypes.ErrTxWrongSign
+			if err := tx.CheckGen(); err != nil {
+				return err
 			}
 		case 1:
+			// check convener exists
 			convener, exists := m.accounts[tx.GetConvener()]
 			if !exists {
 				return ngtypes.ErrAccountNotExists
@@ -54,25 +48,17 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 				return ngtypes.ErrTxBalanceInsufficient
 			}
 
-			// checkTo
-			// - check exist
-			for i := range tx.GetParticipants() {
-				_, exists = m.anonymous[hex.EncodeToString(tx.GetParticipants()[i])]
-				if !exists {
-					return ngtypes.ErrAccountNotExists
-				}
-			}
-
 			x, y := elliptic.Unmarshal(elliptic.P256(), convener.Owner)
 			pubKey := ecdsa.PublicKey{
 				Curve: elliptic.P256(),
 				X:     x,
 				Y:     y,
 			}
-			if !tx.Verify(pubKey) {
-				return ngtypes.ErrTxWrongSign
+			if err := tx.CheckTx(pubKey); err != nil {
+				return err
 			}
 
+			// check nonce
 			if convener.Nonce >= tx.GetNonce() {
 				return ngtypes.ErrBlockNonceInvalid
 			}

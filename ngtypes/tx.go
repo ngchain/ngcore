@@ -3,9 +3,11 @@ package ngtypes
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
 	"math/big"
@@ -97,14 +99,6 @@ func (m *Transaction) HashHex() string {
 	return hex.EncodeToString(b)
 }
 
-// Bs58 is for portable // should support this in wallet module
-//func (m *Transaction) Bs58() string {
-//	raw, _ := m.Marshal()
-//	base58.FastBase58Encoding()
-//
-//	return hex.EncodeToString(b)
-//}
-
 // CalculateHash mainly for calculating the tire root of txs and sign tx
 func (m *Transaction) CalculateHash() ([]byte, error) {
 	raw, err := m.Marshal()
@@ -152,10 +146,55 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	return bytesList
 }
 
-func (m *Transaction) Check() error {
+// CheckTx checks normal tx. publicKey should get from sheet
+func (m *Transaction) CheckTx(publicKey ecdsa.PublicKey) error {
+	if m.GetConvener() == 0 {
+		return fmt.Errorf("tx's convener should not be 0")
+	}
+
 	if m.Header == nil {
 		return errors.New("tx is missing header")
 	}
+
+	if !m.Verify(publicKey) {
+		return fmt.Errorf("failed to verify the tx with publicKey")
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckGen() error {
+	if m.Header == nil {
+		return errors.New("generation is missing header")
+	}
+
+	if len(m.GetParticipants()) != 1 {
+		return fmt.Errorf("generation should have only one participant")
+	}
+
+	x, y := elliptic.Unmarshal(elliptic.P256(), m.GetParticipants()[0])
+	publicKey := ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     x,
+		Y:     y,
+	}
+
+	if !m.Verify(publicKey) {
+		return fmt.Errorf("failed to verify the tx with publicKey")
+	}
+
+	if m.GetConvener() != 0 {
+		return fmt.Errorf("generation's convener should be 0")
+	}
+
+	if len(m.GetValues()) != 1 {
+		return fmt.Errorf("generation should have only one value")
+	}
+
+	if new(big.Int).SetBytes(m.GetValues()[0]).Cmp(OneBlockReward) != 0 {
+		return fmt.Errorf("wrong block reward")
+	}
+
 	return nil
 }
 

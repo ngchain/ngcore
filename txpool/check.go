@@ -21,11 +21,5 @@ func (p *TxPool) CheckTxs(txs ...*ngtypes.Transaction) bool {
 		return false
 	}
 
-	for i := range txs {
-		if txs[i].Check() != nil {
-			return false
-		}
-	}
-
 	return true
 }

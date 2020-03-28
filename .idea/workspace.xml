@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/rpc/sheet.go" afterDir="false" />
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="migrate travis">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.travis.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/apply.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/apply.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/check.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/check.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/put.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/put.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,7 +94,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="rename&amp;add&#10;&#10;1. rename sheet to ngsheet&#10;&#10;2. expand txpool&#10;&#10;3. add sendtx rpc&#10;&#10;4. some error check" />
     <MESSAGE value="update bazel and bugfix" />
-    <option name="LAST_COMMIT_MESSAGE" value="update bazel and bugfix" />
+    <MESSAGE value="migrate travis" />
+    <option name="LAST_COMMIT_MESSAGE" value="migrate travis" />
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
@@ -119,10 +123,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585300522955" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585314892060">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585317698017">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585314892060" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585317698017" />
     <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585281455596">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -151,13 +155,21 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="329" y="329" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585300868767" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585314894198">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585317466977">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585314894198" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585317466977" />
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585317591481">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585317591481" />
     <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585292046191">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585292046191" />
+    <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585317619179">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="693" y="308" key="git4idea.merge.GitPullDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585317619179" />
   </component>
 </project>

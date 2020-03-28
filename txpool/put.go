@@ -6,7 +6,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// TODO: using this method in rpc
+// PutNewTxFromLocal puts tx from local(rpc) into txpool
 func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Transaction) error {
 	err := p.PutTxs(tx)
 	if err != nil {
@@ -22,6 +22,7 @@ func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Transaction) error {
 	return nil
 }
 
+// PutTxs puts txs from network(p2p) into txpool
 func (p *TxPool) PutTxs(txs ...*ngtypes.Transaction) error {
 	p.Lock()
 	defer p.Unlock()
