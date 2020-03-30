@@ -11,7 +11,6 @@ import (
 
 // ApplyVault will apply list and delists in vault to balanceSheet
 func (m *Manager) ApplyVault(v *ngtypes.Vault) error {
-
 	if v.List != nil && v.List.ID != 0 {
 		if ok := m.RegisterAccount(v.List); !ok {
 			return fmt.Errorf("failed to register account: %d", v.List.ID)

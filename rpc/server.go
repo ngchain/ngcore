@@ -22,8 +22,6 @@ type Server struct {
 }
 
 func NewServer(host string, port int, consensus *consensus.Consensus, localNode *ngp2p.LocalNode, sheetManager *ngsheet.Manager, txPool *txpool.TxPool) *Server {
-	addr := fmt.Sprintf("%s:%d", host, port)
-
 	s := &Server{
 		sheetManager: sheetManager,
 		consensus:    consensus,
@@ -32,10 +30,11 @@ func NewServer(host string, port int, consensus *consensus.Consensus, localNode 
 		Server:       nil,
 	}
 
-	s.Server = jsonrpc2http.NewServer(addr, NewHTTPHandler(s))
+	s.Server = jsonrpc2http.NewServer(fmt.Sprintf("%s:%d", host, port), NewHTTPHandler(s))
 	return s
 }
 
 func (s *Server) Run() {
+	log.Info("rpc server running")
 	s.ListenAndServe()
 }

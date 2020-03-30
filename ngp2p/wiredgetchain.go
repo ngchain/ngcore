@@ -25,7 +25,7 @@ func (w *Wired) GetChain(remotePeerId peer.ID, requestHeight uint64) bool {
 	}
 
 	// sign the data
-	signature, err := w.node.signProtoMessage(req)
+	signature, err := w.node.signMessage(req)
 	if err != nil {
 		log.Error("failed to sign pb data")
 		return false
@@ -56,10 +56,15 @@ func (w *Wired) onGetChain(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data pb.Message
-	err = proto.Unmarshal(buf, &data)
+	var data = &pb.Message{}
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
+		return
+	}
+
+	if !w.node.authenticateMessage(data) {
+		log.Errorf("Failed to authenticate message")
 		return
 	}
 

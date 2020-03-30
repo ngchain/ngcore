@@ -118,7 +118,7 @@ func (m *Transaction) Equals(other merkletree.Content) (bool, error) {
 		return false, errors.New("invalid operation type")
 	}
 
-	equal = equal && bytes.Compare(tx.HeaderHash, m.HeaderHash) == 0
+	equal = equal && bytes.Equal(tx.HeaderHash, m.HeaderHash)
 	//equal = equal && reflect.DeepEqual(tx, m)
 
 	return equal, nil

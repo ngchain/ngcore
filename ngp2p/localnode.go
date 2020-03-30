@@ -32,7 +32,6 @@ type LocalNode struct {
 	*Wired
 	*Broadcaster
 
-	mu            sync.Mutex
 	isInitialized *atomic.Bool
 
 	isSyncedCh  chan bool
@@ -153,18 +152,38 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *ngsheet.Manager, ch
 // Authenticate incoming p2p message
 // message: a protobufs go data object
 // data: common p2p message data
-func (n *LocalNode) verifyResponse(header *pb.Header) bool {
-	if _, exists := n.requests.Load(header.Uuid); exists {
+func (n *LocalNode) verifyResponse(message *pb.Message) bool {
+	if _, exists := n.requests.Load(message.Header.Uuid); !exists {
 		// remove request from map as we have processed it here
-		n.requests.Delete(header.Uuid)
-		return true
+		return false
 	}
 
-	return false
+	n.requests.Delete(message.Header.Uuid)
+	return true
+}
+
+func (n *LocalNode) authenticateMessage(message *pb.Message) bool {
+	sign := message.Header.Sign
+	message.Header.Sign = nil
+
+	raw, err := proto.Marshal(message)
+	if err != nil {
+		log.Errorf("failed to marshal pb message: %v", err)
+		return false
+	}
+
+	message.Header.Sign = sign
+	peerId, err := peer.Decode(message.Header.Uuid)
+	if err != nil {
+		log.Errorf("Failed to decode node id from base58: %v", err)
+		return false
+	}
+
+	return n.verifyData(raw, sign, peerId, message.Header.PeerKey)
 }
 
 // sign an outgoing p2p message payload
-func (n *LocalNode) signProtoMessage(message proto.Message) ([]byte, error) {
+func (n *LocalNode) signMessage(message *pb.Message) ([]byte, error) {
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err

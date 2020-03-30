@@ -156,7 +156,7 @@ func (m *Block) CheckError() error {
 	}
 
 	mTreeHash := NewTxTrie(m.Transactions).TrieRoot()
-	if bytes.Compare(mTreeHash, m.Header.TrieHash) != 0 {
+	if !bytes.Equal(mTreeHash, m.Header.TrieHash) {
 		return ErrBlockMTreeInvalid
 	}
 

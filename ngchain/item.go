@@ -32,7 +32,7 @@ func checkChain(items ...Item) error {
 
 			if prevBlock != nil {
 				prevBlockHash, _ := prevBlock.CalculateHash()
-				if bytes.Compare(prevBlockHash, curBlock.GetPrevHash()) != 0 {
+				if !bytes.Equal(prevBlockHash, curBlock.GetPrevHash()) {
 					curHash, _ := curBlock.CalculateHash()
 					return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash", curBlock.GetHeight(), curHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
 				}
@@ -45,7 +45,7 @@ func checkChain(items ...Item) error {
 
 			if prevVault != nil {
 				prevVaultHash, _ := prevVault.CalculateHash()
-				if bytes.Compare(prevVaultHash, curVault.GetPrevHash()) != 0 {
+				if bytes.Equal(prevVaultHash, curVault.GetPrevHash()) {
 					curVaultHash, _ := curVault.CalculateHash()
 					return fmt.Errorf("vault@%d:%x 's prevHash: %x is not matching vault@%d:%x 's hash", curVault.GetHeight(), curVaultHash, curVault.GetPrevHash(), prevVault.GetHeight(), prevVaultHash)
 				}

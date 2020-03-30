@@ -34,13 +34,15 @@ func NewMiner(threadNum int) *Miner {
 		FoundBlockCh: make(chan *ngtypes.Block),
 	}
 
-	reportCh := time.Tick(time.Minute)
-	elapsed := int64(60)
-
 	go func() {
+		reportTicker := time.NewTicker(time.Minute)
+		defer reportTicker.Stop()
+
+		elapsed := int64(60)
+
 		for {
 			select {
-			case <-reportCh:
+			case <-reportTicker.C:
 				go func() {
 					hashes := m.hashes.Load()
 					log.Infof("Total Hashrate: %d h/s", hashes/elapsed)
@@ -54,7 +56,7 @@ func NewMiner(threadNum int) *Miner {
 }
 
 func (m *Miner) Start(initJob *ngtypes.Block) {
-	if m.isRunning.Load() == true {
+	if m.isRunning.Load() {
 		return
 	}
 	m.isRunning.Store(true)
@@ -67,7 +69,7 @@ func (m *Miner) Start(initJob *ngtypes.Block) {
 }
 
 func (m *Miner) Stop() {
-	if m.isRunning.Load() == false {
+	if !m.isRunning.Load() {
 		return
 	}
 

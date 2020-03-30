@@ -3,7 +3,6 @@
 package consensus
 
 import (
-	"bytes"
 	"crypto/elliptic"
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -57,9 +56,7 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 
 	currentBlock := c.Chain.GetLatestBlock()
 	currentBlockHash, _ := currentBlock.CalculateHash()
-	if bytes.Compare(currentBlockHash, c.Chain.GetLatestBlockHash()) != 0 {
-		panic("")
-	}
+
 	newBlockHeight := currentBlock.Header.Height + 1
 
 	currentVault := c.Chain.GetLatestVault()

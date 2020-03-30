@@ -22,11 +22,13 @@ func (w *Wired) UpdateStatus() {
 }
 
 func (w *Wired) Sync() {
-	syncInterval := time.Tick(ngtypes.TargetTime)
+	syncTicker := time.NewTicker(ngtypes.TargetTime)
+	defer syncTicker.Stop()
+
 	lastTimeIsSynced := false //default
 	for {
 		select {
-		case <-syncInterval:
+		case <-syncTicker.C:
 			for _, peer := range w.node.Peerstore().Peers() {
 				if peer == w.node.ID() {
 					continue

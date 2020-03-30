@@ -22,7 +22,7 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 	if firstVault, ok := chain[0].(*ngtypes.Vault); !ok {
 		return fmt.Errorf("first one of chain shall be an vault")
 	} else {
-		if hash, _ := firstVault.CalculateHash(); bytes.Compare(hash, ngtypes.GenesisVaultHash) != 0 {
+		if hash, _ := firstVault.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
 			// not genesis
 			_, err := c.GetVaultByHash(firstVault.GetPrevHash())
 			if err != nil {
@@ -34,7 +34,7 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 	if firstBlock, ok := chain[1].(*ngtypes.Block); !ok {
 		return fmt.Errorf("second one of chain shall be a block")
 	} else {
-		if hash, _ := firstBlock.CalculateHash(); bytes.Compare(hash, ngtypes.GenesisBlockHash) != 0 {
+		if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
 			// not genesis
 			_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
 			if err != nil {

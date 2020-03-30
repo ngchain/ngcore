@@ -84,7 +84,7 @@ func (c *Chain) HasGenesisBlock() bool {
 		if hash != nil {
 			has = true
 		}
-		if bytes.Compare(hash, ngtypes.GenesisBlockHash) != 0 {
+		if !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
 			panic("wrong genesis block in db")
 		}
 
@@ -111,7 +111,7 @@ func (c *Chain) HasGenesisVault() bool {
 		if hash != nil {
 			has = true
 		}
-		if bytes.Compare(hash, ngtypes.GenesisVaultHash) != 0 {
+		if !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
 			panic("wrong genesis vault in db")
 		}
 

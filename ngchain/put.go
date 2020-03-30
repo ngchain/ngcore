@@ -15,11 +15,11 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash, _ := block.CalculateHash()
-	if bytes.Compare(hash, ngtypes.GenesisBlockHash) != 0 {
+	if !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
 		// when block is not genesis block, checking error
 		if block.GetHeight() != 0 {
 			if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
-				if hashInDB, _ := b.CalculateHash(); bytes.Compare(hash, hashInDB) == 0 {
+				if hashInDB, _ := b.CalculateHash(); bytes.Equal(hash, hashInDB) {
 					return nil
 				}
 				return fmt.Errorf("has block in same height: %v", b)
@@ -62,11 +62,11 @@ func (c *Chain) PutNewVault(vault *ngtypes.Vault) error {
 	}
 
 	hash, _ := vault.CalculateHash()
-	if bytes.Compare(hash, ngtypes.GenesisVaultHash) != 0 {
+	if !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
 		// when vault is not genesis vault, checking error
 		if vault.GetHeight() != 0 {
 			if v, _ := c.GetVaultByHeight(vault.GetHeight()); v != nil {
-				if hashInDB, _ := v.CalculateHash(); bytes.Compare(hash, hashInDB) == 0 {
+				if hashInDB, _ := v.CalculateHash(); bytes.Equal(hash, hashInDB) {
 					return nil
 				}
 				return fmt.Errorf("has vault in same height: %v", v)
@@ -134,7 +134,7 @@ func (c *Chain) PutNewBlockWithVault(vault *ngtypes.Vault, block *ngtypes.Block)
 
 	vaultHash, _ := vault.CalculateHash()
 
-	if bytes.Compare(vaultHash, block.Header.PrevVaultHash) != 0 {
+	if !bytes.Equal(vaultHash, block.Header.PrevVaultHash) {
 		return fmt.Errorf("vault hash is not matching block's prev vault hash")
 	}
 
@@ -197,7 +197,7 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 	if firstVault, ok := chain[0].(*ngtypes.Vault); !ok {
 		return fmt.Errorf("first one of chain shall be an vault")
 	} else {
-		if hash, _ := firstVault.CalculateHash(); bytes.Compare(hash, ngtypes.GenesisVaultHash) != 0 {
+		if hash, _ := firstVault.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
 			// not genesis
 			_, err := c.GetVaultByHash(firstVault.GetPrevHash())
 			if err != nil {
@@ -209,7 +209,7 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 	if firstBlock, ok := chain[1].(*ngtypes.Block); !ok {
 		return fmt.Errorf("second one of chain shall be a block")
 	} else {
-		if hash, _ := firstBlock.CalculateHash(); bytes.Compare(hash, ngtypes.GenesisBlockHash) != 0 {
+		if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
 			// not genesis
 			_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
 			if err != nil {

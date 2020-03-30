@@ -53,7 +53,7 @@ func (m *Sheet) GetAccountByKey(publicKey ecdsa.PublicKey) ([]*Account, error) {
 	accounts := make([]*Account, 0)
 	bPublicKey := elliptic.Marshal(elliptic.P256(), publicKey.X, publicKey.Y)
 	for i := range m.Accounts {
-		if bytes.Compare(m.Accounts[i].Owner, bPublicKey) == 0 {
+		if bytes.Equal(m.Accounts[i].Owner, bPublicKey) {
 			accounts = append(accounts, m.Accounts[i])
 		}
 	}
@@ -64,7 +64,7 @@ func (m *Sheet) GetAccountByKey(publicKey ecdsa.PublicKey) ([]*Account, error) {
 func (m *Sheet) GetAccountByKeyBytes(bPublicKey []byte) ([]*Account, error) {
 	accounts := make([]*Account, 0)
 	for i := range m.Accounts {
-		if bytes.Compare(m.Accounts[i].Owner, bPublicKey) == 0 {
+		if !bytes.Equal(m.Accounts[i].Owner, bPublicKey) {
 			accounts = append(accounts, m.Accounts[i])
 		}
 	}

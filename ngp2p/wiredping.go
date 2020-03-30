@@ -30,7 +30,7 @@ func (w *Wired) Ping(remotePeerId peer.ID) bool {
 	}
 
 	// sign the data
-	signature, err := w.node.signProtoMessage(req)
+	signature, err := w.node.signMessage(req)
 	if err != nil {
 		log.Errorf("failed to sign pb data")
 		return false
@@ -67,6 +67,11 @@ func (w *Wired) onPing(s network.Stream) {
 	if err != nil {
 		log.Error(err)
 		go w.Reject(s, data.Header.Uuid)
+		return
+	}
+
+	if !w.node.authenticateMessage(data) {
+		log.Errorf("Failed to authenticate message")
 		return
 	}
 

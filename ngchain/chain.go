@@ -175,7 +175,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 }
 
 func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
-	if bytes.Compare(hash, ngtypes.GenesisBlockHash) == 0 {
+	if !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
 		return ngtypes.GetGenesisBlock(), nil
 	}
 
@@ -252,7 +252,7 @@ func (c *Chain) GetVaultByHeight(height uint64) (*ngtypes.Vault, error) {
 }
 
 func (c *Chain) GetVaultByHash(hash []byte) (*ngtypes.Vault, error) {
-	if bytes.Compare(hash, ngtypes.GenesisVaultHash) == 0 {
+	if bytes.Equal(hash, ngtypes.GenesisVaultHash) {
 		return ngtypes.GetGenesisVault(), nil
 	}
 

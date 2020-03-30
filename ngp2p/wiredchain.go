@@ -17,8 +17,10 @@ func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayloa
 	for i := getchain.VaultHeight * ngtypes.BlockCheckRound; i < (getchain.VaultHeight+1)*ngtypes.BlockCheckRound; i++ {
 		b, err := w.node.Chain.GetBlockByHeight(i)
 		if err != nil {
-
+			log.Errorf("missing block@%d: %s", err)
+			break
 		}
+
 		if b == nil {
 			log.Errorf("missing block@%d", i)
 			break
@@ -48,7 +50,7 @@ func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayloa
 	}
 
 	// sign the data
-	signature, err := w.node.signProtoMessage(req)
+	signature, err := w.node.signMessage(req)
 	if err != nil {
 		log.Infof("failed to sign pb data")
 		return false
@@ -78,14 +80,14 @@ func (w *Wired) onChain(s network.Stream) {
 	s.Close()
 
 	// unmarshal it
-	var data pb.Message
-	err = proto.Unmarshal(buf, &data)
+	var data = &pb.Message{}
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	if !w.node.verifyResponse(data.Header) {
+	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}

@@ -30,7 +30,7 @@ func (w *Wired) Pong(s network.Stream, uuid string) bool {
 	}
 
 	// sign the data
-	signature, err := w.node.signProtoMessage(resp)
+	signature, err := w.node.signMessage(resp)
 	if err != nil {
 		log.Error("failed to sign response")
 		return false
@@ -64,8 +64,8 @@ func (w *Wired) onPong(s network.Stream) {
 		return
 	}
 
-	if !w.node.verifyResponse(data.Header) {
-		log.Error("Failed to authenticate message")
+	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(data) {
+		log.Errorf("Failed to authenticate message")
 		return
 	}
 
@@ -102,7 +102,7 @@ func (w *Wired) onPong(s network.Stream) {
 		return
 	}
 
-	if localVaultHeight == pong.VaultHeight && bytes.Compare(localVaultHash, pong.LatestVaultHash) != 0 {
+	if localVaultHeight == pong.VaultHeight && !bytes.Equal(localVaultHash, pong.LatestVaultHash) {
 		// start fork
 		log.Infof("start switching to the chain of %s", s.Conn().RemotePeer())
 		go w.GetChain(s.Conn().RemotePeer(), pong.VaultHeight)

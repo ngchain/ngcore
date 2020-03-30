@@ -21,7 +21,7 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 	defer m.anonymousMu.RUnlock()
 
 	for _, tx := range txs {
-		// check tx is sgined
+		// check tx is signed
 		if !tx.IsSigned() {
 			return ngtypes.ErrTxIsNotSigned
 		}

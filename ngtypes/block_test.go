@@ -83,7 +83,7 @@ func TestBlock_Marshal(t *testing.T) {
 	var genesisBlock_ Block
 	_ = proto.Unmarshal(block, &genesisBlock_)
 	_block, _ := genesisBlock_.Marshal()
-	if bytes.Compare(block, _block) != 0 {
+	if !bytes.Equal(block, _block) {
 		t.Fail()
 	}
 }

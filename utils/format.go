@@ -5,7 +5,6 @@ import (
 
 	"encoding/hex"
 	"fmt"
-	"unsafe"
 )
 
 const (
@@ -29,14 +28,6 @@ func Hex2Bytes(s string) []byte {
 		panic(err)
 	}
 	return b
-}
-
-func Bytes2String(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b))
-}
-
-func String2Bytes(s string) []byte {
-	return []byte(s)
 }
 
 func ReadBits(bigint *big.Int, buf []byte) {

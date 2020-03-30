@@ -16,7 +16,7 @@ func (w *Wired) Reject(s network.Stream, uuid string) {
 	}
 
 	// sign the data
-	signature, err := w.node.signProtoMessage(resp)
+	signature, err := w.node.signMessage(resp)
 	if err != nil {
 		log.Errorf("failed to sign response")
 		return

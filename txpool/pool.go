@@ -2,15 +2,9 @@ package txpool
 
 import (
 	"github.com/ngchain/ngcore/ngsheet"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/whyrusleeping/go-logging"
 	"sync"
-	"time"
-
-	"github.com/ngchain/ngcore/ngtypes"
-)
-
-const (
-	expireTTL = time.Minute * 15
 )
 
 var log = logging.MustGetLogger("txpool")
@@ -28,8 +22,6 @@ type TxPool struct {
 	newVaultCh chan *ngtypes.Vault
 
 	NewCreatedTxEvent chan *ngtypes.Transaction
-
-	expireCheckCh <-chan time.Time
 }
 
 func NewTxPool(sheetManager *ngsheet.Manager) *TxPool {
@@ -67,7 +59,7 @@ func (p *TxPool) Run() {
 
 func (p *TxPool) IsInPool(tx *ngtypes.Transaction) (exists bool) {
 	_, exists = p.Queuing[tx.GetConvener()]
-	if exists == false {
+	if !exists {
 		return
 	}
 
