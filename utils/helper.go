@@ -8,7 +8,7 @@ import (
 
 func RandUint64() uint64 {
 	raw := make([]byte, 8)
-	rand.Read(raw)
+	_, _ = rand.Read(raw)
 	return binary.LittleEndian.Uint64(raw)
 }
 

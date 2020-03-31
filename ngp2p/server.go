@@ -23,7 +23,7 @@ type mdnsNotifee struct {
 }
 
 func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
-	m.h.Connect(m.ctx, pi)
+	_ = m.h.Connect(m.ctx, pi)
 }
 
 func readKeyFromFile(filename string) crypto.PrivKey {
@@ -36,7 +36,7 @@ func readKeyFromFile(filename string) crypto.PrivKey {
 	if err != nil {
 		log.Panic(err)
 	}
-	keyFile.Close()
+	_ = keyFile.Close()
 
 	ecdsaPriv, err := x509.ParseECPrivateKey(raw)
 	if err != nil {
@@ -68,8 +68,8 @@ func getP2PKey(isBootstrap bool) crypto.PrivKey {
 				log.Panic(err)
 			}
 
-			f.Write(raw)
-			f.Close()
+			_, _ = f.Write(raw)
+			_ = f.Close()
 		}
 
 		return readKeyFromFile("p2p.key")

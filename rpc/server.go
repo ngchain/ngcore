@@ -36,5 +36,8 @@ func NewServer(host string, port int, consensus *consensus.Consensus, localNode 
 
 func (s *Server) Run() {
 	log.Info("rpc server running")
-	s.ListenAndServe()
+	err := s.ListenAndServe()
+	if err != nil {
+		panic(err)
+	}
 }

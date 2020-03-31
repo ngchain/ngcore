@@ -41,14 +41,13 @@ func NewMiner(threadNum int) *Miner {
 		elapsed := int64(60)
 
 		for {
-			select {
-			case <-reportTicker.C:
-				go func() {
-					hashes := m.hashes.Load()
-					log.Infof("Total Hashrate: %d h/s", hashes/elapsed)
-					m.hashes.Add(-hashes)
-				}()
-			}
+			<-reportTicker.C
+			go func() {
+				hashes := m.hashes.Load()
+				log.Infof("Total Hashrate: %d h/s", hashes/elapsed)
+				m.hashes.Add(-hashes)
+			}()
+
 		}
 	}()
 

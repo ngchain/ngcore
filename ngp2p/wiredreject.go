@@ -35,11 +35,11 @@ func (w *Wired) Reject(s network.Stream, uuid string) {
 func (w *Wired) onReject(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		s.Reset()
+		_ = s.Reset()
 		log.Error(err)
 		return
 	}
-	s.Close()
+	_ = s.Close()
 
 	// unmarshal it
 	var data pb.Message
@@ -60,5 +60,5 @@ func (w *Wired) onReject(s network.Stream) {
 	}
 
 	log.Infof("Received Reject from %s. Message id:%s. Message: %s.", s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)
-	w.node.Network().ClosePeer(s.Conn().RemotePeer())
+	_ = w.node.Network().ClosePeer(s.Conn().RemotePeer())
 }

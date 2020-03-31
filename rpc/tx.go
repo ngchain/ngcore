@@ -122,6 +122,9 @@ type sendTxParams struct {
 func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendTxParams
 	err := utils.Json.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	var participants = make([][]byte, len(params.Participants))
 	for i := range params.Participants {

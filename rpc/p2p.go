@@ -10,7 +10,11 @@ import (
 
 func (s *Server) addNodeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params string
-	utils.Json.Unmarshal(msg.Params, &params)
+	err := utils.Json.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
 	targetAddr, err := multiaddr.NewMultiaddr(params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

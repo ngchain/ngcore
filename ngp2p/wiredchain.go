@@ -73,11 +73,11 @@ func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayloa
 func (w *Wired) onChain(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		s.Reset()
+		_ = s.Reset()
 		log.Error(err)
 		return
 	}
-	s.Close()
+	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}

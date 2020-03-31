@@ -63,7 +63,7 @@ func CreateLocalKey(filename string, password string) *ecdsa.PrivateKey {
 		log.Panic(err)
 	}
 
-	file.Close()
+	_ = file.Close()
 
 	return key
 }

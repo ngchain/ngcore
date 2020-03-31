@@ -129,15 +129,13 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *ngsheet.Manager, ch
 	// mdns seeding
 	go func() {
 		for {
-			select {
-			case pi := <-peerInfoCh: // will block untill we discover a peer
-				log.Infof("Found peer:", pi, ", connecting")
-				if err := node.Connect(ctx, pi); err != nil {
-					log.Errorf("Connection failed: %s", err)
-					continue
-				}
-				node.Ping(pi.ID)
+			pi := <-peerInfoCh // will block untill we discover a peer
+			log.Infof("Found peer:", pi, ", connecting")
+			if err := node.Connect(ctx, pi); err != nil {
+				log.Errorf("Connection failed: %s", err)
+				continue
 			}
+			node.Ping(pi.ID)
 		}
 	}()
 
@@ -267,7 +265,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 	err = writer.WriteMsg(data)
 	if err != nil {
 		log.Error(err)
-		s.Reset()
+		_ = s.Reset()
 		return false
 	}
 
@@ -275,7 +273,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 	err = helpers.FullClose(s)
 	if err != nil {
 		log.Error(err)
-		s.Reset()
+		_ = s.Reset()
 		return false
 	}
 

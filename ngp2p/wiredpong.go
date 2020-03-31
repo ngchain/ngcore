@@ -50,11 +50,11 @@ func (w *Wired) Pong(s network.Stream, uuid string) bool {
 func (w *Wired) onPong(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		s.Reset()
+		_ = s.Reset()
 		log.Error(err)
 		return
 	}
-	s.Close()
+	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}

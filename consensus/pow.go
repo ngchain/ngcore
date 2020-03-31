@@ -27,14 +27,13 @@ func (c *Consensus) InitPoW(workerNum int) {
 
 		go func() {
 			for {
-				select {
-				case b := <-c.miner.FoundBlockCh:
-					c.MinedNewBlock(b)
+				b := <-c.miner.FoundBlockCh
+				c.MinedNewBlock(b)
 
-					if c.mining {
-						c.miner.Start(c.GetBlockTemplate())
-					}
+				if c.mining {
+					c.miner.Start(c.GetBlockTemplate())
 				}
+
 			}
 		}()
 	}

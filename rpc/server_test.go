@@ -12,10 +12,8 @@ func TestNewRPCServer(t *testing.T) {
 	go func() {
 		finished := time.After(2 * time.Minute)
 		for {
-			select {
-			case <-finished:
-				return
-			}
+			<-finished
+			return
 		}
 	}()
 }

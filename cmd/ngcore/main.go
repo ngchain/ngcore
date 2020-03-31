@@ -90,7 +90,10 @@ var action = func(c *cli.Context) error {
 		if err != nil {
 			log.Fatal(err)
 		}
-		pprof.StartCPUProfile(f)
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			panic(err)
+		}
 		defer pprof.StopCPUProfile()
 	}
 
@@ -143,11 +146,9 @@ var action = func(c *cli.Context) error {
 	signal.Notify(stopSignal, syscall.SIGTERM)
 	signal.Notify(stopSignal, syscall.SIGINT)
 	for {
-		select {
-		case sign := <-stopSignal:
-			log.Info("Signal received:", sign)
-			return nil
-		}
+		sign := <-stopSignal
+		log.Info("Signal received:", sign)
+		return nil
 	}
 }
 
