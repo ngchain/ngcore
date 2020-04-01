@@ -1,10 +1,8 @@
 package ngsheet
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // CheckTx will check the influenced accounts which mentioned in op, and verify their balance and nonce
@@ -49,13 +47,9 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 				return ngtypes.ErrTxBalanceInsufficient
 			}
 
-			x, y := elliptic.Unmarshal(elliptic.P256(), convener.Owner)
-			pubKey := ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     x,
-				Y:     y,
-			}
-			if err := tx.CheckTx(pubKey); err != nil {
+			publicKey := utils.Bytes2ECDSAPublicKey(convener.Owner)
+
+			if err := tx.CheckTx(publicKey); err != nil {
 				return err
 			}
 

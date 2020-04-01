@@ -39,7 +39,7 @@ func ReadLocalKey(filename string, password string) *ecdsa.PrivateKey {
 }
 
 func PrintPublicKey(key *ecdsa.PrivateKey) {
-	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
+	publicKey := utils.ECDSAPublicKey2Bytes(key.PublicKey)
 	log.Warningf("PublicKey is bs58: %v\n", base58.FastBase58Encoding(publicKey))
 }
 
@@ -76,6 +76,6 @@ func PrintKeyPair(key *ecdsa.PrivateKey) {
 		log.Panic(err)
 	}
 	fmt.Println("Private Key: ", base58.FastBase58Encoding(bPrivKey))
-	bPubKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
+	bPubKey := utils.ECDSAPublicKey2Bytes(key.PublicKey)
 	fmt.Println("Public Key: ", base58.FastBase58Encoding(bPubKey))
 }

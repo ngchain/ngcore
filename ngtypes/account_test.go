@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/NebulousLabs/fastrand"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 func TestNewAccount(t *testing.T) {
@@ -20,8 +22,8 @@ func TestNewAccount(t *testing.T) {
 	randUint64 := fastrand.Uint64n(math.MaxUint64)
 	acc := NewAccount(
 		randUint64,
-		elliptic.Marshal(elliptic.P256(), privateKey.PublicKey.X, privateKey.PublicKey.Y),
-		//big.NewInt(0),
+		utils.ECDSAPublicKey2Bytes(privateKey.PublicKey),
+		// big.NewInt(0),
 		nil,
 	)
 	fmt.Println(acc)

@@ -3,7 +3,6 @@
 package consensus
 
 import (
-	"crypto/elliptic"
 	"runtime"
 
 	"github.com/whyrusleeping/go-logging"
@@ -161,7 +160,7 @@ func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *n
 	accountNumber := utils.RandUint64()
 	log.Infof("New account: %d", accountNumber)
 
-	ownerKey := elliptic.Marshal(elliptic.P256(), c.PrivateKey.PublicKey.X, c.PrivateKey.PublicKey.Y)
+	ownerKey := utils.ECDSAPublicKey2Bytes(c.PrivateKey.PublicKey)
 
 	newVault := ngtypes.NewVault(accountNumber, ownerKey, prevVaultHeight, prevVaultHash, c.SheetManager.GenerateSheet())
 	hash, _ := newVault.CalculateHash()

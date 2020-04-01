@@ -2,15 +2,15 @@ package consensus
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // CreateGeneration will create a generation Tx for new Block
 func (c *Consensus) CreateGeneration(privateKey *ecdsa.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Transaction {
-	publicKeyBytes := elliptic.Marshal(privateKey.PublicKey, privateKey.PublicKey.X, privateKey.PublicKey.Y)
+	publicKeyBytes := utils.ECDSAPublicKey2Bytes(privateKey.PublicKey)
 	gen := ngtypes.NewUnsignedTransaction(
 		0,
 		0,

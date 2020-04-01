@@ -1,13 +1,12 @@
 package ngsheet
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // ApplyVault will apply list and delists in vault to balanceSheet
@@ -44,13 +43,8 @@ func (m *Manager) ApplyTxs(txs ...*ngtypes.Transaction) error {
 		switch tx.GetType() {
 		case 0:
 			raw := tx.GetParticipants()[0]
-			x, y := elliptic.Unmarshal(elliptic.P256(), raw)
-			pk := ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     x,
-				Y:     y,
-			}
-			if tx.Verify(pk) {
+			publicKey := utils.Bytes2ECDSAPublicKey(raw)
+			if tx.Verify(publicKey) {
 				i := 0
 				participantBalance, exists := m.anonymous[hex.EncodeToString(tx.GetParticipants()[i])]
 				if !exists {
@@ -68,12 +62,8 @@ func (m *Manager) ApplyTxs(txs ...*ngtypes.Transaction) error {
 			if !exists {
 				return ngtypes.ErrAccountNotExists
 			}
-			x, y := elliptic.Unmarshal(elliptic.P256(), convener.Owner)
-			pk := ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     x,
-				Y:     y,
-			}
+			pk := utils.Bytes2ECDSAPublicKey(convener.Owner)
+
 			if tx.Verify(pk) {
 				totalValue := ngtypes.Big0
 				for i := range tx.GetValues() {

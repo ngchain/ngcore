@@ -3,7 +3,6 @@ package ngtypes
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -15,6 +14,8 @@ import (
 
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 var (
@@ -173,12 +174,7 @@ func (m *Transaction) CheckGen() error {
 		return fmt.Errorf("generation should have only one participant")
 	}
 
-	x, y := elliptic.Unmarshal(elliptic.P256(), m.GetParticipants()[0])
-	publicKey := ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     x,
-		Y:     y,
-	}
+	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
 
 	if !m.Verify(publicKey) {
 		return fmt.Errorf("failed to verify the tx with publicKey")

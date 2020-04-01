@@ -1,12 +1,12 @@
 package main
 
 import (
-	"crypto/elliptic"
 	"flag"
 	"log"
 
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 var regen = flag.Bool("regen", false, "regenerate the genesis.key")
@@ -23,7 +23,7 @@ func main() {
 		}
 	}
 
-	raw := elliptic.Marshal(elliptic.P256(), localKey.X, localKey.Y)
+	raw := utils.ECDSAPublicKey2Bytes(localKey.PublicKey)
 	log.Printf("Hex Genesis PublicKey: %x", raw)
 
 	header := &ngtypes.TxHeader{
