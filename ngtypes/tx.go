@@ -140,6 +140,7 @@ func (m *Transaction) Copy() *Transaction {
 	return tx
 }
 
+// BigIntsToBytesList is a helper converts bigInts to raw bytes slice
 func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	bytesList := make([][]byte, len(bigInts))
 	for i := 0; i < len(bigInts); i++ {
@@ -195,7 +196,7 @@ func (m *Transaction) CheckGen() error {
 	return nil
 }
 
-// Sign will re-sign the Tx with private key
+// Signature will re-sign the Tx with private key
 func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
 	b, err := proto.Marshal(m)
 	if err != nil {
@@ -275,14 +276,4 @@ func GetGenesisGeneration() *Transaction {
 		R:          r,
 		S:          s,
 	}
-}
-
-// TotalFee is a helper which helps calc the total fee among the ops
-func TotalFee(txs []*Transaction) (totalFee *big.Int) {
-	totalFee = big.NewInt(0)
-	for _, tx := range txs {
-		totalFee = new(big.Int).Add(totalFee, new(big.Int).SetBytes(tx.Header.Fee))
-	}
-
-	return
 }

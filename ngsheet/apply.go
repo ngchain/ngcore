@@ -44,18 +44,20 @@ func (m *Manager) ApplyTxs(txs ...*ngtypes.Transaction) error {
 		case 0:
 			raw := tx.GetParticipants()[0]
 			publicKey := utils.Bytes2ECDSAPublicKey(raw)
-			if tx.Verify(publicKey) {
-				i := 0
-				participantBalance, exists := m.anonymous[hex.EncodeToString(tx.GetParticipants()[i])]
-				if !exists {
-					participantBalance = ngtypes.Big0
-				}
-
-				m.anonymous[hex.EncodeToString(tx.GetParticipants()[i])] = new(big.Int).Add(
-					participantBalance,
-					new(big.Int).SetBytes(tx.GetValues()[i]),
-				)
+			if !tx.Verify(publicKey) {
+				break
 			}
+
+			participants := tx.GetParticipants()
+			participantBalance, exists := m.anonymous[hex.EncodeToString(participants[0])]
+			if !exists {
+				participantBalance = ngtypes.Big0
+			}
+
+			m.anonymous[hex.EncodeToString(participants[0])] = new(big.Int).Add(
+				participantBalance,
+				new(big.Int).SetBytes(tx.GetValues()[0]),
+			)
 
 		case 1:
 			convener, exists := m.accounts[tx.GetConvener()]
@@ -64,44 +66,107 @@ func (m *Manager) ApplyTxs(txs ...*ngtypes.Transaction) error {
 			}
 			pk := utils.Bytes2ECDSAPublicKey(convener.Owner)
 
-			if tx.Verify(pk) {
-				totalValue := ngtypes.Big0
-				for i := range tx.GetValues() {
-					totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
-				}
-				fee := new(big.Int).SetBytes(tx.GetFee())
-				totalExpense := new(big.Int).Add(fee, totalValue)
-				convener, exists := m.accounts[tx.GetConvener()]
+			if !tx.Verify(pk) {
+				break
+			}
+
+			totalValue := ngtypes.Big0
+			for i := range tx.GetValues() {
+				totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+			}
+
+			fee := new(big.Int).SetBytes(tx.GetFee())
+			totalExpense := new(big.Int).Add(fee, totalValue)
+
+			convenerBalance, exists := m.anonymous[hex.EncodeToString(convener.Owner)]
+			if !exists {
+				return ngtypes.ErrAccountBalanceNotExists
+			}
+
+			if convenerBalance.Cmp(totalExpense) < 0 {
+				return ngtypes.ErrTxBalanceInsufficient
+			}
+
+			m.anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense)
+
+			participants := tx.GetParticipants()
+			for i := range participants {
+				participantBalance, exists := m.anonymous[hex.EncodeToString(participants[i])]
 				if !exists {
-					return ngtypes.ErrAccountNotExists
-				}
-				convenerBalance, exists := m.anonymous[hex.EncodeToString(convener.Owner)]
-				if !exists {
-					return ngtypes.ErrAccountBalanceNotExists
-				}
-				if convenerBalance.Cmp(totalExpense) < 0 {
-					return ngtypes.ErrTxBalanceInsufficient
+					participantBalance = ngtypes.Big0
 				}
 
-				//totalFee = totalFee.Add(totalFee, fee)
-
-				m.anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense)
-
-				for i := range tx.GetParticipants() {
-					participantBalance, exists := m.anonymous[hex.EncodeToString(tx.GetParticipants()[i])]
-					if !exists {
-						participantBalance = ngtypes.Big0
-					}
-
-					m.anonymous[hex.EncodeToString(tx.GetParticipants()[i])] = new(big.Int).Add(
-						participantBalance,
-						new(big.Int).SetBytes(tx.GetValues()[i]),
-					)
-				}
+				m.anonymous[hex.EncodeToString(participants[i])] = new(big.Int).Add(
+					participantBalance,
+					new(big.Int).SetBytes(tx.GetValues()[i]),
+				)
 			}
 
 		case 2:
-			// TODO: add state tx
+			// assignment tx
+			convener, exists := m.accounts[tx.GetConvener()]
+			if !exists {
+				return ngtypes.ErrAccountNotExists
+			}
+			pk := utils.Bytes2ECDSAPublicKey(convener.Owner)
+
+			if !tx.Verify(pk) {
+				break
+			}
+
+			totalValue := ngtypes.Big0
+			for i := range tx.GetValues() {
+				totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+			}
+
+			fee := new(big.Int).SetBytes(tx.GetFee())
+
+			convenerBalance, exists := m.anonymous[hex.EncodeToString(convener.Owner)]
+			if !exists {
+				return ngtypes.ErrAccountBalanceNotExists
+			}
+
+			if convenerBalance.Cmp(fee) < 0 {
+				return ngtypes.ErrTxBalanceInsufficient
+			}
+
+			m.anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee)
+
+			// assign the extra bytes
+			convener.State = tx.GetExtra()
+
+		case 3:
+			// append tx
+			convener, exists := m.accounts[tx.GetConvener()]
+			if !exists {
+				return ngtypes.ErrAccountNotExists
+			}
+			pk := utils.Bytes2ECDSAPublicKey(convener.Owner)
+
+			if !tx.Verify(pk) {
+				break
+			}
+
+			totalValue := ngtypes.Big0
+			for i := range tx.GetValues() {
+				totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+			}
+
+			fee := new(big.Int).SetBytes(tx.GetFee())
+
+			convenerBalance, exists := m.anonymous[hex.EncodeToString(convener.Owner)]
+			if !exists {
+				return ngtypes.ErrAccountBalanceNotExists
+			}
+
+			if convenerBalance.Cmp(fee) < 0 {
+				return ngtypes.ErrTxBalanceInsufficient
+			}
+
+			m.anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee)
+
+			// assign the extra bytes
+			convener.State = utils.CombineBytes(convener.State, tx.GetExtra())
 
 		default:
 			err = fmt.Errorf("unknown operation type")

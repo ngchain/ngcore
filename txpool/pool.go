@@ -11,7 +11,7 @@ import (
 
 var log = logging.MustGetLogger("txpool")
 
-// txPool is a little mem db which stores **signed** tx
+// TxPool is a little mem db which stores **signed** tx
 type TxPool struct {
 	sync.RWMutex
 
@@ -37,12 +37,14 @@ func NewTxPool(sheetManager *ngsheet.Manager) *TxPool {
 	}
 }
 
+// Init inits the txPool with submodules
 func (p *TxPool) Init(currentVault *ngtypes.Vault, newBlockCh chan *ngtypes.Block, newVaultCh chan *ngtypes.Vault) {
 	p.CurrentVault = currentVault
 	p.newBlockCh = newBlockCh
 	p.newVaultCh = newVaultCh
 }
 
+// Run starts listening to the new block & vault
 func (p *TxPool) Run() {
 	go func() {
 		for {

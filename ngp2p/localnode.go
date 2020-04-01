@@ -51,15 +51,15 @@ type LocalNode struct {
 	isBootstrapNode bool
 }
 
-// Create a new node with its implemented protocols
+// NewLocalNode creates a new node with its implemented protocols
 func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ngsheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
 	ctx := context.Background()
 
-	priv := getP2PKey(true) //isBootstrap)
+	priv := getP2PKey(isBootstrapNode)
 
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),
-		//libp2p.Transport(ws.New),
+		// libp2p.Transport(ws.New),
 	)
 
 	listenAddrs := libp2p.ListenAddrStrings(

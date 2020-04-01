@@ -3,24 +3,13 @@
   <component name="ChangeListManager">
     <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/generation.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/generation.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/keytools/tools.go" beforeDir="false" afterPath="$PROJECT_DIR$/keytools/tools.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngsheet/apply.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/apply.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngsheet/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/check.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/account_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/account_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/sheet.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/sheet.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/ecdsa.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/ecdsa.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/file.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/file.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/file_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/file_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/format.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/format.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/helper.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/helper.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/serialize.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/serialize.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vm/lua.go" beforeDir="false" afterPath="$PROJECT_DIR$/vm/lua.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/pool.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,7 +121,8 @@
     <MESSAGE value="fix the bug on sync" />
     <MESSAGE value="bugfix" />
     <MESSAGE value="fmt with linter" />
-    <option name="LAST_COMMIT_MESSAGE" value="fmt with linter" />
+    <MESSAGE value="Add descriptions for public func" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add descriptions for public func" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -163,14 +153,14 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="669" y="147" key="#ngcore_mining_/0.0.1920.1040@0.0.1920.1040" timestamp="1585724710879" />
-    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1585653671371">
+    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1585752255713">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585653671371" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585749930788">
+    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585752255713" />
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585751470548">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585749930788" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751470548" />
     <state width="469" height="466" key="DebuggerActiveHint" timestamp="1585736627581">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -223,21 +213,32 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585748746593" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585749977654">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585751567618">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585749977654" />
-    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585750334241">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751567618" />
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585751442720">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585750334241" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585751159639">
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751442720" />
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585754829278">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585751159639" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585754829278" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585750345821">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="693" y="308" key="git4idea.merge.GitPullDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585750345821" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/ngtypes/tx.go</url>
+          <line>196</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
