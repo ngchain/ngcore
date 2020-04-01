@@ -77,6 +77,7 @@ var action = func(c *cli.Context) error {
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	formatter := logging.NewBackendFormatter(backend, format)
 	logging.SetBackend(formatter)
+	logging.SetLevel(logging.INFO, "")
 
 	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Int("mining") >= 0
@@ -97,8 +98,6 @@ var action = func(c *cli.Context) error {
 		}
 		defer pprof.StopCPUProfile()
 	}
-
-	logging.SetLevel(logging.INFO, "")
 
 	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(keyPass))
 	keytools.PrintPublicKey(key)
@@ -132,11 +131,11 @@ var action = func(c *cli.Context) error {
 			consensusManager.InitPoW(c.Int("mining"))
 		})
 
-		consensusManager.ResumeMining()
+		consensusManager.Resume()
 	}
 
 	localNode.OnNotSynced = func() {
-		consensusManager.StopMining()
+		consensusManager.Stop()
 	}
 
 	localNode.Init()

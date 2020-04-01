@@ -20,8 +20,8 @@ type Consensus struct {
 
 	TxPool *txpool.TxPool
 
-	mining bool
-	miner  *miner.Miner
+	isMining bool
+	miner    *miner.Miner
 }
 
 func NewConsensusManager(mining bool) *Consensus {
@@ -31,7 +31,7 @@ func NewConsensusManager(mining bool) *Consensus {
 		Chain:        nil,
 		TxPool:       nil,
 
-		mining: mining,
+		isMining: mining,
 	}
 }
 

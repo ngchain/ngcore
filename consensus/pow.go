@@ -21,7 +21,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 		workerNum = runtime.NumCPU()
 	}
 
-	if c.mining {
+	if c.isMining {
 		c.miner = miner.NewMiner(workerNum)
 		c.miner.Start(c.GetBlockTemplate())
 
@@ -30,7 +30,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 				b := <-c.miner.FoundBlockCh
 				c.MinedNewBlock(b)
 
-				if c.mining {
+				if c.isMining {
 					c.miner.Start(c.GetBlockTemplate())
 				}
 
@@ -39,14 +39,18 @@ func (c *Consensus) InitPoW(workerNum int) {
 	}
 }
 
-func (c *Consensus) StopMining() {
-	log.Info("mining stopping")
-	c.miner.Stop()
+func (c *Consensus) Stop() {
+	if c.isMining {
+		log.Info("mining stopping")
+		c.miner.Stop()
+	}
 }
 
-func (c *Consensus) ResumeMining() {
-	log.Info("mining resuming")
-	c.miner.Start(c.GetBlockTemplate())
+func (c *Consensus) Resume() {
+	if c.isMining {
+		log.Info("mining resuming")
+		c.miner.Start(c.GetBlockTemplate())
+	}
 }
 
 func (c *Consensus) GetBlockTemplate() *ngtypes.Block {

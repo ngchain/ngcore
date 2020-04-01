@@ -99,7 +99,12 @@ func (w *Wired) onChain(s network.Stream) {
 		return
 	}
 
-	log.Infof("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().RemotePeer(), data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
+	if len(payload.Blocks) > 0 {
+		log.Infof("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().RemotePeer(), data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
+	} else if payload.Vault != nil {
+		log.Infof("Received chain from %s. Message id:%s. Vault@%d only, LatestHeight: %d..", s.Conn().RemotePeer(), data.Header.Uuid, payload.Vault.GetHeight(), payload.LatestHeight)
+	}
+
 	w.node.RemoteHeights.Store(s.Conn().RemotePeer(), payload.LatestHeight)
 
 	// init
