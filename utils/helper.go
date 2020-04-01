@@ -6,6 +6,7 @@ import (
 	"math/big"
 )
 
+// Convert int64 to [] byte in LittleEndian form
 func RandUint64() uint64 {
 	raw := make([]byte, 8)
 	_, _ = rand.Read(raw)

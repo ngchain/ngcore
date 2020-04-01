@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// 加密字符串
 func DataEncrypt(b []byte, password []byte) []byte {
 	encrypted := make([]byte, len(b))
 
@@ -26,6 +27,7 @@ func DataEncrypt(b []byte, password []byte) []byte {
 	return encrypted
 }
 
+// 解密字符串
 func DataDecrypt(b []byte, password []byte) []byte {
 	decrypted := make([]byte, len(b))
 
