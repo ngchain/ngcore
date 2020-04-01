@@ -116,7 +116,7 @@ var action = func(c *cli.Context) error {
 	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
-	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, sheetManager, chain, txPool)
+	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, isBootstrapNode, sheetManager, chain, txPool)
 	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensusManager, localNode, sheetManager, txPool)
 	go rpc.Run()
 
@@ -126,10 +126,6 @@ var action = func(c *cli.Context) error {
 
 	localNode.OnNotSynced = func() {
 		consensusManager.StopMining()
-	}
-
-	if !isBootstrapNode {
-		localNode.ConnectBootstrapNodes()
 	}
 
 	localNode.Init(func() {

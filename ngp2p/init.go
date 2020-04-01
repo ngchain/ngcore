@@ -6,7 +6,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func (n *LocalNode) ConnectBootstrapNodes() {
+func (n *LocalNode) connectBootstrapNodes() {
 	ctx := context.Background()
 	for i := range BootstrapNodes {
 		targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])
@@ -29,7 +29,9 @@ func (n *LocalNode) ConnectBootstrapNodes() {
 }
 
 func (n *LocalNode) Init(afterFunc func()) {
-	n.ConnectBootstrapNodes()
+	if !n.isBootstrapNode {
+		n.connectBootstrapNodes()
+	}
 
 	if afterFunc != nil {
 		afterFunc()

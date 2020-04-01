@@ -42,12 +42,13 @@ type LocalNode struct {
 	Chain        *ngchain.Chain
 	TxPool       *txpool.TxPool
 
-	RemoteHeights *sync.Map // key:id value:height
-	isStrictMode  bool
+	RemoteHeights   *sync.Map // key:id value:height
+	isStrictMode    bool
+	isBootstrapNode bool
 }
 
 // Create a new node with its implemented protocols
-func NewLocalNode(port int, isStrictMode bool, sheetManager *ngsheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
+func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ngsheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
 	ctx := context.Background()
 
 	priv := getP2PKey(true) //isBootstrap)
@@ -109,10 +110,11 @@ func NewLocalNode(port int, isStrictMode bool, sheetManager *ngsheet.Manager, ch
 		Wired:       nil,
 		Broadcaster: nil,
 
-		isInitialized: atomic.NewBool(false),
-		isSyncedCh:    make(chan bool),
-		OnSynced:      nil,
-		OnNotSynced:   nil,
+		isInitialized:   atomic.NewBool(false),
+		isBootstrapNode: isBootstrapNode,
+		isSyncedCh:      make(chan bool),
+		OnSynced:        nil,
+		OnNotSynced:     nil,
 
 		sheetManager:  sheetManager,
 		Chain:         chain,

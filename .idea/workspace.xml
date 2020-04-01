@@ -1,25 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="optimize code &amp;&amp; auth on wired messages">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/miner/miner.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/miner/miner.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/keytools/tools.go" beforeDir="false" afterPath="$PROJECT_DIR$/keytools/tools.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/init.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredpong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredreject.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredreject.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/p2p.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/p2p.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/server_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/tx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/helper.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/helper.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,7 +51,7 @@
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
-  <component name="RunManager" selected="Go Test.go test ngcore">
+  <component name="RunManager" selected="Go Build.ngcore mining ">
     <configuration name="go build github.com/ngchain/ngcore" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$" />
@@ -114,7 +101,8 @@
     <MESSAGE value="migrate travis" />
     <MESSAGE value="more checktx more safety" />
     <MESSAGE value="optimize code &amp;&amp; auth on wired messages" />
-    <option name="LAST_COMMIT_MESSAGE" value="optimize code &amp;&amp; auth on wired messages" />
+    <MESSAGE value="optimize code" />
+    <option name="LAST_COMMIT_MESSAGE" value="optimize code" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -145,10 +133,14 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585653671371" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585563564708">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585662727651">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585563564708" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585662727651" />
+    <state x="176" y="48" key="DiffContextDialog" timestamp="1585662698775">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585662698775" />
     <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585281455596">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -177,18 +169,18 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="329" y="329" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585300868767" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585563668238">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585662731256">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585563668238" />
-    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585563604409">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585662731256" />
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585714059040">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585563604409" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585651016863">
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585714059040" />
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585715602961">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585651016863" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585715602961" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585563620053">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

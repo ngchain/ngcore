@@ -31,7 +31,7 @@ func NewSheetManager() *Manager {
 }
 
 func (m *Manager) Init(currentVault *ngtypes.Vault) {
-	log.Info("sheet manager initialized on vault@%d", currentVault.Height)
+	log.Infof("sheet manager initialized on vault@%d", currentVault.Height)
 	m.currentVault = currentVault
 }
 
