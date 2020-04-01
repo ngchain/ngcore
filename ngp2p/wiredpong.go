@@ -64,7 +64,7 @@ func (w *Wired) onPong(s network.Stream) {
 		return
 	}
 
-	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(data) {
+	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}

@@ -70,7 +70,7 @@ func (w *Wired) onPing(s network.Stream) {
 		return
 	}
 
-	if !w.node.authenticateMessage(data) {
+	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}

@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="bugfix">
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/ngcore_mining_.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/init.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredping.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredpong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/handler.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/sheet.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,6 +84,15 @@
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
+      <item itemvalue="Go Build.ngcore" />
+      <item itemvalue="Go Build.ngcore bootstrap" />
+      <item itemvalue="Go Build.ngcore mining " />
+      <item itemvalue="Go Build.go build github.com/ngchain/ngcore" />
+      <item itemvalue="Go Test.go test ngcore" />
+      <item itemvalue="Go Test.gocheck ngcore" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Go Test.go test ngcore" />
@@ -102,7 +115,8 @@
     <MESSAGE value="more checktx more safety" />
     <MESSAGE value="optimize code &amp;&amp; auth on wired messages" />
     <MESSAGE value="optimize code" />
-    <option name="LAST_COMMIT_MESSAGE" value="optimize code" />
+    <MESSAGE value="bugfix" />
+    <option name="LAST_COMMIT_MESSAGE" value="bugfix" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -125,38 +139,54 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1585283136480" />
-    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585312890985">
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585716857982">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585312890985" />
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585716857982" />
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1585653671371">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585653671371" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585662727651">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585718477135">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585662727651" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585718477135" />
     <state x="176" y="48" key="DiffContextDialog" timestamp="1585662698775">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585662698775" />
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585281455596">
+    <state width="938" height="348" key="GridCell.Tab.0.bottom" timestamp="1585721706132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455596" />
-    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1585281455595">
+    <state width="938" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706132" />
+    <state width="938" height="348" key="GridCell.Tab.0.center" timestamp="1585721706132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
-    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1585281455595">
+    <state width="938" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706132" />
+    <state width="938" height="348" key="GridCell.Tab.0.left" timestamp="1585721706132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
-    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1585281455595">
+    <state width="938" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706132" />
+    <state width="938" height="348" key="GridCell.Tab.0.right" timestamp="1585721706132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
+    <state width="938" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706132" />
+    <state width="938" height="348" key="GridCell.Tab.1.bottom" timestamp="1585721706014">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="938" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706014" />
+    <state width="938" height="348" key="GridCell.Tab.1.center" timestamp="1585721706014">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="938" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706014" />
+    <state width="938" height="348" key="GridCell.Tab.1.left" timestamp="1585721706014">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="938" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706014" />
+    <state width="938" height="348" key="GridCell.Tab.1.right" timestamp="1585721706014">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="938" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585721706014" />
     <state x="540" y="262" key="IDE.errors.dialog" timestamp="1585307603049">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -169,18 +199,18 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="329" y="329" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585300868767" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585662731256">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585718487511">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585662731256" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585718487511" />
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585714059040">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585714059040" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585715602961">
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585721604892">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585715602961" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585721604892" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585563620053">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

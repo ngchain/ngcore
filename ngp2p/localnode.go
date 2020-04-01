@@ -162,7 +162,7 @@ func (n *LocalNode) verifyResponse(message *pb.Message) bool {
 	return true
 }
 
-func (n *LocalNode) authenticateMessage(message *pb.Message) bool {
+func (n *LocalNode) authenticateMessage(remotePeerId peer.ID, message *pb.Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
 
@@ -173,13 +173,8 @@ func (n *LocalNode) authenticateMessage(message *pb.Message) bool {
 	}
 
 	message.Header.Sign = sign
-	peerId, err := peer.Decode(message.Header.Uuid)
-	if err != nil {
-		log.Errorf("Failed to decode node id from base58: %v", err)
-		return false
-	}
 
-	return n.verifyData(raw, sign, peerId, message.Header.PeerKey)
+	return n.verifyData(raw, sign, remotePeerId, message.Header.PeerKey)
 }
 
 // sign an outgoing p2p message payload
