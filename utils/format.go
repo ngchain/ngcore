@@ -14,6 +14,7 @@ const (
 	wordBytes = wordBits / 8
 )
 
+// []byte to hex string
 func Bytes2Hex(b []byte) string {
 	s := ""
 	for i := 0; i < len(b); i++ {
@@ -22,6 +23,7 @@ func Bytes2Hex(b []byte) string {
 	return s
 }
 
+// hex string to []byte
 func Hex2Bytes(s string) []byte {
 	b, err := hex.DecodeString(s)
 	if err != nil {

@@ -11,6 +11,7 @@ type LuaVM struct {
 	*lua.LState
 }
 
+// Apply for a new VM and specify the size of the registry
 func NewLuaVM() *LuaVM {
 	L := lua.NewState(lua.Options{
 		RegistrySize:     1024 * 20, // this is the initial size of the registry
