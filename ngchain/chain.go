@@ -18,7 +18,7 @@ var (
 	blockPrefix = []byte("blk")
 )
 
-// Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing
+// chain managers a badger DB, which stores vaults and blocks and some helper tags for managing
 type Chain struct {
 	db *badger.DB
 
@@ -27,7 +27,7 @@ type Chain struct {
 	NewVaultToTxPoolCh   chan *ngtypes.Vault
 }
 
-// NewChain will return a Chain, but no initialization
+// NewChain will return a chain, but no initialization
 func NewChain(db *badger.DB) *Chain {
 	chain := &Chain{
 		db: db,

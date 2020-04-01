@@ -8,7 +8,7 @@ import (
 func (w *Wired) UpdateStatus() {
 	var total = 0
 	var synced = 0
-	localHeight := w.node.Chain.GetLatestBlockHeight()
+	localHeight := w.node.chain.GetLatestBlockHeight()
 
 	w.node.RemoteHeights.Range(func(_, value interface{}) bool {
 		total++
@@ -18,7 +18,9 @@ func (w *Wired) UpdateStatus() {
 		return true
 	})
 
-	w.node.isSyncedCh <- float64(synced)/float64(total) > 0.7
+	progress := float64(synced) / float64(total)
+	log.Infof("localnode synced with remote nodes: %.02f%%", progress*100)
+	w.node.isSyncedCh <- progress > 0.9
 }
 
 func (w *Wired) Sync() {
@@ -36,7 +38,8 @@ func (w *Wired) Sync() {
 				log.Infof("pinging to %s", peer)
 				w.Ping(peer)
 			}
-			w.UpdateStatus()
+
+			go w.UpdateStatus()
 		case isSynced := <-w.node.isSyncedCh:
 			if isSynced && !lastTimeIsSynced {
 				log.Info("localnode is synced with network")

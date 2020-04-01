@@ -8,7 +8,6 @@ import (
 
 func (s *Server) getAccountsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	key := elliptic.Marshal(elliptic.P256(), s.consensus.PrivateKey.PublicKey.X, s.consensus.PrivateKey.PublicKey.Y)
-	log.Info(s.sheetManager.GenerateSheet())
 	accounts := s.sheetManager.GetAccountsByPublicKey(key)
 	raw, err := utils.Json.Marshal(accounts)
 	if err != nil {

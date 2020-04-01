@@ -28,12 +28,8 @@ func (n *LocalNode) connectBootstrapNodes() {
 	}
 }
 
-func (n *LocalNode) Init(afterFunc func()) {
+func (n *LocalNode) Init() {
 	if !n.isBootstrapNode {
 		n.connectBootstrapNodes()
-	}
-
-	if afterFunc != nil {
-		afterFunc()
 	}
 }

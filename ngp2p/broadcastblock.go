@@ -38,14 +38,14 @@ func (b *Broadcaster) onBroadcastBlock(msg *pubsub.Message) {
 
 	if broadcastBlockPayload.Vault != nil {
 		log.Infof("received a new block broadcast@%d with vault@%d", broadcastBlockPayload.Block.GetHeight(), broadcastBlockPayload.Vault.GetHeight())
-		err := b.node.Chain.PutNewBlockWithVault(broadcastBlockPayload.Vault, broadcastBlockPayload.Block)
+		err := b.node.chain.PutNewBlockWithVault(broadcastBlockPayload.Vault, broadcastBlockPayload.Block)
 		if err != nil {
 			log.Error(err)
 			return
 		}
 	} else {
 		log.Infof("received a new block broadcast@%d", broadcastBlockPayload.Block.GetHeight())
-		err = b.node.Chain.PutNewBlock(broadcastBlockPayload.Block)
+		err = b.node.chain.PutNewBlock(broadcastBlockPayload.Block)
 		if err != nil {
 			log.Error(err)
 			return

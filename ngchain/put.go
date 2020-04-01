@@ -22,7 +22,7 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 				if hashInDB, _ := b.CalculateHash(); bytes.Equal(hash, hashInDB) {
 					return nil
 				}
-				return fmt.Errorf("has block in same height: %v", b)
+				return fmt.Errorf("has block in same height: %s", b)
 			}
 		}
 
@@ -185,6 +185,7 @@ func (c *Chain) PutNewBlockWithVault(vault *ngtypes.Vault, block *ngtypes.Block)
 
 // PutNewChain puts a new chain(vault + block) into db
 func (c *Chain) PutNewChain(chain ...Item) error {
+	log.Info("putting new chain")
 	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
@@ -226,10 +227,6 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 			case *ngtypes.Block:
 				block := item
 
-				if b, _ := c.GetVaultByHeight(block.GetHeight()); b == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
-
 				hash, _ := block.CalculateHash()
 				raw, _ := block.Marshal()
 				log.Infof("putting block@%d: %x", block.Header.Height, hash)
@@ -251,9 +248,7 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 				}
 			case *ngtypes.Vault:
 				vault := item
-				if v, _ := c.GetVaultByHeight(vault.GetHeight()); v == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
+
 				hash, _ := vault.CalculateHash()
 				raw, _ := vault.Marshal()
 				log.Infof("putting vault@%d: %x", vault.Height, hash)

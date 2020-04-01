@@ -30,7 +30,7 @@ func (b *Broadcaster) onBroadcastTx(msg *pubsub.Message) {
 		return
 	}
 
-	err = b.node.TxPool.PutTxs(tx)
+	err = b.node.txPool.PutTxs(tx)
 	if err != nil {
 		log.Error(err)
 		return

@@ -77,8 +77,8 @@ func (w *Wired) onGetChain(s network.Stream) {
 
 	log.Infof("Received getchain request from %s. Requested vault@%d", s.Conn().RemotePeer(), getchain.VaultHeight)
 
-	// Chain
-	localHeight := w.node.Chain.GetLatestBlockHeight()
+	// chain
+	localHeight := w.node.chain.GetLatestBlockHeight()
 	if localHeight < getchain.VaultHeight {
 		go w.Reject(s, data.Header.Uuid)
 		return

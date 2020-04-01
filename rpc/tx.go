@@ -22,11 +22,11 @@ import (
 //type Tx struct {
 //	localKey *ecdsa.PrivateKey
 //
-//	txPool       *txpool.TxPool
+//	txPool       *txpool.txPool
 //	sheetManager *ngsheet.Manager
 //}
 //
-//func NewTxModule(txPool *txpool.TxPool, sheet *ngsheet.Manager) *Tx {
+//func NewTxModule(txPool *txpool.txPool, sheet *ngsheet.Manager) *Tx {
 //	return &Tx{
 //		txPool:       txPool,
 //		sheetManager: sheet,

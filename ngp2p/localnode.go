@@ -17,6 +17,7 @@ import (
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
+	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngsheet"
@@ -39,8 +40,9 @@ type LocalNode struct {
 	OnNotSynced func()
 
 	sheetManager *ngsheet.Manager
-	Chain        *ngchain.Chain
-	TxPool       *txpool.TxPool
+	chain        *ngchain.Chain
+	txPool       *txpool.TxPool
+	consensus    *consensus.Consensus
 
 	RemoteHeights   *sync.Map // key:id value:height
 	isStrictMode    bool
@@ -113,12 +115,11 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ng
 		isInitialized:   atomic.NewBool(false),
 		isBootstrapNode: isBootstrapNode,
 		isSyncedCh:      make(chan bool),
-		OnSynced:        nil,
 		OnNotSynced:     nil,
 
 		sheetManager:  sheetManager,
-		Chain:         chain,
-		TxPool:        txPool,
+		chain:         chain,
+		txPool:        txPool,
 		RemoteHeights: new(sync.Map),
 		isStrictMode:  isStrictMode,
 	}

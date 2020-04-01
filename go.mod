@@ -3,6 +3,7 @@ module github.com/ngchain/ngcore
 go 1.12
 
 require (
+	github.com/AlexanderGrom/go-event v0.0.0-20180406111247-a2f1486e096e
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dchest/blake256 v1.1.0 // indirect
@@ -11,6 +12,7 @@ require (
 	github.com/golang/protobuf v1.3.5 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/json-iterator/go v1.1.9
+	github.com/kataras/go-events v0.0.2
 	github.com/libp2p/go-libp2p v0.6.0
 	github.com/libp2p/go-libp2p-core v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.1

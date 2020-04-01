@@ -9,7 +9,9 @@ import (
 )
 
 // SwitchTo changes the items in db, requiring the first one of chain is an vault. The chain should follow the order vault0-block0-block1...-block6-vault2-block7...
+// SwitchTo will override the origin data, using carefully
 func (c *Chain) SwitchTo(chain ...Item) error {
+	log.Info("switching to new chain")
 	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
@@ -51,10 +53,6 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 			case *ngtypes.Block:
 				block := item
 
-				if b, _ := c.GetVaultByHeight(block.GetHeight()); b == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
-
 				hash, _ := block.CalculateHash()
 				raw, _ := block.Marshal()
 				log.Infof("putting block@%d: %x", block.Header.Height, hash)
@@ -77,9 +75,7 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 				return nil
 			case *ngtypes.Vault:
 				vault := item
-				if v, _ := c.GetVaultByHeight(vault.GetHeight()); v == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
+
 				hash, _ := vault.CalculateHash()
 				raw, _ := vault.Marshal()
 				log.Infof("putting vault@%d: %x", vault.Height, hash)

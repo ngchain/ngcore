@@ -17,6 +17,7 @@ import (
 	"os/signal"
 	"runtime/pprof"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -120,7 +121,17 @@ var action = func(c *cli.Context) error {
 	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensusManager, localNode, sheetManager, txPool)
 	go rpc.Run()
 
+	initOnce := &sync.Once{}
 	localNode.OnSynced = func() {
+		initOnce.Do(func() {
+			latestVault := chain.GetLatestVault()
+			sheetManager.Init(latestVault)
+			txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
+			txPool.Run()
+
+			consensusManager.InitPoW(c.Int("mining"))
+		})
+
 		consensusManager.ResumeMining()
 	}
 
@@ -128,14 +139,7 @@ var action = func(c *cli.Context) error {
 		consensusManager.StopMining()
 	}
 
-	localNode.Init(func() {
-		latestVault := chain.GetLatestVault()
-		sheetManager.Init(latestVault)
-		txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
-		txPool.Run()
-
-		consensusManager.InitPoW(c.Int("mining"))
-	})
+	localNode.Init()
 
 	// notify the exit events
 	var stopSignal = make(chan os.Signal, 1)
