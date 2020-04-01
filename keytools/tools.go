@@ -6,11 +6,13 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-	"github.com/mr-tron/base58"
-	"github.com/ngchain/ngcore/utils"
-	"github.com/whyrusleeping/go-logging"
 	"io/ioutil"
 	"os"
+
+	"github.com/mr-tron/base58"
+	"github.com/whyrusleeping/go-logging"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.MustGetLogger("key")

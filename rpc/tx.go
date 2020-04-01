@@ -2,10 +2,12 @@ package rpc
 
 import (
 	"encoding/hex"
+	"math/big"
+
 	"github.com/maoxs2/go-jsonrpc2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"math/big"
 )
 
 //import (

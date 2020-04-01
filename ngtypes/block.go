@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/ngin-network/cryptonight-go"
 	"github.com/whyrusleeping/go-logging"
@@ -61,6 +62,7 @@ func (m *Block) ToUnsealing(txsWithGen []*Transaction) (*Block, error) {
 		if i == 0 && txsWithGen[i].GetType() != 0 {
 			return nil, fmt.Errorf("first tx shall be a generation")
 		}
+
 		if i != 0 && txsWithGen[i].GetType() == 0 {
 			return nil, fmt.Errorf("except first, other tx shall not be a generation")
 		}
@@ -99,7 +101,7 @@ func (m *Block) VerifyNonce() bool {
 // then you need to add txs and seal with the correct N
 func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *big.Int) *Block {
 	block := &Block{
-		NetworkId: NetworkId,
+		NetworkId: NetworkID,
 		Header: &BlockHeader{
 			Version:       Version,
 			Height:        height,
@@ -134,7 +136,7 @@ func GetGenesisBlock() *Block {
 	hash := header.CalculateHash()
 
 	return &Block{
-		NetworkId:    NetworkId,
+		NetworkId:    NetworkID,
 		Header:       header,
 		HeaderHash:   hash,
 		Transactions: txs,

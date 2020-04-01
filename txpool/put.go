@@ -3,6 +3,7 @@ package txpool
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

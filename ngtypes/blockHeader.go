@@ -2,8 +2,9 @@ package ngtypes
 
 import (
 	"encoding/binary"
-	"github.com/ngin-network/cryptonight-go"
 	"math/big"
+
+	"github.com/ngin-network/cryptonight-go"
 )
 
 /* Header Start */

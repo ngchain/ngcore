@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"errors"
+
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
 )
@@ -52,6 +53,7 @@ func (m *Sheet) GetAccountByID(accountID uint64) (*Account, error) {
 func (m *Sheet) GetAccountByKey(publicKey ecdsa.PublicKey) ([]*Account, error) {
 	accounts := make([]*Account, 0)
 	bPublicKey := elliptic.Marshal(elliptic.P256(), publicKey.X, publicKey.Y)
+
 	for i := range m.Accounts {
 		if bytes.Equal(m.Accounts[i].Owner, bPublicKey) {
 			accounts = append(accounts, m.Accounts[i])

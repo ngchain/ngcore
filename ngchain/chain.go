@@ -5,10 +5,12 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
+	"github.com/whyrusleeping/go-logging"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/whyrusleeping/go-logging"
 )
 
 var log = logging.MustGetLogger("chain")
@@ -18,7 +20,7 @@ var (
 	blockPrefix = []byte("blk")
 )
 
-// chain managers a badger DB, which stores vaults and blocks and some helper tags for managing
+// Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing
 type Chain struct {
 	db *badger.DB
 

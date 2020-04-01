@@ -5,9 +5,10 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/gogo/protobuf/proto"
 	"math/big"
 	"testing"
+
+	"github.com/gogo/protobuf/proto"
 )
 
 func TestDeserialize(t *testing.T) {
@@ -38,6 +39,7 @@ func TestTransaction_Signature(t *testing.T) {
 	priv2, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 	_ = o.Signature(priv)
+
 	if !o.Verify(priv.PublicKey) {
 		t.Fail()
 	}

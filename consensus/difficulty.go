@@ -1,8 +1,9 @@
 package consensus
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var (

@@ -3,8 +3,9 @@ package consensus
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // CreateGeneration will create a generation Tx for new Block

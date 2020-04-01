@@ -4,11 +4,13 @@ package consensus
 
 import (
 	"crypto/elliptic"
+	"runtime"
+
+	"github.com/whyrusleeping/go-logging"
+
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/whyrusleeping/go-logging"
-	"runtime"
 )
 
 var log = logging.MustGetLogger("consensus")
@@ -33,7 +35,6 @@ func (c *Consensus) InitPoW(workerNum int) {
 				if c.isMining {
 					c.miner.Start(c.GetBlockTemplate())
 				}
-
 			}
 		}()
 	}

@@ -1,8 +1,9 @@
 package ngp2p
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
 	"time"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func (w *Wired) UpdateStatus() {

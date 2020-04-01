@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ngchain/ngcore/keytools"
 	"strings"
+
+	"github.com/ngchain/ngcore/keytools"
 )
 
 // basic usages:
@@ -17,10 +18,8 @@ func main() {
 	switch flag.Arg(0) {
 	case "new":
 		newKeyPair(flag.Arg(1), flag.Arg(2))
-		break
 	case "read":
 		parseKeyFile(flag.Arg(1), flag.Arg(2))
-		break
 	default:
 		fmt.Println(`
 commands:
@@ -32,9 +31,7 @@ keytools parse [filename] [password]
 read a existed ngKey file and print its data to the console
 
 on default, the filename is ngKey`)
-
 	}
-
 }
 
 func newKeyPair(filename string, pass string) {

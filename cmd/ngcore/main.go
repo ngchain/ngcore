@@ -3,6 +3,17 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime/pprof"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/whyrusleeping/go-logging"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngchain"
@@ -11,15 +22,6 @@ import (
 	"github.com/ngchain/ngcore/rpc"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/txpool"
-	"github.com/whyrusleeping/go-logging"
-	"gopkg.in/urfave/cli.v1"
-	"os"
-	"os/signal"
-	"runtime/pprof"
-	"strings"
-	"sync"
-	"syscall"
-	"time"
 )
 
 var log = logging.MustGetLogger("main")
@@ -82,7 +84,7 @@ var action = func(c *cli.Context) error {
 	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Int("mining") >= 0
 	isStrictMode := isBootstrapNode || c.BoolT("strict")
-	p2pTcpPort := c.Int("p2p-port")
+	p2pTCPPort := c.Int("p2p-port")
 	rpcPort := c.Int("rpc-port")
 	keyPass := c.String("key-pass")
 	withProfile := c.Bool("profile")
@@ -116,7 +118,7 @@ var action = func(c *cli.Context) error {
 	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
-	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, isBootstrapNode, sheetManager, chain, txPool)
+	localNode := ngp2p.NewLocalNode(p2pTCPPort, isStrictMode, isBootstrapNode, sheetManager, chain, txPool)
 	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensusManager, localNode, sheetManager, txPool)
 	go rpc.Run()
 

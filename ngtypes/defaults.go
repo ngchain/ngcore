@@ -16,7 +16,7 @@ var GenesisPK, _ = hex.DecodeString("041826d860840c977c9566ac5f24d620d7edfaa5128
 
 const (
 	Version   = -1
-	NetworkId = -1
+	NetworkID = -1
 )
 
 var (

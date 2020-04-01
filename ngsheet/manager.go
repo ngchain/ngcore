@@ -2,10 +2,12 @@ package ngsheet
 
 import (
 	"encoding/hex"
-	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/whyrusleeping/go-logging"
 	"math/big"
 	"sync"
+
+	"github.com/whyrusleeping/go-logging"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var log = logging.MustGetLogger("sheet")

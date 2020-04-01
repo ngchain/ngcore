@@ -3,9 +3,10 @@ package main
 import (
 	"crypto/elliptic"
 	"flag"
+	"log"
+
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngtypes"
-	"log"
 )
 
 var regen = flag.Bool("regen", false, "regenerate the genesis.key")
@@ -21,8 +22,10 @@ func main() {
 			log.Panic("genesis.key is missing")
 		}
 	}
+
 	raw := elliptic.Marshal(elliptic.P256(), localKey.X, localKey.Y)
 	log.Printf("Hex Genesis PublicKey: %x", raw)
+
 	header := &ngtypes.TxHeader{
 		Version:      ngtypes.Version,
 		Type:         0,
@@ -43,5 +46,4 @@ func main() {
 	}
 
 	log.Printf("Hex Generation R&S: %x %x", R.Bytes(), S.Bytes())
-
 }

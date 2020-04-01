@@ -2,6 +2,7 @@ package ngsheet
 
 import (
 	"bytes"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -13,7 +14,7 @@ func (m *Manager) AccountIsRegistered(accountID uint64) bool {
 	return exists
 }
 
-func (m *Manager) GetAccountById(id uint64) (account *ngtypes.Account, exists bool) {
+func (m *Manager) GetAccountByID(id uint64) (account *ngtypes.Account, exists bool) {
 	m.accountsMu.RLock()
 	defer m.accountsMu.RUnlock()
 

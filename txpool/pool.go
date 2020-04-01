@@ -1,10 +1,12 @@
 package txpool
 
 import (
+	"sync"
+
+	"github.com/whyrusleeping/go-logging"
+
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/whyrusleeping/go-logging"
-	"sync"
 )
 
 var log = logging.MustGetLogger("txpool")

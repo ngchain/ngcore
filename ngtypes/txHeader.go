@@ -4,19 +4,20 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
+	"math/big"
+
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
-	"math/big"
 )
 
 // Sign will re-sign the Tx with private key
-func (m *TxHeader) Signature(privKey *ecdsa.PrivateKey) (R, S *big.Int, err error) {
+func (m *TxHeader) Signature(privKey *ecdsa.PrivateKey) (r, s *big.Int, err error) {
 	b, err := proto.Marshal(m)
 	if err != nil {
 		log.Error(err)
 	}
 
-	R, S, err = ecdsa.Sign(rand.Reader, privKey, b)
+	r, s, err = ecdsa.Sign(rand.Reader, privKey, b)
 	if err != nil {
 		log.Panic(err)
 	}

@@ -1,12 +1,14 @@
 package ngp2p
 
 import (
+	"io/ioutil"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
-	"io/ioutil"
 )
 
 // chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num

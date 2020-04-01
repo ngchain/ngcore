@@ -2,11 +2,12 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"sync"
+
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/txpool"
-	"sync"
 )
 
 // the pow

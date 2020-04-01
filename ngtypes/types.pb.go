@@ -942,7 +942,7 @@ func (this *Block) GoString() string {
 	}
 	s := make([]string, 0, 8)
 	s = append(s, "&ngtypes.Block{")
-	s = append(s, "NetworkId: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
+	s = append(s, "NetworkID: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
 	if this.Header != nil {
 		s = append(s, "Header: "+fmt.Sprintf("%#v", this.Header)+",\n")
 	}
@@ -1027,7 +1027,7 @@ func (this *Vault) GoString() string {
 	}
 	s := make([]string, 0, 11)
 	s = append(s, "&ngtypes.Vault{")
-	s = append(s, "NetworkId: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
+	s = append(s, "NetworkID: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
 	s = append(s, "Height: "+fmt.Sprintf("%#v", this.Height)+",\n")
 	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
 	s = append(s, "PrevVaultHash: "+fmt.Sprintf("%#v", this.PrevVaultHash)+",\n")
@@ -1828,7 +1828,7 @@ func (this *Block) String() string {
 	}
 	repeatedStringForTransactions += "}"
 	s := strings.Join([]string{`&Block{`,
-		`NetworkId:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
+		`NetworkID:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
 		`Header:` + strings.Replace(this.Header.String(), "BlockHeader", "BlockHeader", 1) + `,`,
 		`HeaderHash:` + fmt.Sprintf("%v", this.HeaderHash) + `,`,
 		`Transactions:` + repeatedStringForTransactions + `,`,
@@ -1908,7 +1908,7 @@ func (this *Vault) String() string {
 	}
 	repeatedStringForDelists += "}"
 	s := strings.Join([]string{`&Vault{`,
-		`NetworkId:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
+		`NetworkID:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
 		`Height:` + fmt.Sprintf("%v", this.Height) + `,`,
 		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
 		`PrevVaultHash:` + fmt.Sprintf("%v", this.PrevVaultHash) + `,`,
@@ -2397,7 +2397,7 @@ func (m *Block) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NetworkId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field NetworkID", wireType)
 			}
 			m.NetworkId = 0
 			for shift := uint(0); ; shift += 7 {
@@ -3340,7 +3340,7 @@ func (m *Vault) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NetworkId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field NetworkID", wireType)
 			}
 			m.NetworkId = 0
 			for shift := uint(0); ; shift += 7 {

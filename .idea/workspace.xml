@@ -2,11 +2,63 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/golangci-lint.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/keytools/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/keytools/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/consensus.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/consensus.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/difficulty.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/difficulty.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/generation.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/generation.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/miner/miner.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/miner/miner.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/keytools/tools.go" beforeDir="false" afterPath="$PROJECT_DIR$/keytools/tools.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngchain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngchain/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/init.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngchain/item.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/item.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngchain/put.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/put.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngchain/swicher.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/swicher.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/broadcast.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcast.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/broadcastblock.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcastblock.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/broadcasttx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/broadcasttx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/init.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/pb/p2p.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/pb/p2p.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/sync.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredping.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredpong.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredpong.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredreject.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredreject.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/account.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/account.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/apply.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/apply.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/check.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/blockHeader.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/blockHeader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/defaults.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/defaults.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/doc.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/doc.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/sheet.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/txHeader.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/txHeader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/txTrie.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/txTrie.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/types.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/vault.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/vault.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/p2p.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/p2p.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/server.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/sheet.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/storage/db.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/check.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/pool.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/put.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/put.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vm/lua.go" beforeDir="false" afterPath="$PROJECT_DIR$/vm/lua.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,7 +104,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="go.vgo" />
+    <property name="settings.editor.selected.configurable" value="preferences.sourceCode.Go" />
   </component>
   <component name="RunManager" selected="Go Build.ngcore mining ">
     <configuration name="go build github.com/ngchain/ngcore" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -114,10 +166,10 @@
     <MESSAGE value="more checktx more safety" />
     <MESSAGE value="optimize code &amp;&amp; auth on wired messages" />
     <MESSAGE value="optimize code" />
-    <MESSAGE value="bugfix" />
     <MESSAGE value="fix wired message verification" />
     <MESSAGE value="fix the bug on sync" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix the bug on sync" />
+    <MESSAGE value="bugfix" />
+    <option name="LAST_COMMIT_MESSAGE" value="bugfix" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -136,10 +188,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="552" y="181" key="#Go_Modules_(vgo)/0.0.1920.1040@0.0.1920.1040" timestamp="1585280398146" />
-    <state x="586" y="198" key="#Inspections" timestamp="1585283136480">
+    <state x="586" y="198" key="#Inspections" timestamp="1585748484471">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1585283136480" />
+    <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1585748484471" />
     <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585737105802">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -152,10 +204,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585653671371" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585738362717">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585744914219">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585738362717" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585744914219" />
     <state width="469" height="466" key="DebuggerActiveHint" timestamp="1585736627581">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -204,22 +256,22 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="713" y="221" key="RollbackChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585312920939" />
-    <state x="365" y="255" key="SettingsEditor" timestamp="1585725846700">
+    <state x="365" y="255" key="SettingsEditor" timestamp="1585748746593">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585725846700" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585738365443">
+    <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585748746593" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585744919217">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585738365443" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585744919217" />
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585714059040">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585714059040" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585736972728">
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585749500057">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585736972728" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585749500057" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585563620053">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

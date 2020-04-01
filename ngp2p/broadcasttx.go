@@ -2,7 +2,9 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-pubsub"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

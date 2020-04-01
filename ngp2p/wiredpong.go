@@ -2,12 +2,14 @@ package ngp2p
 
 import (
 	"bytes"
+	"io/ioutil"
+
 	"github.com/gogo/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
-	"io/ioutil"
 )
 
 func (w *Wired) Pong(s network.Stream, uuid string) bool {

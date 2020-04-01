@@ -2,7 +2,7 @@ package vm
 
 import (
 	"github.com/whyrusleeping/go-logging"
-	"github.com/yuin/gopher-lua"
+	lua "github.com/yuin/gopher-lua"
 )
 
 var log = logging.MustGetLogger("chain")

@@ -8,9 +8,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
-	"math/big"
 
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"

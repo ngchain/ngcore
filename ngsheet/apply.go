@@ -5,8 +5,9 @@ import (
 	"crypto/elliptic"
 	"encoding/hex"
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // ApplyVault will apply list and delists in vault to balanceSheet
@@ -97,7 +98,6 @@ func (m *Manager) ApplyTxs(txs ...*ngtypes.Transaction) error {
 				m.anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense)
 
 				for i := range tx.GetParticipants() {
-
 					participantBalance, exists := m.anonymous[hex.EncodeToString(tx.GetParticipants()[i])]
 					if !exists {
 						participantBalance = ngtypes.Big0

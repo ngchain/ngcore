@@ -6,12 +6,13 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"io/ioutil"
+	"os"
+
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/whyrusleeping/go-logging"
-	"io/ioutil"
-	"os"
 )
 
 var log = logging.MustGetLogger("p2p")
