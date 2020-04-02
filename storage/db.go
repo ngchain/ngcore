@@ -23,6 +23,7 @@ func InitStorage() *badger.DB {
 	return s
 }
 
+// TODO: add memdb mode
 func InitMemStorage() *badger.DB {
 	options := badger.DefaultOptions("").WithInMemory(true)
 	if runtime.GOOS == "windows" {

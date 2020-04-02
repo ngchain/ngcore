@@ -91,7 +91,9 @@ func (m *Manager) ApplyTxs(txs ...*ngtypes.Transaction) error {
 
 			participants := tx.GetParticipants()
 			for i := range participants {
-				participantBalance, exists := m.anonymous[hex.EncodeToString(participants[i])]
+				var participantBalance *big.Int
+
+				participantBalance, exists = m.anonymous[hex.EncodeToString(participants[i])]
 				if !exists {
 					participantBalance = ngtypes.Big0
 				}

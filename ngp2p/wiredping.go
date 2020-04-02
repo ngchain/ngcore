@@ -69,6 +69,7 @@ func (w *Wired) onPing(s network.Stream) {
 	if err != nil {
 		log.Error(err)
 		go w.Reject(s, data.Header.Uuid)
+
 		return
 	}
 
@@ -82,6 +83,7 @@ func (w *Wired) onPing(s network.Stream) {
 	if err != nil {
 		log.Error(err)
 		go w.Reject(s, data.Header.Uuid)
+
 		return
 	}
 

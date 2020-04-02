@@ -7,8 +7,8 @@ import (
 )
 
 func (w *Wired) UpdateStatus() {
-	var total = 0
-	var synced = 0
+	total := 0
+	synced := 0
 	localHeight := w.node.chain.GetLatestBlockHeight()
 
 	w.node.RemoteHeights.Range(func(_, value interface{}) bool {
@@ -28,7 +28,8 @@ func (w *Wired) Sync() {
 	syncTicker := time.NewTicker(ngtypes.TargetTime)
 	defer syncTicker.Stop()
 
-	lastTimeIsSynced := false //default
+	lastTimeIsSynced := false // default
+
 	for {
 		select {
 		case <-syncTicker.C:

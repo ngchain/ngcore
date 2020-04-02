@@ -107,6 +107,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
 	}
+
 	if prevBlock == nil {
 		log.Warning("Malformed block mined: PrevBlockHash")
 		return

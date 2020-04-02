@@ -1,6 +1,6 @@
 package ngtypes
 
-// AccountID will receive an ID and PK then return a Account without SubState and Balance(0
+// NewAccount will receive an ID and PK then return a Account without SubState and Balance(0
 func NewAccount(id uint64, ownerKey []byte, state []byte) *Account {
 	return &Account{
 		ID:    id,
@@ -9,12 +9,7 @@ func NewAccount(id uint64, ownerKey []byte, state []byte) *Account {
 	}
 }
 
-//func NewRewardAccount(id uint64, ownerKey []byte, totalFeeReward *big.Int) *Account {
-//	reward := new(big.Int).Add(OneBlockReward, totalFeeReward)
-//	return NewAccount(id, ownerKey, reward, nil)
-//}
-
-//
+// GetGenesisAccount will return the genesis account (id=1)
 func GetGenesisAccount() *Account {
 	return &Account{
 		ID: 1,

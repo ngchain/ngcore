@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/binary"
 )
 
@@ -51,14 +50,4 @@ func PackUint16BE(n uint16) []byte {
 	b := make([]byte, 2)
 	binary.BigEndian.PutUint16(b, n)
 	return b
-}
-
-// Base64EncodeToString encodes base64 into string
-func Base64EncodeToString(raw []byte) string {
-	return base64.StdEncoding.EncodeToString(raw)
-}
-
-// Base64DecodeString decodes string to base64
-func Base64DecodeString(b64 string) ([]byte, error) {
-	return base64.StdEncoding.DecodeString(b64)
 }

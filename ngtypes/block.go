@@ -162,6 +162,8 @@ func (m *Block) CheckError() error {
 		return ErrBlockMTreeInvalid
 	}
 
+	m.Header.VerifyNonce()
+
 	return nil
 }
 

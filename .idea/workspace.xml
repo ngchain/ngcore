@@ -2,14 +2,29 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/ngp2p/wiredgetpool.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngp2p/wirednotfound.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ngp2p/wiredpool.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/difficulty.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/difficulty.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/keytools/tools.go" beforeDir="false" afterPath="$PROJECT_DIR$/keytools/tools.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngchain/chain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/chain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/sync.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredping.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredping.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/wiredreject.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredreject.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngsheet/apply.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/apply.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngsheet/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/check.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/account.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/account.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/blockHeader.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/blockHeader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/storage/db.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/pool.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/pool.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/put.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/put.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/format.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/format.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/serialize.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/serialize.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -122,7 +137,8 @@
     <MESSAGE value="bugfix" />
     <MESSAGE value="fmt with linter" />
     <MESSAGE value="Add descriptions for public func" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add descriptions for public func" />
+    <MESSAGE value="add assign &amp; append tx types" />
+    <option name="LAST_COMMIT_MESSAGE" value="add assign &amp; append tx types" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -157,10 +173,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585752255713" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585751470548">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585755882284">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751470548" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585755882284" />
     <state width="469" height="466" key="DebuggerActiveHint" timestamp="1585736627581">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -169,38 +185,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585738330924" />
-    <state width="938" height="348" key="GridCell.Tab.0.bottom" timestamp="1585744702348">
+    <state width="938" height="348" key="GridCell.Tab.0.bottom" timestamp="1585797692036">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702348" />
-    <state width="938" height="348" key="GridCell.Tab.0.center" timestamp="1585744702348">
+    <state width="938" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692036" />
+    <state width="938" height="348" key="GridCell.Tab.0.center" timestamp="1585797692036">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702348" />
-    <state width="938" height="348" key="GridCell.Tab.0.left" timestamp="1585744702347">
+    <state width="938" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692036" />
+    <state width="938" height="348" key="GridCell.Tab.0.left" timestamp="1585797692036">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702347" />
-    <state width="938" height="348" key="GridCell.Tab.0.right" timestamp="1585744702348">
+    <state width="938" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692036" />
+    <state width="938" height="348" key="GridCell.Tab.0.right" timestamp="1585797692036">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702348" />
-    <state width="938" height="348" key="GridCell.Tab.1.bottom" timestamp="1585744702349">
+    <state width="938" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692036" />
+    <state width="938" height="348" key="GridCell.Tab.1.bottom" timestamp="1585797692037">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702349" />
-    <state width="938" height="348" key="GridCell.Tab.1.center" timestamp="1585744702348">
+    <state width="938" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692037" />
+    <state width="938" height="348" key="GridCell.Tab.1.center" timestamp="1585797692037">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702348" />
-    <state width="938" height="348" key="GridCell.Tab.1.left" timestamp="1585744702348">
+    <state width="938" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692037" />
+    <state width="938" height="348" key="GridCell.Tab.1.left" timestamp="1585797692036">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702348" />
-    <state width="938" height="348" key="GridCell.Tab.1.right" timestamp="1585744702348">
+    <state width="938" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692036" />
+    <state width="938" height="348" key="GridCell.Tab.1.right" timestamp="1585797692037">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="938" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585744702348" />
+    <state width="938" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585797692037" />
     <state x="540" y="262" key="IDE.errors.dialog" timestamp="1585307603049">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -213,18 +229,18 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585748746593" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585751567618">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585755884947">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751567618" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585755884947" />
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585751442720">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751442720" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585754829278">
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585822201975">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585754829278" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585822201975" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585750345821">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

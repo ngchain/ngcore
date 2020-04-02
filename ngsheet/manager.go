@@ -50,6 +50,7 @@ func (m *Manager) GetBalance(accountID uint64) (*big.Int, error) {
 	m.anonymousMu.RLock()
 	balance, exists := m.anonymous[publicKey]
 	m.anonymousMu.RUnlock()
+
 	if !exists {
 		return nil, ngtypes.ErrAccountBalanceNotExists
 	}

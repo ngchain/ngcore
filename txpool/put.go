@@ -37,12 +37,14 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Transaction) error {
 		if !txs[i].IsSigned() {
 			err = errors.New("cannot putting unsigned tx, " + txs[i].HashHex() + " into queuing")
 			log.Error(err)
+
 			continue
 		}
 
 		if n := p.CurrentVault.Sheet.Accounts[txs[i].GetConvener()].Nonce + 1; txs[i].GetNonce() != n+1 {
 			err = errors.New("Tx" + txs[i].HashHex() + "'s nonce is incorrect")
 			log.Error(err)
+
 			continue
 		}
 

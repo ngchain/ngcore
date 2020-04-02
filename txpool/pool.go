@@ -55,7 +55,6 @@ func (p *TxPool) Run() {
 			case vault := <-p.newVaultCh:
 				log.Infof("new backend vault@%d for txpool", vault.GetHeight())
 				p.CurrentVault = vault
-				//p.CheckExpire() // no expire
 			}
 		}
 	}()

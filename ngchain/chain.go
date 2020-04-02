@@ -424,6 +424,7 @@ func (c *Chain) DumpAllVaultsByHash() map[string]*ngtypes.Vault {
 
 func (c *Chain) DumpAllByHash(withBlocks bool, withVaults bool) map[string]Item {
 	kv := make(map[string]Item)
+
 	if withBlocks {
 		all := c.DumpAllBlocksByHash()
 		for k, v := range all {

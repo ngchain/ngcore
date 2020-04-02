@@ -58,7 +58,7 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 
 			// check nonce
 			if convener.Nonce >= tx.GetNonce() {
-				return ngtypes.ErrBlockNonceInvalid
+				return fmt.Errorf("wrong tx nonce")
 			}
 		case 2, 3: // assignment
 			convener, exists := m.accounts[tx.GetConvener()]

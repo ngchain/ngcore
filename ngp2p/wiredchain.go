@@ -14,6 +14,7 @@ import (
 // chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
 func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayload) bool {
 	log.Infof("Sending chain to %s. Message id: %s, chain from vault@%d ...", s.Conn().RemotePeer(), uuid, getchain.VaultHeight)
+
 	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
 
 	for i := getchain.VaultHeight * ngtypes.BlockCheckRound; i < (getchain.VaultHeight+1)*ngtypes.BlockCheckRound; i++ {
@@ -77,6 +78,7 @@ func (w *Wired) onChain(s network.Stream) {
 	if err != nil {
 		_ = s.Reset()
 		log.Error(err)
+
 		return
 	}
 	_ = s.Close()
