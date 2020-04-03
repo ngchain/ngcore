@@ -4,23 +4,11 @@
     <option name="SPLITTER_PROPORTION" value="0.45918366" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/ngchain/helper.go" afterDir="false" />
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="enable NAT and relay">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/genesis/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/genesis/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngchain/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wired.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wired.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wiredgetchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/wirednotfound.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/wirednotfound.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/BUILD.bazel" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/BUILD.bazel" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/BUILD.bazel" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngp2p/sync.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/sync.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -135,7 +123,8 @@
     <MESSAGE value="Add descriptions for public func" />
     <MESSAGE value="add assign &amp; append tx types" />
     <MESSAGE value="fmt &amp; doc" />
-    <option name="LAST_COMMIT_MESSAGE" value="fmt &amp; doc" />
+    <MESSAGE value="using notfound &amp; fix sheet init" />
+    <option name="LAST_COMMIT_MESSAGE" value="using notfound &amp; fix sheet init" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -170,50 +159,50 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585752255713" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585822507776">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585893740661">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585822507776" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585893740661" />
     <state width="1217" height="466" key="DebuggerActiveHint" timestamp="1585886651167">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state width="1217" height="466" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1585886651167" />
-    <state x="176" y="48" key="DiffContextDialog" timestamp="1585738330924">
+    <state x="176" y="48" key="DiffContextDialog" timestamp="1585893739762">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585738330924" />
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585888436357">
+    <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585893739761" />
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585892159208">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
-    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1585888436357">
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159208" />
+    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1585892159207">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
-    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1585888436357">
+    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159207" />
+    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1585892159207">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
-    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1585888436357">
+    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159207" />
+    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1585892159207">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
-    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1585888436357">
+    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159207" />
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1585892159132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
-    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1585888436357">
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159132" />
+    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1585892159132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
-    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1585888436357">
+    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159132" />
+    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1585892159132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
-    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1585888436357">
+    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159132" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1585892159132">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585888436357" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585892159132" />
     <state x="540" y="262" key="IDE.errors.dialog" timestamp="1585307603049">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -226,18 +215,18 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585748746593" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585822509838">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585889274561">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585822509838" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585889274561" />
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585751442720">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751442720" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585888133724">
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585890098283">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585888133724" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585890098283" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585750345821">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
