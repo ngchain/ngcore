@@ -14,9 +14,10 @@ func NewHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 
 	httpHandler.RegisterJsonRpcHandleFunc("addnode", s.addNodeFunc)
 
-	//httpHandler.RegisterJsonRpcHandleFunc("sendtoaddress", s.sendTxFunc)
+	// httpHandler.RegisterJsonRpcHandleFunc("sendtoaddress", s.sendTxFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("sendtx", s.sendTxFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getaccounts", s.getAccountsFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getbalance", s.getBalanceFunc)
 
 	return httpHandler
 }

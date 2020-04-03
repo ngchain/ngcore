@@ -128,7 +128,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	// TODO: vault should be generated when made the template
 	if b.Header.IsHead() {
-		err := c.SheetManager.ApplyVault(prevVault)
+		err := c.SheetManager.HandleVault(prevVault)
 		if err != nil {
 			log.Error(err)
 		}
@@ -140,7 +140,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		return
 	}
 
-	err = c.SheetManager.ApplyTxs(b.Transactions...)
+	err = c.SheetManager.HandleTxs(b.Transactions...)
 	if err != nil {
 		log.Warning(err)
 		return
@@ -163,7 +163,12 @@ func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *n
 
 	ownerKey := utils.ECDSAPublicKey2Bytes(c.PrivateKey.PublicKey)
 
-	newVault := ngtypes.NewVault(accountNumber, ownerKey, prevVaultHeight, prevVaultHash, c.SheetManager.GenerateSheet())
+	sheet, err := c.SheetManager.GenerateNewSheet()
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	newVault := ngtypes.NewVault(accountNumber, ownerKey, prevVaultHeight, prevVaultHash, sheet)
 	hash, _ := newVault.CalculateHash()
 	log.Infof("Generated a new Vault@%d, %x", newVault.GetHeight(), hash)
 	return newVault

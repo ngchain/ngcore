@@ -9,20 +9,18 @@ import (
 )
 
 // CheckTxs will check the influenced accounts which mentioned in op, and verify their balance and nonce
-func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
+func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Transaction) error {
 	// checkFrom
 	// - check exist
 	// - check sign(pk)
 	// - check nonce
 	// - check balance
 
-	m.accountsMu.RLock()
-	defer m.accountsMu.RUnlock()
+	m.RLock()
+	defer m.RUnlock()
 
-	m.anonymousMu.RLock()
-	defer m.anonymousMu.RUnlock()
-
-	for _, tx := range txs {
+	for i := 0; i < len(txs); i++ {
+		tx := txs[i]
 		// check tx is signed
 		if !tx.IsSigned() {
 			return ngtypes.ErrTxIsNotSigned
@@ -35,13 +33,19 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 			}
 		case 1: // tx
 			// check convener exists
-			convener, exists := m.accounts[tx.GetConvener()]
+			rawConvener, exists := m.accounts[tx.GetConvener()]
 			if !exists {
 				return ngtypes.ErrAccountNotExists
 			}
 
+			convener := new(ngtypes.Account)
+			err := convener.Unmarshal(rawConvener)
+			if err != nil {
+				return err
+			}
+
 			totalCharge := tx.TotalCharge()
-			convenerBalance, err := m.GetBalance(tx.GetConvener())
+			convenerBalance, err := m.GetBalanceByID(tx.GetConvener())
 			if err != nil {
 				return err
 			}
@@ -57,17 +61,24 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 			}
 
 			// check nonce
-			if convener.Nonce >= tx.GetNonce() {
+			if tx.GetNonce() != convener.Nonce+1 {
 				return fmt.Errorf("wrong tx nonce")
 			}
-		case 2, 3: // assignment
-			convener, exists := m.accounts[tx.GetConvener()]
+
+		case 2, 3: // assign & append
+			rawConvener, exists := m.accounts[tx.GetConvener()]
 			if !exists {
 				return ngtypes.ErrAccountNotExists
 			}
 
+			convener := new(ngtypes.Account)
+			err := convener.Unmarshal(rawConvener)
+			if err != nil {
+				return err
+			}
+
 			totalCharge := tx.TotalCharge()
-			convenerBalance, err := m.GetBalance(tx.GetConvener())
+			convenerBalance, err := m.GetBalanceByID(tx.GetConvener())
 			if err != nil {
 				return err
 			}
@@ -89,6 +100,12 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 			if err = tx.CheckTx(publicKey); err != nil {
 				return err
 			}
+
+			// check nonce
+			if tx.GetNonce() != convener.Nonce+1 {
+				return fmt.Errorf("wrong tx nonce")
+			}
+
 		}
 	}
 
