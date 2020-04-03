@@ -8,9 +8,6 @@ import (
 	"golang.org/x/crypto/sha3"
 	"math/big"
 	"time"
-
-	"github.com/ngin-network/cryptonight-go"
-	"github.com/whyrusleeping/go-logging"
 )
 
 var (
@@ -73,7 +70,7 @@ func (m *Block) ToUnsealing(txsWithGen []*Transaction) (*Block, error) {
 	return b, nil
 }
 
-// ToUnsealing converts an unsealing block to a sealed block
+// ToSealed converts an unsealing block to a sealed block
 func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 	if m.Header == nil {
 		return nil, ErrBlockHeaderMissing

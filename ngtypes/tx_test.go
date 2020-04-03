@@ -10,6 +10,7 @@ import (
 	"testing"
 )
 
+// TestDeserialize test Unsigned Operation whether it is possible to deserialize
 func TestDeserialize(t *testing.T) {
 	tx := NewUnsignedTransaction(
 		0,
@@ -32,6 +33,7 @@ func TestDeserialize(t *testing.T) {
 	t.Log(otherTx.String())
 }
 
+// TestTransaction_Signature test generated Key pair
 func TestTransaction_Signature(t *testing.T) {
 	o := NewUnsignedTransaction(0, 1, [][]byte{GenesisPK}, []*big.Int{Big0}, Big0, 0, nil)
 	priv, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

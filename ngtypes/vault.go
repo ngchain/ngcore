@@ -14,6 +14,7 @@ var (
 	ErrMalformedVault   = errors.New("the vault structure is malformed")
 )
 
+// NewVault default class constructor
 func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
 	newAccount := NewAccount(newAccountID, ownerKey, nil)
 
@@ -27,6 +28,7 @@ func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prev
 	}
 }
 
+// CalculateHash mainly for calculating the tire root of txs and sign tx
 func (m *Vault) CalculateHash() ([]byte, error) {
 	raw, err := m.Marshal()
 	if err != nil {
@@ -36,6 +38,7 @@ func (m *Vault) CalculateHash() ([]byte, error) {
 	return hash[:], nil
 }
 
+// GetGenesisVault return Value v
 func GetGenesisVault() *Vault {
 	v := &Vault{
 		Height: 0,

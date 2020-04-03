@@ -29,6 +29,7 @@ func (tt *TxTrie) Less(i, j int) bool {
 	return new(big.Int).SetBytes(tt.Txs[i].Header.Fee).Cmp(new(big.Int).SetBytes(tt.Txs[j].Header.Fee)) < 0 || tt.Txs[i].Header.Convener > tt.Txs[j].Header.Convener
 }
 
+// Swap just swap the values of ops
 func (tt *TxTrie) Swap(i, j int) {
 	tmp := tt.Txs[i]
 	tt.Txs[i] = tt.Txs[j]
@@ -46,10 +47,12 @@ func (tt *TxTrie) ReverseSort() *TxTrie {
 	return sort.Reverse(tt).(*TxTrie)
 }
 
+// Append will append new object to the end of TxTrie
 func (tt *TxTrie) Append(tx *Transaction) {
 	tt.Txs = append(tt.Txs, tx)
 }
 
+// Del make the value of tt.Txs the same as tx
 func (tt *TxTrie) Del(tx *Transaction) error {
 	for i := range tt.Txs {
 		if tt.Txs[i] == tx {
@@ -61,6 +64,7 @@ func (tt *TxTrie) Del(tx *Transaction) error {
 	return errors.New("no such operation")
 }
 
+// Contains determine if tt.Txs and tx are equal
 func (tt *TxTrie) Contains(tx *Transaction) bool {
 	for i := 0; i < len(tt.Txs); i++ {
 		if tt.Txs[i] == tx {
@@ -70,6 +74,7 @@ func (tt *TxTrie) Contains(tx *Transaction) bool {
 	return false
 }
 
+// TrieRoot sort tt by trie tree and return the root
 func (tt *TxTrie) TrieRoot() []byte {
 	if len(tt.Txs) == 0 {
 		return make([]byte, 32)

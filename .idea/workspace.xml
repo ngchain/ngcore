@@ -3,10 +3,17 @@
   <component name="ChangeListManager">
     <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/ngcore/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/ngcore/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/init.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngp2p/localnode.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngp2p/localnode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/account.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/account.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/account_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/account_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/blockHeader.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/blockHeader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/block_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/sheet.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/txHeader.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/txHeader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/txTrie.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/txTrie.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/vault.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/vault.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,7 +96,7 @@
     </recent_temporary>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="2" />
+    <option name="version" value="1" />
   </component>
   <component name="UpdateCopyrightCheckinHandler">
     <option name="UPDATE_COPYRIGHT" value="true" />
@@ -109,11 +116,6 @@
   </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
-    <environment>
-      <map>
-        <entry key="GOPROXY" value="direct" />
-      </map>
-    </environment>
     <proxy>direct</proxy>
   </component>
   <component name="WindowStateProjectService">
