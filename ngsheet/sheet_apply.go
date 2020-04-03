@@ -55,7 +55,8 @@ func (m *sheetEntry) HandleTxs(txs ...*ngtypes.Transaction) (err error) {
 		}
 	}()
 
-	for _, tx := range txs {
+	for i := 0; i < len(txs); i++ {
+		tx := txs[i]
 		switch tx.GetType() {
 		case 0:
 			raw := tx.GetParticipants()[0]

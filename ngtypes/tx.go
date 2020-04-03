@@ -267,8 +267,8 @@ func GetGenesisGeneration() *Transaction {
 	headerHash, _ := proto.Marshal(header)
 
 	// FIXME: before init network should manually init the R & S
-	r, _ := hex.DecodeString("db60cdda46c5c4efb1eadd797b27bc785a713c16b5e33d92010cf1828855e577")
-	s, _ := hex.DecodeString("f28ec61c9ec8e889377c34e8359b25f355500b15189c1c7f3f1f2fff61eb7873")
+	r, _ := hex.DecodeString("ed0082040f49f6af7668f95497e534c4b04856fef50ce3c7888e0d43a62855cd")
+	s, _ := hex.DecodeString("fd4d9d4ceac8fb5a1a81c23ed5a4f14fccfa2f147da5ab16fa4be77627a18f04")
 
 	return &Transaction{
 		Header:     header,

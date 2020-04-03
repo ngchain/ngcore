@@ -52,7 +52,7 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 
 	/* Put start */
 	err := c.db.Update(func(txn *badger.Txn) error {
-		for i := range chain {
+		for i := 0; i < len(chain); i++ {
 			switch item := chain[i].(type) {
 			case *ngtypes.Block:
 				block := item
@@ -76,7 +76,6 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				return nil
 			case *ngtypes.Vault:
 				vault := item
 
@@ -99,7 +98,6 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				return nil
 			default:
 				panic("unknown item")
 			}

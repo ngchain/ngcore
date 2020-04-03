@@ -41,7 +41,7 @@ func (m *Manager) Init(currentVault *ngtypes.Vault, blocks ...*ngtypes.Block) {
 		panic(err)
 	}
 
-	for i := range blocks {
+	for i := 0; i < len(blocks); i++ {
 		err = m.currentSheet.HandleTxs(blocks[i].Transactions...)
 		if err != nil {
 			panic(err)
