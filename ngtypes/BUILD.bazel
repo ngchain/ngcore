@@ -29,6 +29,7 @@ go_library(
     importpath = "github.com/ngchain/ngcore/ngtypes",
     visibility = ["//visibility:public"],
     deps = [
+        "//utils:go_default_library",
         "@com_github_cbergoon_merkletree//:go_default_library",
         "@com_github_gogo_protobuf//proto:go_default_library",
         "@com_github_mr_tron_base58//:go_default_library",
@@ -48,6 +49,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//utils:go_default_library",
         "@com_github_gogo_protobuf//proto:go_default_library",
         "@com_github_mr_tron_base58//:go_default_library",
         "@com_github_nebulouslabs_fastrand//:go_default_library",

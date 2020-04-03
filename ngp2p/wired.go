@@ -19,6 +19,7 @@ func registerProtocol(node *LocalNode) *Wired {
 	node.SetStreamHandler(pingMethod, p.onPing)
 	node.SetStreamHandler(pongMethod, p.onPong)
 	node.SetStreamHandler(rejectMethod, p.onReject)
+	node.SetStreamHandler(notfoundMethod, p.onNotFound)
 
 	node.SetStreamHandler(getChainMethod, p.onGetChain)
 	node.SetStreamHandler(chainMethod, p.onChain)

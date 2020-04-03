@@ -11,31 +11,10 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *Wired) Chain(s network.Stream, uuid string, getchain *pb.GetChainPayload) bool {
-	log.Infof("Sending chain to %s. Message id: %s, chain from vault@%d ...", s.Conn().RemotePeer(), uuid, getchain.VaultHeight)
+// Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
+func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, blocks ...*ngtypes.Block) bool {
+	log.Infof("Sending chain to %s. Message id: %s, chain from vault@%d ...", s.Conn().RemotePeer(), uuid, vault.Height)
 
-	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
-
-	for i := getchain.VaultHeight * ngtypes.BlockCheckRound; i < (getchain.VaultHeight+1)*ngtypes.BlockCheckRound; i++ {
-		b, err := w.node.chain.GetBlockByHeight(i)
-		if err != nil {
-			log.Errorf("missing block@%d: %s", i, err)
-			break
-		}
-
-		if b == nil {
-			log.Errorf("missing block@%d", i)
-			break
-		} else {
-			blocks = append(blocks, b)
-		}
-	}
-
-	vault, err := w.node.chain.GetVaultByHeight(getchain.VaultHeight)
-	if err != nil {
-		log.Errorf("failed to get vault")
-	}
 	payload, err := proto.Marshal(&pb.ChainPayload{
 		Vault:        vault,
 		Blocks:       blocks,

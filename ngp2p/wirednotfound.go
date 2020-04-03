@@ -62,5 +62,5 @@ func (w *Wired) onNotFound(s network.Stream) {
 	}
 
 	log.Infof("Received notfound from %s. Message id:%s. Message: %s.", s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)
-	_ = w.node.Network().ClosePeer(s.Conn().RemotePeer())
+	// _ = w.node.Network().ClosePeer(s.Conn().RemotePeer())
 }

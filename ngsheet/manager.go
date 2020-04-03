@@ -32,9 +32,19 @@ func NewSheetManager() *Manager {
 	return s
 }
 
-func (m *Manager) Init(currentVault *ngtypes.Vault) {
+func (m *Manager) Init(currentVault *ngtypes.Vault, blocks ...*ngtypes.Block) {
 	log.Infof("sheet manager initialized on vault@%d", currentVault.Height)
 	m.currentVault = currentVault
+	m.accounts = currentVault.Sheet.Accounts
+	for i, v := range currentVault.Sheet.Anonymous {
+		m.anonymous[i] = new(big.Int).SetBytes(v)
+	}
+	for i := range blocks {
+		err := m.ApplyTxs(blocks[i].Transactions...)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (m *Manager) GetBalance(accountID uint64) (*big.Int, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func (w *Wired) GetChain(remotePeerID peer.ID, requestHeight uint64) bool {
@@ -86,5 +87,29 @@ func (w *Wired) onGetChain(s network.Stream) {
 		return
 	}
 
-	go w.Chain(s, data.Header.Uuid, getchain)
+	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
+
+	for i := getchain.VaultHeight * ngtypes.BlockCheckRound; i < (getchain.VaultHeight+1)*ngtypes.BlockCheckRound; i++ {
+		b, err := w.node.chain.GetBlockByHeight(i)
+		if err != nil {
+			log.Errorf("missing block@%d: %s", i, err)
+			break
+		}
+
+		if b == nil {
+			log.Errorf("missing block@%d", i)
+			break
+		} else {
+			blocks = append(blocks, b)
+		}
+	}
+
+	vault, err := w.node.chain.GetVaultByHeight(getchain.VaultHeight)
+	if err != nil {
+		log.Errorf("failed to get vault")
+		go w.NotFound(s, data.Header.Uuid)
+		return
+	}
+
+	go w.Chain(s, data.Header.Uuid, vault, blocks...)
 }

@@ -126,7 +126,11 @@ var action = func(c *cli.Context) error {
 	localNode.OnSynced = func() {
 		initOnce.Do(func() {
 			latestVault := chain.GetLatestVault()
-			sheetManager.Init(latestVault)
+			blocks, err := chain.GetBlocksOnVaultHeight(latestVault.GetHeight())
+			if err != nil {
+				panic(err)
+			}
+			sheetManager.Init(latestVault, blocks...)
 			txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
 			txPool.Run()
 
