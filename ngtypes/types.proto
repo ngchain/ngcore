@@ -29,7 +29,6 @@ message Block {
     int32 network_id = 1;
 
     BlockHeader header = 10;
-    bytes header_hash = 11;
 
     repeated Transaction transactions = 20; // miner should build the generation by themselves
 }

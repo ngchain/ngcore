@@ -87,7 +87,6 @@ func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 
 	b := m.Copy()
 	b.Header.Nonce = nonce
-	b.HeaderHash = cryptonight.Sum(b.Header.GetPoWBlob(nonce), 0)
 
 	return b, nil
 }
@@ -133,12 +132,9 @@ func GetGenesisBlock() *Block {
 		Target:        GenesisTarget.Bytes(),
 	}
 
-	hash := header.CalculateHash()
-
 	return &Block{
 		NetworkId:    NetworkID,
 		Header:       header,
-		HeaderHash:   hash,
 		Transactions: txs,
 	}
 }
@@ -151,10 +147,6 @@ func (m *Block) CheckError() error {
 
 	if m.Header.Nonce == nil {
 		return ErrBlockNonceInvalid
-	}
-
-	if m.HeaderHash == nil {
-		return ErrBlockHeaderHashMissing
 	}
 
 	mTreeHash := NewTxTrie(m.Transactions).TrieRoot()

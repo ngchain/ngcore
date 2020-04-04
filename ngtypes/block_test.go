@@ -10,6 +10,7 @@ import (
 
 	"github.com/NebulousLabs/fastrand"
 	"github.com/gogo/protobuf/proto"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/mr-tron/base58"
 	"github.com/ngin-network/cryptonight-go"
@@ -90,9 +91,9 @@ func TestBlock_Marshal(t *testing.T) {
 }
 
 func TestGetGenesisBlock(t *testing.T) {
-	hash := GetGenesisBlock().HeaderHash
-
 	d, _ := GetGenesisBlock().Marshal()
+	hash := sha3.Sum256(d)
+
 	log.Infof("GenesisBlock hex: %x", d)
 	log.Infof("GenesisBlock hash: %x", hash)
 }
