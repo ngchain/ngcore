@@ -146,7 +146,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	nonce := s.sheetManager.GetNextNonce(params.Convener)
 
 	tx := ngtypes.NewUnsignedTransaction(
-		1,
+		ngtypes.TX_TRANSACTION,
 		params.Convener,
 		participants,
 		values,

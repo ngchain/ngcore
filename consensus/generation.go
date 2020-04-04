@@ -12,7 +12,7 @@ import (
 func (c *Consensus) CreateGeneration(privateKey *ecdsa.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Transaction {
 	publicKeyBytes := utils.ECDSAPublicKey2Bytes(privateKey.PublicKey)
 	gen := ngtypes.NewUnsignedTransaction(
-		0,
+		ngtypes.TX_GENERATION,
 		0,
 		[][]byte{publicKeyBytes},
 		[]*big.Int{ngtypes.OneBlockReward},

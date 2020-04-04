@@ -15,7 +15,7 @@ import (
 
 func TestDeserialize(t *testing.T) {
 	tx := NewUnsignedTransaction(
-		0,
+		TX_GENERATION,
 		0,
 		[][]byte{GenesisPK},
 		[]*big.Int{new(big.Int).Mul(NG, big.NewInt(1000))},
