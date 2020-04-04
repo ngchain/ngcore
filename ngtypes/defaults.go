@@ -6,7 +6,8 @@ import (
 	"time"
 )
 
-var GenesisPK, _ = hex.DecodeString("04ebe755cbcbc97771e285bc8d7846b80f0270327ba442cc93d47fb904cc4796d52a5e43dfe527fbd879770283641d1e092d7f59826d90e459ccd9507457970da2")
+var GenesisPKHex = "04ebe755cbcbc97771e285bc8d7846b80f0270327ba442cc93d47fb904cc4796d52a5e43dfe527fbd879770283641d1e092d7f59826d90e459ccd9507457970da2"
+var GenesisPK, _ = hex.DecodeString(GenesisPKHex)
 
 const (
 	Version   = -1

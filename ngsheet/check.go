@@ -1,7 +1,6 @@
 package ngsheet
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -10,12 +9,6 @@ import (
 
 // CheckTxs will check the influenced accounts which mentioned in op, and verify their balance and nonce
 func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Transaction) error {
-	// checkFrom
-	// - check exist
-	// - check sign(pk)
-	// - check nonce
-	// - check balance
-
 	m.RLock()
 	defer m.RUnlock()
 
@@ -43,7 +36,7 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Transaction) error {
 			}
 
 		case ngtypes.TX_TRANSACTION: // transaction
-			if err := m.CheckGeneration(tx); err != nil {
+			if err := m.CheckTransaction(tx); err != nil {
 				return err
 			}
 
@@ -63,10 +56,6 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Transaction) error {
 }
 
 func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Transaction) error {
-	if err := generationTx.CheckGeneration(); err != nil {
-		return err
-	}
-
 	rawConvener, exists := m.accounts[generationTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -78,21 +67,12 @@ func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Transaction) error {
 		return err
 	}
 
-	totalCharge := generationTx.TotalCharge()
-	convenerBalance, err := m.GetBalanceByID(generationTx.GetConvener())
-	if err != nil {
+	// check structure and key
+	if err = generationTx.CheckGeneration(); err != nil {
 		return err
 	}
 
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
-	}
-
-	publicKey := utils.Bytes2ECDSAPublicKey(convener.Owner)
-
-	if err = generationTx.CheckTx(publicKey); err != nil {
-		return err
-	}
+	// DO NOT CHECK BALANCE
 
 	// check nonce
 	if generationTx.GetNonce() != convener.Nonce+1 {
@@ -103,10 +83,6 @@ func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Transaction) error {
 }
 
 func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Transaction) error {
-	if err := registerTx.CheckRegister(); err != nil {
-		return err
-	}
-
 	rawConvener, exists := m.accounts[registerTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -118,6 +94,12 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Transaction) error {
 		return err
 	}
 
+	// check structure and key
+	if err = registerTx.CheckRegister(); err != nil {
+		return err
+	}
+
+	// check balance
 	totalCharge := registerTx.TotalCharge()
 	convenerBalance, err := m.GetBalanceByID(registerTx.GetConvener())
 	if err != nil {
@@ -126,12 +108,6 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Transaction) error {
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ngtypes.ErrTxBalanceInsufficient
-	}
-
-	publicKey := utils.Bytes2ECDSAPublicKey(convener.Owner)
-
-	if err = registerTx.CheckTx(publicKey); err != nil {
-		return err
 	}
 
 	// check nonce
@@ -143,10 +119,6 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Transaction) error {
 }
 
 func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Transaction) error {
-	if err := logoutTx.CheckRegister(); err != nil {
-		return err
-	}
-
 	rawConvener, exists := m.accounts[logoutTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -158,6 +130,12 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Transaction) error {
 		return err
 	}
 
+	// check structure and key
+	if err = logoutTx.CheckLogout(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+		return err
+	}
+
+	// check balance
 	totalCharge := logoutTx.TotalCharge()
 	convenerBalance, err := m.GetBalanceByID(logoutTx.GetConvener())
 	if err != nil {
@@ -168,14 +146,44 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Transaction) error {
 		return ngtypes.ErrTxBalanceInsufficient
 	}
 
-	publicKey := utils.Bytes2ECDSAPublicKey(convener.Owner)
+	// check nonce
+	if logoutTx.GetNonce() != convener.Nonce+1 {
+		return fmt.Errorf("wrong tx nonce")
+	}
 
-	if err = logoutTx.CheckTx(publicKey); err != nil {
+	return nil
+}
+
+func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Transaction) error {
+	rawConvener, exists := m.accounts[transactionTx.GetConvener()]
+	if !exists {
+		return ngtypes.ErrAccountNotExists
+	}
+
+	convener := new(ngtypes.Account)
+	err := convener.Unmarshal(rawConvener)
+	if err != nil {
 		return err
 	}
 
+	// check structure and key
+	if err = transactionTx.CheckTransaction(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+		return err
+	}
+
+	// check balance
+	totalCharge := transactionTx.TotalCharge()
+	convenerBalance, err := m.GetBalanceByID(transactionTx.GetConvener())
+	if err != nil {
+		return err
+	}
+
+	if convenerBalance.Cmp(totalCharge) < 0 {
+		return ngtypes.ErrTxBalanceInsufficient
+	}
+
 	// check nonce
-	if logoutTx.GetNonce() != convener.Nonce+1 {
+	if transactionTx.GetNonce() != convener.Nonce+1 {
 		return fmt.Errorf("wrong tx nonce")
 	}
 
@@ -194,6 +202,12 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Transaction) error {
 		return err
 	}
 
+	// check structure and key
+	if err = assignTx.CheckAssign(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+		return err
+	}
+
+	// check balance
 	totalCharge := assignTx.TotalCharge()
 	convenerBalance, err := m.GetBalanceByID(assignTx.GetConvener())
 	if err != nil {
@@ -202,20 +216,6 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Transaction) error {
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ngtypes.ErrTxBalanceInsufficient
-	}
-
-	if len(assignTx.Header.Participants) != 1 || !bytes.Equal(assignTx.Header.Participants[0], make([]byte, 0)) {
-		return fmt.Errorf("an assignment should have only one participant: nil")
-	}
-
-	if len(assignTx.Header.Values) != 1 || !bytes.Equal(assignTx.Header.Values[0], ngtypes.GetBig0Bytes()) {
-		return fmt.Errorf("an assignment should have only one value: 0")
-	}
-
-	publicKey := utils.Bytes2ECDSAPublicKey(convener.Owner)
-
-	if err = assignTx.CheckTx(publicKey); err != nil {
-		return err
 	}
 
 	// check nonce
@@ -238,6 +238,12 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Transaction) error {
 		return err
 	}
 
+	// check structure and key
+	if err = appendTx.CheckAppend(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+		return err
+	}
+
+	// check balance
 	totalCharge := appendTx.TotalCharge()
 	convenerBalance, err := m.GetBalanceByID(appendTx.GetConvener())
 	if err != nil {
@@ -246,20 +252,6 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Transaction) error {
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ngtypes.ErrTxBalanceInsufficient
-	}
-
-	if len(appendTx.Header.Participants) != 1 || !bytes.Equal(appendTx.Header.Participants[0], make([]byte, 0)) {
-		return fmt.Errorf("an assignment should have only one participant: nil")
-	}
-
-	if len(appendTx.Header.Values) != 1 || !bytes.Equal(appendTx.Header.Values[0], ngtypes.GetBig0Bytes()) {
-		return fmt.Errorf("an assignment should have only one value: 0")
-	}
-
-	publicKey := utils.Bytes2ECDSAPublicKey(convener.Owner)
-
-	if err = appendTx.CheckTx(publicKey); err != nil {
-		return err
 	}
 
 	// check nonce

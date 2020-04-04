@@ -52,35 +52,24 @@ func (m *sheetEntry) handleTxs(txs ...*ngtypes.Transaction) (err error) {
 			if err = handleRegister(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-
 		case ngtypes.TX_LOGOUT:
 			if err = handleLogout(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-
 		case ngtypes.TX_TRANSACTION:
 			if err = handleTransaction(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-
-		case ngtypes.TX_ASSIGN:
-			// assign tx
+		case ngtypes.TX_ASSIGN: // assign tx
 			if err = handleAssign(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-
-		case ngtypes.TX_APPEND:
-			// append tx
+		case ngtypes.TX_APPEND: // append tx
 			if err = handleAssign(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-
 		default:
-			err = fmt.Errorf("unknown operation type")
-		}
-
-		if err != nil {
-			return err
+			return fmt.Errorf("unknown operation type")
 		}
 	}
 

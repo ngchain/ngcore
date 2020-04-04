@@ -44,9 +44,13 @@ func GetGenesisVault() *Vault {
 		PrevVaultHash: nil,
 
 		Sheet: &Sheet{
-			Version:   Version,
-			Accounts:  map[uint64]*Account{},
-			Anonymous: map[string][]byte{},
+			Version: Version,
+			Accounts: map[uint64]*Account{
+				0: GetGenesisAccount(),
+			},
+			Anonymous: map[string][]byte{
+				GenesisPKHex: GetBig0Bytes(),
+			},
 		},
 	}
 
