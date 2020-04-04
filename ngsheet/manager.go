@@ -58,7 +58,7 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 }
 
 func (m *Manager) HandleTxs(transactions ...*ngtypes.Transaction) error {
-	return m.currentSheet.HandleTxs()
+	return m.currentSheet.HandleTxs(transactions...)
 }
 
 func (m *Manager) HandleVault(vault *ngtypes.Vault) error {

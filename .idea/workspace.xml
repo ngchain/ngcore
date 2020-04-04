@@ -27,13 +27,13 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="update new genesis">
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngchain/swicher.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngchain/swicher.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/genesis/genesisMain.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/sheet_apply.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/sheet_apply.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/defaults.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/defaults.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/types.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.pb.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,13 +81,44 @@
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="vcs.Git" />
   </component>
-  <component name="RunManager" selected="Go Build.ngcore mining ">
+  <component name="RunManager" selected="Go Test.TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes">
     <configuration name="go build github.com/ngchain/ngcore" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$" />
       <kind value="PACKAGE" />
       <package value="github.com/ngchain/ngcore" />
       <directory value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build github.com/ngchain/ngcore/cmd/genesis" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <filePath value="$PROJECT_DIR$/cmd/genesis/genesis.go" />
+      <package value="github.com/ngchain/ngcore/cmd/genesis" />
+      <directory value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$/ngtypes" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/ngchain/ngcore/ngtypes" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestGetGenesisGeneration$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$/ngtypes" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/ngchain/ngcore/ngtypes" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestTransaction_Signature$" />
       <method v="2" />
     </configuration>
     <configuration name="go test ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -118,12 +149,16 @@
       <item itemvalue="Go Build.go build github.com/ngchain/ngcore" />
       <item itemvalue="Go Test.go test ngcore" />
       <item itemvalue="Go Test.gocheck ngcore" />
+      <item itemvalue="Go Test.TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" />
+      <item itemvalue="Go Test.TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Test.TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" />
+        <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
+        <item itemvalue="Go Test.TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" />
         <item itemvalue="Go Test.go test ngcore" />
         <item itemvalue="Go Test.gocheck ngcore" />
-        <item itemvalue="Go Build.go build github.com/ngchain/ngcore" />
       </list>
     </recent_temporary>
   </component>
@@ -165,7 +200,8 @@
     <MESSAGE value="enable NAT and relay" />
     <MESSAGE value="change docker workdir" />
     <MESSAGE value="redesign the sheetManager to improve safety" />
-    <option name="LAST_COMMIT_MESSAGE" value="redesign the sheetManager to improve safety" />
+    <MESSAGE value="update new genesis" />
+    <option name="LAST_COMMIT_MESSAGE" value="update new genesis" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -199,50 +235,50 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585932916959" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585935188869">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585935419478">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585935188869" />
-    <state width="1217" height="466" key="DebuggerActiveHint" timestamp="1585886651167">
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585935419478" />
+    <state width="1217" height="466" key="DebuggerActiveHint" timestamp="1585935651118">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1217" height="466" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1585886651167" />
+    <state width="1217" height="466" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1585935651118" />
     <state x="176" y="48" key="DiffContextDialog" timestamp="1585893739762">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585893739761" />
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585935139384">
+    <state width="1877" height="282" key="GridCell.Tab.0.bottom" timestamp="1585964059416">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585935139384" />
-    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1585935139384">
+    <state width="1877" height="282" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585964059416" />
+    <state width="1877" height="282" key="GridCell.Tab.0.center" timestamp="1585964059416">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585935139384" />
-    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1585935139384">
+    <state width="1877" height="282" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585964059416" />
+    <state width="1877" height="282" key="GridCell.Tab.0.left" timestamp="1585964059416">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585935139384" />
-    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1585935139384">
+    <state width="1877" height="282" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585964059416" />
+    <state width="1877" height="282" key="GridCell.Tab.0.right" timestamp="1585964059416">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585935139384" />
-    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1585935140449">
+    <state width="1877" height="282" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585964059416" />
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1585936464725">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585935140449" />
-    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1585935140449">
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585936464725" />
+    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1585936464725">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585935140449" />
-    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1585935140449">
+    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585936464725" />
+    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1585936464725">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585935140449" />
-    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1585935140449">
+    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585936464725" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1585936464725">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585935140449" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585936464725" />
     <state x="540" y="262" key="IDE.errors.dialog" timestamp="1585307603049">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -255,18 +291,22 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585911239245" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585934044328">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585935422330">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585934044328" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585935422330" />
+    <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1585935985866">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="968" height="528" key="XDebugger.FullValuePopup/0.0.1920.1040@0.0.1920.1040" timestamp="1585935985866" />
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585751442720">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751442720" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585935410002">
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585937069316">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585935410002" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585937069316" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585750345821">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -276,9 +316,19 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/ngsheet/sheet_apply.go</url>
-          <line>36</line>
-          <option name="timeStamp" value="2" />
+          <url>file://$PROJECT_DIR$/ngsheet/check.go</url>
+          <line>28</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/ngsheet/check.go</url>
+          <line>24</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/ngsheet/check.go</url>
+          <line>30</line>
+          <option name="timeStamp" value="5" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

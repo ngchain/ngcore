@@ -66,7 +66,7 @@ func (m *Transaction) IsSigned() bool {
 // Verify helps verify the operation whether signed by the public key owner
 func (m *Transaction) Verify(pubKey ecdsa.PublicKey) bool {
 	if m.R == nil || m.S == nil {
-		log.Panic("unsigned operation")
+		log.Panic("unsigned transaction")
 	}
 
 	o := m.Copy()
@@ -78,6 +78,7 @@ func (m *Transaction) Verify(pubKey ecdsa.PublicKey) bool {
 		log.Error(err)
 	}
 
+	// hash := sha256.Sum256(b)
 	return ecdsa.Verify(&pubKey, b, new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S))
 }
 
@@ -178,7 +179,7 @@ func (m *Transaction) CheckGen() error {
 	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
 
 	if !m.Verify(publicKey) {
-		return fmt.Errorf("failed to verify the tx with publicKey")
+		return fmt.Errorf("failed to verify the generation with publicKey")
 	}
 
 	if m.GetConvener() != 0 {
@@ -251,29 +252,21 @@ func (m *Transaction) TotalCharge() *big.Int {
 }
 
 func GetGenesisGeneration() *Transaction {
-	header := &TxHeader{
-		Version:      Version,
-		Type:         0,
-		Convener:     0,
-		Participants: [][]byte{GenesisPK},
-		Fee:          Big0Bytes,
-		Values: [][]byte{
-			OneBlockReward.Bytes(),
-		},
-		Nonce: 0,
-		Extra: nil,
-	}
+	gen := NewUnsignedTransaction(
+		0,
+		0,
+		[][]byte{GenesisPK},
+		[]*big.Int{Big0},
+		Big0,
+		0,
+		nil,
+	)
 
-	headerHash, _ := proto.Marshal(header)
+	gen.HeaderHash, _ = gen.Header.CalculateHash()
 
 	// FIXME: before init network should manually init the R & S
-	r, _ := hex.DecodeString("ed0082040f49f6af7668f95497e534c4b04856fef50ce3c7888e0d43a62855cd")
-	s, _ := hex.DecodeString("fd4d9d4ceac8fb5a1a81c23ed5a4f14fccfa2f147da5ab16fa4be77627a18f04")
+	gen.R, _ = hex.DecodeString("e96066f4d0317f8141c6e2969202a4eebb1dfba5fc979d20b7522e9cfedc126d")
+	gen.S, _ = hex.DecodeString("112f459980b83fcff9416fa2cbf64a032baa537db4f0107e806b39bd8db385c6")
 
-	return &Transaction{
-		Header:     header,
-		HeaderHash: headerHash,
-		R:          r,
-		S:          s,
-	}
+	return gen
 }

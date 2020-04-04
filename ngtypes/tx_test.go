@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 func TestDeserialize(t *testing.T) {
@@ -45,6 +47,13 @@ func TestTransaction_Signature(t *testing.T) {
 	}
 
 	if o.Verify(priv2.PublicKey) {
+		t.Fail()
+	}
+}
+
+func TestGetGenesisGeneration(t *testing.T) {
+	gg := GetGenesisGeneration()
+	if !gg.Verify(utils.Bytes2ECDSAPublicKey(gg.GetParticipants()[0])) {
 		t.Fail()
 	}
 }
