@@ -44,11 +44,8 @@ func NewUnsignedTransaction(txType int32, convener uint64, participants [][]byte
 		Extra:        extraData,
 	}
 
-	hash, _ := header.CalculateHash()
-
 	return &Transaction{
-		Header:     header,
-		HeaderHash: hash,
+		Header: header,
 
 		R: nil,
 		S: nil,
@@ -69,17 +66,13 @@ func (m *Transaction) Verify(pubKey ecdsa.PublicKey) bool {
 		log.Panic("unsigned transaction")
 	}
 
-	o := m.Copy()
-	o.R = nil
-	o.S = nil
-
-	b, err := proto.Marshal(o)
+	b, err := proto.Marshal(m.Header)
 	if err != nil {
 		log.Error(err)
 	}
 
-	// hash := sha256.Sum256(b)
-	return ecdsa.Verify(&pubKey, b, new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S))
+	hash := sha3.Sum256(b)
+	return ecdsa.Verify(&pubKey, hash[:], new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S))
 }
 
 // Bs58 is a tx's ReadableID in string
@@ -115,16 +108,21 @@ func (m *Transaction) CalculateHash() ([]byte, error) {
 
 // Equals mainly for calculating the tire root of txs
 func (m *Transaction) Equals(other merkletree.Content) (bool, error) {
-	var equal = true
 	tx, ok := other.(*Transaction)
 	if !ok {
 		return false, errors.New("invalid operation type")
 	}
 
-	equal = equal && bytes.Equal(tx.HeaderHash, m.HeaderHash)
-	//equal = equal && reflect.DeepEqual(tx, m)
+	otherHash, err := tx.Header.CalculateHash()
+	if err != nil {
+		return false, err
+	}
+	mHash, err := m.Header.CalculateHash()
+	if err != nil {
+		return false, err
+	}
 
-	return equal, nil
+	return bytes.Equal(otherHash, mHash), nil
 }
 
 func TxsToMerkleTreeContents(txs []*Transaction) []merkletree.Content {
@@ -199,12 +197,13 @@ func (m *Transaction) CheckGen() error {
 
 // Signature will re-sign the Tx with private key
 func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
-	b, err := proto.Marshal(m)
+	b, err := proto.Marshal(m.Header)
 	if err != nil {
 		log.Error(err)
 	}
 
-	r, s, err := ecdsa.Sign(rand.Reader, privKey, b)
+	hash := sha3.Sum256(b)
+	r, s, err := ecdsa.Sign(rand.Reader, privKey, hash[:])
 	if err != nil {
 		log.Panic(err)
 	}
@@ -262,11 +261,9 @@ func GetGenesisGeneration() *Transaction {
 		nil,
 	)
 
-	gen.HeaderHash, _ = gen.Header.CalculateHash()
-
 	// FIXME: before init network should manually init the R & S
-	gen.R, _ = hex.DecodeString("b4958c5f91c82fd9ee6f92ba2c447830de392fcccf0eef701fd94020af321554")
-	gen.S, _ = hex.DecodeString("5ae5537f298ed3c7bed33c45d0306f7f1a3287e96576676438853a36f386d89b")
+	gen.R, _ = hex.DecodeString("0cc394c8b5061434d5e242acb6944565eaa10bd173ab703c37ed3c30050e0653")
+	gen.S, _ = hex.DecodeString("fc46535a9cc029d4c5036e73b439bcfa2d1d86320cef908a0f180c2422ca589a")
 
 	return gen
 }

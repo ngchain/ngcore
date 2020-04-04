@@ -60,7 +60,6 @@ message TxHeader {
 message Transaction {
     TxHeader header = 1;
     // sign
-    bytes header_hash = 2;
 
     bytes r = 10;
     bytes s = 11;

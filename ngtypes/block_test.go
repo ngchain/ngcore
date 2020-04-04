@@ -93,6 +93,6 @@ func TestGetGenesisBlock(t *testing.T) {
 	hash := GetGenesisBlock().HeaderHash
 
 	d, _ := GetGenesisBlock().Marshal()
-	log.Info("GenesisBlock hex: %x", d)
-	log.Info("GenesisBlock hash: %x", hash)
+	log.Infof("GenesisBlock hex: %x", d)
+	log.Infof("GenesisBlock hash: %x", hash)
 }
