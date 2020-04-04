@@ -117,6 +117,7 @@ func (m *sheetEntry) GetAccountByID(id uint64) (account *ngtypes.Account, err er
 		return nil, ngtypes.ErrAccountNotExists
 	}
 
+	account = new(ngtypes.Account)
 	err = account.Unmarshal(rawAccount)
 	if err != nil {
 		return nil, err

@@ -14,15 +14,13 @@ import (
 type Consensus struct {
 	sync.RWMutex
 
+	isMining     bool
 	SheetManager *ngsheet.Manager
 
 	PrivateKey *ecdsa.PrivateKey
 	Chain      *ngchain.Chain
-
-	TxPool *txpool.TxPool
-
-	isMining bool
-	miner    *miner.Miner
+	TxPool     *txpool.TxPool
+	miner      *miner.Miner
 }
 
 func NewConsensusManager(mining bool) *Consensus {

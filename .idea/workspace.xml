@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AnalysisUIOptions">
+    <option name="AUTOSCROLL_TO_SOURCE" value="true" />
     <option name="SPLITTER_PROPORTION" value="0.45918366" />
+    <option name="GROUP_BY_SEVERITY" value="true" />
+    <option name="SHOW_STRUCTURE" value="true" />
   </component>
   <component name="BranchesTreeState">
     <expand>
@@ -27,24 +30,14 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="remove unused header_hash field in block">
-      <change afterPath="$PROJECT_DIR$/ngsheet/handle.go" afterDir="false" />
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/generation.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/generation.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/pow.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/pow.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/check.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/consensus.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/consensus.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngsheet/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/sheet.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/sheet_apply.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/sheet_apply.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngtypes/defaults.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/defaults.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/txHeader.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/txHeader.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/tx_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/types.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/types.proto" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/types.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/vault.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/vault.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/sheet.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/sheet.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/format.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/format.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/format_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils/format_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vm/js.go" beforeDir="false" afterPath="$PROJECT_DIR$/vm/js.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -214,7 +207,8 @@
     <MESSAGE value="update new genesis" />
     <MESSAGE value="remove unused header_hash field in tx" />
     <MESSAGE value="remove unused header_hash field in block" />
-    <option name="LAST_COMMIT_MESSAGE" value="remove unused header_hash field in block" />
+    <MESSAGE value="large change: new vault and tx rule" />
+    <option name="LAST_COMMIT_MESSAGE" value="large change: new vault and tx rule" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -248,10 +242,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585986848793" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585975564595">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1586005032746">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585975564595" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1586005032746" />
     <state width="1217" height="466" key="DebuggerActiveHint" timestamp="1585935651118">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -304,10 +298,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585999826235" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585973195591">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1586005040002">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585973195591" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1586005040002" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1585935985866">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

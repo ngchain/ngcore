@@ -3,14 +3,6 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
-)
-
-const (
-	// number of bits in a big.Word
-	wordBits = 32 << (uint64(^big.Word(0)) >> 63)
-	// number of bytes in a big.Word
-	wordBytes = wordBits / 8
 )
 
 // Bytes2Hex is a helper func to convert raw bytes to hex string
