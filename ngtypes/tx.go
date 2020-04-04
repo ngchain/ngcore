@@ -377,8 +377,8 @@ func GetGenesisGeneration() *Transaction {
 	)
 
 	// FIXME: before init network should manually init the R & S
-	gen.R, _ = hex.DecodeString("0cc394c8b5061434d5e242acb6944565eaa10bd173ab703c37ed3c30050e0653")
-	gen.S, _ = hex.DecodeString("fc46535a9cc029d4c5036e73b439bcfa2d1d86320cef908a0f180c2422ca589a")
+	gen.R, _ = hex.DecodeString("c40b1c73fbd6619807ebb9a0abd7d5516ae50ba67de0f17955ee60afa3f22e5e")
+	gen.S, _ = hex.DecodeString("e027a92aa4cec0177a1ee29c20a2f25faf73e6ab4c88596faeb36b6f781ed896")
 
 	return gen
 }
