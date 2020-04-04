@@ -31,13 +31,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/rpc/vm.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/check.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngsheet/sheet_apply.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngsheet/sheet_apply.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/defaults.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/defaults.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/vault.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/vault.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -85,7 +80,7 @@
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
-  <component name="RunManager" selected="Go Build.ngcore mining ">
+  <component name="RunManager" selected="Go Build.go build github.com/ngchain/ngcore/cmd/genesis">
     <configuration name="go build github.com/ngchain/ngcore" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$" />
@@ -210,7 +205,8 @@
     <MESSAGE value="large change: new vault and tx rule" />
     <MESSAGE value="fmt" />
     <MESSAGE value="update genesis" />
-    <option name="LAST_COMMIT_MESSAGE" value="update genesis" />
+    <MESSAGE value="fix bugs on different types of tx" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix bugs on different types of tx" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -244,10 +240,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585986848793" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1586007222107">
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1586013173491">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1586007222107" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1586013173491" />
     <state width="1217" height="466" key="DebuggerActiveHint" timestamp="1585935651118">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -256,38 +252,38 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585893739761" />
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1586009732599">
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1586013566373">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732599" />
-    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1586009732599">
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566373" />
+    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1586013566373">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732599" />
-    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1586009732598">
+    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566373" />
+    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1586013566373">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732598" />
-    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1586009732599">
+    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566373" />
+    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1586013566373">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732599" />
-    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1586009732599">
+    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566373" />
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1586013566374">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732599" />
-    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1586009732599">
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566374" />
+    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1586013566373">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732599" />
-    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1586009732599">
+    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566373" />
+    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1586013566373">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732599" />
-    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1586009732599">
+    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566373" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1586013566374">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586009732599" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586013566374" />
     <state x="540" y="262" key="IDE.errors.dialog" timestamp="1585307603049">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -300,10 +296,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585999826235" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1586007225028">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1586013180726">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1586007225028" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1586013180726" />
     <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1585935985866">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -312,10 +308,10 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751442720" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1586009207745">
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1586013534998">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1586009207745" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1586013534998" />
     <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585750345821">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

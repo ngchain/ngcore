@@ -369,13 +369,13 @@ func GetGenesisGeneration() *Transaction {
 		[][]byte{GenesisPK},
 		[]*big.Int{OneBlockReward},
 		GetBig0(),
-		0,
+		1,
 		nil,
 	)
 
 	// FIXME: before init network should manually init the R & S
-	gen.R, _ = hex.DecodeString("c40b1c73fbd6619807ebb9a0abd7d5516ae50ba67de0f17955ee60afa3f22e5e")
-	gen.S, _ = hex.DecodeString("e027a92aa4cec0177a1ee29c20a2f25faf73e6ab4c88596faeb36b6f781ed896")
+	gen.R, _ = hex.DecodeString("e60f90c8e8bb717cf30cf59a8bec8d17f189a5a4e0a621f4c2ce2d24a0443d1f")
+	gen.S, _ = hex.DecodeString("dfcba58223e100569991a856ca139287714e5cd53074bc962328a602fe3b81bf")
 
 	return gen
 }
