@@ -26,14 +26,6 @@ func NewSheet(accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet 
 	}
 }
 
-func NewEmptySheet() *Sheet {
-	return &Sheet{
-		Version:   Version,
-		Accounts:  map[uint64]*Account{},
-		Anonymous: map[string][]byte{},
-	}
-}
-
 func (m *Sheet) RegisterAccount(account *Account) error {
 	if m.Accounts[account.ID] != nil {
 		return errors.New("failed to register, account already exists")
@@ -108,4 +100,16 @@ func (m *Sheet) CalculateHash() ([]byte, error) {
 	}
 	hash := sha3.Sum256(raw)
 	return hash[:], nil
+}
+
+func GetGenesisSheet() *Sheet {
+	return &Sheet{
+		Version: Version,
+		Accounts: map[uint64]*Account{
+			0: GetGenesisAccount(),
+		},
+		Anonymous: map[string][]byte{
+			GenesisPKHex: GetBig0Bytes(),
+		},
+	}
 }

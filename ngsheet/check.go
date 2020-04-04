@@ -76,7 +76,7 @@ func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Transaction) error {
 
 	// check nonce
 	if generationTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong tx nonce")
+		return fmt.Errorf("wrong generation nonce: %d", generationTx.GetNonce())
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Transaction) error {
 
 	// check nonce
 	if registerTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong tx nonce")
+		return fmt.Errorf("wrong register nonce: %d", registerTx.GetNonce())
 	}
 
 	return nil
@@ -148,7 +148,7 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Transaction) error {
 
 	// check nonce
 	if logoutTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong tx nonce")
+		return fmt.Errorf("wrong logout nonce: %d", logoutTx.GetNonce())
 	}
 
 	return nil
@@ -184,7 +184,7 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Transaction) error 
 
 	// check nonce
 	if transactionTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong tx nonce")
+		return fmt.Errorf("wrong transaction nonce: %d", transactionTx.GetNonce())
 	}
 
 	return nil
@@ -220,7 +220,7 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Transaction) error {
 
 	// check nonce
 	if assignTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong tx nonce")
+		return fmt.Errorf("wrong assign nonce: %d", assignTx.GetNonce())
 	}
 
 	return nil
@@ -256,7 +256,7 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Transaction) error {
 
 	// check nonce
 	if appendTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong tx nonce")
+		return fmt.Errorf("wrong append nonce: %d", appendTx.GetNonce())
 	}
 
 	return nil
