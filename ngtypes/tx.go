@@ -26,13 +26,8 @@ var (
 	ErrTxMalformed           = errors.New("the transaction structure is malformed")
 )
 
-// types:
-// 0 = generation
-// 1 = tx
-// 2= state(contract)
-
 // NewUnsignedTransaction will return an Unsigned Operation, must using Signature()
-func NewUnsignedTransaction(txType int32, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
+func NewUnsignedTransaction(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
 	header := &TxHeader{
 		Version:      Version,
 		Type:         txType,
@@ -61,18 +56,22 @@ func (m *Transaction) IsSigned() bool {
 }
 
 // Verify helps verify the operation whether signed by the public key owner
-func (m *Transaction) Verify(pubKey ecdsa.PublicKey) bool {
+func (m *Transaction) Verify(pubKey ecdsa.PublicKey) error {
 	if m.R == nil || m.S == nil {
 		log.Panic("unsigned transaction")
 	}
 
 	b, err := proto.Marshal(m.Header)
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 
 	hash := sha3.Sum256(b)
-	return ecdsa.Verify(&pubKey, hash[:], new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S))
+	if !ecdsa.Verify(&pubKey, hash[:], new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S)) {
+		return ErrTxWrongSign
+	}
+
+	return nil
 }
 
 // Bs58 is a tx's ReadableID in string
@@ -150,22 +149,18 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 
 // CheckTx checks normal tx. publicKey should get from sheet
 func (m *Transaction) CheckTx(publicKey ecdsa.PublicKey) error {
-	if m.GetConvener() == 0 {
-		return fmt.Errorf("tx's convener should not be 0")
-	}
-
 	if m.Header == nil {
 		return errors.New("tx is missing header")
 	}
 
-	if !m.Verify(publicKey) {
-		return fmt.Errorf("failed to verify the tx with publicKey")
+	if err := m.Verify(publicKey); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (m *Transaction) CheckGen() error {
+func (m *Transaction) CheckGeneration() error {
 	if m.Header == nil {
 		return errors.New("generation is missing header")
 	}
@@ -176,8 +171,8 @@ func (m *Transaction) CheckGen() error {
 
 	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
 
-	if !m.Verify(publicKey) {
-		return fmt.Errorf("failed to verify the generation with publicKey")
+	if err := m.Verify(publicKey); err != nil {
+		return err
 	}
 
 	if m.GetConvener() != 0 {
@@ -188,8 +183,128 @@ func (m *Transaction) CheckGen() error {
 		return fmt.Errorf("generation should have only one value")
 	}
 
-	if new(big.Int).SetBytes(m.GetValues()[0]).Cmp(OneBlockReward) != 0 {
+	if !bytes.Equal(m.GetValues()[0], OneBlockReward.Bytes()) {
 		return fmt.Errorf("wrong block reward")
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckRegister() error {
+	if m.Header == nil {
+		return errors.New("declare is missing header")
+	}
+
+	if len(m.GetParticipants()) != 1 {
+		return fmt.Errorf("declare should have only one participant")
+	}
+
+	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+
+	if err := m.Verify(publicKey); err != nil {
+		return err
+	}
+
+	if m.GetConvener() != 0 {
+		return fmt.Errorf("declare's convener should be 0")
+	}
+
+	if len(m.GetValues()) != 1 {
+		return fmt.Errorf("declare should have only one value")
+	}
+
+	if !bytes.Equal(m.GetValues()[0], GetBig0Bytes()) {
+		return fmt.Errorf("declare should have only one 0 value")
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckLogout() error {
+	if m.Header == nil {
+		return errors.New("logout is missing header")
+	}
+
+	if len(m.GetParticipants()) != 1 {
+		return fmt.Errorf("logout should have only one participant")
+	}
+
+	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+
+	if err := m.Verify(publicKey); err != nil {
+		return err
+	}
+
+	if m.GetConvener() != 0 {
+		return fmt.Errorf("logout's convener should be 0")
+	}
+
+	if len(m.GetValues()) != 1 {
+		return fmt.Errorf("logout should have only one value")
+	}
+
+	if !bytes.Equal(m.GetValues()[0], GetBig0Bytes()) {
+		return fmt.Errorf("logout should have only one 0 value")
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckAssign() error {
+	if m.Header == nil {
+		return errors.New("logout is missing header")
+	}
+
+	if len(m.GetParticipants()) != 1 {
+		return fmt.Errorf("logout should have only one participant")
+	}
+
+	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+
+	if err := m.Verify(publicKey); err != nil {
+		return err
+	}
+
+	if m.GetConvener() != 0 {
+		return fmt.Errorf("logout's convener should be 0")
+	}
+
+	if len(m.GetValues()) != 1 {
+		return fmt.Errorf("logout should have only one value")
+	}
+
+	if !bytes.Equal(m.GetValues()[0], GetBig0Bytes()) {
+		return fmt.Errorf("logout should have only one 0 value")
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckAppend() error {
+	if m.Header == nil {
+		return errors.New("logout is missing header")
+	}
+
+	if len(m.GetParticipants()) != 1 {
+		return fmt.Errorf("logout should have only one participant")
+	}
+
+	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+
+	if err := m.Verify(publicKey); err != nil {
+		return err
+	}
+
+	if m.GetConvener() != 0 {
+		return fmt.Errorf("logout's convener should be 0")
+	}
+
+	if len(m.GetValues()) != 1 {
+		return fmt.Errorf("logout should have only one value")
+	}
+
+	if !bytes.Equal(m.GetValues()[0], GetBig0Bytes()) {
+		return fmt.Errorf("logout should have only one 0 value")
 	}
 
 	return nil
@@ -214,7 +329,7 @@ func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
 	return
 }
 
-func (m *Transaction) GetType() int32 {
+func (m *Transaction) GetType() TxType {
 	return m.Header.GetType()
 }
 
@@ -252,11 +367,11 @@ func (m *Transaction) TotalCharge() *big.Int {
 
 func GetGenesisGeneration() *Transaction {
 	gen := NewUnsignedTransaction(
-		0,
+		TX_GENERATION,
 		0,
 		[][]byte{GenesisPK},
 		[]*big.Int{OneBlockReward},
-		Big0,
+		GetBig0(),
 		0,
 		nil,
 	)

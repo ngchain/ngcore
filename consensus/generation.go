@@ -16,7 +16,7 @@ func (c *Consensus) CreateGeneration(privateKey *ecdsa.PrivateKey, blockHeight u
 		0,
 		[][]byte{publicKeyBytes},
 		[]*big.Int{ngtypes.OneBlockReward},
-		ngtypes.Big0,
+		ngtypes.GetBig0(),
 		blockHeight,
 		extraData)
 	err := gen.Signature(privateKey)

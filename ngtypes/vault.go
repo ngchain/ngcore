@@ -15,13 +15,10 @@ var (
 	ErrMalformedVault   = errors.New("the vault structure is malformed")
 )
 
-func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
-	newAccount := NewAccount(newAccountID, ownerKey, nil)
-
+func NewVault(prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
 	return &Vault{
 		NetworkId:     NetworkID,
 		Height:        prevVaultHeight + 1,
-		List:          newAccount,
 		Timestamp:     time.Now().Unix(),
 		PrevVaultHash: prevVaultHash,
 		Sheet:         currentSheet,
@@ -51,9 +48,6 @@ func GetGenesisVault() *Vault {
 			Accounts:  map[uint64]*Account{},
 			Anonymous: map[string][]byte{},
 		},
-
-		List:    GetGenesisAccount(),
-		Delists: []*Account{},
 	}
 
 	return v

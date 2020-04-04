@@ -23,13 +23,22 @@ var (
 	MaxTarget     = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}) // new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0)) // Target = MaxTarget / diff
 	GenesisTarget = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
 	GenesisNonce  = new(big.Int).SetUint64(0)
-	Big0          = big.NewInt(0)
-	Big0Bytes     = make([]byte, 0) // not nil
-	Big1          = big.NewInt(1)
 	Big1Bytes     = []byte{1}
 
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()
 )
+
+func GetBig0() *big.Int {
+	return big.NewInt(0)
+}
+
+func GetBig0Bytes() []byte {
+	return big.NewInt(0).Bytes()
+}
+
+func GetBig1() *big.Int {
+	return big.NewInt(1)
+}
 
 var (
 	BlockMaxTxsSize = 1 << 25 // 32M
@@ -49,7 +58,7 @@ var (
 	MegaNGSymbol   = "MNG"
 	NG             = new(big.Int).SetUint64(1000000)
 	NGSymbol       = "NG"
-	MicroNG        = Big1
+	MicroNG        = GetBig1()
 	MicroNGSymbol  = "μNG"
 	OneBlockReward = new(big.Int).Mul(NG, big.NewInt(10)) // 10NG
 )

@@ -19,7 +19,7 @@ func TestDeserialize(t *testing.T) {
 		0,
 		[][]byte{GenesisPK},
 		[]*big.Int{new(big.Int).Mul(NG, big.NewInt(1000))},
-		Big0,
+		GetBig0(),
 		0,
 		nil,
 	)
@@ -36,24 +36,24 @@ func TestDeserialize(t *testing.T) {
 }
 
 func TestTransaction_Signature(t *testing.T) {
-	o := NewUnsignedTransaction(0, 1, [][]byte{GenesisPK}, []*big.Int{Big0}, Big0, 0, nil)
+	o := NewUnsignedTransaction(0, 1, [][]byte{GenesisPK}, []*big.Int{GetBig0()}, GetBig0(), 0, nil)
 	priv, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	priv2, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 	_ = o.Signature(priv)
 
-	if !o.Verify(priv.PublicKey) {
+	if err := o.Verify(priv.PublicKey); err != nil {
 		t.Fail()
 	}
 
-	if o.Verify(priv2.PublicKey) {
+	if err := o.Verify(priv2.PublicKey); err == nil {
 		t.Fail()
 	}
 }
 
-func TestGetGenesisGeneration(t *testing.T) {
+func TestGetGenesisGenerate(t *testing.T) {
 	gg := GetGenesisGeneration()
-	if !gg.Verify(utils.Bytes2ECDSAPublicKey(gg.GetParticipants()[0])) {
+	if err := gg.Verify(utils.Bytes2ECDSAPublicKey(gg.GetParticipants()[0])); err != nil {
 		t.Fail()
 	}
 }

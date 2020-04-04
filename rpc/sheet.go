@@ -1,46 +1,42 @@
 package rpc
 
 import (
-	"math/big"
-
 	"github.com/maoxs2/go-jsonrpc2"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
 func (s *Server) getAccountsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+
 	key := utils.ECDSAPublicKey2Bytes(s.consensus.PrivateKey.PublicKey)
 	accounts, err := s.sheetManager.GetAccountsByPublicKey(key)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	raw, err := utils.Json.Marshal(accounts)
+	result := make([]uint64, len(accounts))
+	for i := range accounts {
+		result[i] = accounts[i].ID
+	}
+
+	raw, err := utils.Json.Marshal(result)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 func (s *Server) getBalanceFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var balanceSheet = make(map[uint64]*big.Int)
-
 	key := utils.ECDSAPublicKey2Bytes(s.consensus.PrivateKey.PublicKey)
-	accounts, err := s.sheetManager.GetAccountsByPublicKey(key)
+	balance, err := s.sheetManager.GetBalanceByPublicKey(key)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	for i := range accounts {
-		balance, err := s.sheetManager.GetBalanceByID(accounts[i].ID)
-		if err != nil {
-			jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-
-		balanceSheet[accounts[i].ID] = balance
-	}
-	raw, err := utils.Json.Marshal(balanceSheet)
+	raw, err := utils.Json.Marshal(map[string]interface{}{
+		"balance": balance,
+	})
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)

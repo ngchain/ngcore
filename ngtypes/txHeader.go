@@ -42,7 +42,7 @@ func (m *TxHeader) CalculateHash() ([]byte, error) {
 }
 
 func (m *TxHeader) TotalCharge() *big.Int {
-	totalValue := Big0
+	totalValue := GetBig0()
 	for i := range m.Values {
 		totalValue.Add(totalValue, new(big.Int).SetBytes(m.Values[i]))
 	}

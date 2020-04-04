@@ -161,14 +161,12 @@ func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *n
 	accountNumber := utils.RandUint64()
 	log.Infof("New account: %d", accountNumber)
 
-	ownerKey := utils.ECDSAPublicKey2Bytes(c.PrivateKey.PublicKey)
-
 	sheet, err := c.SheetManager.GenerateNewSheet()
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-	newVault := ngtypes.NewVault(accountNumber, ownerKey, prevVaultHeight, prevVaultHash, sheet)
+	newVault := ngtypes.NewVault(prevVaultHeight, prevVaultHash, sheet)
 	hash, _ := newVault.CalculateHash()
 	log.Infof("Generated a new Vault@%d, %x", newVault.GetHeight(), hash)
 	return newVault

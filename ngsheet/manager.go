@@ -42,7 +42,7 @@ func (m *Manager) Init(currentVault *ngtypes.Vault, blocks ...*ngtypes.Block) {
 	}
 
 	for i := 0; i < len(blocks); i++ {
-		err = m.currentSheet.HandleTxs(blocks[i].Transactions...)
+		err = m.currentSheet.handleTxs(blocks[i].Transactions...)
 		if err != nil {
 			panic(err)
 		}
@@ -58,7 +58,7 @@ func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
 }
 
 func (m *Manager) HandleTxs(transactions ...*ngtypes.Transaction) error {
-	return m.currentSheet.HandleTxs(transactions...)
+	return m.currentSheet.handleTxs(transactions...)
 }
 
 func (m *Manager) HandleVault(vault *ngtypes.Vault) error {
@@ -87,7 +87,7 @@ func (m *Manager) HandleVault(vault *ngtypes.Vault) error {
 		return err
 	}
 
-	return m.currentSheet.HandleVault(vault)
+	return nil
 }
 
 func (m *Manager) GenerateNewSheet() (*ngtypes.Sheet, error) {
@@ -100,6 +100,10 @@ func (m *Manager) GetAccountsByPublicKey(key []byte) ([]*ngtypes.Account, error)
 
 func (m *Manager) GetBalanceByID(id uint64) (*big.Int, error) {
 	return m.currentSheet.GetBalanceByID(id)
+}
+
+func (m *Manager) GetBalanceByPublicKey(pk []byte) (*big.Int, error) {
+	return m.currentSheet.GetBalanceByPublicKey(pk)
 }
 
 func (m *Manager) GetNextNonce(convener uint64) uint64 {

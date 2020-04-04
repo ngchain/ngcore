@@ -146,77 +146,42 @@ func (m *sheetEntry) GetAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Accoun
 }
 
 // RegisterAccounts is same to balanceSheet RegisterAccount, this is for consensus calling
-func (m *sheetEntry) RegisterAccounts(accounts ...*ngtypes.Account) (ok bool) {
-	m.Lock()
-	defer m.Unlock()
+// func (m *sheetEntry) RegisterAccounts(accounts ...*ngtypes.Account) (err error) {
+// 	m.Lock()
+// 	defer m.Unlock()
+//
+// 	newAccounts := make(map[uint64][]byte)
+// 	for i := range m.accounts {
+// 		newAccounts[i] = make([]byte, len(m.accounts[i]))
+// 		copy(newAccounts[i], m.accounts[i])
+// 	}
+//
+// 	defer func() {
+// 		if err == nil {
+// 			m.accounts = newAccounts
+// 		}
+// 	}()
+//
+//
+// 	return nil
+// }
 
-	ok = false
-
-	newAccounts := make(map[uint64][]byte)
-	for i := range m.accounts {
-		newAccounts[i] = make([]byte, len(m.accounts[i]))
-		copy(newAccounts[i], m.accounts[i])
-	}
-
-	// newAnonymous := make(map[string][]byte)
-	// for i := range m.anonymous {
-	// 	newAnonymous[i] = make([]byte, len(m.anonymous[i]))
-	// 	copy(newAnonymous[i], m.anonymous[i])
-	// }
-
-	defer func() {
-		if ok {
-			m.accounts = newAccounts
-			// m.anonymous = newAnonymous
-		}
-	}()
-
-	var err error
-	for i := range accounts {
-		if _, exists := newAccounts[accounts[i].ID]; exists {
-			log.Infof("failed to register account@%d", accounts[i].ID)
-			return ok
-		}
-
-		newAccounts[accounts[i].ID], err = accounts[i].Marshal()
-		if err != nil {
-			log.Error(err)
-			return ok
-		}
-		log.Infof("registered new account@%d", accounts[i].ID)
-	}
-
-	ok = true
-	return ok
-}
-
-func (m *sheetEntry) DeleteAccounts(accounts ...*ngtypes.Account) (ok bool) {
-	m.Lock()
-	defer m.Unlock()
-
-	newAccounts := make(map[uint64][]byte)
-	for i := range m.accounts {
-		newAccounts[i] = make([]byte, len(m.accounts[i]))
-		copy(newAccounts[i], m.accounts[i])
-	}
-
-	ok = false
-	defer func() {
-		if ok {
-			m.accounts = newAccounts
-			// m.anonymous = newAnonymous
-		}
-	}()
-	for i := range accounts {
-		if _, exists := newAccounts[accounts[i].ID]; !exists {
-			log.Infof("failed to delete account@%d", accounts[i].ID)
-			return false
-		}
-
-		delete(newAccounts, accounts[i].ID)
-		log.Infof("deleted account@%d", accounts[i].ID)
-	}
-
-	ok = true
-	return true
-}
+// func (m *sheetEntry) LogoutAccounts(accounts ...*ngtypes.Account) (err error) {
+// 	m.Lock()
+// 	defer m.Unlock()
+//
+// 	newAccounts := make(map[uint64][]byte)
+// 	for i := range m.accounts {
+// 		newAccounts[i] = make([]byte, len(m.accounts[i]))
+// 		copy(newAccounts[i], m.accounts[i])
+// 	}
+//
+// 	defer func() {
+// 		if err == nil {
+// 			m.accounts = newAccounts
+// 		}
+// 	}()
+//
+//
+// 	return nil
+// }

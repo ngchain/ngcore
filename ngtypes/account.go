@@ -13,7 +13,7 @@ func NewAccount(id uint64, ownerKey []byte, state []byte) *Account {
 func GetGenesisAccount() *Account {
 	return &Account{
 		ID: 1,
-		//Balance:  big.NewInt(math.MaxInt64).Bytes(), // Init balance
+		// Balance:  big.NewInt(math.MaxInt64).Bytes(), // Init balance
 		Owner: GenesisPK,
 		Nonce: 0,
 		State: []byte(`{'name':'NGIN OFFICIAL'}`),
