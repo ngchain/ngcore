@@ -256,7 +256,7 @@ func GetGenesisGeneration() *Transaction {
 		0,
 		0,
 		[][]byte{GenesisPK},
-		[]*big.Int{Big0},
+		[]*big.Int{OneBlockReward},
 		Big0,
 		0,
 		nil,
@@ -265,8 +265,8 @@ func GetGenesisGeneration() *Transaction {
 	gen.HeaderHash, _ = gen.Header.CalculateHash()
 
 	// FIXME: before init network should manually init the R & S
-	gen.R, _ = hex.DecodeString("e96066f4d0317f8141c6e2969202a4eebb1dfba5fc979d20b7522e9cfedc126d")
-	gen.S, _ = hex.DecodeString("112f459980b83fcff9416fa2cbf64a032baa537db4f0107e806b39bd8db385c6")
+	gen.R, _ = hex.DecodeString("b4958c5f91c82fd9ee6f92ba2c447830de392fcccf0eef701fd94020af321554")
+	gen.S, _ = hex.DecodeString("5ae5537f298ed3c7bed33c45d0306f7f1a3287e96576676438853a36f386d89b")
 
 	return gen
 }
