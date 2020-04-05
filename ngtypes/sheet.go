@@ -15,7 +15,7 @@ var (
 	ErrMalformedSheet          = errors.New("the sheet structure is malformed")
 )
 
-// NewSheet is a Sheet constructed function
+// NewSheet gets the rows from db and return the sheet for transport/saving
 func NewSheet(accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
 	return &Sheet{
 		Version:   Version,
