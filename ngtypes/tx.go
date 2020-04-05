@@ -261,7 +261,7 @@ func (m *Transaction) CheckTransaction(key ecdsa.PublicKey) error {
 }
 
 
-func (m *Transaction) CheckGen() error {
+func (m *Transaction) CheckGen(key ecdsa.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("assign is missing header")
 	}
