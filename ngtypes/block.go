@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
+	"golang.org/x/crypto/sha3"
+
+	"github.com/ngin-network/cryptonight-go"
+	"github.com/whyrusleeping/go-logging"
 )
 
 var (
