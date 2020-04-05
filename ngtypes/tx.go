@@ -195,8 +195,8 @@ func (m *Transaction) CheckRegister() error {
 		return fmt.Errorf("register should have only one 0 value")
 	}
 
-	if !bytes.Equal(m.GetFee(), new(big.Int).Mul(NG, big.NewInt(10)).Bytes()) {
-		return fmt.Errorf("register should have 10NG fee")
+	if new(big.Int).SetBytes(m.GetFee()).Cmp(new(big.Int).Mul(NG, big.NewInt(10))) < 0 {
+		return fmt.Errorf("register should have at least 10NG fee")
 	}
 
 	if len(m.GetExtra()) != 8 {

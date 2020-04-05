@@ -1,6 +1,5 @@
 # NgCore
 
-[![GoDoc](https://godoc.org/github.com/ngchain/ngcore?status.svg)](http://godoc.org/github.com/ngchain/ngcore)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](https://goreportcard.com/report/github.com/ngchain/ngcore)
 
 New Golang implement of Ngin Network Node Daemon
@@ -48,6 +47,8 @@ sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpin
 # Run as a mining node, 0 means using all cpu cores
 sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0
 ```
+
+### Tip
 
 **NOT RECOMMEND**: if you are under windows and **without `gcc`**, run `set CGO_ENABLED=0` or `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine.
 
