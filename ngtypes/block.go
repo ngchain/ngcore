@@ -75,7 +75,7 @@ func (m *Block) ToUnsealing(txsWithGen []*Transaction) (*Block, error) {
 	return b, nil
 }
 
-// ToSealed converts an unsealing block to a sealed block
+// ToUnsealing converts an unsealing block to a sealed block
 func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 	if m.Header == nil {
 		return nil, ErrBlockHeaderMissing
