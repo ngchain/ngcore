@@ -17,8 +17,7 @@ var (
 
 
 // NewVault default class constructor
-func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
-	newAccount := NewAccount(newAccountID, ownerKey, nil)
+func NewVault(prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
 	return &Vault{
 		NetworkId:     NetworkID,
 		Height:        prevVaultHeight + 1,
