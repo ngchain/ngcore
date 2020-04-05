@@ -14,7 +14,7 @@ import (
 )
 
 func TestDeserialize(t *testing.T) {
-	tx := NewUnsignedTransaction(
+	tx := NewUnsignedTx(
 		TX_GENERATION,
 		0,
 		[][]byte{GenesisPK},
@@ -36,7 +36,7 @@ func TestDeserialize(t *testing.T) {
 }
 
 func TestTransaction_Signature(t *testing.T) {
-	o := NewUnsignedTransaction(0, 1, [][]byte{GenesisPK}, []*big.Int{GetBig0()}, GetBig0(), 0, nil)
+	o := NewUnsignedTx(0, 1, [][]byte{GenesisPK}, []*big.Int{GetBig0()}, GetBig0(), 0, nil)
 	priv, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	priv2, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 

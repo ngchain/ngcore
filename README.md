@@ -11,9 +11,9 @@ NGIN is a totally new chain which is not a fork of ethereum or other chain. It i
 
 ## Requirements
 
-go version >= 1.11
+go version >= 1.13
 
-bazel build tool if you wanna use
+Or using bazel build tool if you want 
 
 ## Usage
 
@@ -35,6 +35,18 @@ if you wanna start mining(PoW), try `--mining` flag
 ```bash
 # go will automatically sync the dependencies
 go build ./cmd/ngcore
+```
+
+### Docker
+
+```bash
+sudo docker build . -t ngcore:alpine
+
+# Run as a bootstrap node
+sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --bootstrap true
+
+# Run as a mining node, 0 means using all cpu cores
+sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0
 ```
 
 **NOT RECOMMEND**: if you are under windows and **without `gcc`**, run `set CGO_ENABLED=0` or `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine.

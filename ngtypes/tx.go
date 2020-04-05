@@ -24,8 +24,8 @@ var (
 	ErrTxWrongSign           = errors.New("the signer of transaction is not the own of the account")
 )
 
-// NewUnsignedTransaction will return an Unsigned Operation, must using Signature()
-func NewUnsignedTransaction(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
+// NewUnsignedTx will return an Unsigned Operation, must using Signature()
+func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
 	header := &TxHeader{
 		Version:      Version,
 		Type:         txType,
@@ -363,7 +363,7 @@ func (m *Transaction) TotalCharge() *big.Int {
 }
 
 func GetGenesisGeneration() *Transaction {
-	gen := NewUnsignedTransaction(
+	gen := NewUnsignedTx(
 		TX_GENERATION,
 		0,
 		[][]byte{GenesisPK},
