@@ -36,13 +36,13 @@ func (tt *TxTrie) Swap(i, j int) {
 	tt.Txs[j] = tmp
 }
 
-// Sort the ops from lower priority to higher priority
+// Sort will sort the ops from lower priority to higher priority
 func (tt *TxTrie) Sort() *TxTrie {
 	sort.Sort(tt)
 	return tt
 }
 
-// ReverseSort the ops from higher priority to lower priority
+// ReverseSort will sort the ops from higher priority to lower priority
 func (tt *TxTrie) ReverseSort() *TxTrie {
 	return sort.Reverse(tt).(*TxTrie)
 }
