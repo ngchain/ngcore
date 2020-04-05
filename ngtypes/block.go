@@ -59,10 +59,11 @@ func (m *Block) ToUnsealing(txsWithGen []*Transaction) (*Block, error) {
 	}
 
 	for i := 0; i < len(txsWithGen); i++ {
-		if i == 0 && txsWithGen[i].GetType() != 0 {
+		if i == 0 && txsWithGen[i].GetType() != TX_GENERATION {
 			return nil, fmt.Errorf("first tx shall be a generation")
 		}
-		if i != 0 && txsWithGen[i].GetType() == 0 {
+
+		if i != 0 && txsWithGen[i].GetType() == TX_GENERATION {
 			return nil, fmt.Errorf("except first, other tx shall not be a generation")
 		}
 	}
@@ -86,7 +87,6 @@ func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 
 	b := m.Copy()
 	b.Header.Nonce = nonce
-	b.HeaderHash = cryptonight.Sum(b.Header.GetPoWBlob(nonce), 0)
 
 	return b, nil
 }
@@ -100,7 +100,7 @@ func (m *Block) VerifyNonce() bool {
 // then you need to add txs and seal with the correct N
 func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *big.Int) *Block {
 	block := &Block{
-		NetworkId: NetworkId,
+		NetworkId: NetworkID,
 		Header: &BlockHeader{
 			Version:       Version,
 			Height:        height,
@@ -132,12 +132,9 @@ func GetGenesisBlock() *Block {
 		Target:        GenesisTarget.Bytes(),
 	}
 
-	hash := header.CalculateHash()
-
 	return &Block{
-		NetworkId:    NetworkId,
+		NetworkId:    NetworkID,
 		Header:       header,
-		HeaderHash:   hash,
 		Transactions: txs,
 	}
 }
@@ -152,14 +149,12 @@ func (m *Block) CheckError() error {
 		return ErrBlockNonceInvalid
 	}
 
-	if m.HeaderHash == nil {
-		return ErrBlockHeaderHashMissing
-	}
-
 	mTreeHash := NewTxTrie(m.Transactions).TrieRoot()
 	if !bytes.Equal(mTreeHash, m.Header.TrieHash) {
 		return ErrBlockMTreeInvalid
 	}
+
+	m.Header.VerifyNonce()
 
 	return nil
 }

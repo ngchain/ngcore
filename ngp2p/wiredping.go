@@ -1,22 +1,24 @@
 package ngp2p
 
 import (
+	"io/ioutil"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
-	"io/ioutil"
 )
 
-func (w *Wired) Ping(remotePeerId peer.ID) bool {
+func (w *Wired) Ping(remotePeerID peer.ID) bool {
 	payload, err := proto.Marshal(&pb.PingPongPayload{
-		BlockHeight:     w.node.Chain.GetLatestBlockHeight(),
-		VaultHeight:     w.node.Chain.GetLatestVaultHeight(),
-		LatestBlockHash: w.node.Chain.GetLatestBlockHash(),
-		LatestVaultHash: w.node.Chain.GetLatestVaultHash(),
+		BlockHeight:     w.node.chain.GetLatestBlockHeight(),
+		VaultHeight:     w.node.chain.GetLatestVaultHeight(),
+		LatestBlockHash: w.node.chain.GetLatestBlockHash(),
+		LatestVaultHash: w.node.chain.GetLatestVaultHash(),
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -39,14 +41,14 @@ func (w *Wired) Ping(remotePeerId peer.ID) bool {
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	ok := w.node.sendProtoMessage(remotePeerId, pingMethod, req)
+	ok := w.node.sendProtoMessage(remotePeerID, pingMethod, req)
 	if !ok {
 		return false
 	}
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Infof("Sent Ping to: %s was sent. Message Id: %s.", remotePeerId, req.Header.Uuid)
+	log.Infof("Sent Ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
 	return true
 }
 
@@ -55,11 +57,11 @@ func (w *Wired) onPing(s network.Stream) {
 	// get request data
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		s.Reset()
+		_ = s.Reset()
 		log.Error(err)
 		return
 	}
-	s.Close()
+	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}
@@ -67,10 +69,11 @@ func (w *Wired) onPing(s network.Stream) {
 	if err != nil {
 		log.Error(err)
 		go w.Reject(s, data.Header.Uuid)
+
 		return
 	}
 
-	if !w.node.authenticateMessage(data) {
+	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}
@@ -80,6 +83,7 @@ func (w *Wired) onPing(s network.Stream) {
 	if err != nil {
 		log.Error(err)
 		go w.Reject(s, data.Header.Uuid)
+
 		return
 	}
 
@@ -87,7 +91,6 @@ func (w *Wired) onPing(s network.Stream) {
 
 	// Pong
 	w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
-	go w.Pong(s, data.Header.Uuid)
 
-	return
+	go w.Pong(s, data.Header.Uuid)
 }

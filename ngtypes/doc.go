@@ -24,5 +24,4 @@ We just need to keep the latest some block and treasuries to make the chain safe
 ## Vault
 
 */
-
 package ngtypes

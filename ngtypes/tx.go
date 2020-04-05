@@ -3,34 +3,29 @@ package ngtypes
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
-	"math/big"
 
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 var (
-	ErrTxInvalidNonce        = errors.New("the nonce in transaction is smaller than the account's record")
 	ErrTxIsNotSigned         = errors.New("the transaction is not signed")
 	ErrTxBalanceInsufficient = errors.New("balance is insufficient for payment")
 	ErrTxWrongSign           = errors.New("the signer of transaction is not the own of the account")
-	ErrTxMalformed           = errors.New("the transaction structure is malformed")
 )
 
-// types:
-// 0 = generation
-// 1 = tx
-// 2= state(contract)
-
-// NewUnsignedTransaction will return an Unsigned Operation, must using Signature()
-func NewUnsignedTransaction(txType int32, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
+// NewUnsignedTx will return an Unsigned Operation, must using Signature()
+func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
 	header := &TxHeader{
 		Version:      Version,
 		Type:         txType,
@@ -42,11 +37,8 @@ func NewUnsignedTransaction(txType int32, convener uint64, participants [][]byte
 		Extra:        extraData,
 	}
 
-	hash, _ := header.CalculateHash()
-
 	return &Transaction{
-		Header:     header,
-		HeaderHash: hash,
+		Header: header,
 
 		R: nil,
 		S: nil,
@@ -62,21 +54,22 @@ func (m *Transaction) IsSigned() bool {
 }
 
 // Verify helps verify the operation whether signed by the public key owner
-func (m *Transaction) Verify(pubKey ecdsa.PublicKey) bool {
+func (m *Transaction) Verify(pubKey ecdsa.PublicKey) error {
 	if m.R == nil || m.S == nil {
-		log.Panic("unsigned operation")
+		log.Panic("unsigned transaction")
 	}
 
-	o := m.Copy()
-	o.R = nil
-	o.S = nil
-
-	b, err := proto.Marshal(o)
+	b, err := proto.Marshal(m.Header)
 	if err != nil {
-		log.Error(err)
+		return err
 	}
 
-	return ecdsa.Verify(&pubKey, b, new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S))
+	hash := sha3.Sum256(b)
+	if !ecdsa.Verify(&pubKey, hash[:], new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S)) {
+		return ErrTxWrongSign
+	}
+
+	return nil
 }
 
 // Bs58 is a tx's ReadableID in string
@@ -112,16 +105,21 @@ func (m *Transaction) CalculateHash() ([]byte, error) {
 
 // Equals mainly for calculating the tire root of txs
 func (m *Transaction) Equals(other merkletree.Content) (bool, error) {
-	var equal = true
 	tx, ok := other.(*Transaction)
 	if !ok {
 		return false, errors.New("invalid operation type")
 	}
 
-	equal = equal && bytes.Equal(tx.HeaderHash, m.HeaderHash)
-	//equal = equal && reflect.DeepEqual(tx, m)
+	otherHash, err := tx.Header.CalculateHash()
+	if err != nil {
+		return false, err
+	}
+	mHash, err := m.Header.CalculateHash()
+	if err != nil {
+		return false, err
+	}
 
-	return equal, nil
+	return bytes.Equal(otherHash, mHash), nil
 }
 
 // TxsToMerkleTreeContents make a []merkletree.Content whose values is from txs
@@ -139,7 +137,7 @@ func (m *Transaction) Copy() *Transaction {
 	return tx
 }
 
-// BigIntsToBytesList transfer value from bigInts to [][]byte
+// BigIntsToBytesList is a helper converts bigInts to raw bytes slice
 func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	bytesList := make([][]byte, len(bigInts))
 	for i := 0; i < len(bigInts); i++ {
@@ -148,67 +146,178 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	return bytesList
 }
 
-// CheckTx checks normal tx. publicKey should get from sheet
-func (m *Transaction) CheckTx(publicKey ecdsa.PublicKey) error {
-	if m.GetConvener() == 0 {
-		return fmt.Errorf("tx's convener should not be 0")
-	}
-
-	if m.Header == nil {
-		return errors.New("tx is missing header")
-	}
-
-	if !m.Verify(publicKey) {
-		return fmt.Errorf("failed to verify the tx with publicKey")
-	}
-
-	return nil
-}
-
-// CheckGen test whether the value of m is error
-func (m *Transaction) CheckGen() error {
+func (m *Transaction) CheckGeneration() error {
 	if m.Header == nil {
 		return errors.New("generation is missing header")
-	}
-
-	if len(m.GetParticipants()) != 1 {
-		return fmt.Errorf("generation should have only one participant")
-	}
-
-	x, y := elliptic.Unmarshal(elliptic.P256(), m.GetParticipants()[0])
-	publicKey := ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     x,
-		Y:     y,
-	}
-
-	if !m.Verify(publicKey) {
-		return fmt.Errorf("failed to verify the tx with publicKey")
 	}
 
 	if m.GetConvener() != 0 {
 		return fmt.Errorf("generation's convener should be 0")
 	}
 
-	if len(m.GetValues()) != 1 {
-		return fmt.Errorf("generation should have only one value")
+	if len(m.GetValues()) != len(m.GetParticipants()) {
+		return fmt.Errorf("transaction should have same len with participants")
 	}
 
-	if new(big.Int).SetBytes(m.GetValues()[0]).Cmp(OneBlockReward) != 0 {
+	if !bytes.Equal(m.TotalCharge().Bytes(), OneBlockReward.Bytes()) {
 		return fmt.Errorf("wrong block reward")
+	}
+
+	if !bytes.Equal(m.GetFee(), GetBig0Bytes()) {
+		return fmt.Errorf("generation's fee should be ZERO")
+	}
+
+	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+	if err := m.Verify(publicKey); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-// Sign will re-sign the Tx with private key
+func (m *Transaction) CheckRegister() error {
+	if m.Header == nil {
+		return errors.New("register is missing header")
+	}
+
+	if m.GetConvener() != 0 {
+		return fmt.Errorf("register's convener should be 0")
+	}
+
+	if len(m.GetParticipants()) != 1 {
+		return fmt.Errorf("register should have only one participant")
+	}
+
+	if len(m.GetValues()) != 1 {
+		return fmt.Errorf("register should have only one value")
+	}
+
+	if !bytes.Equal(m.GetValues()[0], GetBig0Bytes()) {
+		return fmt.Errorf("register should have only one 0 value")
+	}
+
+	if !bytes.Equal(m.GetFee(), new(big.Int).Mul(NG, big.NewInt(10)).Bytes()) {
+		return fmt.Errorf("register should have 10NG fee")
+	}
+
+	if len(m.GetExtra()) != 8 {
+		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
+	}
+
+	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+	if err := m.Verify(publicKey); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckLogout(key ecdsa.PublicKey) error {
+	if m.Header == nil {
+		return errors.New("logout is missing header")
+	}
+
+	if len(m.GetParticipants()) != 0 {
+		return fmt.Errorf("logout should have NO participant")
+	}
+
+	if m.GetConvener() == 0 {
+		return fmt.Errorf("logout's convener should NOT be 0")
+	}
+
+	if len(m.GetValues()) != 0 {
+		return fmt.Errorf("logout should have NO value")
+	}
+
+	if len(m.GetValues()) != len(m.GetParticipants()) {
+		return fmt.Errorf("transaction should have same len with participants")
+	}
+
+	if err := m.Verify(key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckTransaction(key ecdsa.PublicKey) error {
+	if m.Header == nil {
+		return errors.New("transaction is missing header")
+	}
+
+	if m.GetConvener() == 0 {
+		return fmt.Errorf("transaction's convener should NOT be 0")
+	}
+
+	if len(m.GetValues()) != len(m.GetParticipants()) {
+		return fmt.Errorf("transaction should have same len with participants")
+	}
+
+	if err := m.Verify(key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func (m *Transaction) CheckGen() error {
+	if m.Header == nil {
+		return errors.New("assign is missing header")
+	}
+
+	if m.GetConvener() == 0 {
+		return fmt.Errorf("assign's convener should NOT be 0")
+	}
+
+	if len(m.GetParticipants()) != 0 {
+		return fmt.Errorf("assign should have NO participant")
+	}
+
+	if len(m.GetValues()) != 0 {
+		return fmt.Errorf("assign should have NO value")
+	}
+
+	if err := m.Verify(key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Transaction) CheckAppend(key ecdsa.PublicKey) error {
+	if m.Header == nil {
+		return errors.New("logout is missing header")
+	}
+
+	if len(m.GetParticipants()) != 0 {
+		return fmt.Errorf("append should have NO participant")
+	}
+
+	if m.GetConvener() == 0 {
+		return fmt.Errorf("append's convener should NOT be 0")
+	}
+
+	if len(m.GetValues()) != 0 {
+		return fmt.Errorf("logout should have NO value")
+	}
+
+	if err := m.Verify(key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Signature will re-sign the Tx with private key
 func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
-	b, err := proto.Marshal(m)
+	b, err := proto.Marshal(m.Header)
 	if err != nil {
 		log.Error(err)
 	}
 
-	r, s, err := ecdsa.Sign(rand.Reader, privKey, b)
+	hash := sha3.Sum256(b)
+	r, s, err := ecdsa.Sign(rand.Reader, privKey, hash[:])
 	if err != nil {
 		log.Panic(err)
 	}
@@ -219,7 +328,7 @@ func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
 	return
 }
 
-func (m *Transaction) GetType() int32 {
+func (m *Transaction) GetType() TxType {
 	return m.Header.GetType()
 }
 
@@ -257,39 +366,19 @@ func (m *Transaction) TotalCharge() *big.Int {
 
 // GetGenesisGeneration is a constructed function
 func GetGenesisGeneration() *Transaction {
-	header := &TxHeader{
-		Version:      Version,
-		Type:         0,
-		Convener:     0,
-		Participants: [][]byte{GenesisPK},
-		Fee:          Big0Bytes,
-		Values: [][]byte{
-			OneBlockReward.Bytes(),
-		},
-		Nonce: 0,
-		Extra: nil,
-	}
-
-	headerHash, _ := proto.Marshal(header)
+	gen := NewUnsignedTx(
+		TX_GENERATION,
+		0,
+		[][]byte{GenesisPK},
+		[]*big.Int{OneBlockReward},
+		GetBig0(),
+		1,
+		nil,
+	)
 
 	// FIXME: before init network should manually init the R & S
-	r, _ := hex.DecodeString("db60cdda46c5c4efb1eadd797b27bc785a713c16b5e33d92010cf1828855e577")
-	s, _ := hex.DecodeString("f28ec61c9ec8e889377c34e8359b25f355500b15189c1c7f3f1f2fff61eb7873")
+	gen.R, _ = hex.DecodeString("e60f90c8e8bb717cf30cf59a8bec8d17f189a5a4e0a621f4c2ce2d24a0443d1f")
+	gen.S, _ = hex.DecodeString("dfcba58223e100569991a856ca139287714e5cd53074bc962328a602fe3b81bf")
 
-	return &Transaction{
-		Header:     header,
-		HeaderHash: headerHash,
-		R:          r,
-		S:          s,
-	}
-}
-
-// TotalFee is a helper which helps calc the total fee among the ops
-func TotalFee(txs []*Transaction) (totalFee *big.Int) {
-	totalFee = big.NewInt(0)
-	for _, tx := range txs {
-		totalFee = new(big.Int).Add(totalFee, new(big.Int).SetBytes(tx.Header.Fee))
-	}
-
-	return
+	return gen
 }

@@ -2,26 +2,25 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"sync"
+
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/txpool"
-	"sync"
 )
 
 // the pow
 type Consensus struct {
 	sync.RWMutex
 
+	isMining     bool
 	SheetManager *ngsheet.Manager
 
 	PrivateKey *ecdsa.PrivateKey
 	Chain      *ngchain.Chain
-
-	TxPool *txpool.TxPool
-
-	mining bool
-	miner  *miner.Miner
+	TxPool     *txpool.TxPool
+	miner      *miner.Miner
 }
 
 func NewConsensusManager(mining bool) *Consensus {
@@ -31,7 +30,7 @@ func NewConsensusManager(mining bool) *Consensus {
 		Chain:        nil,
 		TxPool:       nil,
 
-		mining: mining,
+		isMining: mining,
 	}
 }
 

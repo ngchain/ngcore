@@ -2,7 +2,9 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-pubsub"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -30,7 +32,7 @@ func (b *Broadcaster) onBroadcastTx(msg *pubsub.Message) {
 		return
 	}
 
-	err = b.node.TxPool.PutTxs(tx)
+	err = b.node.txPool.PutTxs(tx)
 	if err != nil {
 		log.Error(err)
 		return

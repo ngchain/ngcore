@@ -2,8 +2,9 @@ package ngtypes
 
 import (
 	"errors"
-	"github.com/gogo/protobuf/proto"
 	"time"
+
+	"github.com/gogo/protobuf/proto"
 
 	"golang.org/x/crypto/sha3"
 )
@@ -14,14 +15,13 @@ var (
 	ErrMalformedVault   = errors.New("the vault structure is malformed")
 )
 
+
 // NewVault default class constructor
 func NewVault(newAccountID uint64, ownerKey []byte, prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
 	newAccount := NewAccount(newAccountID, ownerKey, nil)
-
 	return &Vault{
-		NetworkId:     NetworkId,
+		NetworkId:     NetworkID,
 		Height:        prevVaultHeight + 1,
-		List:          newAccount,
 		Timestamp:     time.Now().Unix(),
 		PrevVaultHash: prevVaultHash,
 		Sheet:         currentSheet,
@@ -43,19 +43,12 @@ func GetGenesisVault() *Vault {
 	v := &Vault{
 		Height: 0,
 
-		NetworkId: NetworkId,
+		NetworkId: NetworkID,
 		Timestamp: genesisTimestamp,
 
 		PrevVaultHash: nil,
 
-		Sheet: &Sheet{
-			Version:   Version,
-			Accounts:  map[uint64]*Account{},
-			Anonymous: map[string][]byte{},
-		},
-
-		List:    GetGenesisAccount(),
-		Delists: []*Account{},
+		Sheet: GetGenesisSheet(),
 	}
 
 	return v

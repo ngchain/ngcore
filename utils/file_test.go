@@ -2,7 +2,7 @@ package utils
 
 import "testing"
 
-// Testing encryption and decryption
+// TestFile tests encryption and decryption
 func TestFile(t *testing.T) {
 	b := []byte("Hello")
 	key := []byte("keyyyyyyyyyyyyyyyyyyy")

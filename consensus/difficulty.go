@@ -1,8 +1,9 @@
 package consensus
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var (
@@ -15,6 +16,7 @@ func GetNextTarget(block *ngtypes.Block, vault *ngtypes.Vault) *big.Int {
 	//        * 2^(fatherTime - grandpaTime)
 
 	target := new(big.Int).SetBytes(block.Header.Target)
+
 	if !block.Header.IsTail() {
 		return target
 	}

@@ -2,6 +2,7 @@ package ngp2p
 
 import (
 	"context"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -28,12 +29,8 @@ func (n *LocalNode) connectBootstrapNodes() {
 	}
 }
 
-func (n *LocalNode) Init(afterFunc func()) {
+func (n *LocalNode) Init() {
 	if !n.isBootstrapNode {
 		n.connectBootstrapNodes()
-	}
-
-	if afterFunc != nil {
-		afterFunc()
 	}
 }

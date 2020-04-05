@@ -8,6 +8,7 @@ go_library(
         "difficulty.go",
         "forker.go",
         "generation.go",
+        "init.go",
         "pow.go",
     ],
     importpath = "github.com/ngchain/ngcore/consensus",

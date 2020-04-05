@@ -3,12 +3,13 @@
 package consensus
 
 import (
-	"crypto/elliptic"
+	"runtime"
+
+	"github.com/whyrusleeping/go-logging"
+
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/whyrusleeping/go-logging"
-	"runtime"
 )
 
 var log = logging.MustGetLogger("consensus")
@@ -21,7 +22,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 		workerNum = runtime.NumCPU()
 	}
 
-	if c.mining {
+	if c.isMining {
 		c.miner = miner.NewMiner(workerNum)
 		c.miner.Start(c.GetBlockTemplate())
 
@@ -30,23 +31,26 @@ func (c *Consensus) InitPoW(workerNum int) {
 				b := <-c.miner.FoundBlockCh
 				c.MinedNewBlock(b)
 
-				if c.mining {
+				if c.isMining {
 					c.miner.Start(c.GetBlockTemplate())
 				}
-
 			}
 		}()
 	}
 }
 
-func (c *Consensus) StopMining() {
-	log.Info("mining stopping")
-	c.miner.Stop()
+func (c *Consensus) Stop() {
+	if c.isMining {
+		log.Info("mining stopping")
+		c.miner.Stop()
+	}
 }
 
-func (c *Consensus) ResumeMining() {
-	log.Info("mining resuming")
-	c.miner.Start(c.GetBlockTemplate())
+func (c *Consensus) Resume() {
+	if c.isMining {
+		log.Info("mining resuming")
+		c.miner.Start(c.GetBlockTemplate())
+	}
 }
 
 func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
@@ -103,6 +107,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
 	}
+
 	if prevBlock == nil {
 		log.Warning("Malformed block mined: PrevBlockHash")
 		return
@@ -123,7 +128,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	// TODO: vault should be generated when made the template
 	if b.Header.IsHead() {
-		err := c.SheetManager.ApplyVault(prevVault)
+		err := c.SheetManager.HandleVault(prevVault)
 		if err != nil {
 			log.Error(err)
 		}
@@ -135,7 +140,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		return
 	}
 
-	err = c.SheetManager.ApplyTxs(b.Transactions...)
+	err = c.SheetManager.HandleTxs(b.Transactions...)
 	if err != nil {
 		log.Warning(err)
 		return
@@ -156,9 +161,12 @@ func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *n
 	accountNumber := utils.RandUint64()
 	log.Infof("New account: %d", accountNumber)
 
-	ownerKey := elliptic.Marshal(elliptic.P256(), c.PrivateKey.PublicKey.X, c.PrivateKey.PublicKey.Y)
-
-	newVault := ngtypes.NewVault(accountNumber, ownerKey, prevVaultHeight, prevVaultHash, c.SheetManager.GenerateSheet())
+	sheet, err := c.SheetManager.GenerateNewSheet()
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	newVault := ngtypes.NewVault(prevVaultHeight, prevVaultHash, sheet)
 	hash, _ := newVault.CalculateHash()
 	log.Infof("Generated a new Vault@%d, %x", newVault.GetHeight(), hash)
 	return newVault

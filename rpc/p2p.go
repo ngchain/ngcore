@@ -2,9 +2,11 @@ package rpc
 
 import (
 	"context"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/multiformats/go-multiaddr"
+
 	"github.com/ngchain/ngcore/utils"
 )
 

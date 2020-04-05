@@ -2,7 +2,8 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-pubsub"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 const broadcastBlockTopic = "/ngp2p/broadcast/block/0.0.1"
@@ -56,9 +57,9 @@ func registerBroadcaster(node *LocalNode) *Broadcaster {
 	go func() {
 		for {
 			select {
-			case block := <-b.node.Chain.MinedBlockToP2PCh:
+			case block := <-b.node.chain.MinedBlockToP2PCh:
 				if block.IsHead() {
-					v, err := b.node.Chain.GetVaultByHash(block.Header.PrevVaultHash)
+					v, err := b.node.chain.GetVaultByHash(block.Header.PrevVaultHash)
 					if err != nil {
 						log.Errorf("failed to get vault from new mined block ")
 						continue
@@ -68,7 +69,7 @@ func registerBroadcaster(node *LocalNode) *Broadcaster {
 					b.broadcastBlock(block, nil)
 				}
 
-			case tx := <-b.node.TxPool.NewCreatedTxEvent:
+			case tx := <-b.node.txPool.NewCreatedTxEvent:
 				b.broadcastTx(tx)
 			}
 		}

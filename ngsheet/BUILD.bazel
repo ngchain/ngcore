@@ -14,6 +14,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//ngtypes:go_default_library",
+        "//utils:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",
     ],
 )

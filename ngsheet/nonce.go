@@ -1,8 +1,20 @@
 package ngsheet
 
-func (m *Manager) GetNextNonce(accountID uint64) uint64 {
-	m.accountsMu.RLock()
-	defer m.accountsMu.RUnlock()
+import (
+	"github.com/ngchain/ngcore/ngtypes"
+)
 
-	return m.accounts[accountID].GetNonce() + 1
+func (m *sheetEntry) GetNextNonce(accountID uint64) uint64 {
+	m.RLock()
+	defer m.RUnlock()
+
+	rawAccount, exists := m.accounts[accountID]
+	if !exists {
+		return 1
+	}
+
+	account := new(ngtypes.Account)
+	_ = account.Unmarshal(rawAccount)
+
+	return account.GetNonce() + 1
 }

@@ -1,15 +1,17 @@
 package miner
 
 import (
-	"github.com/NebulousLabs/fastrand"
-	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngin-network/cryptonight-go"
-	"github.com/whyrusleeping/go-logging"
-	"go.uber.org/atomic"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/NebulousLabs/fastrand"
+	"github.com/ngin-network/cryptonight-go"
+	"github.com/whyrusleeping/go-logging"
+	"go.uber.org/atomic"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var log = logging.MustGetLogger("miner")
@@ -47,7 +49,6 @@ func NewMiner(threadNum int) *Miner {
 				log.Infof("Total Hashrate: %d h/s", hashes/elapsed)
 				m.hashes.Add(-hashes)
 			}()
-
 		}
 	}()
 
@@ -114,7 +115,6 @@ func (m *Miner) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 }
 
 func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
-
 	// Correct nonce found
 	m.Stop()
 

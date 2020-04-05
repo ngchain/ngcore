@@ -3,10 +3,12 @@ package ngtypes
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"errors"
+
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 var (
@@ -24,16 +26,6 @@ func NewSheet(accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet 
 	}
 }
 
-// NewEmptySheet structure a empty Sheet
-func NewEmptySheet() *Sheet {
-	return &Sheet{
-		Version:   Version,
-		Accounts:  map[uint64]*Account{},
-		Anonymous: map[string][]byte{},
-	}
-}
-
-// RegisterAccount determine whether the number of registers is empty
 func (m *Sheet) RegisterAccount(account *Account) error {
 	if m.Accounts[account.ID] != nil {
 		return errors.New("failed to register, account already exists")
@@ -55,7 +47,8 @@ func (m *Sheet) GetAccountByID(accountID uint64) (*Account, error) {
 // GetAccountByKey determine whether the public key byte array is generated correctly and assign it to Sheet m
 func (m *Sheet) GetAccountByKey(publicKey ecdsa.PublicKey) ([]*Account, error) {
 	accounts := make([]*Account, 0)
-	bPublicKey := elliptic.Marshal(elliptic.P256(), publicKey.X, publicKey.Y)
+	bPublicKey := utils.ECDSAPublicKey2Bytes(publicKey)
+
 	for i := range m.Accounts {
 		if bytes.Equal(m.Accounts[i].Owner, bPublicKey) {
 			accounts = append(accounts, m.Accounts[i])
@@ -115,4 +108,16 @@ func (m *Sheet) CalculateHash() ([]byte, error) {
 	}
 	hash := sha3.Sum256(raw)
 	return hash[:], nil
+}
+
+func GetGenesisSheet() *Sheet {
+	return &Sheet{
+		Version: Version,
+		Accounts: map[uint64]*Account{
+			0: GetGenesisAccount(),
+		},
+		Anonymous: map[string][]byte{
+			GenesisPKHex: GetBig0Bytes(),
+		},
+	}
 }

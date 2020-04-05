@@ -2,22 +2,24 @@ package ngp2p
 
 import (
 	"bytes"
+	"io/ioutil"
+
 	"github.com/gogo/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
-	"io/ioutil"
 )
 
 func (w *Wired) Pong(s network.Stream, uuid string) bool {
 	log.Infof("Sending Pong to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
 
 	payload, err := proto.Marshal(&pb.PingPongPayload{
-		BlockHeight:     w.node.Chain.GetLatestBlockHeight(),
-		VaultHeight:     w.node.Chain.GetLatestVaultHeight(),
-		LatestBlockHash: w.node.Chain.GetLatestBlockHash(),
-		LatestVaultHash: w.node.Chain.GetLatestVaultHash(),
+		BlockHeight:     w.node.chain.GetLatestBlockHeight(),
+		VaultHeight:     w.node.chain.GetLatestVaultHeight(),
+		LatestBlockHash: w.node.chain.GetLatestBlockHash(),
+		LatestVaultHash: w.node.chain.GetLatestVaultHash(),
 	})
 	if err != nil {
 		log.Error("failed to sign pb data")
@@ -64,7 +66,7 @@ func (w *Wired) onPong(s network.Stream) {
 		return
 	}
 
-	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(data) {
+	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}
@@ -81,11 +83,11 @@ func (w *Wired) onPong(s network.Stream) {
 
 	w.node.RemoteHeights.Store(s.Conn().RemotePeer().String(), pong.BlockHeight)
 
-	localVaultHeight := w.node.Chain.GetLatestVaultHeight()
-	localVaultHash := w.node.Chain.GetLatestVaultHash()
-	localBlockHeight := w.node.Chain.GetLatestBlockHeight()
+	localVaultHeight := w.node.chain.GetLatestVaultHeight()
+	localVaultHash := w.node.chain.GetLatestVaultHash()
+	localBlockHeight := w.node.chain.GetLatestBlockHeight()
 
-	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.Chain.GetLatestBlockHeight() == 0 {
+	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.chain.GetLatestBlockHeight() == 0 {
 		go w.GetChain(s.Conn().RemotePeer(), pong.VaultHeight-2)
 		return
 	}

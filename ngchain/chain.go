@@ -5,10 +5,12 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
+	"github.com/whyrusleeping/go-logging"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/whyrusleeping/go-logging"
 )
 
 var log = logging.MustGetLogger("chain")
@@ -27,7 +29,7 @@ type Chain struct {
 	NewVaultToTxPoolCh   chan *ngtypes.Vault
 }
 
-// NewChain will return a Chain, but no initialization
+// NewChain will return a chain, but no initialization
 func NewChain(db *badger.DB) *Chain {
 	chain := &Chain{
 		db: db,
@@ -422,6 +424,7 @@ func (c *Chain) DumpAllVaultsByHash() map[string]*ngtypes.Vault {
 
 func (c *Chain) DumpAllByHash(withBlocks bool, withVaults bool) map[string]Item {
 	kv := make(map[string]Item)
+
 	if withBlocks {
 		all := c.DumpAllBlocksByHash()
 		for k, v := range all {

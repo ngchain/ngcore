@@ -3,9 +3,13 @@ package ngp2p
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/gogo/protobuf/io"
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p"
+	relay "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -17,14 +21,14 @@ import (
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
+	"go.uber.org/atomic"
+
+	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/txpool"
-	"go.uber.org/atomic"
-	"sync"
-	"time"
 )
 
 type LocalNode struct {
@@ -39,23 +43,24 @@ type LocalNode struct {
 	OnNotSynced func()
 
 	sheetManager *ngsheet.Manager
-	Chain        *ngchain.Chain
-	TxPool       *txpool.TxPool
+	chain        *ngchain.Chain
+	txPool       *txpool.TxPool
+	consensus    *consensus.Consensus
 
 	RemoteHeights   *sync.Map // key:id value:height
 	isStrictMode    bool
 	isBootstrapNode bool
 }
 
-// Create a new node with its implemented protocols
+// NewLocalNode creates a new node with its implemented protocols
 func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ngsheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
 	ctx := context.Background()
 
-	priv := getP2PKey(true) //isBootstrap)
+	priv := getP2PKey(isBootstrapNode)
 
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),
-		//libp2p.Transport(ws.New),
+		// libp2p.Transport(ws.New),
 	)
 
 	listenAddrs := libp2p.ListenAddrStrings(
@@ -82,6 +87,8 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ng
 		muxers,
 		libp2p.Identity(priv),
 		libp2p.Routing(newDHT),
+		libp2p.NATPortMap(),
+		libp2p.EnableRelay(relay.OptActive, relay.OptHop),
 	)
 	if err != nil {
 		panic(err)
@@ -113,12 +120,11 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ng
 		isInitialized:   atomic.NewBool(false),
 		isBootstrapNode: isBootstrapNode,
 		isSyncedCh:      make(chan bool),
-		OnSynced:        nil,
 		OnNotSynced:     nil,
 
 		sheetManager:  sheetManager,
-		Chain:         chain,
-		TxPool:        txPool,
+		chain:         chain,
+		txPool:        txPool,
 		RemoteHeights: new(sync.Map),
 		isStrictMode:  isStrictMode,
 	}
@@ -131,7 +137,7 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ng
 	// mdns seeding
 	go func() {
 		for {
-			pi := <-peerInfoCh // will block untill we discover a peer
+			pi := <-peerInfoCh // will block until we discover a peer
 			log.Infof("Found peer:", pi, ", connecting")
 			if err := node.Connect(ctx, pi); err != nil {
 				log.Errorf("Connection failed: %s", err)
@@ -162,7 +168,7 @@ func (n *LocalNode) verifyResponse(message *pb.Message) bool {
 	return true
 }
 
-func (n *LocalNode) authenticateMessage(message *pb.Message) bool {
+func (n *LocalNode) authenticateMessage(remotePeerID peer.ID, message *pb.Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
 
@@ -173,13 +179,8 @@ func (n *LocalNode) authenticateMessage(message *pb.Message) bool {
 	}
 
 	message.Header.Sign = sign
-	peerId, err := peer.Decode(message.Header.Uuid)
-	if err != nil {
-		log.Errorf("Failed to decode node id from base58: %v", err)
-		return false
-	}
 
-	return n.verifyData(raw, sign, peerId, message.Header.PeerKey)
+	return n.verifyData(raw, sign, remotePeerID, message.Header.PeerKey)
 }
 
 // sign an outgoing p2p message payload
@@ -203,7 +204,7 @@ func (n *LocalNode) signData(data []byte) ([]byte, error) {
 // signature: author signature provided in the message payload
 // peerId: author peer id from the message payload
 // pubKeyData: author public key from the message payload
-func (n *LocalNode) verifyData(data []byte, signature []byte, peerId peer.ID, pubKeyData []byte) bool {
+func (n *LocalNode) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
 		log.Error(err, "Failed to extract key from message key data")
@@ -219,7 +220,7 @@ func (n *LocalNode) verifyData(data []byte, signature []byte, peerId peer.ID, pu
 	}
 
 	// verify that message author node id matches the provided node public key
-	if idFromKey != peerId {
+	if idFromKey != peerID {
 		log.Error(err, "LocalNode id and provided public key mismatch")
 		return false
 	}
@@ -245,7 +246,7 @@ func (n *LocalNode) NewHeader(uuid string) *pb.Header {
 	}
 
 	return &pb.Header{
-		NetworkId: ngtypes.NetworkId,
+		NetworkId: ngtypes.NetworkID,
 		Uuid:      uuid,
 		Timestamp: 0,
 		PeerKey:   peerKey,

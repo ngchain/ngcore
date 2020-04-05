@@ -2,10 +2,12 @@ package rpc
 
 import (
 	"encoding/hex"
+	"math/big"
+
 	"github.com/maoxs2/go-jsonrpc2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"math/big"
 )
 
 //import (
@@ -22,11 +24,11 @@ import (
 //type Tx struct {
 //	localKey *ecdsa.PrivateKey
 //
-//	txPool       *txpool.TxPool
+//	txPool       *txpool.txPool
 //	sheetManager *ngsheet.Manager
 //}
 //
-//func NewTxModule(txPool *txpool.TxPool, sheet *ngsheet.Manager) *Tx {
+//func NewTxModule(txPool *txpool.txPool, sheet *ngsheet.Manager) *Tx {
 //	return &Tx{
 //		txPool:       txPool,
 //		sheetManager: sheet,
@@ -67,7 +69,7 @@ import (
 //		values[i] = new(big.Int).SetUint64(args.Values[i])
 //	}
 //
-//	newTx := ngtypes.NewUnsignedTransaction(
+//	newTx := ngtypes.NewUnsignedTx(
 //		args.Type,
 //		args.Convener,
 //		participants,
@@ -111,16 +113,15 @@ import (
 //	return nil
 //}
 
-type sendTxParams struct {
+type sendTransactionParams struct {
 	Convener     uint64
 	Participants []string
 	Values       []float64
 	Fee          float64
-	Extra        []byte
 }
 
-func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params sendTxParams
+func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendTransactionParams
 	err := utils.Json.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -143,11 +144,173 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 
 	nonce := s.sheetManager.GetNextNonce(params.Convener)
 
-	tx := ngtypes.NewUnsignedTransaction(
-		1,
+	tx := ngtypes.NewUnsignedTx(
+		ngtypes.TX_TRANSACTION,
 		params.Convener,
 		participants,
 		values,
+		fee,
+		nonce,
+		nil,
+	)
+
+	err = tx.Signature(s.consensus.PrivateKey)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = s.txPool.PutNewTxFromLocal(tx)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	ok, _ := utils.Json.Marshal(true)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+}
+
+type sendRegisterParams struct {
+	ID uint64
+}
+
+func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendRegisterParams
+	err := utils.Json.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	nonce := s.sheetManager.GetNextNonce(0)
+
+	tx := ngtypes.NewUnsignedTx(
+		ngtypes.TX_REGISTER,
+		0,
+		[][]byte{
+			utils.ECDSAPublicKey2Bytes(s.consensus.PrivateKey.PublicKey),
+		},
+		[]*big.Int{ngtypes.GetBig0()},
+		new(big.Int).Mul(ngtypes.NG, big.NewInt(10)),
+		nonce,
+		utils.PackUint64LE(params.ID),
+	)
+
+	err = tx.Signature(s.consensus.PrivateKey)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = s.txPool.PutNewTxFromLocal(tx)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	ok, _ := utils.Json.Marshal(true)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+}
+
+type sendLogoutParams struct {
+	Convener uint64
+	Fee      float64
+	Extra    []byte
+}
+
+func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendLogoutParams
+	err := utils.Json.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
+
+	nonce := s.sheetManager.GetNextNonce(params.Convener)
+
+	tx := ngtypes.NewUnsignedTx(
+		ngtypes.TX_LOGOUT,
+		params.Convener,
+		nil,
+		nil,
+		fee,
+		nonce,
+		params.Extra,
+	)
+
+	err = tx.Signature(s.consensus.PrivateKey)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = s.txPool.PutNewTxFromLocal(tx)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	ok, _ := utils.Json.Marshal(true)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+}
+
+type sendAssignParams struct {
+	Convener uint64
+	Fee      float64
+	Extra    []byte
+}
+
+func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendAssignParams
+	err := utils.Json.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
+
+	nonce := s.sheetManager.GetNextNonce(params.Convener)
+
+	tx := ngtypes.NewUnsignedTx(
+		ngtypes.TX_ASSIGN,
+		params.Convener,
+		nil,
+		nil,
+		fee,
+		nonce,
+		params.Extra,
+	)
+
+	err = tx.Signature(s.consensus.PrivateKey)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = s.txPool.PutNewTxFromLocal(tx)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	ok, _ := utils.Json.Marshal(true)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+}
+
+type sendAppendParams struct {
+	Convener uint64
+	Fee      float64
+	Extra    []byte
+}
+
+func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendAppendParams
+	err := utils.Json.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
+
+	nonce := s.sheetManager.GetNextNonce(params.Convener)
+
+	tx := ngtypes.NewUnsignedTx(
+		ngtypes.TX_ASSIGN,
+		params.Convener,
+		nil,
+		nil,
 		fee,
 		nonce,
 		params.Extra,
