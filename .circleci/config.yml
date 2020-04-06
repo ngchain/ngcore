@@ -29,5 +29,5 @@ jobs:
           destination: ngcore
 
       - run:
-        name: codecov
-        command: "bash <(curl -s https://codecov.io/bash)"
+          name: codecov
+          command: "bash <(curl -s https://codecov.io/bash)"
