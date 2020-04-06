@@ -27,3 +27,6 @@ jobs:
       - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: ./ngcore
           destination: ngcore
+
+      - codecov/upload:
+          file: {{ coverage_report_filepath }}
