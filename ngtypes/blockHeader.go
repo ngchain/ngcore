@@ -42,7 +42,7 @@ func (m *BlockHeader) GetPoWBlob(nonce []byte) []byte {
 	return raw
 }
 
-// VerifyHash() check whether the hash value is correct
+// VerifyHash check whether the hash value is correct
 func (m *BlockHeader) VerifyHash() bool {
 	if m.GetNonce() == nil {
 		log.Error(ErrBlockNonceInvalid)

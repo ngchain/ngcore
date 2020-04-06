@@ -42,7 +42,7 @@ func (m *Manager) Init(currentVault *ngtypes.Vault, blocks ...*ngtypes.Block) {
 	}
 
 	for i := 0; i < len(blocks); i++ {
-		err = m.currentSheet.handleTxs(blocks[i].Transactions...)
+		err = m.currentSheet.handleTxs(blocks[i].Txs...)
 		if err != nil {
 			panic(err)
 		}
@@ -53,11 +53,11 @@ func (m *Manager) GetCurrentBalanceByID(id uint64) (*big.Int, error) {
 	return m.currentSheet.GetBalanceByID(id)
 }
 
-func (m *Manager) CheckTxs(txs ...*ngtypes.Transaction) error {
+func (m *Manager) CheckTxs(txs ...*ngtypes.Tx) error {
 	return m.currentSheet.CheckTxs()
 }
 
-func (m *Manager) HandleTxs(transactions ...*ngtypes.Transaction) error {
+func (m *Manager) HandleTxs(transactions ...*ngtypes.Tx) error {
 	return m.currentSheet.handleTxs(transactions...)
 }
 

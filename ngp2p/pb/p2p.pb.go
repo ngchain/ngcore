@@ -368,7 +368,7 @@ func (m *GetPoolPayload) XXX_DiscardUnknown() {
 var xxx_messageInfo_GetPoolPayload proto.InternalMessageInfo
 
 type PoolPayload struct {
-	Txs []*ngtypes.Transaction `protobuf:"bytes,1,rep,name=txs,proto3" json:"txs,omitempty"`
+	Txs []*ngtypes.Tx `protobuf:"bytes,1,rep,name=txs,proto3" json:"txs,omitempty"`
 }
 
 func (m *PoolPayload) Reset()      { *m = PoolPayload{} }
@@ -403,7 +403,7 @@ func (m *PoolPayload) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_PoolPayload proto.InternalMessageInfo
 
-func (m *PoolPayload) GetTxs() []*ngtypes.Transaction {
+func (m *PoolPayload) GetTxs() []*ngtypes.Tx {
 	if m != nil {
 		return m.Txs
 	}
@@ -1439,7 +1439,7 @@ func (this *PoolPayload) String() string {
 	}
 	repeatedStringForTxs := "[]*Transaction{"
 	for _, f := range this.Txs {
-		repeatedStringForTxs += strings.Replace(fmt.Sprintf("%v", f), "Transaction", "ngtypes.Transaction", 1) + ","
+		repeatedStringForTxs += strings.Replace(fmt.Sprintf("%v", f), "Transaction", "ngtypes.Tx", 1) + ","
 	}
 	repeatedStringForTxs += "}"
 	s := strings.Join([]string{`&PoolPayload{`,
@@ -2284,7 +2284,7 @@ func (m *PoolPayload) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Txs = append(m.Txs, &ngtypes.Transaction{})
+			m.Txs = append(m.Txs, &ngtypes.Tx{})
 			if err := m.Txs[len(m.Txs)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}

@@ -10,7 +10,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// PutNewVault puts a new vault into db
+// PutNewBlock puts a new block into db
 func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
@@ -104,7 +104,7 @@ func (c *Chain) PutNewVault(vault *ngtypes.Vault) error {
 	return err
 }
 
-// PutNewVault puts a new vault into db
+// PutNewBlockWithVault puts a new vault and the head block after it into db
 func (c *Chain) PutNewBlockWithVault(vault *ngtypes.Vault, block *ngtypes.Block) error {
 	if vault == nil {
 		return fmt.Errorf("vault is nil")

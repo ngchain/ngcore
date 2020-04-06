@@ -20,7 +20,7 @@ func (s *Server) getAccountsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		result[i] = accounts[i].ID
 	}
 
-	raw, err := utils.Json.Marshal(result)
+	raw, err := utils.JSON.Marshal(result)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -34,7 +34,7 @@ func (s *Server) getBalanceFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	raw, err := utils.Json.Marshal(map[string]interface{}{
+	raw, err := utils.JSON.Marshal(map[string]interface{}{
 		base58.FastBase58Encoding(key): balance,
 	})
 	if err != nil {
@@ -50,7 +50,7 @@ type getBalanceByIDParams struct {
 
 func (s *Server) getBalanceByIDFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	params := new(getBalanceByIDParams)
-	err := utils.Json.Unmarshal(msg.Params, params)
+	err := utils.JSON.Unmarshal(msg.Params, params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -60,7 +60,7 @@ func (s *Server) getBalanceByIDFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.Json.Marshal(map[string]interface{}{
+	raw, err := utils.JSON.Marshal(map[string]interface{}{
 		fmt.Sprintf("%d", params.ID): balance,
 	})
 	if err != nil {

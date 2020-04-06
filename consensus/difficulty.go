@@ -7,9 +7,12 @@ import (
 )
 
 var (
-	MinimumDifficulty = big.NewInt(50 * 10) // because my laptop has 50 h/s, I believe you can either
+	// MinimumDifficulty is the minimum of pow difficulty because my laptop has 50 h/s, I believe you can either
+	MinimumDifficulty = big.NewInt(50 * 10)
 )
 
+// GetNextTarget is a helper to get next pow block target field
+// TODO: add target check into chain
 func GetNextTarget(block *ngtypes.Block, vault *ngtypes.Vault) *big.Int {
 	// algorithm1:
 	// diff = max or min(fatherDiff/fatherTime, grandpaDiff/grandpaTime) * targetTime

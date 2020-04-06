@@ -17,7 +17,7 @@ We just need to keep the latest some block and treasuries to make the chain safe
 
 	bare -(+txs&mtree)-> Unsealing -(+nonce)-> Sealed
 
-## Operation
+## Tx
 
 ## Sheet
 

@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// Sign will re-sign the Tx with private key
+// Signature will sign the Tx with private key
 func (m *TxHeader) Signature(privKey *ecdsa.PrivateKey) (r, s *big.Int, err error) {
 	b, err := proto.Marshal(m)
 	if err != nil {

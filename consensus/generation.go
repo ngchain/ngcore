@@ -9,7 +9,7 @@ import (
 )
 
 // CreateGeneration will create a generation Tx for new Block
-func (c *Consensus) CreateGeneration(privateKey *ecdsa.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Transaction {
+func (c *Consensus) CreateGeneration(privateKey *ecdsa.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Tx {
 	publicKeyBytes := utils.ECDSAPublicKey2Bytes(privateKey.PublicKey)
 	gen := ngtypes.NewUnsignedTx(
 		ngtypes.TX_GENERATION,

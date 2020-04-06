@@ -9,6 +9,7 @@ import (
 
 var log = logging.MustGetLogger("storage")
 
+// InitStorage inits a new DB in data folder
 func InitStorage() *badger.DB {
 	options := badger.DefaultOptions("data")
 	if runtime.GOOS == "windows" {
@@ -23,6 +24,7 @@ func InitStorage() *badger.DB {
 	return s
 }
 
+// InitMemStorage inits a new DB in mem
 // TODO: add memdb mode
 func InitMemStorage() *badger.DB {
 	options := badger.DefaultOptions("").WithInMemory(true)

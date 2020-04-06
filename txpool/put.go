@@ -8,7 +8,7 @@ import (
 )
 
 // PutNewTxFromLocal puts tx from local(rpc) into txpool
-func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Transaction) (err error) {
+func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 	err = p.PutTxs(tx)
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Transaction) (err error) {
 }
 
 // PutTxs puts txs from network(p2p) into txpool
-func (p *TxPool) PutTxs(txs ...*ngtypes.Transaction) error {
+func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
 	p.Lock()
 	defer p.Unlock()
 

@@ -8,14 +8,14 @@ import (
 	"github.com/cbergoon/merkletree"
 )
 
-// TxTrie is an fixed ordered operation container, mainly for pending
+// TxTrie is a fixed ordered tx container, mainly for pending
 // And TxTrie is an advanced type, aiming to get the trie root hash
 type TxTrie struct {
-	Txs []*Transaction
+	Txs []*Tx
 }
 
 // NewTxTrie receives ordered ops
-func NewTxTrie(txs []*Transaction) *TxTrie {
+func NewTxTrie(txs []*Tx) *TxTrie {
 	return &TxTrie{
 		Txs: txs,
 	}
@@ -49,12 +49,12 @@ func (tt *TxTrie) ReverseSort() *TxTrie {
 }
 
 // Append will append new object to the end of TxTrie
-func (tt *TxTrie) Append(tx *Transaction) {
+func (tt *TxTrie) Append(tx *Tx) {
 	tt.Txs = append(tt.Txs, tx)
 }
 
 // Del make the value of tt.Txs the same as tx
-func (tt *TxTrie) Del(tx *Transaction) error {
+func (tt *TxTrie) Del(tx *Tx) error {
 	for i := range tt.Txs {
 		if tt.Txs[i] == tx {
 			tt.Txs = append(tt.Txs[:i], tt.Txs[i+1:]...)
@@ -62,11 +62,11 @@ func (tt *TxTrie) Del(tx *Transaction) error {
 		}
 	}
 
-	return errors.New("no such operation")
+	return errors.New("no such transaction")
 }
 
 // Contains determine if tt.Txs and tx are equal
-func (tt *TxTrie) Contains(tx *Transaction) bool {
+func (tt *TxTrie) Contains(tx *Tx) bool {
 	for i := 0; i < len(tt.Txs); i++ {
 		if tt.Txs[i] == tx {
 			return true

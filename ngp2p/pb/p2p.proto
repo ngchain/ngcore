@@ -46,7 +46,7 @@ message GetPoolPayload {
 }
 
 message PoolPayload {
-    repeated ngtypes.Transaction txs = 1;
+    repeated ngtypes.Tx txs = 1;
 }
 
 /* broadcast(pub-sub) */
@@ -55,4 +55,4 @@ message BroadcastBlockPayload {
     ngtypes.Block block = 2;
 }
 
-// BroadcastTransactionPayload = ngtypes.Transaction
+// BroadcastTransactionPayload = ngtypes.Tx

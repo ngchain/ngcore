@@ -13,7 +13,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// TestDeserialize test Unsigned Operation whether it is possible to deserialize
+// TestDeserialize test unsigned transaction whether it is possible to deserialize
 func TestDeserialize(t *testing.T) {
 	tx := NewUnsignedTx(
 		TX_GENERATION,
@@ -31,7 +31,7 @@ func TestDeserialize(t *testing.T) {
 	result := hex.EncodeToString(raw)
 	t.Log(result)
 
-	var otherTx Transaction
+	var otherTx Tx
 	_ = proto.Unmarshal(raw, &otherTx)
 	t.Log(otherTx.String())
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // CheckTxs will check the influenced accounts which mentioned in op, and verify their balance and nonce
-func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Transaction) error {
+func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -55,7 +55,7 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Transaction) error {
 	return nil
 }
 
-func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Transaction) error {
+func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[generationTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -68,7 +68,7 @@ func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Transaction) error {
 	}
 
 	// check structure and key
-	if err = generationTx.CheckGeneration(); err != nil {
+	if err = generationTx.CheckGenerate(); err != nil {
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Transaction) error {
 	return nil
 }
 
-func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Transaction) error {
+func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[registerTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -118,7 +118,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Transaction) error {
 	return nil
 }
 
-func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Transaction) error {
+func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[logoutTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -154,7 +154,7 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Transaction) error {
 	return nil
 }
 
-func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Transaction) error {
+func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[transactionTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -190,7 +190,7 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Transaction) error 
 	return nil
 }
 
-func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Transaction) error {
+func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[assignTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -226,7 +226,7 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Transaction) error {
 	return nil
 }
 
-func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Transaction) error {
+func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[appendTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists

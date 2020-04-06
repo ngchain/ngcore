@@ -4,7 +4,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (p *TxPool) DelBlockTxs(txs ...*ngtypes.Transaction) {
+func (p *TxPool) DelBlockTxs(txs ...*ngtypes.Tx) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -16,6 +16,6 @@ func (p *TxPool) DelBlockTxs(txs ...*ngtypes.Transaction) {
 }
 
 // CheckTxs will check txs self and error in sheet
-func (p *TxPool) CheckTxs(txs ...*ngtypes.Transaction) error {
+func (p *TxPool) CheckTxs(txs ...*ngtypes.Tx) error {
 	return p.sheetManager.CheckTxs(txs...)
 }

@@ -36,7 +36,7 @@ var logFlag = cli.BoolTFlag{
 	Usage: "Whether save the log into file",
 }
 
-var p2pTcpPortFlag = cli.IntFlag{
+var p2pTCPPortFlag = cli.IntFlag{
 	Name:  "p2p-port",
 	Usage: "Port for P2P connection",
 	Value: 52520,
@@ -166,7 +166,7 @@ func main() {
 	app.Action = action
 
 	flags := []cli.Flag{
-		strictModeFlag, logFlag, p2pTcpPortFlag, rpcPortFlag, miningFlag,
+		strictModeFlag, logFlag, p2pTCPPortFlag, rpcPortFlag, miningFlag,
 		isBootstrapFlag, keyPassFlag, profileFlag,
 	}
 

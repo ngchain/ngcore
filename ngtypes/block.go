@@ -7,13 +7,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/ngin-network/cryptonight-go"
 	"github.com/whyrusleeping/go-logging"
 )
 
+// all block strcuture inner errors
 var (
 	ErrBlockHeaderMissing     = errors.New("the block's header is missing")
 	ErrBlockHeaderHashMissing = errors.New("the block's header hash is missing")
@@ -26,7 +26,7 @@ var (
 	ErrBlockDiffInvalid       = errors.New("the block's difficulty is invalid")
 	ErrBlockHashInvalid       = errors.New("the block's hash is invalid")
 	ErrBlockNonceInvalid      = errors.New("the block's N is invalid")
-	ErrMalformedBlock         = errors.New("the block structure is malformed")
+	ErrBlockMalformed         = errors.New("the block structure is malformed")
 )
 
 var log = logging.MustGetLogger("types")
@@ -53,7 +53,7 @@ func (m *Block) IsHead() bool {
 }
 
 // ToUnsealing converts a bare block to an unsealing block
-func (m *Block) ToUnsealing(txsWithGen []*Transaction) (*Block, error) {
+func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	if m.Header == nil {
 		return nil, ErrBlockHeaderMissing
 	}
@@ -68,14 +68,13 @@ func (m *Block) ToUnsealing(txsWithGen []*Transaction) (*Block, error) {
 		}
 	}
 
-	b := m.Copy()
-	b.Header.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
-	b.Transactions = txsWithGen
+	m.Header.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
+	m.Txs = txsWithGen
 
-	return b, nil
+	return m, nil
 }
 
-// ToUnsealing converts an unsealing block to a sealed block
+// ToSealed converts an unsealing block to a sealed block
 func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 	if m.Header == nil {
 		return nil, ErrBlockHeaderMissing
@@ -85,21 +84,24 @@ func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 		return nil, ErrBlockIsBare
 	}
 
-	b := m.Copy()
-	b.Header.Nonce = nonce
+	m.Header.Nonce = nonce
 
-	return b, nil
+	return m, nil
 }
 
-// CalculateHash will help you get the hash of block
-func (m *Block) VerifyNonce() bool {
-	return new(big.Int).SetBytes(cryptonight.Sum(m.Header.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(m.Header.Target)) < 0
+// VerifyNonce will verify whether the nonce meets the target
+func (m *Block) VerifyNonce() error {
+	if new(big.Int).SetBytes(cryptonight.Sum(m.Header.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(m.Header.Target)) < 0 {
+		return nil
+	}
+
+	return ErrBlockNonceInvalid
 }
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N
 func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *big.Int) *Block {
-	block := &Block{
+	return &Block{
 		NetworkId: NetworkID,
 		Header: &BlockHeader{
 			Version:       Version,
@@ -111,15 +113,13 @@ func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *bi
 			Target:        target.Bytes(),
 			Nonce:         nil,
 		},
-		Transactions: make([]*Transaction, 0),
+		Txs: make([]*Tx, 0),
 	}
-
-	return block
 }
 
 // GetGenesisBlock will return a complete sealed GenesisBlock
 func GetGenesisBlock() *Block {
-	txs := []*Transaction{
+	txs := []*Tx{
 		GetGenesisGeneration(),
 	}
 
@@ -133,9 +133,9 @@ func GetGenesisBlock() *Block {
 	}
 
 	return &Block{
-		NetworkId:    NetworkID,
-		Header:       header,
-		Transactions: txs,
+		NetworkId: NetworkID,
+		Header:    header,
+		Txs:       txs,
 	}
 }
 
@@ -149,21 +149,18 @@ func (m *Block) CheckError() error {
 		return ErrBlockNonceInvalid
 	}
 
-	mTreeHash := NewTxTrie(m.Transactions).TrieRoot()
-	if !bytes.Equal(mTreeHash, m.Header.TrieHash) {
+	if !bytes.Equal(NewTxTrie(m.Txs).TrieRoot(), m.Header.TrieHash) {
 		return ErrBlockMTreeInvalid
 	}
 
-	m.Header.VerifyNonce()
+	if err := m.VerifyNonce(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (m *Block) Copy() *Block {
-	b := proto.Clone(m).(*Block)
-	return b
-}
-
+// CalculateHash will help you get the hash of block
 func (m *Block) CalculateHash() ([]byte, error) {
 	raw, err := m.Marshal()
 	if err != nil {
@@ -173,12 +170,15 @@ func (m *Block) CalculateHash() ([]byte, error) {
 	return hash[:], nil
 }
 
+// GetHeight is a helper to get the height from block header
 func (m *Block) GetHeight() uint64 {
 	return m.Header.Height
 }
 
+// GetPrevHash is a helper to get the prev block hash from block header
 func (m *Block) GetPrevHash() []byte {
 	return m.Header.PrevBlockHash
 }
 
+// GenesisBlockHash is a helper to get the genesis block's hash
 var GenesisBlockHash, _ = GetGenesisBlock().CalculateHash()

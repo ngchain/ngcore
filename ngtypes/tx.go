@@ -24,8 +24,8 @@ var (
 	ErrTxWrongSign           = errors.New("the signer of transaction is not the own of the account")
 )
 
-// NewUnsignedTx will return an Unsigned Operation, must using Signature()
-func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Transaction {
+// NewUnsignedTx will return an unsigned tx, must using Signature()
+func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Tx {
 	header := &TxHeader{
 		Version:      Version,
 		Type:         txType,
@@ -37,7 +37,7 @@ func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values
 		Extra:        extraData,
 	}
 
-	return &Transaction{
+	return &Tx{
 		Header: header,
 
 		R: nil,
@@ -46,15 +46,15 @@ func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values
 }
 
 // IsSigned will return whether the op has been signed
-func (m *Transaction) IsSigned() bool {
+func (m *Tx) IsSigned() bool {
 	if m.R == nil || m.S == nil {
 		return false
 	}
 	return true
 }
 
-// Verify helps verify the operation whether signed by the public key owner
-func (m *Transaction) Verify(pubKey ecdsa.PublicKey) error {
+// Verify helps verify the transaction whether signed by the public key owner
+func (m *Tx) Verify(pubKey ecdsa.PublicKey) error {
 	if m.R == nil || m.S == nil {
 		log.Panic("unsigned transaction")
 	}
@@ -73,7 +73,7 @@ func (m *Transaction) Verify(pubKey ecdsa.PublicKey) error {
 }
 
 // Bs58 is a tx's ReadableID in string
-func (m *Transaction) Bs58() string {
+func (m *Tx) Bs58() string {
 	b, err := proto.Marshal(m)
 	if err != nil {
 		log.Error(err)
@@ -82,7 +82,7 @@ func (m *Transaction) Bs58() string {
 }
 
 // HashHex is a tx's ReadableID in string
-func (m *Transaction) HashHex() string {
+func (m *Tx) HashHex() string {
 	b, err := m.CalculateHash()
 	if err != nil {
 		log.Error(err)
@@ -93,7 +93,7 @@ func (m *Transaction) HashHex() string {
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx
-func (m *Transaction) CalculateHash() ([]byte, error) {
+func (m *Tx) CalculateHash() ([]byte, error) {
 	raw, err := m.Marshal()
 	if err != nil {
 		log.Error(err)
@@ -104,10 +104,10 @@ func (m *Transaction) CalculateHash() ([]byte, error) {
 }
 
 // Equals mainly for calculating the tire root of txs
-func (m *Transaction) Equals(other merkletree.Content) (bool, error) {
-	tx, ok := other.(*Transaction)
+func (m *Tx) Equals(other merkletree.Content) (bool, error) {
+	tx, ok := other.(*Tx)
 	if !ok {
-		return false, errors.New("invalid operation type")
+		return false, errors.New("invalid transaction type")
 	}
 
 	otherHash, err := tx.Header.CalculateHash()
@@ -123,7 +123,7 @@ func (m *Transaction) Equals(other merkletree.Content) (bool, error) {
 }
 
 // TxsToMerkleTreeContents make a []merkletree.Content whose values is from txs
-func TxsToMerkleTreeContents(txs []*Transaction) []merkletree.Content {
+func TxsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
 	mtc := make([]merkletree.Content, len(txs))
 	for i := range txs {
 		mtc[i] = txs[i]
@@ -132,8 +132,8 @@ func TxsToMerkleTreeContents(txs []*Transaction) []merkletree.Content {
 	return mtc
 }
 
-func (m *Transaction) Copy() *Transaction {
-	tx := proto.Clone(m).(*Transaction)
+func (m *Tx) Copy() *Tx {
+	tx := proto.Clone(m).(*Tx)
 	return tx
 }
 
@@ -146,17 +146,17 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	return bytesList
 }
 
-func (m *Transaction) CheckGeneration() error {
+func (m *Tx) CheckGenerate() error {
 	if m.Header == nil {
-		return errors.New("generation is missing header")
+		return errors.New("generate is missing header")
 	}
 
 	if m.GetConvener() != 0 {
-		return fmt.Errorf("generation's convener should be 0")
+		return fmt.Errorf("generate's convener should be 0")
 	}
 
 	if len(m.GetValues()) != len(m.GetParticipants()) {
-		return fmt.Errorf("transaction should have same len with participants")
+		return fmt.Errorf("generate should have same len with participants")
 	}
 
 	if !bytes.Equal(m.TotalCharge().Bytes(), OneBlockReward.Bytes()) {
@@ -164,7 +164,7 @@ func (m *Transaction) CheckGeneration() error {
 	}
 
 	if !bytes.Equal(m.GetFee(), GetBig0Bytes()) {
-		return fmt.Errorf("generation's fee should be ZERO")
+		return fmt.Errorf("generate's fee should be ZERO")
 	}
 
 	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
@@ -175,7 +175,7 @@ func (m *Transaction) CheckGeneration() error {
 	return nil
 }
 
-func (m *Transaction) CheckRegister() error {
+func (m *Tx) CheckRegister() error {
 	if m.Header == nil {
 		return errors.New("register is missing header")
 	}
@@ -212,7 +212,7 @@ func (m *Transaction) CheckRegister() error {
 	return nil
 }
 
-func (m *Transaction) CheckLogout(key ecdsa.PublicKey) error {
+func (m *Tx) CheckLogout(key ecdsa.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("logout is missing header")
 	}
@@ -230,7 +230,7 @@ func (m *Transaction) CheckLogout(key ecdsa.PublicKey) error {
 	}
 
 	if len(m.GetValues()) != len(m.GetParticipants()) {
-		return fmt.Errorf("transaction should have same len with participants")
+		return fmt.Errorf("logout should have same len with participants")
 	}
 
 	if err := m.Verify(key); err != nil {
@@ -240,7 +240,7 @@ func (m *Transaction) CheckLogout(key ecdsa.PublicKey) error {
 	return nil
 }
 
-func (m *Transaction) CheckTransaction(key ecdsa.PublicKey) error {
+func (m *Tx) CheckTransaction(key ecdsa.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("transaction is missing header")
 	}
@@ -260,8 +260,7 @@ func (m *Transaction) CheckTransaction(key ecdsa.PublicKey) error {
 	return nil
 }
 
-
-func (m *Transaction) CheckGen(key ecdsa.PublicKey) error {
+func (m *Tx) CheckAssign(key ecdsa.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("assign is missing header")
 	}
@@ -285,9 +284,9 @@ func (m *Transaction) CheckGen(key ecdsa.PublicKey) error {
 	return nil
 }
 
-func (m *Transaction) CheckAppend(key ecdsa.PublicKey) error {
+func (m *Tx) CheckAppend(key ecdsa.PublicKey) error {
 	if m.Header == nil {
-		return errors.New("logout is missing header")
+		return errors.New("append is missing header")
 	}
 
 	if len(m.GetParticipants()) != 0 {
@@ -299,7 +298,7 @@ func (m *Transaction) CheckAppend(key ecdsa.PublicKey) error {
 	}
 
 	if len(m.GetValues()) != 0 {
-		return fmt.Errorf("logout should have NO value")
+		return fmt.Errorf("append should have NO value")
 	}
 
 	if err := m.Verify(key); err != nil {
@@ -310,7 +309,7 @@ func (m *Transaction) CheckAppend(key ecdsa.PublicKey) error {
 }
 
 // Signature will re-sign the Tx with private key
-func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
+func (m *Tx) Signature(privKey *ecdsa.PrivateKey) (err error) {
 	b, err := proto.Marshal(m.Header)
 	if err != nil {
 		log.Error(err)
@@ -328,44 +327,44 @@ func (m *Transaction) Signature(privKey *ecdsa.PrivateKey) (err error) {
 	return
 }
 
-func (m *Transaction) GetType() TxType {
+func (m *Tx) GetType() TxType {
 	return m.Header.GetType()
 }
 
-func (m *Transaction) GetConvener() uint64 {
+func (m *Tx) GetConvener() uint64 {
 	return m.Header.GetConvener()
 }
 
-func (m *Transaction) GetValues() [][]byte {
+func (m *Tx) GetValues() [][]byte {
 	return m.Header.GetValues()
 }
 
-func (m *Transaction) GetParticipants() [][]byte {
+func (m *Tx) GetParticipants() [][]byte {
 	return m.Header.GetParticipants()
 }
 
-func (m *Transaction) GetFee() []byte {
+func (m *Tx) GetFee() []byte {
 	return m.Header.GetFee()
 }
 
-func (m *Transaction) GetNonce() uint64 {
+func (m *Tx) GetNonce() uint64 {
 	return m.Header.GetNonce()
 }
 
-func (m *Transaction) GetVersion() int32 {
+func (m *Tx) GetVersion() int32 {
 	return m.Header.GetVersion()
 }
 
-func (m *Transaction) GetExtra() []byte {
+func (m *Tx) GetExtra() []byte {
 	return m.Header.GetExtra()
 }
 
-func (m *Transaction) TotalCharge() *big.Int {
+func (m *Tx) TotalCharge() *big.Int {
 	return m.Header.TotalCharge()
 }
 
 // GetGenesisGeneration is a constructed function
-func GetGenesisGeneration() *Transaction {
+func GetGenesisGeneration() *Tx {
 	gen := NewUnsignedTx(
 		TX_GENERATION,
 		0,

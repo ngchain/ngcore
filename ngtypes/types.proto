@@ -28,7 +28,7 @@ message BlockHeader {
 message Block {
     int32 network_id = 1;
     BlockHeader header = 2;
-    repeated Transaction transactions = 3; // miner should build the generation by themselves
+    repeated Tx txs = 3; // miner should build the generation by themselves
 }
 
 enum TxType {
@@ -58,7 +58,7 @@ message TxHeader {
     bytes extra = 8;
 }
 
-message Transaction {
+message Tx {
     TxHeader header = 1;
 
     bytes r = 2;

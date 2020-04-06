@@ -1,6 +1,6 @@
 module github.com/ngchain/ngcore
 
-go 1.12
+go 1.13
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e

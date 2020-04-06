@@ -10,7 +10,7 @@ import (
 	"github.com/ngchain/ngcore/txpool"
 )
 
-// the pow
+// Consensus is a prtoof on work consensus manager
 type Consensus struct {
 	sync.RWMutex
 
@@ -23,6 +23,7 @@ type Consensus struct {
 	miner      *miner.Miner
 }
 
+// NewConsensusManager creates a new proof of work consensus manager
 func NewConsensusManager(mining bool) *Consensus {
 	return &Consensus{
 		SheetManager: nil,
@@ -34,6 +35,7 @@ func NewConsensusManager(mining bool) *Consensus {
 	}
 }
 
+// Init will assemble the submodules into consensus
 func (c *Consensus) Init(chain *ngchain.Chain, sheetManager *ngsheet.Manager, privateKey *ecdsa.PrivateKey, txPool *txpool.TxPool) {
 	c.PrivateKey = privateKey
 	c.SheetManager = sheetManager

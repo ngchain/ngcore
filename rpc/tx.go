@@ -20,7 +20,7 @@ type sendTransactionParams struct {
 
 func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendTransactionParams
-	err := utils.Json.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -67,7 +67,7 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.Json.Marshal(true)
+	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }
 
@@ -77,7 +77,7 @@ type sendRegisterParams struct {
 
 func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendRegisterParams
-	err := utils.Json.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -106,7 +106,7 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.Json.Marshal(true)
+	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }
 
@@ -118,7 +118,7 @@ type sendLogoutParams struct {
 
 func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendLogoutParams
-	err := utils.Json.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -152,7 +152,7 @@ func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.Json.Marshal(true)
+	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }
 
@@ -164,7 +164,7 @@ type sendAssignParams struct {
 
 func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendAssignParams
-	err := utils.Json.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -198,7 +198,7 @@ func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.Json.Marshal(true)
+	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }
 
@@ -210,7 +210,7 @@ type sendAppendParams struct {
 
 func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendAppendParams
-	err := utils.Json.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -244,6 +244,6 @@ func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.Json.Marshal(true)
+	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }

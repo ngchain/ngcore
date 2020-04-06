@@ -17,23 +17,23 @@ type TxPool struct {
 
 	sheetManager *ngsheet.Manager
 
-	Queuing      map[uint64]map[uint64]*ngtypes.Transaction // map[accountID] map[nonce]Tx
+	Queuing      map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
 	CurrentVault *ngtypes.Vault
 
 	newBlockCh chan *ngtypes.Block
 	newVaultCh chan *ngtypes.Vault
 
-	NewCreatedTxEvent chan *ngtypes.Transaction
+	NewCreatedTxEvent chan *ngtypes.Tx
 }
 
 func NewTxPool(sheetManager *ngsheet.Manager) *TxPool {
 	return &TxPool{
 		sheetManager: sheetManager,
 
-		Queuing:      make(map[uint64]map[uint64]*ngtypes.Transaction),
+		Queuing:      make(map[uint64]map[uint64]*ngtypes.Tx),
 		CurrentVault: nil,
 
-		NewCreatedTxEvent: make(chan *ngtypes.Transaction),
+		NewCreatedTxEvent: make(chan *ngtypes.Tx),
 	}
 }
 
@@ -51,7 +51,7 @@ func (p *TxPool) Run() {
 			select {
 			case block := <-p.newBlockCh:
 				log.Infof("start popping txs in block@%d", block.GetHeight())
-				p.DelBlockTxs(block.Transactions...)
+				p.DelBlockTxs(block.Txs...)
 			case vault := <-p.newVaultCh:
 				log.Infof("new backend vault@%d for txpool", vault.GetHeight())
 				p.CurrentVault = vault
@@ -60,7 +60,7 @@ func (p *TxPool) Run() {
 	}()
 }
 
-func (p *TxPool) IsInPool(tx *ngtypes.Transaction) (exists bool) {
+func (p *TxPool) IsInPool(tx *ngtypes.Tx) (exists bool) {
 	_, exists = p.Queuing[tx.GetConvener()]
 	if !exists {
 		return

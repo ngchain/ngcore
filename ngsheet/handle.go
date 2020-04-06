@@ -11,7 +11,7 @@ import (
 )
 
 // HandleTxs will apply the tx into the sheet if tx is VALID
-func (m *sheetEntry) handleTxs(txs ...*ngtypes.Transaction) (err error) {
+func (m *sheetEntry) handleTxs(txs ...*ngtypes.Tx) (err error) {
 	err = m.CheckTxs(txs...)
 	if err != nil {
 		return err
@@ -69,14 +69,14 @@ func (m *sheetEntry) handleTxs(txs ...*ngtypes.Transaction) (err error) {
 				return err
 			}
 		default:
-			return fmt.Errorf("unknown operation type")
+			return fmt.Errorf("unknown transaction type")
 		}
 	}
 
 	return err
 }
 
-func handleGeneration(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Transaction) (err error) {
+func handleGeneration(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	rawConvener, exists := accounts[tx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -114,7 +114,7 @@ func handleGeneration(accounts map[uint64][]byte, anonymous map[string][]byte, t
 	return nil
 }
 
-func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Transaction) (err error) {
+func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	rawConvener, exists := accounts[tx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -167,7 +167,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	return nil
 }
 
-func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Transaction) (err error) {
+func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	raw := tx.GetParticipants()[0]
 	publicKey := utils.Bytes2ECDSAPublicKey(raw)
 	if err = tx.Verify(publicKey); err != nil {
@@ -211,7 +211,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	return nil
 }
 
-func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Transaction) (err error) {
+func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	rawConvener, exists := accounts[tx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -273,7 +273,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	return nil
 }
 
-func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Transaction) (err error) {
+func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	rawConvener, exists := accounts[tx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -326,7 +326,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	return nil
 }
 
-func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Transaction) (err error) {
+func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	rawConvener, exists := accounts[tx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists

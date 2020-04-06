@@ -12,7 +12,7 @@ import (
 
 func (s *Server) addNodeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params string
-	err := utils.Json.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -34,6 +34,6 @@ func (s *Server) addNodeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 
 	s.localNode.Ping(targetInfo.ID)
 
-	ok, _ := utils.Json.Marshal(true)
+	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }

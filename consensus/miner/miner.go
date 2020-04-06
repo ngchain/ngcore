@@ -16,7 +16,7 @@ import (
 
 var log = logging.MustGetLogger("miner")
 
-// Miner
+// Miner is an inner miner for proof of work
 type Miner struct {
 	threadNum int
 	hashes    atomic.Int64

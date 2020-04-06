@@ -1,5 +1,3 @@
-// act as the main of the pow consensus
-// pow -
 package consensus
 
 import (
@@ -14,7 +12,7 @@ import (
 
 var log = logging.MustGetLogger("consensus")
 
-// the main of consensus, shouldn't be shut down
+// InitPoW inits the main of consensus, shouldn't be shut down
 func (c *Consensus) InitPoW(workerNum int) {
 	log.Info("Initializing PoW consensus")
 
@@ -39,6 +37,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 	}
 }
 
+// Stop the consensus
 func (c *Consensus) Stop() {
 	if c.isMining {
 		log.Info("mining stopping")
@@ -46,6 +45,7 @@ func (c *Consensus) Stop() {
 	}
 }
 
+// Resume the consensus
 func (c *Consensus) Resume() {
 	if c.isMining {
 		log.Info("mining resuming")
@@ -53,6 +53,7 @@ func (c *Consensus) Resume() {
 	}
 }
 
+// GetBlockTemplate is a generator of new block. But the generated block has no nonce
 func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 	c.RLock()
 	defer c.RUnlock()
@@ -77,7 +78,7 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 	extraData := []byte("ngCore")
 
 	Gen := c.CreateGeneration(c.PrivateKey, newBlockHeight, extraData)
-	txsWithGen := append([]*ngtypes.Transaction{Gen}, c.TxPool.GetPackTxs()...)
+	txsWithGen := append([]*ngtypes.Tx{Gen}, c.TxPool.GetPackTxs()...)
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
 		log.Error(err)
@@ -90,7 +91,7 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 	return newUnsealingBlock
 }
 
-// mined new block and need to add it into the chain
+// MinedNewBlock means the consensus mined new block and need to add it into the chain
 func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 	c.Lock()
 	defer c.Unlock()
@@ -140,7 +141,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		return
 	}
 
-	err = c.SheetManager.HandleTxs(b.Transactions...)
+	err = c.SheetManager.HandleTxs(b.Txs...)
 	if err != nil {
 		log.Warning(err)
 		return
@@ -148,7 +149,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 
 	if b.Header.IsTail() {
 		currentVault := c.GenNewVault(b.Header.Height/ngtypes.BlockCheckRound, b.Header.PrevVaultHash)
-		err := c.Chain.MinedNewVault(currentVault)
+		err = c.Chain.MinedNewVault(currentVault)
 		if err != nil {
 			panic(err)
 		}
