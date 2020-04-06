@@ -30,14 +30,14 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="using base64 in rpc">
-      <change afterPath="$PROJECT_DIR$/vm/contracts/add.lua" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vm/lua_test.go" afterDir="false" />
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="add vm test">
+      <change afterPath="$PROJECT_DIR$/vm/contracts/add.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vm/js_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vm/js.go" beforeDir="false" afterPath="$PROJECT_DIR$/vm/js.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vm/lua.go" beforeDir="false" afterPath="$PROJECT_DIR$/vm/lua.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -79,10 +79,16 @@
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.jscs" value="true" />
+    <property name="node.js.detected.package.standard" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.jscs" value="project" />
+    <property name="node.js.path.for.package.standard" value="project" />
     <property name="node.js.path.for.package.tslint" value="project" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.jscs" value="C:\Users\C\AppData\Roaming\npm\node_modules\jscs" />
+    <property name="node.js.selected.package.standard" value="" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
@@ -92,7 +98,7 @@
       <recent name="C:\Users\C\OneDrive\ngcore\vm" />
     </key>
   </component>
-  <component name="RunManager" selected="Go Test.TestLuaVM_RunState in github.com/ngchain/ngcore/vm">
+  <component name="RunManager" selected="Go Test.TestJsVM_RunState in github.com/ngchain/ngcore/vm">
     <configuration name="go build github.com/ngchain/ngcore/cmd/genesis" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$" />
@@ -113,6 +119,17 @@
       <pattern value="^TestGetGenesisGeneration$" />
       <method v="2" />
     </configuration>
+    <configuration name="TestJsVM_RunState in github.com/ngchain/ngcore/vm" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$/vm" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/ngchain/ngcore/vm" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestJsVM_RunState$" />
+      <method v="2" />
+    </configuration>
     <configuration name="TestLuaVM_RunState in github.com/ngchain/ngcore/vm" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="ngcore" />
       <working_directory value="$PROJECT_DIR$/vm" />
@@ -122,17 +139,6 @@
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
       <pattern value="^TestLuaVM_RunState$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="ngcore" />
-      <working_directory value="$PROJECT_DIR$/ngtypes" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="github.com/ngchain/ngcore/ngtypes" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestTransaction_Signature$" />
       <method v="2" />
     </configuration>
     <configuration name="go test ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -151,17 +157,17 @@
       <item itemvalue="Go Build.ngcore mining " />
       <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
       <item itemvalue="Go Test.go test ngcore" />
-      <item itemvalue="Go Test.TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" />
       <item itemvalue="Go Test.TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" />
       <item itemvalue="Go Test.TestLuaVM_RunState in github.com/ngchain/ngcore/vm" />
+      <item itemvalue="Go Test.TestJsVM_RunState in github.com/ngchain/ngcore/vm" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Test.TestJsVM_RunState in github.com/ngchain/ngcore/vm" />
         <item itemvalue="Go Test.TestLuaVM_RunState in github.com/ngchain/ngcore/vm" />
         <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
         <item itemvalue="Go Test.go test ngcore" />
         <item itemvalue="Go Test.TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" />
-        <item itemvalue="Go Test.TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" />
       </list>
     </recent_temporary>
   </component>
@@ -185,7 +191,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CHECK_CODE_CLEANUP_BEFORE_PROJECT_COMMIT" value="true" />
-    <MESSAGE value="more checktx more safety" />
     <MESSAGE value="optimize code &amp;&amp; auth on wired messages" />
     <MESSAGE value="optimize code" />
     <MESSAGE value="fix wired message verification" />
@@ -210,7 +215,8 @@
     <MESSAGE value="nonce++ when handling tx &amp; using sheetManager to fetch nonce" />
     <MESSAGE value="add all types tx rpc" />
     <MESSAGE value="using base64 in rpc" />
-    <option name="LAST_COMMIT_MESSAGE" value="using base64 in rpc" />
+    <MESSAGE value="add vm test" />
+    <option name="LAST_COMMIT_MESSAGE" value="add vm test" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -225,6 +231,10 @@
     <proxy>direct</proxy>
   </component>
   <component name="WindowStateProjectService">
+    <state x="814" y="356" key="#Closure_Linter" timestamp="1586137984399">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="814" y="356" key="#Closure_Linter/0.0.1920.1040@0.0.1920.1040" timestamp="1586137984399" />
     <state x="552" y="181" key="#Go_Modules_(vgo)" timestamp="1585280398146">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -233,10 +243,26 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1585748484471" />
-    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585934622249">
+    <state x="734" y="313" width="482" height="445" key="#JSCS" timestamp="1586137994876">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585934622249" />
+    <state x="734" y="313" width="482" height="445" key="#JSCS/0.0.1920.1040@0.0.1920.1040" timestamp="1586137994876" />
+    <state x="536" y="147" key="#JSHint" timestamp="1586138367296">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="536" y="147" key="#JSHint/0.0.1920.1040@0.0.1920.1040" timestamp="1586138367296" />
+    <state x="794" y="243" key="#JSLint" timestamp="1586138360082">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="794" y="243" key="#JSLint/0.0.1920.1040@0.0.1920.1040" timestamp="1586138360082" />
+    <state x="552" y="160" key="#Plugins" timestamp="1586136678120">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="552" y="160" key="#Plugins/0.0.1920.1040@0.0.1920.1040" timestamp="1586136678120" />
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1586100935429">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1586100935429" />
     <state x="640" y="255" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1585909417952">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -261,22 +287,26 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585893739761" />
-    <state width="1877" height="282" key="GridCell.Tab.0.bottom" timestamp="1586099575823">
+    <state x="747" y="290" key="FileChooserDialogImpl" timestamp="1586137954935">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="282" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586099575823" />
-    <state width="1877" height="282" key="GridCell.Tab.0.center" timestamp="1586099575823">
+    <state x="747" y="290" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1586137954935" />
+    <state width="1877" height="282" key="GridCell.Tab.0.bottom" timestamp="1586139875808">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="282" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586099575823" />
-    <state width="1877" height="282" key="GridCell.Tab.0.left" timestamp="1586099575823">
+    <state width="1877" height="282" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586139875808" />
+    <state width="1877" height="282" key="GridCell.Tab.0.center" timestamp="1586139875808">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="282" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586099575823" />
-    <state width="1877" height="282" key="GridCell.Tab.0.right" timestamp="1586099575823">
+    <state width="1877" height="282" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586139875808" />
+    <state width="1877" height="282" key="GridCell.Tab.0.left" timestamp="1586139875808">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="282" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586099575823" />
+    <state width="1877" height="282" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586139875808" />
+    <state width="1877" height="282" key="GridCell.Tab.0.right" timestamp="1586139875808">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="282" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586139875808" />
     <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1586060427750">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>

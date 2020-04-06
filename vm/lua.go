@@ -31,7 +31,7 @@ func NewLuaVM() *LuaVM {
 	}
 }
 
-func (vm LuaVM) RunState(raw []byte) []byte {
+func (vm *LuaVM) RunState(raw []byte) []byte {
 	err := vm.DoString(string(raw))
 	if err != nil {
 		log.Error(err)
