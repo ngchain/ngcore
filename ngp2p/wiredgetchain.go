@@ -78,7 +78,7 @@ func (w *Wired) onGetChain(s network.Stream) {
 	}
 
 	remoteID := s.Conn().RemotePeer()
-	_ = s.Reset()
+	_ = s.Close()
 
 	log.Debugf("Received getchain request from %s. Requested vault@%d", remoteID, getchain.VaultHeight)
 

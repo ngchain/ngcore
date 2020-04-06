@@ -60,7 +60,7 @@ func (w *Wired) onNotFound(s network.Stream) {
 	}
 
 	remoteID := s.Conn().RemotePeer()
-	_ = s.Reset()
+	_ = s.Close()
 
 	log.Debugf("Received notfound from %s. Message id:%s. Message: %s.", remoteID, data.Header.Uuid, data.Payload)
 }

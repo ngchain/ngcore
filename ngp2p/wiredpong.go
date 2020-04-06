@@ -78,7 +78,7 @@ func (w *Wired) onPong(s network.Stream) {
 	}
 
 	remoteID := s.Conn().RemotePeer()
-	_ = s.Reset()
+	_ = s.Close()
 
 	log.Debugf("Received Pong from %s. Message id:%s. Remote height: %d.", remoteID, data.Header.Uuid, pong.BlockHeight)
 	w.node.Peerstore().AddAddrs(remoteID, []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)

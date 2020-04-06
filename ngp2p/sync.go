@@ -37,7 +37,7 @@ func (w *Wired) Sync() {
 				if peer == w.node.ID() {
 					continue
 				}
-				log.Infof("pinging to %s", peer)
+				log.Debugf("pinging to %s", peer)
 				w.Ping(peer)
 			}
 
