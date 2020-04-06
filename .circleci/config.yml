@@ -7,22 +7,23 @@ jobs:
     steps:
       - checkout
       - restore_cache: # restores saved cache if no changes are detected since last run
-          keys:
-            - go-mod-v4-{{ checksum "go.sum" }}
-
+          keys: 
+            - go-mod-{{ arch }}-{{ checksum "go.sum" }}
+            - go-mod-
+            
       - run:
           name: test
           command: go vet ./... && go test ./...
 
       - run:
           name: build
-          command: go build ./cmd/ngcore -o /ngcore
+          command: go build ./cmd/ngcore
 
       - save_cache:
-          key: go-mod-v4-{{ checksum "go.sum" }}
+          key: go-mod-{{ arch }}-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
 
       - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: /ngcore
+          path: ./ngcore
           destination: ngcore
