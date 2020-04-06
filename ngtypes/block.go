@@ -59,12 +59,12 @@ func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	}
 
 	for i := 0; i < len(txsWithGen); i++ {
-		if i == 0 && txsWithGen[i].GetType() != TX_GENERATION {
-			return nil, fmt.Errorf("first tx shall be a generation")
+		if i == 0 && txsWithGen[i].GetType() != TX_GENERATE {
+			return nil, fmt.Errorf("first tx shall be a generate")
 		}
 
-		if i != 0 && txsWithGen[i].GetType() == TX_GENERATION {
-			return nil, fmt.Errorf("except first, other tx shall not be a generation")
+		if i != 0 && txsWithGen[i].GetType() == TX_GENERATE {
+			return nil, fmt.Errorf("except first, other tx shall not be a generate")
 		}
 	}
 
@@ -120,7 +120,7 @@ func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *bi
 // GetGenesisBlock will return a complete sealed GenesisBlock
 func GetGenesisBlock() *Block {
 	txs := []*Tx{
-		GetGenesisGeneration(),
+		GetGenesisGenerateTx(),
 	}
 
 	header := &BlockHeader{

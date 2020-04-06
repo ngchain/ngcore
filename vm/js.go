@@ -4,18 +4,21 @@ import (
 	"github.com/dop251/goja"
 )
 
-type JsVM struct {
+// JSVM is a javascript VM for exec javascript codes from account state, based on goja
+type JSVM struct {
 	*goja.Runtime
 }
 
-func NewJsVM() *JsVM {
+// NewJSVM is a new javascript VM
+func NewJSVM() *JSVM {
 	runtime := goja.New()
-	return &JsVM{
+	return &JSVM{
 		Runtime: runtime,
 	}
 }
 
-func (vm *JsVM) RunState(raw []byte) []byte {
+// RunState runs the state from account
+func (vm *JSVM) RunState(raw []byte) []byte {
 	_, err := vm.RunScript("contract", string(raw))
 	if err != nil {
 		log.Error(err)

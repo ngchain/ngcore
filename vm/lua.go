@@ -31,6 +31,7 @@ func NewLuaVM() *LuaVM {
 	}
 }
 
+// RunState runs the state from account
 func (vm *LuaVM) RunState(raw []byte) []byte {
 	err := vm.DoString(string(raw))
 	if err != nil {

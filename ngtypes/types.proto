@@ -28,12 +28,12 @@ message BlockHeader {
 message Block {
     int32 network_id = 1;
     BlockHeader header = 2;
-    repeated Tx txs = 3; // miner should build the generation by themselves
+    repeated Tx txs = 3; // miner should build the generate tx by themselves
 }
 
 enum TxType {
     TX_INVALID = 0;
-    TX_GENERATION = 1;
+    TX_GENERATE = 1;
     TX_REGISTER = 2;
     TX_LOGOUT = 3;
 

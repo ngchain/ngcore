@@ -7,11 +7,11 @@ import (
 )
 
 func TestNewJsVM(t *testing.T) {
-	_ = NewJsVM()
+	_ = NewJSVM()
 }
 
 func TestJsVM_RunState(t *testing.T) {
-	vm := NewJsVM()
+	vm := NewJSVM()
 	f, _ := os.Open("./contracts/add.js")
 	raw, _ := ioutil.ReadAll(f)
 	if string(vm.RunState(raw)) != "3" {

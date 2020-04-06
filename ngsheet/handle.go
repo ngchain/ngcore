@@ -44,8 +44,8 @@ func (m *sheetEntry) handleTxs(txs ...*ngtypes.Tx) (err error) {
 		switch tx.GetType() {
 		case ngtypes.TX_INVALID:
 			return fmt.Errorf("invalid tx")
-		case ngtypes.TX_GENERATION:
-			if err = handleGeneration(newAccounts, newAnonymous, tx); err != nil {
+		case ngtypes.TX_GENERATE:
+			if err = handleGenerate(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
 		case ngtypes.TX_REGISTER:
@@ -76,7 +76,7 @@ func (m *sheetEntry) handleTxs(txs ...*ngtypes.Tx) (err error) {
 	return err
 }
 
-func handleGeneration(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
+func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	rawConvener, exists := accounts[tx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists

@@ -54,6 +54,7 @@ go_test(
         "@com_github_mr_tron_base58//:go_default_library",
         "@com_github_nebulouslabs_fastrand//:go_default_library",
         "@com_github_ngin_network_cryptonight_go//:go_default_library",
+        "@org_golang_x_crypto//sha3:go_default_library",
     ],
 )
 

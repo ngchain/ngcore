@@ -4,8 +4,8 @@ go_library(
     name = "go_default_library",
     srcs = [
         "account.go",
-        "apply.go",
         "check.go",
+        "handle.go",
         "manager.go",
         "nonce.go",
         "sheet.go",

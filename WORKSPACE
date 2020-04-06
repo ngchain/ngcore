@@ -1938,3 +1938,24 @@ go_repository(
     sum = "h1:0mgffUl7nfd+FpvXMVz4IDEaUSmT1ysygQC7qYo7sG4=",
     version = "v0.0.0-20190618225709-2cfd321de3ee",
 )
+
+go_repository(
+    name = "com_github_dlclark_regexp2",
+    importpath = "github.com/dlclark/regexp2",
+    sum = "h1:8sAhBGEM0dRWogWqWyQeIJnxjWO6oIjl8FKqREDsGfk=",
+    version = "v1.2.0",
+)
+
+go_repository(
+    name = "com_github_dop251_goja",
+    importpath = "github.com/dop251/goja",
+    sum = "h1:q0PO2pntEwlTkw46qrn1T2Qj5Q2sYJbIfgTA4in9AMI=",
+    version = "v0.0.0-20200326102500-6438c8ddc517",
+)
+
+go_repository(
+    name = "com_github_go_sourcemap_sourcemap",
+    importpath = "github.com/go-sourcemap/sourcemap",
+    sum = "h1:W1iEw64niKVGogNgBN3ePyLFfuisuzeidWPMPWmECqU=",
+    version = "v2.1.3+incompatible",
+)

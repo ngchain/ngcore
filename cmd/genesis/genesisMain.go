@@ -26,7 +26,7 @@ func main() {
 	raw := utils.ECDSAPublicKey2Bytes(localKey.PublicKey)
 	log.Printf("Hex Genesis PublicKey: %x", raw)
 
-	gg := ngtypes.GetGenesisGeneration()
+	gg := ngtypes.GetGenesisGenerateTx()
 
 	// FIXME: before init network, manually init the R & S
 	err := gg.Signature(localKey)
@@ -34,5 +34,5 @@ func main() {
 		log.Panic(err)
 	}
 
-	log.Printf("Hex Generation R&S: %x %x", gg.R, gg.S)
+	log.Printf("Hex Genesis Generate Tx R&S: %x %x", gg.R, gg.S)
 }

@@ -363,10 +363,10 @@ func (m *Tx) TotalCharge() *big.Int {
 	return m.Header.TotalCharge()
 }
 
-// GetGenesisGeneration is a constructed function
-func GetGenesisGeneration() *Tx {
+// GetGenesisGenerateTx is a constructed function
+func GetGenesisGenerateTx() *Tx {
 	gen := NewUnsignedTx(
-		TX_GENERATION,
+		TX_GENERATE,
 		0,
 		[][]byte{GenesisPK},
 		[]*big.Int{OneBlockReward},

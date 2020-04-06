@@ -20,8 +20,8 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
 		}
 
 		switch tx.GetType() {
-		case ngtypes.TX_GENERATION: // generation
-			if err := m.CheckGeneration(tx); err != nil {
+		case ngtypes.TX_GENERATE: // generate
+			if err := m.CheckGenerate(tx); err != nil {
 				return err
 			}
 
@@ -55,8 +55,8 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
 	return nil
 }
 
-func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[generationTx.GetConvener()]
+func (m *sheetEntry) CheckGenerate(generateTx *ngtypes.Tx) error {
+	rawConvener, exists := m.accounts[generateTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
 	}
@@ -68,15 +68,15 @@ func (m *sheetEntry) CheckGeneration(generationTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = generationTx.CheckGenerate(); err != nil {
+	if err = generateTx.CheckGenerate(); err != nil {
 		return err
 	}
 
 	// DO NOT CHECK BALANCE
 
 	// check nonce
-	if generationTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong generation nonce: %d", generationTx.GetNonce())
+	if generateTx.GetNonce() != convener.Nonce+1 {
+		return fmt.Errorf("wrong generate nonce: %d", generateTx.GetNonce())
 	}
 
 	return nil

@@ -16,7 +16,7 @@ import (
 // TestDeserialize test unsigned transaction whether it is possible to deserialize
 func TestDeserialize(t *testing.T) {
 	tx := NewUnsignedTx(
-		TX_GENERATION,
+		TX_GENERATE,
 		0,
 		[][]byte{GenesisPK},
 		[]*big.Int{new(big.Int).Mul(NG, big.NewInt(1000))},
@@ -54,7 +54,7 @@ func TestTransaction_Signature(t *testing.T) {
 }
 
 func TestGetGenesisGenerate(t *testing.T) {
-	gg := GetGenesisGeneration()
+	gg := GetGenesisGenerateTx()
 	if err := gg.Verify(utils.Bytes2ECDSAPublicKey(gg.GetParticipants()[0])); err != nil {
 		t.Fail()
 	}

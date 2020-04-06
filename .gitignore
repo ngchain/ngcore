@@ -46,3 +46,10 @@ go.sum
 #Personal
 ##PrivateKey
 *.key
+
+#Debug
+env/*
+storage/data
+
+#Binary
+ngcore
