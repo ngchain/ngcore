@@ -6,27 +6,31 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-	"github.com/mr-tron/base58"
-	"github.com/ngchain/ngcore/utils"
-	"github.com/whyrusleeping/go-logging"
 	"io/ioutil"
 	"os"
+
+	"github.com/mr-tron/base58"
+	"github.com/whyrusleeping/go-logging"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.MustGetLogger("key")
 
-// ReadLocal will
+// ReadLocalKey will read the local x509 key file to load an ecdsa private key
 func ReadLocalKey(filename string, password string) *ecdsa.PrivateKey {
 	var key *ecdsa.PrivateKey
 
 	if _, err := os.Stat(filename); err != nil {
 		key = CreateLocalKey(filename, password)
 	} else {
-		b, err := ioutil.ReadFile(filename)
+		var raw []byte
+
+		raw, err = ioutil.ReadFile(filename)
 		if err != nil {
 			log.Panic(err)
 		}
-		data := utils.DataDecrypt(b, []byte(password))
+		data := utils.DataDecrypt(raw, []byte(password))
 		key, err = x509.ParseECPrivateKey(data)
 		if err != nil {
 			log.Panic(err)
@@ -37,7 +41,7 @@ func ReadLocalKey(filename string, password string) *ecdsa.PrivateKey {
 }
 
 func PrintPublicKey(key *ecdsa.PrivateKey) {
-	publicKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
+	publicKey := utils.ECDSAPublicKey2Bytes(key.PublicKey)
 	log.Warningf("PublicKey is bs58: %v\n", base58.FastBase58Encoding(publicKey))
 }
 
@@ -69,11 +73,12 @@ func CreateLocalKey(filename string, password string) *ecdsa.PrivateKey {
 }
 
 func PrintKeyPair(key *ecdsa.PrivateKey) {
-	bPrivKey, err := x509.MarshalECPrivateKey(key)
+	rawPrivateKey, err := x509.MarshalECPrivateKey(key)
 	if err != nil {
 		log.Panic(err)
 	}
-	fmt.Println("Private Key: ", base58.FastBase58Encoding(bPrivKey))
-	bPubKey := elliptic.Marshal(elliptic.P256(), key.PublicKey.X, key.PublicKey.Y)
+
+	fmt.Println("Private Key: ", base58.FastBase58Encoding(rawPrivateKey))
+	bPubKey := utils.ECDSAPublicKey2Bytes(key.PublicKey)
 	fmt.Println("Public Key: ", base58.FastBase58Encoding(bPubKey))
 }

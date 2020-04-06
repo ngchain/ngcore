@@ -3,13 +3,17 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // SwitchTo changes the items in db, requiring the first one of chain is an vault. The chain should follow the order vault0-block0-block1...-block6-vault2-block7...
+// SwitchTo will override the origin data, using carefully
 func (c *Chain) SwitchTo(chain ...Item) error {
+	log.Info("switching to new chain")
 	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
@@ -19,41 +23,39 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 		return err
 	}
 
-	if firstVault, ok := chain[0].(*ngtypes.Vault); !ok {
+	firstVault, ok := chain[0].(*ngtypes.Vault)
+	if !ok {
 		return fmt.Errorf("first one of chain shall be an vault")
-	} else {
-		if hash, _ := firstVault.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
-			// not genesis
-			_, err := c.GetVaultByHash(firstVault.GetPrevHash())
-			if err != nil {
-				return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
-			}
+	}
+
+	if hash, _ := firstVault.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
+		// not genesis
+		_, err := c.GetVaultByHash(firstVault.GetPrevHash())
+		if err != nil {
+			return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
 		}
 	}
 
-	if firstBlock, ok := chain[1].(*ngtypes.Block); !ok {
+	firstBlock, ok := chain[1].(*ngtypes.Block)
+	if !ok {
 		return fmt.Errorf("second one of chain shall be a block")
-	} else {
-		if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
-			// not genesis
-			_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
-			if err != nil {
-				return fmt.Errorf("the first block@%d's prevHash is invalid: %s", firstBlock.GetHeight(), err)
-			}
+	}
+	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+		// not genesis
+		_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
+		if err != nil {
+			return fmt.Errorf("the first block@%d's prevHash is invalid: %s", firstBlock.GetHeight(), err)
 		}
 	}
+
 	/* Check End */
 
 	/* Put start */
 	err := c.db.Update(func(txn *badger.Txn) error {
-		for i := range chain {
+		for i := 0; i < len(chain); i++ {
 			switch item := chain[i].(type) {
 			case *ngtypes.Block:
 				block := item
-
-				if b, _ := c.GetVaultByHeight(block.GetHeight()); b == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
 
 				hash, _ := block.CalculateHash()
 				raw, _ := block.Marshal()
@@ -74,12 +76,9 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				return nil
 			case *ngtypes.Vault:
 				vault := item
-				if v, _ := c.GetVaultByHeight(vault.GetHeight()); v == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
+
 				hash, _ := vault.CalculateHash()
 				raw, _ := vault.Marshal()
 				log.Infof("putting vault@%d: %x", vault.Height, hash)
@@ -99,11 +98,9 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				return nil
 			default:
 				panic("unknown item")
 			}
-
 		}
 		return nil
 	})

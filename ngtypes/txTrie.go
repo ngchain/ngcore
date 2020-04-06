@@ -2,9 +2,10 @@ package ngtypes
 
 import (
 	"errors"
-	"github.com/cbergoon/merkletree"
 	"math/big"
 	"sort"
+
+	"github.com/cbergoon/merkletree"
 )
 
 // TxTrie is an fixed ordered operation container, mainly for pending

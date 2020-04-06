@@ -1,12 +1,15 @@
 package ngp2p
 
 import (
+	"io/ioutil"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/ngchain/ngcore/ngp2p/pb"
-	"io/ioutil"
 )
 
+// Reject will reply Reject message to remote node
 func (w *Wired) Reject(s network.Stream, uuid string) {
 	log.Warning("Failed to authenticate message")
 	log.Infof("Sending Reject to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
@@ -56,7 +59,6 @@ func (w *Wired) onReject(s network.Stream) {
 		w.requests.Delete(data.Header.Uuid)
 	} else {
 		log.Error("Failed to locate request data object for response")
-		//return
 	}
 
 	log.Infof("Received Reject from %s. Message id:%s. Message: %s.", s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)

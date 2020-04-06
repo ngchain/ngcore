@@ -5,19 +5,22 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/gogo/protobuf/proto"
 	"math/big"
 	"testing"
+
+	"github.com/gogo/protobuf/proto"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 // TestDeserialize test Unsigned Operation whether it is possible to deserialize
 func TestDeserialize(t *testing.T) {
-	tx := NewUnsignedTransaction(
-		0,
+	tx := NewUnsignedTx(
+		TX_GENERATION,
 		0,
 		[][]byte{GenesisPK},
 		[]*big.Int{new(big.Int).Mul(NG, big.NewInt(1000))},
-		Big0,
+		GetBig0(),
 		0,
 		nil,
 	)
@@ -35,16 +38,24 @@ func TestDeserialize(t *testing.T) {
 
 // TestTransaction_Signature test generated Key pair
 func TestTransaction_Signature(t *testing.T) {
-	o := NewUnsignedTransaction(0, 1, [][]byte{GenesisPK}, []*big.Int{Big0}, Big0, 0, nil)
+	o := NewUnsignedTx(0, 1, [][]byte{GenesisPK}, []*big.Int{GetBig0()}, GetBig0(), 0, nil)
 	priv, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	priv2, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 	_ = o.Signature(priv)
-	if !o.Verify(priv.PublicKey) {
+
+	if err := o.Verify(priv.PublicKey); err != nil {
 		t.Fail()
 	}
 
-	if o.Verify(priv2.PublicKey) {
+	if err := o.Verify(priv2.PublicKey); err == nil {
+		t.Fail()
+	}
+}
+
+func TestGetGenesisGenerate(t *testing.T) {
+	gg := GetGenesisGeneration()
+	if err := gg.Verify(utils.Bytes2ECDSAPublicKey(gg.GetParticipants()[0])); err != nil {
 		t.Fail()
 	}
 }

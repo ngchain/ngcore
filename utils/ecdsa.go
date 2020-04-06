@@ -5,12 +5,12 @@ import (
 	"crypto/elliptic"
 )
 
-//编码生成公钥字节数组，参数是椭圆曲线对象、x坐标、y坐标等[]byte参数
+// ECDSAPublicKey2Bytes is a helper func to convert public key to the raw bytes
 func ECDSAPublicKey2Bytes(pk ecdsa.PublicKey) []byte {
 	return elliptic.Marshal(elliptic.P256(), pk.X, pk.Y)
 }
 
-// []byte -> 公钥
+// Bytes2ECDSAPublicKey is a helper func to convert raw bytes to public key
 func Bytes2ECDSAPublicKey(data []byte) ecdsa.PublicKey {
 	x, y := elliptic.Unmarshal(elliptic.P256(), data)
 	return ecdsa.PublicKey{

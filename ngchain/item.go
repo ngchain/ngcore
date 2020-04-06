@@ -3,7 +3,9 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/gogo/protobuf/proto"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

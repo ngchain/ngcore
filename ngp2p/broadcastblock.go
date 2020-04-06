@@ -2,7 +2,9 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-pubsub"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -38,14 +40,14 @@ func (b *Broadcaster) onBroadcastBlock(msg *pubsub.Message) {
 
 	if broadcastBlockPayload.Vault != nil {
 		log.Infof("received a new block broadcast@%d with vault@%d", broadcastBlockPayload.Block.GetHeight(), broadcastBlockPayload.Vault.GetHeight())
-		err := b.node.Chain.PutNewBlockWithVault(broadcastBlockPayload.Vault, broadcastBlockPayload.Block)
+		err := b.node.chain.PutNewBlockWithVault(broadcastBlockPayload.Vault, broadcastBlockPayload.Block)
 		if err != nil {
 			log.Error(err)
 			return
 		}
 	} else {
 		log.Infof("received a new block broadcast@%d", broadcastBlockPayload.Block.GetHeight())
-		err = b.node.Chain.PutNewBlock(broadcastBlockPayload.Block)
+		err = b.node.chain.PutNewBlock(broadcastBlockPayload.Block)
 		if err != nil {
 			log.Error(err)
 			return

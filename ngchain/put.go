@@ -3,7 +3,9 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -22,7 +24,7 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 				if hashInDB, _ := b.CalculateHash(); bytes.Equal(hash, hashInDB) {
 					return nil
 				}
-				return fmt.Errorf("has block in same height: %v", b)
+				return fmt.Errorf("has block in same height: %s", b)
 			}
 		}
 
@@ -185,6 +187,7 @@ func (c *Chain) PutNewBlockWithVault(vault *ngtypes.Vault, block *ngtypes.Block)
 
 // PutNewChain puts a new chain(vault + block) into db
 func (c *Chain) PutNewChain(chain ...Item) error {
+	log.Info("putting new chain")
 	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
@@ -194,29 +197,32 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 		return err
 	}
 
-	if firstVault, ok := chain[0].(*ngtypes.Vault); !ok {
+	firstVault, ok := chain[0].(*ngtypes.Vault)
+	if !ok {
 		return fmt.Errorf("first one of chain shall be an vault")
-	} else {
-		if hash, _ := firstVault.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
-			// not genesis
-			_, err := c.GetVaultByHash(firstVault.GetPrevHash())
-			if err != nil {
-				return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
-			}
+	}
+
+	if hash, _ := firstVault.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
+		// not genesis
+		_, err := c.GetVaultByHash(firstVault.GetPrevHash())
+		if err != nil {
+			return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
 		}
 	}
 
-	if firstBlock, ok := chain[1].(*ngtypes.Block); !ok {
+	firstBlock, ok := chain[1].(*ngtypes.Block)
+	if !ok {
 		return fmt.Errorf("second one of chain shall be a block")
-	} else {
-		if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
-			// not genesis
-			_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
-			if err != nil {
-				return fmt.Errorf("the first block@%d's prevHash is invalid: %s", firstBlock.GetHeight(), err)
-			}
+	}
+
+	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+		// not genesis
+		_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
+		if err != nil {
+			return fmt.Errorf("the first block@%d's prevHash is invalid: %s", firstBlock.GetHeight(), err)
 		}
 	}
+
 	/* Check End */
 
 	/* Put start */
@@ -225,10 +231,6 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 			switch item := chain[i].(type) {
 			case *ngtypes.Block:
 				block := item
-
-				if b, _ := c.GetVaultByHeight(block.GetHeight()); b == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
 
 				hash, _ := block.CalculateHash()
 				raw, _ := block.Marshal()
@@ -251,9 +253,7 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 				}
 			case *ngtypes.Vault:
 				vault := item
-				if v, _ := c.GetVaultByHeight(vault.GetHeight()); v == nil {
-					return fmt.Errorf("havent reach the vault height")
-				}
+
 				hash, _ := vault.CalculateHash()
 				raw, _ := vault.Marshal()
 				log.Infof("putting vault@%d: %x", vault.Height, hash)

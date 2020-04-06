@@ -14,6 +14,7 @@ FROM alpine:latest
 
 COPY --from=builder /ngchain/ngcore /usr/local/bin/
 
-EXPOSE 52520 52521
+WORKDIR /workdir
 
+EXPOSE 52520 52521
 ENTRYPOINT ["ngcore"]

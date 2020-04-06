@@ -2,7 +2,7 @@ package vm
 
 import (
 	"github.com/whyrusleeping/go-logging"
-	"github.com/yuin/gopher-lua"
+	lua "github.com/yuin/gopher-lua"
 )
 
 var log = logging.MustGetLogger("chain")
@@ -11,7 +11,7 @@ type LuaVM struct {
 	*lua.LState
 }
 
-// Apply for a new VM and specify the size of the registry
+// NewLuaVM creates a new contract VM based on Lua
 func NewLuaVM() *LuaVM {
 	L := lua.NewState(lua.Options{
 		RegistrySize:     1024 * 20, // this is the initial size of the registry

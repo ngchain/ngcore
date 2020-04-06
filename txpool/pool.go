@@ -1,15 +1,17 @@
 package txpool
 
 import (
+	"sync"
+
+	"github.com/whyrusleeping/go-logging"
+
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/whyrusleeping/go-logging"
-	"sync"
 )
 
 var log = logging.MustGetLogger("txpool")
 
-// txPool is a little mem db which stores **signed** tx
+// TxPool is a little mem db which stores **signed** tx
 type TxPool struct {
 	sync.RWMutex
 
@@ -35,12 +37,14 @@ func NewTxPool(sheetManager *ngsheet.Manager) *TxPool {
 	}
 }
 
+// Init inits the txPool with submodules
 func (p *TxPool) Init(currentVault *ngtypes.Vault, newBlockCh chan *ngtypes.Block, newVaultCh chan *ngtypes.Vault) {
 	p.CurrentVault = currentVault
 	p.newBlockCh = newBlockCh
 	p.newVaultCh = newVaultCh
 }
 
+// Run starts listening to the new block & vault
 func (p *TxPool) Run() {
 	go func() {
 		for {
@@ -51,7 +55,6 @@ func (p *TxPool) Run() {
 			case vault := <-p.newVaultCh:
 				log.Infof("new backend vault@%d for txpool", vault.GetHeight())
 				p.CurrentVault = vault
-				//p.CheckExpire() // no expire
 			}
 		}
 	}()

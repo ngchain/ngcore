@@ -3,6 +3,17 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime/pprof"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/whyrusleeping/go-logging"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngchain"
@@ -11,14 +22,6 @@ import (
 	"github.com/ngchain/ngcore/rpc"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/txpool"
-	"github.com/whyrusleeping/go-logging"
-	"gopkg.in/urfave/cli.v1"
-	"os"
-	"os/signal"
-	"runtime/pprof"
-	"strings"
-	"syscall"
-	"time"
 )
 
 var log = logging.MustGetLogger("main")
@@ -76,11 +79,12 @@ var action = func(c *cli.Context) error {
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	formatter := logging.NewBackendFormatter(backend, format)
 	logging.SetBackend(formatter)
+	logging.SetLevel(logging.INFO, "")
 
 	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Int("mining") >= 0
 	isStrictMode := isBootstrapNode || c.BoolT("strict")
-	p2pTcpPort := c.Int("p2p-port")
+	p2pTCPPort := c.Int("p2p-port")
 	rpcPort := c.Int("rpc-port")
 	keyPass := c.String("key-pass")
 	withProfile := c.Bool("profile")
@@ -96,8 +100,6 @@ var action = func(c *cli.Context) error {
 		}
 		defer pprof.StopCPUProfile()
 	}
-
-	logging.SetLevel(logging.INFO, "")
 
 	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(keyPass))
 	keytools.PrintPublicKey(key)
@@ -116,26 +118,33 @@ var action = func(c *cli.Context) error {
 	consensusManager := consensus.NewConsensusManager(isMining)
 	consensusManager.Init(chain, sheetManager, key, txPool)
 
-	localNode := ngp2p.NewLocalNode(p2pTcpPort, isStrictMode, isBootstrapNode, sheetManager, chain, txPool)
+	localNode := ngp2p.NewLocalNode(p2pTCPPort, isStrictMode, isBootstrapNode, sheetManager, chain, txPool)
 	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensusManager, localNode, sheetManager, txPool)
 	go rpc.Run()
 
+	initOnce := &sync.Once{}
 	localNode.OnSynced = func() {
-		consensusManager.ResumeMining()
+		initOnce.Do(func() {
+			latestVault := chain.GetLatestVault()
+			blocks, err := chain.GetBlocksOnVaultHeight(latestVault.GetHeight())
+			if err != nil {
+				panic(err)
+			}
+			sheetManager.Init(latestVault, blocks...)
+			txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
+			txPool.Run()
+
+			consensusManager.InitPoW(c.Int("mining"))
+		})
+
+		consensusManager.Resume()
 	}
 
 	localNode.OnNotSynced = func() {
-		consensusManager.StopMining()
+		consensusManager.Stop()
 	}
 
-	localNode.Init(func() {
-		latestVault := chain.GetLatestVault()
-		sheetManager.Init(latestVault)
-		txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
-		txPool.Run()
-
-		consensusManager.InitPoW(c.Int("mining"))
-	})
+	localNode.Init()
 
 	// notify the exit events
 	var stopSignal = make(chan os.Signal, 1)

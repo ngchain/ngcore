@@ -12,6 +12,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/json-iterator/go v1.1.9
 	github.com/libp2p/go-libp2p v0.6.0
+	github.com/libp2p/go-libp2p-circuit v0.1.4
 	github.com/libp2p/go-libp2p-core v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.1
 	github.com/libp2p/go-libp2p-mplex v0.2.2

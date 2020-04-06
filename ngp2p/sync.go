@@ -1,14 +1,15 @@
 package ngp2p
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
 	"time"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func (w *Wired) UpdateStatus() {
-	var total = 0
-	var synced = 0
-	localHeight := w.node.Chain.GetLatestBlockHeight()
+	total := 0
+	synced := 0
+	localHeight := w.node.chain.GetLatestBlockHeight()
 
 	w.node.RemoteHeights.Range(func(_, value interface{}) bool {
 		total++
@@ -18,14 +19,17 @@ func (w *Wired) UpdateStatus() {
 		return true
 	})
 
-	w.node.isSyncedCh <- float64(synced)/float64(total) > 0.7
+	log.Infof("localnode synced with remote nodes: (%d/ %d)", synced, total)
+	progress := float64(synced) / float64(total)
+	w.node.isSyncedCh <- progress > 0.9
 }
 
 func (w *Wired) Sync() {
 	syncTicker := time.NewTicker(ngtypes.TargetTime)
 	defer syncTicker.Stop()
 
-	lastTimeIsSynced := false //default
+	lastTimeIsSynced := false // default
+
 	for {
 		select {
 		case <-syncTicker.C:
@@ -36,7 +40,8 @@ func (w *Wired) Sync() {
 				log.Infof("pinging to %s", peer)
 				w.Ping(peer)
 			}
-			w.UpdateStatus()
+
+			go w.UpdateStatus()
 		case isSynced := <-w.node.isSyncedCh:
 			if isSynced && !lastTimeIsSynced {
 				log.Info("localnode is synced with network")

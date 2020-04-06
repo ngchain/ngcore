@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "chain.go",
+        "helper.go",
         "init.go",
         "item.go",
         "mine.go",

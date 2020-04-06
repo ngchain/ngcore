@@ -754,7 +754,7 @@ func (this *Header) GoString() string {
 	}
 	s := make([]string, 0, 9)
 	s = append(s, "&pb.Header{")
-	s = append(s, "NetworkId: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
+	s = append(s, "NetworkID: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
 	s = append(s, "Uuid: "+fmt.Sprintf("%#v", this.Uuid)+",\n")
 	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
 	s = append(s, "PeerKey: "+fmt.Sprintf("%#v", this.PeerKey)+",\n")
@@ -1363,7 +1363,7 @@ func (this *Header) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Header{`,
-		`NetworkId:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
+		`NetworkID:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
 		`Uuid:` + fmt.Sprintf("%v", this.Uuid) + `,`,
 		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
 		`PeerKey:` + fmt.Sprintf("%v", this.PeerKey) + `,`,
@@ -1498,7 +1498,7 @@ func (m *Header) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NetworkId", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field NetworkID", wireType)
 			}
 			m.NetworkId = 0
 			for shift := uint(0); ; shift += 7 {

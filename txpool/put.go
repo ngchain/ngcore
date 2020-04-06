@@ -3,18 +3,19 @@ package txpool
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // PutNewTxFromLocal puts tx from local(rpc) into txpool
-func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Transaction) error {
-	err := p.PutTxs(tx)
+func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Transaction) (err error) {
+	err = p.PutTxs(tx)
 	if err != nil {
 		return err
 	}
 
-	if !p.CheckTxs(tx) {
-		return fmt.Errorf("malformed tx, rejected")
+	if err = p.CheckTxs(tx); err != nil {
+		return fmt.Errorf("malformed tx, rejected: %v", err)
 	}
 
 	p.NewCreatedTxEvent <- tx
@@ -27,8 +28,8 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Transaction) error {
 	p.Lock()
 	defer p.Unlock()
 
-	if !p.CheckTxs(txs...) {
-		return fmt.Errorf("malformed tx in txs, reject all txs")
+	if err := p.CheckTxs(txs...); err != nil {
+		return fmt.Errorf("malformed tx in txs, reject all txs: %v", err)
 	}
 
 	var err error
@@ -36,12 +37,14 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Transaction) error {
 		if !txs[i].IsSigned() {
 			err = errors.New("cannot putting unsigned tx, " + txs[i].HashHex() + " into queuing")
 			log.Error(err)
+
 			continue
 		}
 
 		if n := p.CurrentVault.Sheet.Accounts[txs[i].GetConvener()].Nonce + 1; txs[i].GetNonce() != n+1 {
 			err = errors.New("Tx" + txs[i].HashHex() + "'s nonce is incorrect")
 			log.Error(err)
+
 			continue
 		}
 

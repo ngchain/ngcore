@@ -1,9 +1,10 @@
 package storage
 
 import (
+	"runtime"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/whyrusleeping/go-logging"
-	"runtime"
 )
 
 var log = logging.MustGetLogger("storage")
@@ -22,6 +23,7 @@ func InitStorage() *badger.DB {
 	return s
 }
 
+// TODO: add memdb mode
 func InitMemStorage() *badger.DB {
 	options := badger.DefaultOptions("").WithInMemory(true)
 	if runtime.GOOS == "windows" {

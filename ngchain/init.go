@@ -3,7 +3,9 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -125,7 +127,6 @@ func (c *Chain) HasGenesisVault() bool {
 }
 
 func (c *Chain) InitWithChain(chain ...Item) error {
-
 	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")

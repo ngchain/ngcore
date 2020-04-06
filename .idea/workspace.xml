@@ -1,9 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="AUTOSCROLL_TO_SOURCE" value="true" />
+    <option name="SPLITTER_PROPORTION" value="0.45918366" />
+    <option name="GROUP_BY_SEVERITY" value="true" />
+    <option name="SHOW_STRUCTURE" value="true" />
+  </component>
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:github" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="">
+    <list default="true" id="763faf58-37c7-4b6d-82bb-11bc8aecbbfb" name="Default Changelist" comment="add all types tx rpc">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/ngtypes/block_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/block_test.go" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/generation.go" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/generation.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ngtypes/tx_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/ngtypes/tx_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/handler.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/handler.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/tx.go" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/tx.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/check.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/check.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/put.go" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/put.go" afterDir="false" />
+>>>>>>> cce2583f7240638a2b4ff32cff3f8e43fd99b7b1
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,10 +75,13 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="configurable.Global.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Module.GOPATH.is.expanded" value="false" />
+    <property name="configurable.Project.GOPATH.is.expanded" value="true" />
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
-    <property name="last_opened_file_path" value="$USER_HOME$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -46,7 +89,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RunManager" selected="Go Build.ngcore mining ">
     <configuration name="go build github.com/ngchain/ngcore" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -55,6 +98,37 @@
       <kind value="PACKAGE" />
       <package value="github.com/ngchain/ngcore" />
       <directory value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build github.com/ngchain/ngcore/cmd/genesis" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <filePath value="$PROJECT_DIR$/cmd/genesis/genesis.go" />
+      <package value="github.com/ngchain/ngcore/cmd/genesis" />
+      <directory value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$/ngtypes" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/ngchain/ngcore/ngtypes" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestGetGenesisGeneration$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="ngcore" />
+      <working_directory value="$PROJECT_DIR$/ngtypes" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/ngchain/ngcore/ngtypes" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestTransaction_Signature$" />
       <method v="2" />
     </configuration>
     <configuration name="go test ngcore" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -77,11 +151,24 @@
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Go Build.ngcore" />
+      <item itemvalue="Go Build.ngcore bootstrap" />
+      <item itemvalue="Go Build.ngcore mining " />
+      <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
+      <item itemvalue="Go Build.go build github.com/ngchain/ngcore" />
+      <item itemvalue="Go Test.go test ngcore" />
+      <item itemvalue="Go Test.gocheck ngcore" />
+      <item itemvalue="Go Test.TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" />
+      <item itemvalue="Go Test.TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" />
+    </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Build.go build github.com/ngchain/ngcore/cmd/genesis" />
         <item itemvalue="Go Test.go test ngcore" />
+        <item itemvalue="Go Test.TestGetGenesisGeneration in github.com/ngchain/ngcore/ngtypes" />
+        <item itemvalue="Go Test.TestTransaction_Signature in github.com/ngchain/ngcore/ngtypes" />
         <item itemvalue="Go Test.gocheck ngcore" />
-        <item itemvalue="Go Build.go build github.com/ngchain/ngcore" />
       </list>
     </recent_temporary>
   </component>
@@ -91,15 +178,46 @@
   <component name="UpdateCopyrightCheckinHandler">
     <option name="UPDATE_COPYRIGHT" value="true" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
   <component name="VcsManagerConfiguration">
     <option name="CHECK_CODE_CLEANUP_BEFORE_PROJECT_COMMIT" value="true" />
-    <MESSAGE value="rename&amp;add&#10;&#10;1. rename sheet to ngsheet&#10;&#10;2. expand txpool&#10;&#10;3. add sendtx rpc&#10;&#10;4. some error check" />
-    <MESSAGE value="update bazel and bugfix" />
     <MESSAGE value="migrate travis" />
     <MESSAGE value="more checktx more safety" />
     <MESSAGE value="optimize code &amp;&amp; auth on wired messages" />
     <MESSAGE value="optimize code" />
-    <option name="LAST_COMMIT_MESSAGE" value="optimize code" />
+    <MESSAGE value="fix wired message verification" />
+    <MESSAGE value="fix the bug on sync" />
+    <MESSAGE value="bugfix" />
+    <MESSAGE value="fmt with linter" />
+    <MESSAGE value="Add descriptions for public func" />
+    <MESSAGE value="add assign &amp; append tx types" />
+    <MESSAGE value="fmt &amp; doc" />
+    <MESSAGE value="using notfound &amp; fix sheet init" />
+    <MESSAGE value="enable NAT and relay" />
+    <MESSAGE value="change docker workdir" />
+    <MESSAGE value="redesign the sheetManager to improve safety" />
+    <MESSAGE value="update new genesis" />
+    <MESSAGE value="remove unused header_hash field in tx" />
+    <MESSAGE value="remove unused header_hash field in block" />
+    <MESSAGE value="large change: new vault and tx rule" />
+    <MESSAGE value="fmt" />
+    <MESSAGE value="fix bugs on different types of tx" />
+    <MESSAGE value="update genesis" />
+    <MESSAGE value="fix bug on create generation" />
+    <MESSAGE value="nonce++ when handling tx &amp; using sheetManager to fetch nonce" />
+    <MESSAGE value="add all types tx rpc" />
+    <option name="LAST_COMMIT_MESSAGE" value="add all types tx rpc" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
@@ -113,46 +231,82 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="552" y="181" key="#Go_Modules_(vgo)/0.0.1920.1040@0.0.1920.1040" timestamp="1585280398146" />
-    <state x="586" y="198" key="#Inspections" timestamp="1585283136480">
+    <state x="586" y="198" key="#Inspections" timestamp="1585748484471">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1585283136480" />
-    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585312890985">
+    <state x="586" y="198" key="#Inspections/0.0.1920.1040@0.0.1920.1040" timestamp="1585748484471" />
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1585934622249">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585312890985" />
-    <state x="477" y="55" key="#ngcore_mining_" timestamp="1586102127293">
-      <screen x="0" y="0" width="1536" height="824" />
-    </state>
-    <state x="477" y="55" key="#ngcore_mining_/0.0.1536.824@0.0.1536.824" timestamp="1586102127293" />
-    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1585653671371">
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585934622249" />
+    <state x="640" y="255" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1585909417952">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585653671371" />
-    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1585662727651">
+    <state x="640" y="255" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585909417952" />
+    <state x="669" y="147" key="#ngcore_mining_" timestamp="1585724710879">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1585662727651" />
-    <state x="176" y="48" key="DiffContextDialog" timestamp="1585662698775">
+    <state x="669" y="147" key="#ngcore_mining_/0.0.1920.1040@0.0.1920.1040" timestamp="1585724710879" />
+    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1585986848793">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585662698775" />
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1585281455596">
+    <state x="414" y="174" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585934622249" />
+    <state x="640" y="255" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1585909417952">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455596" />
-    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1585281455595">
+    <state x="640" y="255" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585909417952" />
+    <state x="669" y="147" key="#ngcore_mining_" timestamp="1585724710879">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
-    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1585281455595">
+    <state x="669" y="147" key="#ngcore_mining_/0.0.1920.1040@0.0.1920.1040" timestamp="1585724710879" />
+    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1585986848793">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
-    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1585281455595">
+    <state x="711" y="389" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.0.1920.1040@0.0.1920.1040" timestamp="1585986848793" />
+    <state x="577" y="53" key="CommitChangelistDialog2" timestamp="1586055563935">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1585281455595" />
+    <state x="577" y="53" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1586055563935" />
+    <state width="1217" height="466" key="DebuggerActiveHint" timestamp="1586015734780">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1217" height="466" key="DebuggerActiveHint/0.0.1920.1040@0.0.1920.1040" timestamp="1586015734780" />
+    <state x="176" y="48" key="DiffContextDialog" timestamp="1585893739762">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="176" y="48" key="DiffContextDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585893739761" />
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom" timestamp="1586055085876">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586055085876" />
+    <state width="1877" height="348" key="GridCell.Tab.0.center" timestamp="1586055085876">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586055085876" />
+    <state width="1877" height="348" key="GridCell.Tab.0.left" timestamp="1586055085875">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586055085875" />
+    <state width="1877" height="348" key="GridCell.Tab.0.right" timestamp="1586055085876">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586055085876" />
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom" timestamp="1586055077117">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1586055077117" />
+    <state width="1877" height="348" key="GridCell.Tab.1.center" timestamp="1586055077117">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1586055077117" />
+    <state width="1877" height="348" key="GridCell.Tab.1.left" timestamp="1586055077117">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1586055077117" />
+    <state width="1877" height="348" key="GridCell.Tab.1.right" timestamp="1586055077117">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1877" height="348" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1586055077117" />
     <state x="540" y="262" key="IDE.errors.dialog" timestamp="1585307603049">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -161,25 +315,60 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="713" y="221" key="RollbackChangesDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585312920939" />
-    <state x="329" y="329" key="SettingsEditor" timestamp="1585300868767">
+    <state x="365" y="255" key="SettingsEditor" timestamp="1585999826235">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="329" y="329" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585300868767" />
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1585662731256">
+    <state x="365" y="255" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1585999826235" />
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2" timestamp="1586050800753">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585662731256" />
-    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585714059040">
+    <state x="552" y="252" key="Vcs.Push.Dialog.v2/0.0.1920.1040@0.0.1920.1040" timestamp="1586050800753" />
+    <state width="968" height="528" key="XDebugger.FullValuePopup" timestamp="1585935985866">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585714059040" />
-    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1585715602961">
+    <state width="968" height="528" key="XDebugger.FullValuePopup/0.0.1920.1040@0.0.1920.1040" timestamp="1585935985866" />
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1585751442720">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1585715602961" />
-    <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585563620053">
+    <state x="769" y="433" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1585751442720" />
+    <state x="666" y="254" width="587" height="590" key="find.popup" timestamp="1586016448648">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="693" y="308" key="git4idea.merge.GitPullDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585563620053" />
+    <state x="666" y="254" width="587" height="590" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1586016448648" />
+    <state x="693" y="308" key="git4idea.merge.GitPullDialog" timestamp="1585750345821">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="693" y="308" key="git4idea.merge.GitPullDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1585750345821" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/ngsheet/manager.go</url>
+          <line>80</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/ngsheet/manager.go</url>
+          <line>47</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/ngsheet/handle.go</url>
+          <line>15</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/ngsheet/check.go</url>
+          <line>81</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/cmd/ngcore/main.go</url>
+          <line>132</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

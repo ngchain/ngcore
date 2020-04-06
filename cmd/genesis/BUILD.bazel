@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//keytools:go_default_library",
         "//ngtypes:go_default_library",
+        "//utils:go_default_library",
     ],
 )
 
