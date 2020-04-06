@@ -1,6 +1,4 @@
 version: 2.1
-orbs:
-  codecov: codecov/codecov@1.0.5
 jobs:
   build:
     docker:
@@ -30,5 +28,6 @@ jobs:
           path: ./ngcore
           destination: ngcore
 
-      - codecov/upload:
-          file: {{ coverage_report_filepath }}
+      - run:
+        name: codecov
+        command: bash <(curl -s https://codecov.io/bash)
