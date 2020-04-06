@@ -1,6 +1,5 @@
 # NgCore
 
-[![GoDoc](https://godoc.org/github.com/ngchain/ngcore?status.svg)](http://godoc.org/github.com/ngchain/ngcore)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](https://goreportcard.com/report/github.com/ngchain/ngcore)
 
 New Golang implement of Ngin Network Node Daemon
@@ -8,6 +7,19 @@ New Golang implement of Ngin Network Node Daemon
 ## NGIN
 
 NGIN is a totally new chain which is not a fork of ethereum or other chain. It is radically updating.
+
+## Features
+
+- Fast boot
+- Little storage cost, or no cost(mem only)
+- Humanizing account model
+- Absolutely safety ensure with vault model
+- Powerful types of tx
+- Multi-language support on contract vm(lua & javascript yet)
+- Pure go, support almost all platforms
+- Libp2p(ipfs) powered p2p networking
+- Account ecosystem to keep coin value
+- ...
 
 ## Requirements
 
@@ -22,7 +34,7 @@ Or using bazel build tool if you want
 ./ngwallet newtx -to 1567464132546, 7563212343 -value 1NG, 0.1NG  
 ``` 
 
-if you wanna start mining(PoW), try `--mining` flag
+If you wanna start mining(proof of work), try `--mining` flag
 
 ```bash
 ./ngcore --mining
@@ -49,7 +61,9 @@ sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpin
 sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0
 ```
 
-**NOT RECOMMEND**: if you are under windows and **without `gcc`**, run `set CGO_ENABLED=0` or `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine.
+### Tip
+
+Run `set CGO_ENABLED=0` or `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine when your environment don't have gcc.
 
 ### Bazel
 

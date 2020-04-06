@@ -11,8 +11,7 @@ import (
 
 // NotFound will reply NotFound message to remote node
 func (w *Wired) NotFound(s network.Stream, uuid string) {
-	log.Warning("Failed to authenticate message")
-	log.Infof("Sending notfound to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
+	log.Debugf("Sending notfound to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
 		Payload: nil,
@@ -30,7 +29,7 @@ func (w *Wired) NotFound(s network.Stream, uuid string) {
 
 	// send the response
 	if ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), notfoundMethod, resp); ok {
-		log.Infof("notfound to %s sent.", s.Conn().RemotePeer().String())
+		log.Debugf("notfound to %s sent.", s.Conn().RemotePeer().String())
 	}
 }
 
@@ -42,7 +41,6 @@ func (w *Wired) onNotFound(s network.Stream) {
 		log.Error(err)
 		return
 	}
-	_ = s.Close()
 
 	// unmarshal it
 	var data pb.Message
@@ -58,9 +56,11 @@ func (w *Wired) onNotFound(s network.Stream) {
 		// remove request from map as we have processed it here
 		w.requests.Delete(data.Header.Uuid)
 	} else {
-		log.Error("Failed to locate request data object for response")
+		log.Errorf("Failed to locate request data object for response")
 	}
 
-	log.Infof("Received notfound from %s. Message id:%s. Message: %s.", s.Conn().RemotePeer(), data.Header.Uuid, data.Payload)
-	// _ = w.node.Network().ClosePeer(s.Conn().RemotePeer())
+	remoteID := s.Conn().RemotePeer()
+	_ = s.Reset()
+
+	log.Debugf("Received notfound from %s. Message id:%s. Message: %s.", remoteID, data.Header.Uuid, data.Payload)
 }

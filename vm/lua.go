@@ -7,6 +7,8 @@ import (
 
 var log = logging.MustGetLogger("chain")
 
+// LuaVM is a VM based on Lua lang
+// TODO: Inject chain info(blocks & txs & vaults) into VM
 type LuaVM struct {
 	*lua.LState
 }
@@ -29,11 +31,24 @@ func NewLuaVM() *LuaVM {
 	}
 }
 
-func (vm LuaVM) RunState(raw []byte) []byte {
+func (vm *LuaVM) RunState(raw []byte) []byte {
 	err := vm.DoString(string(raw))
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-	return nil
+
+	contract := vm.GetGlobal("Contract")
+	mainFn := vm.GetField(contract, "main")
+
+	err = vm.CallByParam(lua.P{
+		Fn:      mainFn,
+		NRet:    1,
+		Protect: true,
+	})
+	if err != nil {
+		log.Error(err)
+	}
+
+	return []byte(vm.Get(-1).String())
 }

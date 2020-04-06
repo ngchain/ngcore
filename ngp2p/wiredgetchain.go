@@ -44,7 +44,7 @@ func (w *Wired) GetChain(remotePeerID peer.ID, requestHeight uint64) bool {
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Infof("getchain to: %s was sent. Message Id: %s, request vault height: %d", remotePeerID, req.Header.Uuid, requestHeight)
+	log.Debugf("getchain to: %s was sent. Message Id: %s, request vault height: %d", remotePeerID, req.Header.Uuid, requestHeight)
 	return true
 }
 
@@ -56,7 +56,6 @@ func (w *Wired) onGetChain(s network.Stream) {
 		log.Error(err)
 		return
 	}
-	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}
@@ -78,7 +77,10 @@ func (w *Wired) onGetChain(s network.Stream) {
 		return
 	}
 
-	log.Infof("Received getchain request from %s. Requested vault@%d", s.Conn().RemotePeer(), getchain.VaultHeight)
+	remoteID := s.Conn().RemotePeer()
+	_ = s.Reset()
+
+	log.Debugf("Received getchain request from %s. Requested vault@%d", remoteID, getchain.VaultHeight)
 
 	// chain
 	localHeight := w.node.chain.GetLatestBlockHeight()
