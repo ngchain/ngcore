@@ -29,14 +29,14 @@ NGIN is a totally new chain which is not a fork of ethereum or other chain. It i
 
 go version >= 1.13
 
-Or using bazel build tool if you want 
+Or using bazel build tool if you want
 
 ## Usage
 
 ```bash
 ./ngcore
 ./ngwallet newtx -to 1567464132546, 7563212343 -value 1NG, 0.1NG  
-``` 
+```
 
 If you wanna start mining(proof of work), try `--mining` flag
 
