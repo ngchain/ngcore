@@ -48,7 +48,7 @@ func (w *Wired) Ping(remotePeerID peer.ID) bool {
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Infof("Sent Ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
+	log.Debugf("Sent Ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
 	return true
 }
 
@@ -61,7 +61,6 @@ func (w *Wired) onPing(s network.Stream) {
 		log.Error(err)
 		return
 	}
-	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}
@@ -87,7 +86,7 @@ func (w *Wired) onPing(s network.Stream) {
 		return
 	}
 
-	log.Infof("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
+	log.Debugf("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
 
 	// Pong
 	w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)

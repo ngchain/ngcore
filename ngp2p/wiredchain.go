@@ -21,7 +21,7 @@ func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, block
 		LatestHeight: w.node.chain.GetLatestBlockHeight(),
 	})
 	if err != nil {
-		log.Infof("failed to sign pb data")
+		log.Errorf("failed to sign pb data")
 		return false
 	}
 
@@ -34,7 +34,7 @@ func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, block
 	// sign the data
 	signature, err := w.node.signMessage(req)
 	if err != nil {
-		log.Infof("failed to sign pb data")
+		log.Errorf("failed to sign pb data")
 		return false
 	}
 
@@ -48,7 +48,7 @@ func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, block
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Infof("chain to: %s was sent. Message Id: %s", s.Conn().RemotePeer(), req.Header.Uuid)
+	log.Debugf("chain to: %s was sent. Message Id: %s", s.Conn().RemotePeer(), req.Header.Uuid)
 	return true
 }
 
@@ -60,7 +60,6 @@ func (w *Wired) onChain(s network.Stream) {
 
 		return
 	}
-	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}
@@ -82,13 +81,16 @@ func (w *Wired) onChain(s network.Stream) {
 		return
 	}
 
+	remoteID := s.Conn().RemotePeer()
+	_ = s.Reset()
+
 	if len(payload.Blocks) > 0 {
-		log.Infof("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", s.Conn().RemotePeer(), data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
+		log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", remoteID, data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
 	} else if payload.Vault != nil {
-		log.Infof("Received chain from %s. Message id:%s. Vault@%d only, LatestHeight: %d..", s.Conn().RemotePeer(), data.Header.Uuid, payload.Vault.GetHeight(), payload.LatestHeight)
+		log.Debugf("Received chain from %s. Message id:%s. Vault@%d only, LatestHeight: %d..", remoteID, data.Header.Uuid, payload.Vault.GetHeight(), payload.LatestHeight)
 	}
 
-	w.node.RemoteHeights.Store(s.Conn().RemotePeer(), payload.LatestHeight)
+	w.node.RemoteHeights.Store(remoteID, payload.LatestHeight)
 
 	// init
 	if !w.node.isStrictMode && !w.node.isInitialized.Load() {
@@ -106,7 +108,7 @@ func (w *Wired) onChain(s network.Stream) {
 			w.node.isInitialized.Store(true)
 			log.Infof("p2p init finished")
 		} else {
-			go w.GetChain(s.Conn().RemotePeer(), w.node.chain.GetLatestVaultHeight()+1)
+			go w.GetChain(remoteID, w.node.chain.GetLatestVaultHeight()+1)
 		}
 		return
 	}
@@ -125,12 +127,12 @@ func (w *Wired) onChain(s network.Stream) {
 			return
 		}
 	} else {
-		//forkto
+		// forkto
 		c := []ngchain.Item{payload.Vault}
 		for i := 1; i < len(payload.Blocks); i++ {
 			c = append(c, payload.Blocks[i])
 		}
-		err := w.node.chain.SwitchTo(c...)
+		err = w.node.chain.SwitchTo(c...)
 		if err != nil {
 			log.Error(err)
 			return
@@ -139,6 +141,7 @@ func (w *Wired) onChain(s network.Stream) {
 
 	// continue get chain
 	if w.node.chain.GetLatestBlockHeight() < payload.LatestHeight {
-		go w.GetChain(s.Conn().RemotePeer(), payload.Vault.Height+1)
+		go w.GetChain(remoteID, payload.Vault.Height+1)
+		return
 	}
 }
