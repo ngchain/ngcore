@@ -3,12 +3,14 @@ package ngtypes
 import (
 	"bytes"
 	"fmt"
-	"github.com/NebulousLabs/fastrand"
-	"github.com/gogo/protobuf/proto"
 	"math/big"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/NebulousLabs/fastrand"
+	"github.com/gogo/protobuf/proto"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/mr-tron/base58"
 	"github.com/ngin-network/cryptonight-go"
@@ -39,20 +41,19 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 	nCh := make(chan []byte, 1)
 	stopCh := make(chan struct{}, 1)
 	thread := 3
+
 	for i := 0; i < thread; i++ {
 		go calcHash(i, b, genesisTarget, nCh, stopCh)
 	}
 
-	select {
-	case answer := <-nCh:
-		stopCh <- struct{}{}
-		blob := b.Header.GetPoWBlob(answer)
-		if err != nil {
-			log.Panic(err)
-		}
-		hash := cryptonight.Sum(blob, 0)
-		fmt.Println("N is ", answer, " Hash is ", base58.FastBase58Encoding(hash))
+	answer := <-nCh
+	stopCh <- struct{}{}
+	blob := b.Header.GetPoWBlob(answer)
+	if err != nil {
+		log.Panic(err)
 	}
+	hash := cryptonight.Sum(blob, 0)
+	fmt.Println("N is ", answer, " Hash is ", base58.FastBase58Encoding(hash))
 }
 
 // calcHash get the hash of block
@@ -61,6 +62,7 @@ func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh ch
 	fmt.Println("target is ", target.String())
 
 	t := time.Now()
+
 	for {
 		select {
 		case <-stopCh:
@@ -86,9 +88,9 @@ func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh ch
 func TestBlock_Marshal(t *testing.T) {
 	block, _ := GetGenesisBlock().Marshal()
 
-	var genesisBlock_ Block
-	_ = proto.Unmarshal(block, &genesisBlock_)
-	_block, _ := genesisBlock_.Marshal()
+	var genesisBlock Block
+	_ = proto.Unmarshal(block, &genesisBlock)
+	_block, _ := genesisBlock.Marshal()
 	if !bytes.Equal(block, _block) {
 		t.Fail()
 	}
@@ -96,9 +98,9 @@ func TestBlock_Marshal(t *testing.T) {
 
 // TestGetGenesisBlock test func GetGenesisBlock()'s parameter passing
 func TestGetGenesisBlock(t *testing.T) {
-	hash := GetGenesisBlock().HeaderHash
-
 	d, _ := GetGenesisBlock().Marshal()
-	log.Info("GenesisBlock hex: %x", d)
-	log.Info("GenesisBlock hash: %x", hash)
+	hash := sha3.Sum256(d)
+
+	log.Infof("GenesisBlock hex: %x", d)
+	log.Infof("GenesisBlock hash: %x", hash)
 }
