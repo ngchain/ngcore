@@ -16,12 +16,16 @@ import (
 	"github.com/ngin-network/cryptonight-go"
 )
 
+
+// TestBlock_GetHash test func GetGenesisBlock() and return Hash value
 func TestBlock_GetHash(t *testing.T) {
 	b := GetGenesisBlock()
 	block := b.Header.CalculateHash()
 	t.Log(len(block))
 }
 
+
+// TestGetGenesisBlockNonce test func NewBareBlock()
 func TestGetGenesisBlockNonce(t *testing.T) {
 	// new genesisBlock
 	runtime.GOMAXPROCS(3)
@@ -52,6 +56,7 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 	fmt.Println("N is ", answer, " Hash is ", base58.FastBase58Encoding(hash))
 }
 
+// calcHash get the hash of block
 func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {
 	fmt.Println("thread ", id, " running")
 	fmt.Println("target is ", target.String())
@@ -79,6 +84,7 @@ func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh ch
 	}
 }
 
+// TestBlock_Marshal test func GetGenesisBlock()'s Marshal()
 func TestBlock_Marshal(t *testing.T) {
 	block, _ := GetGenesisBlock().Marshal()
 
@@ -90,6 +96,7 @@ func TestBlock_Marshal(t *testing.T) {
 	}
 }
 
+// TestGetGenesisBlock test func GetGenesisBlock()'s parameter passing
 func TestGetGenesisBlock(t *testing.T) {
 	d, _ := GetGenesisBlock().Marshal()
 	hash := sha3.Sum256(d)

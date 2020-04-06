@@ -13,6 +13,8 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+
+// TestNewAccount is testing func NewAccount
 func TestNewAccount(t *testing.T) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {

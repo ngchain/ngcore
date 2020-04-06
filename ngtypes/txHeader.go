@@ -25,6 +25,7 @@ func (m *TxHeader) Signature(privKey *ecdsa.PrivateKey) (r, s *big.Int, err erro
 	return
 }
 
+// Check will check whether participants count and values are equal
 func (m *TxHeader) Check() error {
 	if len(m.Participants) != len(m.Values) {
 		return errors.New("participants count is not equals to values'")
@@ -32,6 +33,7 @@ func (m *TxHeader) Check() error {
 	return nil
 }
 
+// CalculateHash mainly for calculating the tire root of txs and sign tx
 func (m *TxHeader) CalculateHash() ([]byte, error) {
 	raw, err := m.Marshal()
 	if err != nil {
@@ -41,6 +43,7 @@ func (m *TxHeader) CalculateHash() ([]byte, error) {
 	return hash[:], nil
 }
 
+// TotalCharge ?? i cant't understand it
 func (m *TxHeader) TotalCharge() *big.Int {
 	totalValue := GetBig0()
 	for i := range m.Values {
