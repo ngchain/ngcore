@@ -13,6 +13,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+// TestDeserialize test Unsigned Operation whether it is possible to deserialize
 func TestDeserialize(t *testing.T) {
 	tx := NewUnsignedTx(
 		TX_GENERATION,
@@ -35,6 +36,7 @@ func TestDeserialize(t *testing.T) {
 	t.Log(otherTx.String())
 }
 
+// TestTransaction_Signature test generated Key pair
 func TestTransaction_Signature(t *testing.T) {
 	o := NewUnsignedTx(0, 1, [][]byte{GenesisPK}, []*big.Int{GetBig0()}, GetBig0(), 0, nil)
 	priv, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)

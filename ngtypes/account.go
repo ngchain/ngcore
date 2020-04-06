@@ -1,6 +1,8 @@
 package ngtypes
 
-// NewAccount will receive an ID and PK then return a Account without SubState and Balance(0
+
+
+// NewAccount receive parameters and return a new Account(class constructor
 func NewAccount(id uint64, ownerKey []byte, state []byte) *Account {
 	return &Account{
 		ID:    id,
@@ -8,6 +10,7 @@ func NewAccount(id uint64, ownerKey []byte, state []byte) *Account {
 		State: state,
 	}
 }
+
 
 // GetGenesisAccount will return the genesis account (id=1)
 func GetGenesisAccount() *Account {

@@ -122,6 +122,7 @@ func (m *Transaction) Equals(other merkletree.Content) (bool, error) {
 	return bytes.Equal(otherHash, mHash), nil
 }
 
+// TxsToMerkleTreeContents make a []merkletree.Content whose values is from txs
 func TxsToMerkleTreeContents(txs []*Transaction) []merkletree.Content {
 	mtc := make([]merkletree.Content, len(txs))
 	for i := range txs {
@@ -259,7 +260,8 @@ func (m *Transaction) CheckTransaction(key ecdsa.PublicKey) error {
 	return nil
 }
 
-func (m *Transaction) CheckAssign(key ecdsa.PublicKey) error {
+
+func (m *Transaction) CheckGen(key ecdsa.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("assign is missing header")
 	}
@@ -362,6 +364,7 @@ func (m *Transaction) TotalCharge() *big.Int {
 	return m.Header.TotalCharge()
 }
 
+// GetGenesisGeneration is a constructed function
 func GetGenesisGeneration() *Transaction {
 	gen := NewUnsignedTx(
 		TX_GENERATION,
