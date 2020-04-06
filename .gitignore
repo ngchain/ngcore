@@ -19,6 +19,7 @@ go.sum
 #IDEA
 ##Editor-based Rest Client
 .idea/httpRequests
+.idea/workspace.xml
 
 ##User-specific stuff
 .idea/**/workspace.xml
