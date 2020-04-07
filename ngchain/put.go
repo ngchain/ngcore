@@ -44,11 +44,11 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
+		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
+		err = txn.Set(append(blockPrefix, latestHashTag...), hash)
 		if err != nil {
 			return err
 		}
@@ -91,11 +91,11 @@ func (c *Chain) PutNewVault(vault *ngtypes.Vault) error {
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
+		err = txn.Set(append(vaultPrefix, latestHeightTag...), utils.PackUint64LE(vault.Height))
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(vaultPrefix, LatestHashTag...), hash)
+		err = txn.Set(append(vaultPrefix, latestHashTag...), hash)
 		if err != nil {
 			return err
 		}
@@ -151,11 +151,11 @@ func (c *Chain) PutNewBlockWithVault(vault *ngtypes.Vault, block *ngtypes.Block)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
+		err = txn.Set(append(vaultPrefix, latestHeightTag...), utils.PackUint64LE(vault.Height))
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(vaultPrefix, LatestHashTag...), vaultHash)
+		err = txn.Set(append(vaultPrefix, latestHashTag...), vaultHash)
 		if err != nil {
 			return err
 		}
@@ -171,11 +171,11 @@ func (c *Chain) PutNewBlockWithVault(vault *ngtypes.Vault, block *ngtypes.Block)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
+		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, LatestHashTag...), blockHash)
+		err = txn.Set(append(blockPrefix, latestHashTag...), blockHash)
 		if err != nil {
 			return err
 		}
@@ -191,10 +191,6 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
-	}
-
-	if err := checkChain(chain...); err != nil {
-		return err
 	}
 
 	firstVault, ok := chain[0].(*ngtypes.Vault)
@@ -243,11 +239,11 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
+				err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
+				err = txn.Set(append(blockPrefix, latestHashTag...), hash)
 				if err != nil {
 					return err
 				}
@@ -265,11 +261,11 @@ func (c *Chain) PutNewChain(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
+				err = txn.Set(append(vaultPrefix, latestHeightTag...), utils.PackUint64LE(vault.Height))
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(vaultPrefix, LatestHashTag...), hash)
+				err = txn.Set(append(vaultPrefix, latestHashTag...), hash)
 				if err != nil {
 					return err
 				}

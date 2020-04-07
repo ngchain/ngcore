@@ -24,11 +24,8 @@ import (
 	"go.uber.org/atomic"
 
 	"github.com/ngchain/ngcore/consensus"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
-	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/txpool"
 )
 
 type LocalNode struct {
@@ -42,10 +39,10 @@ type LocalNode struct {
 	OnSynced    func()
 	OnNotSynced func()
 
-	sheetManager *ngsheet.Manager
-	chain        *ngchain.Chain
-	txPool       *txpool.TxPool
-	consensus    *consensus.Consensus
+	// sheetManager *ngsheet.Sheet
+	// chain        *ngchain.Chain
+	// txPool       *txpool.TxPool
+	consensus *consensus.Consensus
 
 	RemoteHeights   *sync.Map // key:id value:height
 	isStrictMode    bool
@@ -53,7 +50,7 @@ type LocalNode struct {
 }
 
 // NewLocalNode creates a new node with its implemented protocols
-func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ngsheet.Manager, chain *ngchain.Chain, txPool *txpool.TxPool) *LocalNode {
+func NewLocalNode(port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 	ctx := context.Background()
 
 	priv := getP2PKey(isBootstrapNode)
@@ -122,9 +119,9 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ng
 		isSyncedCh:      make(chan bool),
 		OnNotSynced:     nil,
 
-		sheetManager:  sheetManager,
-		chain:         chain,
-		txPool:        txPool,
+		// sheetManager:  sheetManager,
+		// chain:         chain,
+		// txPool:        txPool,
 		RemoteHeights: new(sync.Map),
 		isStrictMode:  isStrictMode,
 	}
@@ -153,6 +150,10 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool, sheetManager *ng
 	}
 
 	return node
+}
+
+func (n *LocalNode) LoadConsensus(consensus *consensus.Consensus) {
+	n.consensus = consensus
 }
 
 // Authenticate incoming p2p message

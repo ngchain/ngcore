@@ -15,10 +15,10 @@ import (
 
 func (w *Wired) Ping(remotePeerID peer.ID) bool {
 	payload, err := proto.Marshal(&pb.PingPongPayload{
-		BlockHeight:     w.node.chain.GetLatestBlockHeight(),
-		VaultHeight:     w.node.chain.GetLatestVaultHeight(),
-		LatestBlockHash: w.node.chain.GetLatestBlockHash(),
-		LatestVaultHash: w.node.chain.GetLatestVaultHash(),
+		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
+		VaultHeight:     w.node.consensus.GetLatestVaultHeight(),
+		LatestBlockHash: w.node.consensus.GetLatestBlockHash(),
+		LatestVaultHash: w.node.consensus.GetLatestVaultHash(),
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")

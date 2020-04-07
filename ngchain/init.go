@@ -26,11 +26,11 @@ func (c *Chain) InitWithGenesis() {
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
+			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
+			err = txn.Set(append(blockPrefix, latestHashTag...), hash)
 			if err != nil {
 				return err
 			}
@@ -56,11 +56,11 @@ func (c *Chain) InitWithGenesis() {
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
+			err = txn.Set(append(vaultPrefix, latestHeightTag...), utils.PackUint64LE(vault.Height))
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(vaultPrefix, LatestHashTag...), hash)
+			err = txn.Set(append(vaultPrefix, latestHashTag...), hash)
 			if err != nil {
 				return err
 			}
@@ -127,15 +127,9 @@ func (c *Chain) HasGenesisVault() bool {
 }
 
 func (c *Chain) InitWithChain(chain ...Item) error {
-	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
 	}
-
-	if err := checkChain(chain...); err != nil {
-		return err
-	}
-	/* Check End */
 
 	/* Put start */
 	err := c.db.Update(func(txn *badger.Txn) error {
@@ -154,11 +148,11 @@ func (c *Chain) InitWithChain(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(blockPrefix, LatestHeightTag...), utils.PackUint64LE(block.Header.Height))
+				err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(blockPrefix, LatestHashTag...), hash)
+				err = txn.Set(append(blockPrefix, latestHashTag...), hash)
 				if err != nil {
 					return err
 				}
@@ -175,11 +169,11 @@ func (c *Chain) InitWithChain(chain ...Item) error {
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(vaultPrefix, LatestHeightTag...), utils.PackUint64LE(vault.Height))
+				err = txn.Set(append(vaultPrefix, latestHeightTag...), utils.PackUint64LE(vault.Height))
 				if err != nil {
 					return err
 				}
-				err = txn.Set(append(vaultPrefix, LatestHashTag...), hash)
+				err = txn.Set(append(vaultPrefix, latestHashTag...), hash)
 				if err != nil {
 					return err
 				}

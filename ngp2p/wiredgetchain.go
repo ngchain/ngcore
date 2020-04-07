@@ -83,7 +83,7 @@ func (w *Wired) onGetChain(s network.Stream) {
 	log.Debugf("Received getchain request from %s. Requested vault@%d", remoteID, getchain.VaultHeight)
 
 	// chain
-	localHeight := w.node.chain.GetLatestBlockHeight()
+	localHeight := w.node.consensus.GetLatestBlockHeight()
 	if localHeight < getchain.VaultHeight {
 		go w.Reject(s, data.Header.Uuid)
 		return
@@ -92,7 +92,7 @@ func (w *Wired) onGetChain(s network.Stream) {
 	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
 
 	for i := getchain.VaultHeight * ngtypes.BlockCheckRound; i < (getchain.VaultHeight+1)*ngtypes.BlockCheckRound; i++ {
-		b, err := w.node.chain.GetBlockByHeight(i)
+		b, err := w.node.consensus.GetBlockByHeight(i)
 		if err != nil {
 			log.Errorf("missing block@%d: %s", i, err)
 			break
@@ -106,7 +106,7 @@ func (w *Wired) onGetChain(s network.Stream) {
 		}
 	}
 
-	vault, err := w.node.chain.GetVaultByHeight(getchain.VaultHeight)
+	vault, err := w.node.consensus.GetVaultByHeight(getchain.VaultHeight)
 	if err != nil {
 		log.Errorf("failed to get vault")
 		go w.NotFound(s, data.Header.Uuid)

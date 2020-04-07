@@ -115,11 +115,13 @@ var action = func(c *cli.Context) error {
 	sheetManager := ngsheet.NewSheetManager()
 	txPool := txpool.NewTxPool(sheetManager)
 
-	consensusManager := consensus.NewConsensusManager(isMining)
-	consensusManager.Init(chain, sheetManager, key, txPool)
+	consensus := consensus.NewConsensus(isMining)
+	consensus.Init(chain, sheetManager, key, txPool)
 
-	localNode := ngp2p.NewLocalNode(p2pTCPPort, isStrictMode, isBootstrapNode, sheetManager, chain, txPool)
-	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensusManager, localNode, sheetManager, txPool)
+	localNode := ngp2p.NewLocalNode(p2pTCPPort, isStrictMode, isBootstrapNode)
+	localNode.LoadConsensus(consensus)
+
+	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
 	go rpc.Run()
 
 	initOnce := &sync.Once{}
@@ -134,14 +136,14 @@ var action = func(c *cli.Context) error {
 			txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
 			txPool.Run()
 
-			consensusManager.InitPoW(c.Int("mining"))
+			consensus.InitPoW(c.Int("mining"))
 		})
 
-		consensusManager.Resume()
+		consensus.Resume()
 	}
 
 	localNode.OnNotSynced = func() {
-		consensusManager.Stop()
+		consensus.Stop()
 	}
 
 	localNode.Init()

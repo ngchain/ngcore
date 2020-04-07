@@ -14,7 +14,6 @@
 
 ##go module
 vendor/
-go.sum
 
 #IDEA
 ##Editor-based Rest Client

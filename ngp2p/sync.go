@@ -9,7 +9,7 @@ import (
 func (w *Wired) UpdateStatus() {
 	total := 0
 	synced := 0
-	localHeight := w.node.chain.GetLatestBlockHeight()
+	localHeight := w.node.consensus.GetLatestBlockHeight()
 
 	w.node.RemoteHeights.Range(func(_, value interface{}) bool {
 		total++

@@ -15,6 +15,11 @@ import (
 
 var log = logging.MustGetLogger("chain")
 
+const (
+	latestHeightTag = "height"
+	latestHashTag   = "hash"
+)
+
 var (
 	vaultPrefix = []byte("vlt")
 	blockPrefix = []byte("blk")
@@ -87,7 +92,7 @@ func (c *Chain) GetLatestVaultHash() []byte {
 func (c *Chain) GetLatestBlockHeight() uint64 {
 	var latestHeight uint64
 	err := c.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(append(blockPrefix, LatestHeightTag...))
+		item, err := txn.Get(append(blockPrefix, latestHeightTag...))
 		if err != nil {
 			return err
 		}
@@ -111,7 +116,7 @@ func (c *Chain) GetLatestBlockHeight() uint64 {
 func (c *Chain) GetLatestVaultHeight() uint64 {
 	var latestHeight uint64
 	err := c.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(append(vaultPrefix, LatestHeightTag...))
+		item, err := txn.Get(append(vaultPrefix, latestHeightTag...))
 		if err != nil {
 			return err
 		}

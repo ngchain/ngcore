@@ -16,14 +16,14 @@ var log = logging.MustGetLogger("rpc")
 
 type Server struct {
 	consensus    *consensus.Consensus
-	sheetManager *ngsheet.Manager
+	sheetManager *ngsheet.Sheet
 	txPool       *txpool.TxPool
 
 	localNode *ngp2p.LocalNode
 	*jsonrpc2http.Server
 }
 
-func NewServer(host string, port int, consensus *consensus.Consensus, localNode *ngp2p.LocalNode, sheetManager *ngsheet.Manager, txPool *txpool.TxPool) *Server {
+func NewServer(host string, port int, consensus *consensus.Consensus, localNode *ngp2p.LocalNode, sheetManager *ngsheet.Sheet, txPool *txpool.TxPool) *Server {
 	s := &Server{
 		sheetManager: sheetManager,
 		consensus:    consensus,

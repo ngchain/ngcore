@@ -15,7 +15,7 @@ func (p *TxPool) DelBlockTxs(txs ...*ngtypes.Tx) {
 	}
 }
 
-// CheckTxs will check txs self and error in sheet
+// CheckTxs will check txs self and error **in sheet**
 func (p *TxPool) CheckTxs(txs ...*ngtypes.Tx) error {
 	return p.sheetManager.CheckTxs(txs...)
 }

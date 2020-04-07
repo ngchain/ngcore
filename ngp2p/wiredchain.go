@@ -18,7 +18,7 @@ func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, block
 	payload, err := proto.Marshal(&pb.ChainPayload{
 		Vault:        vault,
 		Blocks:       blocks,
-		LatestHeight: w.node.chain.GetLatestBlockHeight(),
+		LatestHeight: w.node.consensus.GetLatestBlockHeight(),
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -99,21 +99,21 @@ func (w *Wired) onChain(s network.Stream) {
 			c = append(c, payload.Blocks[i])
 		}
 
-		err = w.node.chain.InitWithChain(c...)
+		err = w.node.consensus.InitWithChain(c...)
 		if err != nil {
 			log.Error(err)
 		}
 
-		if w.node.chain.GetLatestBlockHeight() == payload.LatestHeight {
+		if w.node.consensus.GetLatestBlockHeight() == payload.LatestHeight {
 			w.node.isInitialized.Store(true)
 			log.Infof("p2p init finished")
 		} else {
-			go w.GetChain(remoteID, w.node.chain.GetLatestVaultHeight()+1)
+			go w.GetChain(remoteID, w.node.consensus.GetLatestVaultHeight()+1)
 		}
 		return
 	}
 
-	localVaultHeight := w.node.chain.GetLatestVaultHeight()
+	localVaultHeight := w.node.consensus.GetLatestVaultHeight()
 	if payload.Vault.Height > localVaultHeight {
 		//append
 		c := []ngchain.Item{payload.Vault}
@@ -121,7 +121,7 @@ func (w *Wired) onChain(s network.Stream) {
 			c = append(c, payload.Blocks[i])
 		}
 
-		err = w.node.chain.PutNewChain(c...)
+		err = w.node.consensus.PutNewChain(c...)
 		if err != nil {
 			log.Error(err)
 			return
@@ -132,7 +132,7 @@ func (w *Wired) onChain(s network.Stream) {
 		for i := 1; i < len(payload.Blocks); i++ {
 			c = append(c, payload.Blocks[i])
 		}
-		err = w.node.chain.SwitchTo(c...)
+		err = w.node.consensus.SwitchTo(c...)
 		if err != nil {
 			log.Error(err)
 			return
@@ -140,7 +140,7 @@ func (w *Wired) onChain(s network.Stream) {
 	}
 
 	// continue get chain
-	if w.node.chain.GetLatestBlockHeight() < payload.LatestHeight {
+	if w.node.consensus.GetLatestBlockHeight() < payload.LatestHeight {
 		go w.GetChain(remoteID, payload.Vault.Height+1)
 		return
 	}

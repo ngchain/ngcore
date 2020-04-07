@@ -33,3 +33,8 @@ func (vm *JSVM) RunState(raw []byte) []byte {
 
 	return []byte(result.String())
 }
+
+// Watch is used to update tx extra code from a specific account
+func (vm *JSVM) Watch(accountID uint64) {
+
+}

@@ -14,31 +14,24 @@ import (
 type Consensus struct {
 	sync.RWMutex
 
-	isMining     bool
-	SheetManager *ngsheet.Manager
+	*ngsheet.Sheet
+	*ngchain.Chain
+	*txpool.TxPool
+
+	isMining bool
 
 	PrivateKey *ecdsa.PrivateKey
-	Chain      *ngchain.Chain
-	TxPool     *txpool.TxPool
 	miner      *miner.Miner
 }
 
-// NewConsensusManager creates a new proof of work consensus manager
-func NewConsensusManager(mining bool) *Consensus {
+// NewConsensus creates a new proof of work consensus manager
+func NewConsensus(mining bool) *Consensus {
 	return &Consensus{
-		SheetManager: nil,
-		PrivateKey:   nil,
-		Chain:        nil,
-		TxPool:       nil,
-
-		isMining: mining,
+		Sheet:      nil,
+		Chain:      nil,
+		TxPool:     nil,
+		isMining:   mining,
+		PrivateKey: nil,
+		miner:      nil,
 	}
-}
-
-// Init will assemble the submodules into consensus
-func (c *Consensus) Init(chain *ngchain.Chain, sheetManager *ngsheet.Manager, privateKey *ecdsa.PrivateKey, txPool *txpool.TxPool) {
-	c.PrivateKey = privateKey
-	c.SheetManager = sheetManager
-	c.Chain = chain
-	c.TxPool = txPool
 }

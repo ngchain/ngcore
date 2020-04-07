@@ -16,10 +16,10 @@ func (w *Wired) Pong(s network.Stream, uuid string) bool {
 	log.Debugf("Sending Pong to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
 
 	payload, err := proto.Marshal(&pb.PingPongPayload{
-		BlockHeight:     w.node.chain.GetLatestBlockHeight(),
-		VaultHeight:     w.node.chain.GetLatestVaultHeight(),
-		LatestBlockHash: w.node.chain.GetLatestBlockHash(),
-		LatestVaultHash: w.node.chain.GetLatestVaultHash(),
+		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
+		VaultHeight:     w.node.consensus.GetLatestVaultHeight(),
+		LatestBlockHash: w.node.consensus.GetLatestBlockHash(),
+		LatestVaultHash: w.node.consensus.GetLatestVaultHash(),
 	})
 	if err != nil {
 		log.Error("failed to sign pb data")
@@ -85,11 +85,11 @@ func (w *Wired) onPong(s network.Stream) {
 
 	w.node.RemoteHeights.Store(remoteID.String(), pong.BlockHeight)
 
-	localVaultHeight := w.node.chain.GetLatestVaultHeight()
-	localVaultHash := w.node.chain.GetLatestVaultHash()
-	localBlockHeight := w.node.chain.GetLatestBlockHeight()
+	localVaultHeight := w.node.consensus.GetLatestVaultHeight()
+	localVaultHash := w.node.consensus.GetLatestVaultHash()
+	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
 
-	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.chain.GetLatestBlockHeight() == 0 {
+	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.consensus.GetLatestBlockHeight() == 0 {
 		go w.GetChain(remoteID, pong.VaultHeight-2)
 		return
 	}

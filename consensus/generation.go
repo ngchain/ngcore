@@ -17,7 +17,7 @@ func (c *Consensus) CreateGenerateTx(privateKey *ecdsa.PrivateKey, blockHeight u
 		[][]byte{publicKeyBytes},
 		[]*big.Int{ngtypes.OneBlockReward},
 		ngtypes.GetBig0(),
-		c.SheetManager.GetNextNonce(0),
+		c.GetNextNonce(0),
 		extraData)
 	err := gen.Signature(privateKey)
 	if err != nil {

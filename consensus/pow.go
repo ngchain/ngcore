@@ -66,7 +66,7 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 	currentVault := c.Chain.GetLatestVault()
 	currentVaultHash, _ := currentVault.CalculateHash()
 
-	newTarget := GetNextTarget(currentBlock, currentVault)
+	newTarget := ngtypes.GetNextTarget(currentBlock, currentVault)
 
 	newBareBlock := ngtypes.NewBareBlock(
 		newBlockHeight,
@@ -92,18 +92,16 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 }
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain
-func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
+func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 	c.Lock()
 	defer c.Unlock()
 
-	// check whether block has the correct nonce
-	err := b.CheckError()
-	if err != nil {
+	if err := c.checkBlock(block); err != nil {
 		log.Warning("Malformed block mined:", err)
 		return
 	}
 
-	prevBlock, err := c.Chain.GetBlockByHash(b.Header.PrevBlockHash)
+	prevBlock, err := c.Chain.GetBlockByHash(block.Header.PrevBlockHash)
 	if err != nil {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
@@ -114,7 +112,7 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		return
 	}
 
-	prevVault, err := c.Chain.GetVaultByHash(b.Header.PrevVaultHash)
+	prevVault, err := c.Chain.GetVaultByHash(block.Header.PrevVaultHash)
 	if err != nil {
 		log.Error("cannot find the prevVault for new block, rejected:", err)
 		return
@@ -124,31 +122,31 @@ func (c *Consensus) MinedNewBlock(b *ngtypes.Block) {
 		return
 	}
 
-	hash, _ := b.CalculateHash()
-	log.Infof("Mined a new Block: %x@%d", hash, b.GetHeight())
+	hash, _ := block.CalculateHash()
+	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
 
 	// TODO: vault should be generated when made the template
-	if b.Header.IsHead() {
-		err := c.SheetManager.HandleVault(prevVault)
+	if block.Header.IsHead() {
+		err := c.HandleVault(prevVault)
 		if err != nil {
 			log.Error(err)
 		}
 	}
 
-	err = c.Chain.MinedNewBlock(b)
+	err = c.Chain.MinedNewBlock(block)
 	if err != nil {
 		log.Warning(err)
 		return
 	}
 
-	err = c.SheetManager.HandleTxs(b.Txs...)
+	err = c.HandleTxs(block.Txs...)
 	if err != nil {
 		log.Warning(err)
 		return
 	}
 
-	if b.Header.IsTail() {
-		currentVault := c.GenNewVault(b.Header.Height/ngtypes.BlockCheckRound, b.Header.PrevVaultHash)
+	if block.Header.IsTail() {
+		currentVault := c.GenNewVault(block.Header.Height/ngtypes.BlockCheckRound, block.Header.PrevVaultHash)
 		err = c.Chain.MinedNewVault(currentVault)
 		if err != nil {
 			panic(err)
@@ -162,7 +160,7 @@ func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *n
 	accountNumber := utils.RandUint64()
 	log.Infof("New account: %d", accountNumber)
 
-	sheet, err := c.SheetManager.GenerateNewSheet()
+	sheet, err := c.GenerateNewSheet()
 	if err != nil {
 		log.Error(err)
 		return nil

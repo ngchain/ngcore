@@ -32,7 +32,7 @@ func (b *Broadcaster) onBroadcastTx(msg *pubsub.Message) {
 		return
 	}
 
-	err = b.node.txPool.PutTxs(tx)
+	err = b.node.consensus.PutTxs(tx)
 	if err != nil {
 		log.Error(err)
 		return
