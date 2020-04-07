@@ -127,7 +127,7 @@ func GetGenesisBlock() *Block {
 		Timestamp:     1024,
 		TrieHash:      NewTxTrie(txs).TrieRoot(),
 		PrevBlockHash: nil,
-		PrevVaultHash: GenesisVaultHash,
+		PrevVaultHash: nil,
 		Nonce:         GenesisNonce.Bytes(),
 		Target:        GenesisTarget.Bytes(),
 	}

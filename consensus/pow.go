@@ -66,7 +66,8 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 	currentVault := c.Chain.GetLatestVault()
 	currentVaultHash, _ := currentVault.CalculateHash()
 
-	newTarget := ngtypes.GetNextTarget(currentBlock, currentVault)
+	currentBlocksVault, _ := c.Chain.GetVaultByHash(currentBlock.Header.PrevVaultHash)
+	newTarget := ngtypes.GetNextTarget(currentBlock, currentBlocksVault)
 
 	newBareBlock := ngtypes.NewBareBlock(
 		newBlockHeight,

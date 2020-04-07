@@ -123,18 +123,18 @@ var action = func(c *cli.Context) error {
 	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
 	go rpc.Run()
 
+	latestVault := chain.GetLatestVault()
+	blocks, err := chain.GetBlocksOnVaultHeight(latestVault.GetHeight())
+	if err != nil {
+		panic(err)
+	}
+	sheetManager.Init(latestVault, blocks...)
+	txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
+	txPool.Run()
+
 	initOnce := &sync.Once{}
 	localNode.OnSynced = func() {
 		initOnce.Do(func() {
-			latestVault := chain.GetLatestVault()
-			blocks, err := chain.GetBlocksOnVaultHeight(latestVault.GetHeight())
-			if err != nil {
-				panic(err)
-			}
-			sheetManager.Init(latestVault, blocks...)
-			txPool.Init(latestVault, chain.MinedBlockToTxPoolCh, chain.NewVaultToTxPoolCh)
-			txPool.Run()
-
 			consensus.InitPoW(c.Int("mining"))
 		})
 

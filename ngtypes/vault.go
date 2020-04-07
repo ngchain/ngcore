@@ -4,8 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
-
 	"golang.org/x/crypto/sha3"
 )
 
@@ -14,7 +12,6 @@ var (
 	ErrInvalidHookBlock = errors.New("the vault's hook_block is invalid")
 	ErrMalformedVault   = errors.New("the vault structure is malformed")
 )
-
 
 // NewVault default class constructor
 func NewVault(prevVaultHeight uint64, prevVaultHash []byte, currentSheet *Sheet) *Vault {
@@ -53,9 +50,8 @@ func GetGenesisVault() *Vault {
 	return v
 }
 
-func (m *Vault) Copy() *Vault {
-	v := proto.Clone(m).(*Vault)
-	return v
+func (m *Vault) CheckError() error {
+	return nil
 }
 
 func (m *Vault) GetPrevHash() []byte {

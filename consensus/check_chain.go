@@ -14,10 +14,6 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 		return fmt.Errorf("empty chain")
 	}
 
-	if len(items) == ngtypes.BlockCheckRound+1 {
-		return fmt.Errorf("chain too long")
-	}
-
 	if len(items) == 1 {
 		return c.checkVault(items[0].(*ngtypes.Vault))
 	}
@@ -25,28 +21,42 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 	var curBlock, prevBlock *ngtypes.Block
 	var curVault, prevVault *ngtypes.Vault
 
-	var err error
-	prevBlock, err = c.GetBlockByHeight(curVault.GetHeight()*ngtypes.BlockCheckRound - 1)
-	if err != nil {
-		return err
-	}
-	prevBlockHash, _ := prevBlock.CalculateHash()
+	var prevBlockHash, prevVaultHash []byte
 
-	prevVault, err = c.GetVaultByHash(prevBlock.Header.PrevVaultHash)
-	if err != nil {
-		return err
+	var err error
+	firstVault := items[0].(*ngtypes.Vault)
+	firstBlock := items[1].(*ngtypes.Block)
+	if firstBlock == ngtypes.GetGenesisBlock() && firstVault == ngtypes.GetGenesisVault() {
+		prevBlock = firstBlock
+		prevVault = firstVault
+		prevBlockHash = ngtypes.GenesisBlockHash
+		prevVaultHash = ngtypes.GenesisVaultHash
+	} else {
+		prevBlock, err = c.GetBlockByHash(firstBlock.GetPrevHash())
+		if err != nil {
+			return err
+		}
+		prevBlockHash, _ = prevBlock.CalculateHash()
+
+		prevVault, err = c.GetVaultByHash(prevBlock.Header.PrevVaultHash)
+		if err != nil {
+			return err
+		}
+		prevVaultHash, _ = prevVault.CalculateHash()
 	}
-	prevVaultHash, _ := prevVault.CalculateHash()
 
 	for i := 0; i < len(items); i++ {
 		switch items[i].(type) {
 		case *ngtypes.Vault:
 			curVault = items[i].(*ngtypes.Vault)
+			if err = curVault.CheckError(); err != nil {
+				return err
+			}
 
 			// prevVaultHash, _ := prevVault.CalculateHash()
 			if curVault != nil {
 				hash, _ := curVault.CalculateHash()
-				if bytes.Equal(prevVaultHash, curVault.GetPrevHash()) {
+				if !bytes.Equal(prevVaultHash, curVault.GetPrevHash()) {
 					return fmt.Errorf("vault@%d:%x 's prevHash: %x is not matching vault@%d:%x 's hash", curVault.GetHeight(), hash, curVault.GetPrevHash(), prevVault.GetHeight(), prevVaultHash)
 				}
 
@@ -56,6 +66,9 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 
 		case *ngtypes.Block:
 			curBlock = items[i].(*ngtypes.Block)
+			if err = curBlock.CheckError(); err != nil {
+				return err
+			}
 
 			if err = c.checkBlockTarget(curBlock, prevBlock, curVault); err != nil {
 				return err

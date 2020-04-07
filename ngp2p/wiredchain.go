@@ -108,7 +108,7 @@ func (w *Wired) onChain(s network.Stream) {
 
 		err = w.node.consensus.InitWithChain(c...)
 		if err != nil {
-			log.Error(err)
+			log.Error("failed initializing with chain: %s", err)
 		}
 
 		if w.node.consensus.GetLatestBlockHeight() == payload.LatestHeight {
@@ -130,7 +130,7 @@ func (w *Wired) onChain(s network.Stream) {
 
 		err = w.node.consensus.PutNewChain(c...)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("failed putting new chain: %s", err)
 			return
 		}
 	} else {
@@ -141,7 +141,7 @@ func (w *Wired) onChain(s network.Stream) {
 		}
 		err = w.node.consensus.SwitchTo(c...)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("failed switching to new chain: %s", err)
 			return
 		}
 	}
