@@ -19,8 +19,7 @@ message Header {
 // a protocol define a set of requests and responses
 message Message {
     Header header = 1;
-    uint64 nonce = 2;
-    bytes payload = 3;
+    bytes payload = 2;
 }
 
 /* wired */

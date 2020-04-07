@@ -50,7 +50,7 @@ type LocalNode struct {
 }
 
 // NewLocalNode creates a new node with its implemented protocols
-func NewLocalNode(port int, isStrictMode, isBootstrapNode bool) *LocalNode {
+func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 	ctx := context.Background()
 
 	priv := getP2PKey(isBootstrapNode)
@@ -110,6 +110,8 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 	)
 
 	node := &LocalNode{
+		consensus: consensus,
+
 		Host:        localHost,
 		Wired:       nil,
 		Broadcaster: nil,
@@ -119,16 +121,13 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 		isSyncedCh:      make(chan bool),
 		OnNotSynced:     nil,
 
-		// sheetManager:  sheetManager,
-		// chain:         chain,
-		// txPool:        txPool,
 		RemoteHeights: new(sync.Map),
 		isStrictMode:  isStrictMode,
 	}
 
 	node.Broadcaster = registerBroadcaster(node)
-	node.Wired = registerProtocol(node)
 
+	node.Wired = registerProtocol(node)
 	go node.Wired.Sync()
 
 	// mdns seeding
@@ -136,7 +135,7 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 		for {
 			pi := <-peerInfoCh // will block until we discover a peer
 			log.Infof("Found peer:", pi, ", connecting")
-			if err := node.Connect(ctx, pi); err != nil {
+			if err = node.Connect(ctx, pi); err != nil {
 				log.Errorf("Connection failed: %s", err)
 				continue
 			}
@@ -150,10 +149,6 @@ func NewLocalNode(port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 	}
 
 	return node
-}
-
-func (n *LocalNode) LoadConsensus(consensus *consensus.Consensus) {
-	n.consensus = consensus
 }
 
 // Authenticate incoming p2p message

@@ -2,7 +2,6 @@ package ngtypes
 
 import (
 	"encoding/binary"
-	"math/big"
 
 	"github.com/ngin-network/cryptonight-go"
 )
@@ -40,22 +39,6 @@ func (m *BlockHeader) GetPoWBlob(nonce []byte) []byte {
 	}
 
 	return raw
-}
-
-// VerifyHash check whether the hash value is correct
-func (m *BlockHeader) VerifyHash() bool {
-	if m.GetNonce() == nil {
-		log.Error(ErrBlockNonceInvalid)
-		return false
-	}
-
-	hash := m.CalculateHash()
-	if new(big.Int).SetBytes(hash).Cmp(new(big.Int).SetBytes(m.GetTarget())) < 0 {
-		return true
-	}
-
-	log.Error(ErrBlockHashInvalid)
-	return false
 }
 
 // CalculateHash will help you get the hash of block

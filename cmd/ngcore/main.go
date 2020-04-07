@@ -118,8 +118,7 @@ var action = func(c *cli.Context) error {
 	consensus := consensus.NewConsensus(isMining)
 	consensus.Init(chain, sheetManager, key, txPool)
 
-	localNode := ngp2p.NewLocalNode(p2pTCPPort, isStrictMode, isBootstrapNode)
-	localNode.LoadConsensus(consensus)
+	localNode := ngp2p.NewLocalNode(consensus, p2pTCPPort, isStrictMode, isBootstrapNode)
 
 	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
 	go rpc.Run()

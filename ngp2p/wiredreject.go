@@ -43,20 +43,16 @@ func (w *Wired) onReject(s network.Stream) {
 	}
 
 	// unmarshal it
-	var data pb.Message
-	err = proto.Unmarshal(buf, &data)
+	var data = &pb.Message{}
+	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	// locate request data and remove it if found
-	_, ok := w.requests.Load(data.Header.Uuid)
-	if ok {
-		// remove request from map as we have processed it here
-		w.requests.Delete(data.Header.Uuid)
-	} else {
-		log.Error("Failed to locate request data object for response")
+	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
+		log.Errorf("Failed to authenticate message")
+		return
 	}
 
 	remoteID := s.Conn().RemotePeer()
