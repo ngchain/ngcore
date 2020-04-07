@@ -43,6 +43,7 @@ func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, block
 
 	ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), chainMethod, req)
 	if !ok {
+		log.Debugf("chain to: %s was sent. Message Id: %s", s.Conn().RemotePeer(), req.Header.Uuid)
 		return false
 	}
 
@@ -69,7 +70,12 @@ func (w *Wired) onChain(s network.Stream) {
 		return
 	}
 
-	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
+	if !w.node.verifyResponse(data) {
+		log.Errorf("Failed to verify response")
+		return
+	}
+
+	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}

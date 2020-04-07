@@ -156,7 +156,6 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 // data: common p2p message data
 func (n *LocalNode) verifyResponse(message *pb.Message) bool {
 	if _, exists := n.requests.Load(message.Header.Uuid); !exists {
-		// remove request from map as we have processed it here
 		return false
 	}
 
@@ -181,6 +180,7 @@ func (n *LocalNode) authenticateMessage(remotePeerID peer.ID, message *pb.Messag
 
 // sign an outgoing p2p message payload
 func (n *LocalNode) signMessage(message *pb.Message) ([]byte, error) {
+	message.Header.Sign = nil
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err

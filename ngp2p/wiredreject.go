@@ -50,7 +50,12 @@ func (w *Wired) onReject(s network.Stream) {
 		return
 	}
 
-	if !w.node.verifyResponse(data) || !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
+	if !w.node.verifyResponse(data) {
+		log.Errorf("Failed to verify response")
+		return
+	}
+
+	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}

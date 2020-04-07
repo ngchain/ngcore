@@ -43,12 +43,13 @@ func (w *Wired) Ping(remotePeerID peer.ID) bool {
 
 	ok := w.node.sendProtoMessage(remotePeerID, pingMethod, req)
 	if !ok {
+		log.Infof("failed sending ping to: %s.", remotePeerID)
 		return false
 	}
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Debugf("Sent Ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
+	log.Infof("Sent ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
 	return true
 }
 
