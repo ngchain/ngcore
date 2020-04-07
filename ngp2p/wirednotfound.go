@@ -5,13 +5,14 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
 // NotFound will reply NotFound message to remote node
-func (w *Wired) NotFound(s network.Stream, uuid string) {
-	log.Debugf("Sending notfound to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
+func (w *Wired) NotFound(peerID peer.ID, uuid string) {
+	log.Debugf("Sending notfound to %s. Message id: %s...", peerID, uuid)
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
 		Payload: nil,
@@ -28,8 +29,8 @@ func (w *Wired) NotFound(s network.Stream, uuid string) {
 	resp.Header.Sign = signature
 
 	// send the response
-	if ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), notfoundMethod, resp); ok {
-		log.Debugf("notfound to %s sent.", s.Conn().RemotePeer().String())
+	if ok := w.node.sendProtoMessage(peerID, notfoundMethod, resp); ok {
+		log.Debugf("notfound to %s sent.", peerID)
 	}
 }
 
@@ -41,6 +42,7 @@ func (w *Wired) onNotFound(s network.Stream) {
 		log.Error(err)
 		return
 	}
+	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}

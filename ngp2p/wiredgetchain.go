@@ -12,7 +12,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *Wired) GetChain(remotePeerID peer.ID, requestHeight uint64) bool {
+func (w *Wired) GetChain(peerID peer.ID, requestHeight uint64) bool {
 	payload, err := proto.Marshal(&pb.GetChainPayload{
 		VaultHeight: requestHeight,
 	})
@@ -37,14 +37,14 @@ func (w *Wired) GetChain(remotePeerID peer.ID, requestHeight uint64) bool {
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	ok := w.node.sendProtoMessage(remotePeerID, getChainMethod, req)
+	ok := w.node.sendProtoMessage(peerID, getChainMethod, req)
 	if !ok {
 		return false
 	}
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Debugf("getchain to: %s was sent. Message Id: %s, request vault height: %d", remotePeerID, req.Header.Uuid, requestHeight)
+	log.Debugf("getchain to: %s was sent. Message Id: %s, request vault height: %d", peerID, req.Header.Uuid, requestHeight)
 	return true
 }
 
@@ -85,7 +85,7 @@ func (w *Wired) onGetChain(s network.Stream) {
 	// chain
 	localHeight := w.node.consensus.GetLatestBlockHeight()
 	if localHeight < getchain.VaultHeight {
-		go w.Reject(s, data.Header.Uuid)
+		go w.Reject(remoteID, data.Header.Uuid)
 		return
 	}
 
@@ -109,9 +109,9 @@ func (w *Wired) onGetChain(s network.Stream) {
 	vault, err := w.node.consensus.GetVaultByHeight(getchain.VaultHeight)
 	if err != nil {
 		log.Errorf("failed to get vault")
-		go w.NotFound(s, data.Header.Uuid)
+		go w.NotFound(remoteID, data.Header.Uuid)
 		return
 	}
 
-	go w.Chain(s, data.Header.Uuid, vault, blocks...)
+	go w.Chain(remoteID, data.Header.Uuid, vault, blocks...)
 }

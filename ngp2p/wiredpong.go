@@ -7,13 +7,14 @@ import (
 	"github.com/gogo/protobuf/proto"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *Wired) Pong(s network.Stream, uuid string) bool {
-	log.Debugf("Sending Pong to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
+func (w *Wired) Pong(peerID peer.ID, uuid string) bool {
+	log.Debugf("Sending Pong to %s. Message id: %s...", peerID, uuid)
 
 	payload, err := proto.Marshal(&pb.PingPongPayload{
 		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
@@ -42,8 +43,8 @@ func (w *Wired) Pong(s network.Stream, uuid string) bool {
 	resp.Header.Sign = signature
 
 	// send the response
-	if ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), pongMethod, resp); ok {
-		log.Debugf("Pong to %s sent.", s.Conn().RemotePeer().String())
+	if ok := w.node.sendProtoMessage(peerID, pongMethod, resp); ok {
+		log.Debugf("Pong to %s sent.", peerID.String())
 	}
 	return true
 }
@@ -56,6 +57,9 @@ func (w *Wired) onPong(s network.Stream) {
 		log.Error(err)
 		return
 	}
+
+	remotePeerID := s.Conn().RemotePeer()
+	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}
@@ -82,39 +86,36 @@ func (w *Wired) onPong(s network.Stream) {
 		return
 	}
 
-	remoteID := s.Conn().RemotePeer()
-	_ = s.Close()
+	log.Debugf("Received Pong from %s. Message id:%s. Remote height: %d.", remotePeerID, data.Header.Uuid, pong.BlockHeight)
+	w.node.Peerstore().AddAddrs(remotePeerID, []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
 
-	log.Debugf("Received Pong from %s. Message id:%s. Remote height: %d.", remoteID, data.Header.Uuid, pong.BlockHeight)
-	w.node.Peerstore().AddAddrs(remoteID, []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
-
-	w.node.RemoteHeights.Store(remoteID.String(), pong.BlockHeight)
+	w.node.RemoteHeights.Store(remotePeerID.String(), pong.BlockHeight)
 
 	localVaultHeight := w.node.consensus.GetLatestVaultHeight()
 	localVaultHash := w.node.consensus.GetLatestVaultHash()
 	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
 
 	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.consensus.GetLatestBlockHeight() == 0 {
-		go w.GetChain(remoteID, pong.VaultHeight-2)
+		go w.GetChain(remotePeerID, pong.VaultHeight-2)
 		return
 	}
 
 	if localVaultHeight < pong.VaultHeight {
 		// start sync
-		log.Infof("start syncing with %s", remoteID)
+		log.Infof("start syncing with %s", remotePeerID)
 		if w.node.isStrictMode {
 			requestHeight := (localBlockHeight + 1) / ngtypes.BlockCheckRound
-			go w.GetChain(remoteID, requestHeight)
+			go w.GetChain(remotePeerID, requestHeight)
 		} else {
-			go w.GetChain(remoteID, pong.VaultHeight-2)
+			go w.GetChain(remotePeerID, pong.VaultHeight-2)
 		}
 		return
 	}
 
 	if localVaultHeight == pong.VaultHeight && !bytes.Equal(localVaultHash, pong.LatestVaultHash) {
 		// start fork
-		log.Infof("start switching to the chain of %s", remoteID)
-		go w.GetChain(remoteID, pong.VaultHeight)
+		log.Infof("start switching to the chain of %s", remotePeerID)
+		go w.GetChain(remotePeerID, pong.VaultHeight)
 		return
 	}
 }

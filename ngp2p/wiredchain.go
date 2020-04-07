@@ -5,6 +5,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
@@ -12,8 +13,8 @@ import (
 )
 
 // Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, blocks ...*ngtypes.Block) bool {
-	log.Debugf("Sending chain to %s. Message id: %s, chain from vault@%d ...", s.Conn().RemotePeer(), uuid, vault.Height)
+func (w *Wired) Chain(peerID peer.ID, uuid string, vault *ngtypes.Vault, blocks ...*ngtypes.Block) bool {
+	log.Debugf("Sending chain to %s. Message id: %s, chain from vault@%d ...", peerID, uuid, vault.Height)
 
 	payload, err := proto.Marshal(&pb.ChainPayload{
 		Vault:        vault,
@@ -41,15 +42,15 @@ func (w *Wired) Chain(s network.Stream, uuid string, vault *ngtypes.Vault, block
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), chainMethod, req)
+	ok := w.node.sendProtoMessage(peerID, chainMethod, req)
 	if !ok {
-		log.Debugf("chain to: %s was sent. Message Id: %s", s.Conn().RemotePeer(), req.Header.Uuid)
+		log.Debugf("chain to: %s was sent. Message Id: %s", peerID, req.Header.Uuid)
 		return false
 	}
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Debugf("chain to: %s was sent. Message Id: %s", s.Conn().RemotePeer(), req.Header.Uuid)
+	log.Debugf("chain to: %s was sent. Message Id: %s", peerID, req.Header.Uuid)
 	return true
 }
 

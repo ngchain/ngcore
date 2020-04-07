@@ -49,7 +49,7 @@ func (w *Wired) Ping(remotePeerID peer.ID) bool {
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
-	log.Infof("Sent ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
+	log.Debugf("Sent ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
 	return true
 }
 
@@ -63,12 +63,15 @@ func (w *Wired) onPing(s network.Stream) {
 		return
 	}
 
+	remotePeerID := s.Conn().RemotePeer()
+	_ = s.Close()
+
 	// unmarshal it
 	var data = &pb.Message{}
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
-		go w.Reject(s, data.Header.Uuid)
+		go w.Reject(remotePeerID, data.Header.Uuid)
 
 		return
 	}
@@ -82,7 +85,7 @@ func (w *Wired) onPing(s network.Stream) {
 	err = proto.Unmarshal(data.Payload, ping)
 	if err != nil {
 		log.Error(err)
-		go w.Reject(s, data.Header.Uuid)
+		go w.Reject(remotePeerID, data.Header.Uuid)
 
 		return
 	}
@@ -92,5 +95,5 @@ func (w *Wired) onPing(s network.Stream) {
 	// Pong
 	w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
 
-	go w.Pong(s, data.Header.Uuid)
+	go w.Pong(remotePeerID, data.Header.Uuid)
 }

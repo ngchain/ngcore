@@ -5,13 +5,14 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
 // Reject will reply Reject message to remote node
-func (w *Wired) Reject(s network.Stream, uuid string) {
-	log.Debugf("Sending Reject to %s. Message id: %s...", s.Conn().RemotePeer(), uuid)
+func (w *Wired) Reject(peerID peer.ID, uuid string) {
+	log.Debugf("Sending Reject to %s. Message id: %s...", peerID, uuid)
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
 		Payload: nil,
@@ -28,8 +29,8 @@ func (w *Wired) Reject(s network.Stream, uuid string) {
 	resp.Header.Sign = signature
 
 	// send the response
-	if ok := w.node.sendProtoMessage(s.Conn().RemotePeer(), rejectMethod, resp); ok {
-		log.Debugf("Reject to %s sent.", s.Conn().RemotePeer().String())
+	if ok := w.node.sendProtoMessage(peerID, rejectMethod, resp); ok {
+		log.Debugf("Reject to %s sent.", peerID)
 	}
 }
 
@@ -41,6 +42,9 @@ func (w *Wired) onReject(s network.Stream) {
 		log.Error(err)
 		return
 	}
+
+	remotePeerID := s.Conn().RemotePeer()
+	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}
@@ -60,8 +64,5 @@ func (w *Wired) onReject(s network.Stream) {
 		return
 	}
 
-	remoteID := s.Conn().RemotePeer()
-	_ = s.Close()
-
-	log.Debugf("Received Reject from %s. Message id:%s. Message: %s.", remoteID, data.Header.Uuid, data.Payload)
+	log.Debugf("Received Reject from %s. Message id:%s. Message: %s.", remotePeerID, data.Header.Uuid, data.Payload)
 }
