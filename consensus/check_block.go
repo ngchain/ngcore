@@ -14,12 +14,14 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	if block == ngtypes.GetGenesisBlock() {
+	genesisBlock := ngtypes.GetGenesisBlock()
+	if block == genesisBlock {
 		return nil
 	}
 
-	if !bytes.Equal(block.GetPrevHash(), ngtypes.GenesisBlockHash) {
-		prevBlock, err := c.GetBlockByHash(block.GetPrevHash())
+	prevHash := block.GetPrevHash()
+	if !bytes.Equal(prevHash, ngtypes.GenesisBlockHash) {
+		prevBlock, err := c.GetBlockByHash(prevHash)
 		if err != nil {
 			return err
 		}

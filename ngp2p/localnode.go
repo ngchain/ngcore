@@ -9,7 +9,6 @@ import (
 	"github.com/gogo/protobuf/io"
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p"
-	relay "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -85,7 +84,7 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 		libp2p.Identity(priv),
 		libp2p.Routing(newDHT),
 		libp2p.NATPortMap(),
-		libp2p.EnableRelay(relay.OptActive, relay.OptHop),
+		libp2p.EnableAutoRelay(),
 	)
 	if err != nil {
 		panic(err)
