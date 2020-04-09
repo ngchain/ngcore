@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) runState(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	key := utils.ECDSAPublicKey2Bytes(s.consensus.PrivateKey.PublicKey)
+	key := utils.PublicKey2Bytes(*s.consensus.PrivateKey.PubKey())
 	accounts, err := s.sheetManager.GetAccountsByPublicKey(key)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

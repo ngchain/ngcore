@@ -1,8 +1,9 @@
 package consensus
 
 import (
-	"crypto/ecdsa"
 	"sync"
+
+	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngchain"
@@ -20,7 +21,7 @@ type Consensus struct {
 
 	isMining bool
 
-	PrivateKey *ecdsa.PrivateKey
+	PrivateKey *secp256k1.PrivateKey
 	miner      *miner.Miner
 }
 

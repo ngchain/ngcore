@@ -52,7 +52,7 @@ type LocalNode struct {
 func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 	ctx := context.Background()
 
-	priv := getP2PKey(true)
+	priv := getP2PKey()
 
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),

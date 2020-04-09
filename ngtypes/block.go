@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/ngin-network/cryptonight-go"
+	"github.com/ngchain/cryptonight-go"
 	"github.com/whyrusleeping/go-logging"
 )
 

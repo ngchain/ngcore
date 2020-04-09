@@ -2,14 +2,15 @@ package ngtypes
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ngchain/go-schnorr"
+
 	"github.com/gogo/protobuf/proto"
+	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/cbergoon/merkletree"
@@ -39,23 +40,18 @@ func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values
 
 	return &Tx{
 		Header: header,
-
-		R: nil,
-		S: nil,
+		Sign:   nil,
 	}
 }
 
 // IsSigned will return whether the op has been signed
 func (m *Tx) IsSigned() bool {
-	if m.R == nil || m.S == nil {
-		return false
-	}
-	return true
+	return m.Sign != nil
 }
 
 // Verify helps verify the transaction whether signed by the public key owner
-func (m *Tx) Verify(pubKey ecdsa.PublicKey) error {
-	if m.R == nil || m.S == nil {
+func (m *Tx) Verify(publicKey secp256k1.PublicKey) error {
+	if m.Sign == nil {
 		log.Panic("unsigned transaction")
 	}
 
@@ -64,8 +60,15 @@ func (m *Tx) Verify(pubKey ecdsa.PublicKey) error {
 		return err
 	}
 
-	hash := sha3.Sum256(b)
-	if !ecdsa.Verify(&pubKey, hash[:], new(big.Int).SetBytes(m.R), new(big.Int).SetBytes(m.S)) {
+	var signature [64]byte
+	copy(signature[:], m.Sign)
+
+	var key [33]byte
+	copy(key[:], publicKey.SerializeCompressed())
+	if ok, err := schnorr.Verify(key, sha3.Sum256(b), signature); !ok {
+		if err != nil {
+			return err
+		}
 		return ErrTxWrongSign
 	}
 
@@ -159,7 +162,7 @@ func (m *Tx) CheckGenerate() error {
 		return fmt.Errorf("generate should have same len with participants")
 	}
 
-	if !bytes.Equal(m.TotalCharge().Bytes(), OneBlockReward.Bytes()) {
+	if !bytes.Equal(m.TotalExpenditure().Bytes(), OneBlockReward.Bytes()) {
 		return fmt.Errorf("wrong block reward")
 	}
 
@@ -167,7 +170,7 @@ func (m *Tx) CheckGenerate() error {
 		return fmt.Errorf("generate's fee should be ZERO")
 	}
 
-	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+	publicKey := utils.Bytes2PublicKey(m.GetParticipants()[0])
 	if err := m.Verify(publicKey); err != nil {
 		return err
 	}
@@ -204,7 +207,7 @@ func (m *Tx) CheckRegister() error {
 		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
 	}
 
-	publicKey := utils.Bytes2ECDSAPublicKey(m.GetParticipants()[0])
+	publicKey := utils.Bytes2PublicKey(m.GetParticipants()[0])
 	if err := m.Verify(publicKey); err != nil {
 		return err
 	}
@@ -212,7 +215,7 @@ func (m *Tx) CheckRegister() error {
 	return nil
 }
 
-func (m *Tx) CheckLogout(key ecdsa.PublicKey) error {
+func (m *Tx) CheckLogout(key secp256k1.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("logout is missing header")
 	}
@@ -240,7 +243,7 @@ func (m *Tx) CheckLogout(key ecdsa.PublicKey) error {
 	return nil
 }
 
-func (m *Tx) CheckTransaction(key ecdsa.PublicKey) error {
+func (m *Tx) CheckTransaction(key secp256k1.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("transaction is missing header")
 	}
@@ -260,7 +263,7 @@ func (m *Tx) CheckTransaction(key ecdsa.PublicKey) error {
 	return nil
 }
 
-func (m *Tx) CheckAssign(key ecdsa.PublicKey) error {
+func (m *Tx) CheckAssign(key secp256k1.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("assign is missing header")
 	}
@@ -284,7 +287,7 @@ func (m *Tx) CheckAssign(key ecdsa.PublicKey) error {
 	return nil
 }
 
-func (m *Tx) CheckAppend(key ecdsa.PublicKey) error {
+func (m *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	if m.Header == nil {
 		return errors.New("append is missing header")
 	}
@@ -309,20 +312,22 @@ func (m *Tx) CheckAppend(key ecdsa.PublicKey) error {
 }
 
 // Signature will re-sign the Tx with private key
-func (m *Tx) Signature(privKey *ecdsa.PrivateKey) (err error) {
+func (m *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	b, err := proto.Marshal(m.Header)
 	if err != nil {
 		log.Error(err)
 	}
 
-	hash := sha3.Sum256(b)
-	r, s, err := ecdsa.Sign(rand.Reader, privKey, hash[:])
+	ds := make([]*big.Int, len(privateKeys))
+	for i := range privateKeys {
+		ds[i] = privateKeys[i].D
+	}
+	sign, err := schnorr.AggregateSignatures(ds, sha3.Sum256(b))
 	if err != nil {
 		log.Panic(err)
 	}
 
-	m.R = r.Bytes()
-	m.S = s.Bytes()
+	m.Sign = sign[:]
 
 	return
 }
@@ -359,8 +364,13 @@ func (m *Tx) GetExtra() []byte {
 	return m.Header.GetExtra()
 }
 
-func (m *Tx) TotalCharge() *big.Int {
-	return m.Header.TotalCharge()
+func (m *Tx) TotalExpenditure() *big.Int {
+	total := GetBig0()
+	for i := range m.Header.Values {
+		total.Add(total, new(big.Int).SetBytes(m.Header.Values[i]))
+	}
+
+	return new(big.Int).Add(new(big.Int).SetBytes(m.Header.Fee), total)
 }
 
 // GetGenesisGenerateTx is a constructed function
@@ -368,7 +378,7 @@ func GetGenesisGenerateTx() *Tx {
 	gen := NewUnsignedTx(
 		TX_GENERATE,
 		0,
-		[][]byte{GenesisPK},
+		[][]byte{GenesisPublicKey},
 		[]*big.Int{OneBlockReward},
 		GetBig0(),
 		1,
@@ -376,8 +386,7 @@ func GetGenesisGenerateTx() *Tx {
 	)
 
 	// FIXME: before init network should manually init the R & S
-	gen.R, _ = hex.DecodeString("e60f90c8e8bb717cf30cf59a8bec8d17f189a5a4e0a621f4c2ce2d24a0443d1f")
-	gen.S, _ = hex.DecodeString("dfcba58223e100569991a856ca139287714e5cd53074bc962328a602fe3b81bf")
+	gen.Sign, _ = base58.FastBase58Decoding("2FZvjTQYC9q8qYqhH2jH2f6xrYPMjXnjeA3NYyiEeQfudukHpMRWYmkZxA6W2TMtXPn12kk1n3ukJHCNgsDbXSrA")
 
 	return gen
 }

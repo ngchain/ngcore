@@ -13,9 +13,8 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/mr-tron/base58"
-	"github.com/ngin-network/cryptonight-go"
+	"github.com/ngchain/cryptonight-go"
 )
-
 
 // TestBlock_GetHash test func GetGenesisBlock() and return Hash value
 func TestBlock_GetHash(t *testing.T) {
@@ -23,7 +22,6 @@ func TestBlock_GetHash(t *testing.T) {
 	block := b.Header.CalculateHash()
 	t.Log(len(block))
 }
-
 
 // TestGetGenesisBlockNonce test func NewBareBlock()
 func TestGetGenesisBlockNonce(t *testing.T) {

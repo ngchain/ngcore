@@ -1,14 +1,12 @@
 package ngtypes
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"encoding/hex"
 	"math/big"
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/utils"
 )
@@ -18,7 +16,7 @@ func TestDeserialize(t *testing.T) {
 	tx := NewUnsignedTx(
 		TX_GENERATE,
 		0,
-		[][]byte{GenesisPK},
+		[][]byte{GenesisPublicKey},
 		[]*big.Int{new(big.Int).Mul(NG, big.NewInt(1000))},
 		GetBig0(),
 		0,
@@ -38,24 +36,24 @@ func TestDeserialize(t *testing.T) {
 
 // TestTransaction_Signature test generated Key pair
 func TestTransaction_Signature(t *testing.T) {
-	o := NewUnsignedTx(0, 1, [][]byte{GenesisPK}, []*big.Int{GetBig0()}, GetBig0(), 0, nil)
-	priv, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	priv2, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	o := NewUnsignedTx(0, 1, [][]byte{GenesisPublicKey}, []*big.Int{GetBig0()}, GetBig0(), 0, nil)
+	priv1, _ := secp256k1.GeneratePrivateKey()
+	priv2, _ := secp256k1.GeneratePrivateKey()
 
-	_ = o.Signature(priv)
+	_ = o.Signature(priv1)
 
-	if err := o.Verify(priv.PublicKey); err != nil {
+	if err := o.Verify(*priv1.PubKey()); err != nil {
 		t.Fail()
 	}
 
-	if err := o.Verify(priv2.PublicKey); err == nil {
+	if err := o.Verify(*priv2.PubKey()); err == nil {
 		t.Fail()
 	}
 }
 
 func TestGetGenesisGenerate(t *testing.T) {
 	gg := GetGenesisGenerateTx()
-	if err := gg.Verify(utils.Bytes2ECDSAPublicKey(gg.GetParticipants()[0])); err != nil {
+	if err := gg.Verify(utils.Bytes2PublicKey(gg.GetParticipants()[0])); err != nil {
 		t.Fail()
 	}
 }

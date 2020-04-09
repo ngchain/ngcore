@@ -21,4 +21,8 @@ go_test(
     name = "go_default_test",
     srcs = ["pool_test.go"],
     embed = [":go_default_library"],
+    deps = [
+        "//ngsheet:go_default_library",
+        "//ngtypes:go_default_library",
+    ],
 )

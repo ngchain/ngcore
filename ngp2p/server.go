@@ -2,10 +2,7 @@ package ngp2p
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
 	"io/ioutil"
 	"os"
 
@@ -39,45 +36,36 @@ func readKeyFromFile(filename string) crypto.PrivKey {
 	}
 	_ = keyFile.Close()
 
-	ecdsaPriv, err := x509.ParseECPrivateKey(raw)
+	priv, err := crypto.UnmarshalSecp256k1PrivateKey(raw)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	priv, _, _ := crypto.ECDSAKeyPairFromKey(ecdsaPriv)
-
 	return priv
 }
 
-func getP2PKey(isBootstrap bool) crypto.PrivKey {
-	if isBootstrap {
-		// read from db / file
-		if _, err := os.Stat("p2p.key"); os.IsNotExist(err) {
-			priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-			if err != nil {
-				log.Panic(err)
-			}
-
-			raw, err := x509.MarshalECPrivateKey(priv)
-			if err != nil {
-				log.Panic(err)
-			}
-
-			log.Info("creating bootstrap key")
-			f, err := os.Create("p2p.key")
-			if err != nil {
-				log.Panic(err)
-			}
-
-			_, _ = f.Write(raw)
-			_ = f.Close()
+func getP2PKey() crypto.PrivKey {
+	// read from db / file
+	if _, err := os.Stat("p2p.key"); os.IsNotExist(err) {
+		priv, _, err := crypto.GenerateSecp256k1Key(rand.Reader)
+		if err != nil {
+			log.Panic(err)
 		}
 
-		return readKeyFromFile("p2p.key")
+		raw, err := crypto.MarshalPrivateKey(priv)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		log.Info("creating bootstrap key")
+		f, err := os.Create("p2p.key")
+		if err != nil {
+			log.Panic(err)
+		}
+
+		_, _ = f.Write(raw)
+		_ = f.Close()
 	}
 
-	// new one
-	log.Infof("loading new p2p key")
-	priv, _, _ := crypto.GenerateKeyPair(crypto.ECDSA, 256)
-	return priv
+	return readKeyFromFile("p2p.key")
 }

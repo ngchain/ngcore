@@ -28,12 +28,12 @@ var log = logging.MustGetLogger("main")
 
 var strictModeFlag = cli.BoolTFlag{
 	Name:  "strict",
-	Usage: "force ngcore starts from the genesis block",
+	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
-var logFlag = cli.BoolTFlag{
-	Name:  "save-log",
-	Usage: "Whether save the log into file",
+var logFlag = cli.StringFlag{
+	Name:  "log-file",
+	Usage: "Enable save the log into the file",
 }
 
 var p2pTCPPortFlag = cli.IntFlag{
@@ -50,12 +50,12 @@ var rpcPortFlag = cli.IntFlag{
 
 var isBootstrapFlag = cli.BoolFlag{
 	Name:  "bootstrap",
-	Usage: "start local node as a bootstrap peer",
+	Usage: "Enable starting local node as a bootstrap peer",
 }
 
 var profileFlag = cli.BoolFlag{
 	Name:  "profile",
-	Usage: "write cpu profile to the file",
+	Usage: "Enable writing cpu profile to the file",
 }
 
 var keyPassFlag = cli.StringFlag{
@@ -66,16 +66,26 @@ var keyPassFlag = cli.StringFlag{
 
 var miningFlag = cli.IntFlag{
 	Name:  "mining",
+	Usage: "The worker number on mining. Mining starts when value is not negative. And when value equals to 0, use all cpu cores",
 	Value: -1,
-	Usage: "Value is the worker number on mining. Mining starts when value is not negative. And when value equals to 0, use all cpu cores",
 }
 
-var format = logging.MustStringFormatter(
-	"%{time:15:04:05.000} %{color}[%{module}] ▶ %{level}%{color:reset} %{message}",
-)
+var colorFlag = cli.BoolFlag{
+	Name:  "color",
+	Usage: "Enable displaying log with color",
+}
+
+var logLevelFlag = cli.BoolFlag{
+	Name:  "log",
+	Usage: "Enable displaying logs which are equal or higher to the level",
+}
 
 // the Main
 var action = func(c *cli.Context) error {
+	var format = logging.MustStringFormatter(
+		"%{time:15:04:05.000} %{color}[%{module}] ▶ %{level}%{color:reset} %{message}",
+	)
+
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	formatter := logging.NewBackendFormatter(backend, format)
 	logging.SetBackend(formatter)

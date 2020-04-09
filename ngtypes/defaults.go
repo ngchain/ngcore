@@ -1,13 +1,14 @@
 package ngtypes
 
 import (
-	"encoding/hex"
 	"math/big"
 	"time"
+
+	"github.com/mr-tron/base58"
 )
 
-var GenesisPKHex = "04ebe755cbcbc97771e285bc8d7846b80f0270327ba442cc93d47fb904cc4796d52a5e43dfe527fbd879770283641d1e092d7f59826d90e459ccd9507457970da2"
-var GenesisPK, _ = hex.DecodeString(GenesisPKHex)
+var GenesisPublicKeyBase58 = "MubnecPG2WYJGen2LtKqnmt3qCrP3aeRTeXZNiiPVdoZgmaCNFsRythAkiX7xAaP1LFp1RcYsKzfwQXTnphB2SSi"
+var GenesisPublicKey, _ = base58.FastBase58Decoding(GenesisPublicKeyBase58)
 
 const (
 	Version   = -1

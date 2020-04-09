@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 
+	"github.com/mr-tron/base58"
+
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -23,8 +25,8 @@ func main() {
 		}
 	}
 
-	raw := utils.ECDSAPublicKey2Bytes(localKey.PublicKey)
-	log.Printf("Hex Genesis PublicKey: %x", raw)
+	raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
+	log.Printf("Hex Genesis PublicKey: %s", raw)
 
 	gg := ngtypes.GetGenesisGenerateTx()
 
@@ -34,5 +36,5 @@ func main() {
 		log.Panic(err)
 	}
 
-	log.Printf("Hex Genesis Generate Tx R&S: %x %x", gg.R, gg.S)
+	log.Printf("Hex Genesis Generate Tx Sign: %s", base58.FastBase58Encoding(gg.Sign))
 }

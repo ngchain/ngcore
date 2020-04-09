@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/NebulousLabs/fastrand"
-	"github.com/ngin-network/cryptonight-go"
+	"github.com/ngchain/cryptonight-go"
 	"github.com/whyrusleeping/go-logging"
 	"go.uber.org/atomic"
 

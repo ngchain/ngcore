@@ -88,7 +88,7 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		ngtypes.TX_REGISTER,
 		0,
 		[][]byte{
-			utils.ECDSAPublicKey2Bytes(s.consensus.PrivateKey.PublicKey),
+			utils.PublicKey2Bytes(*s.consensus.PrivateKey.PubKey()),
 		},
 		[]*big.Int{ngtypes.GetBig0()},
 		new(big.Int).Mul(ngtypes.NG, big.NewInt(10)),

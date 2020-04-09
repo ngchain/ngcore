@@ -1,16 +1,17 @@
 package consensus
 
 import (
-	"crypto/ecdsa"
 	"math/big"
+
+	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // CreateGenerateTx will create a generate Tx for new Block
-func (c *Consensus) CreateGenerateTx(privateKey *ecdsa.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Tx {
-	publicKeyBytes := utils.ECDSAPublicKey2Bytes(privateKey.PublicKey)
+func (c *Consensus) CreateGenerateTx(privateKey *secp256k1.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Tx {
+	publicKeyBytes := utils.PublicKey2Bytes(*privateKey.PubKey())
 	gen := ngtypes.NewUnsignedTx(
 		ngtypes.TX_GENERATE,
 		0,

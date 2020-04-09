@@ -1,16 +1,15 @@
 package keytools
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 
 	"github.com/mr-tron/base58"
 	"github.com/whyrusleeping/go-logging"
+
+	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/utils"
 )
@@ -18,8 +17,8 @@ import (
 var log = logging.MustGetLogger("key")
 
 // ReadLocalKey will read the local x509 key file to load an ecdsa private key
-func ReadLocalKey(filename string, password string) *ecdsa.PrivateKey {
-	var key *ecdsa.PrivateKey
+func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
+	var key *secp256k1.PrivateKey
 
 	if _, err := os.Stat(filename); err != nil {
 		key = CreateLocalKey(filename, password)
@@ -30,23 +29,21 @@ func ReadLocalKey(filename string, password string) *ecdsa.PrivateKey {
 		if err != nil {
 			log.Panic(err)
 		}
-		data := utils.DataDecrypt(raw, []byte(password))
-		key, err = x509.ParseECPrivateKey(data)
-		if err != nil {
-			log.Panic(err)
-		}
+		rawPK := utils.AES256GCMDecrypt(raw, []byte(password))
+		key = secp256k1.NewPrivateKey(new(big.Int).SetBytes(rawPK))
 	}
 
 	return key
 }
 
-func PrintPublicKey(key *ecdsa.PrivateKey) {
-	publicKey := utils.ECDSAPublicKey2Bytes(key.PublicKey)
+func PrintPublicKey(key *secp256k1.PrivateKey) {
+	publicKey := utils.PublicKey2Bytes(*key.PubKey())
 	log.Warningf("PublicKey is bs58: %v\n", base58.FastBase58Encoding(publicKey))
 }
 
-func CreateLocalKey(filename string, password string) *ecdsa.PrivateKey {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
+	key, err := secp256k1.GeneratePrivateKey()
+	// key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -56,12 +53,8 @@ func CreateLocalKey(filename string, password string) *ecdsa.PrivateKey {
 	if err != nil {
 		log.Panic(err)
 	}
-	keyData, err := x509.MarshalECPrivateKey(key)
-	if err != nil {
-		log.Panic(err)
-	}
 
-	encrypted := utils.DataEncrypt(keyData, []byte(password))
+	encrypted := utils.AES256GCMEncrypt(key.D.Bytes(), []byte(password))
 	_, err = file.Write(encrypted)
 	if err != nil {
 		log.Panic(err)
@@ -72,13 +65,10 @@ func CreateLocalKey(filename string, password string) *ecdsa.PrivateKey {
 	return key
 }
 
-func PrintKeyPair(key *ecdsa.PrivateKey) {
-	rawPrivateKey, err := x509.MarshalECPrivateKey(key)
-	if err != nil {
-		log.Panic(err)
-	}
+func PrintKeyPair(key *secp256k1.PrivateKey) {
+	rawPrivateKey := key.D.Bytes()
 
 	fmt.Println("Private Key: ", base58.FastBase58Encoding(rawPrivateKey))
-	bPubKey := utils.ECDSAPublicKey2Bytes(key.PublicKey)
+	bPubKey := utils.PublicKey2Bytes(*key.PubKey())
 	fmt.Println("Public Key: ", base58.FastBase58Encoding(bPubKey))
 }

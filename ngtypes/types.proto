@@ -60,9 +60,7 @@ message TxHeader {
 
 message Tx {
     TxHeader header = 1;
-
-    bytes r = 2;
-    bytes s = 3;
+    bytes sign = 2;
 }
 
 option (gogoproto.stable_marshaler_all) = true; // !important

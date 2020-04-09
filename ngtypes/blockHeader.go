@@ -3,7 +3,7 @@ package ngtypes
 import (
 	"encoding/binary"
 
-	"github.com/ngin-network/cryptonight-go"
+	"github.com/ngchain/cryptonight-go"
 )
 
 /* Header Start */

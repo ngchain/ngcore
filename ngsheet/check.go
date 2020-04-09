@@ -100,7 +100,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	}
 
 	// check balance
-	totalCharge := registerTx.TotalCharge()
+	totalCharge := registerTx.TotalExpenditure()
 	convenerBalance, err := m.GetBalanceByID(registerTx.GetConvener())
 	if err != nil {
 		return err
@@ -131,12 +131,12 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = logoutTx.CheckLogout(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+	if err = logoutTx.CheckLogout(utils.Bytes2PublicKey(convener.Owner)); err != nil {
 		return err
 	}
 
 	// check balance
-	totalCharge := logoutTx.TotalCharge()
+	totalCharge := logoutTx.TotalExpenditure()
 	convenerBalance, err := m.GetBalanceByID(logoutTx.GetConvener())
 	if err != nil {
 		return err
@@ -167,12 +167,12 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = transactionTx.CheckTransaction(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+	if err = transactionTx.CheckTransaction(utils.Bytes2PublicKey(convener.Owner)); err != nil {
 		return err
 	}
 
 	// check balance
-	totalCharge := transactionTx.TotalCharge()
+	totalCharge := transactionTx.TotalExpenditure()
 	convenerBalance, err := m.GetBalanceByID(transactionTx.GetConvener())
 	if err != nil {
 		return err
@@ -203,12 +203,12 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = assignTx.CheckAssign(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+	if err = assignTx.CheckAssign(utils.Bytes2PublicKey(convener.Owner)); err != nil {
 		return err
 	}
 
 	// check balance
-	totalCharge := assignTx.TotalCharge()
+	totalCharge := assignTx.TotalExpenditure()
 	convenerBalance, err := m.GetBalanceByID(assignTx.GetConvener())
 	if err != nil {
 		return err
@@ -239,12 +239,12 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = appendTx.CheckAppend(utils.Bytes2ECDSAPublicKey(convener.Owner)); err != nil {
+	if err = appendTx.CheckAppend(utils.Bytes2PublicKey(convener.Owner)); err != nil {
 		return err
 	}
 
 	// check balance
-	totalCharge := appendTx.TotalCharge()
+	totalCharge := appendTx.TotalExpenditure()
 	convenerBalance, err := m.GetBalanceByID(appendTx.GetConvener())
 	if err != nil {
 		return err

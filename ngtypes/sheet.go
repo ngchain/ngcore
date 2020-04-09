@@ -2,10 +2,10 @@ package ngtypes
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"errors"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/ngchain/ngcore/utils"
@@ -45,9 +45,9 @@ func (m *Sheet) GetAccountByID(accountID uint64) (*Account, error) {
 }
 
 // GetAccountByKey determine whether the public key byte array is generated correctly and assign it to Sheet m
-func (m *Sheet) GetAccountByKey(publicKey ecdsa.PublicKey) ([]*Account, error) {
+func (m *Sheet) GetAccountByKey(publicKey secp256k1.PublicKey) ([]*Account, error) {
 	accounts := make([]*Account, 0)
-	bPublicKey := utils.ECDSAPublicKey2Bytes(publicKey)
+	bPublicKey := utils.PublicKey2Bytes(publicKey)
 
 	for i := range m.Accounts {
 		if bytes.Equal(m.Accounts[i].Owner, bPublicKey) {
@@ -117,7 +117,7 @@ func GetGenesisSheet() *Sheet {
 			0: GetGenesisAccount(),
 		},
 		Anonymous: map[string][]byte{
-			GenesisPKHex: GetBig0Bytes(),
+			GenesisPublicKeyBase58: GetBig0Bytes(),
 		},
 	}
 }

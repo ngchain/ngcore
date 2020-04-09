@@ -9,6 +9,7 @@ go_library(
         "//keytools:go_default_library",
         "//ngtypes:go_default_library",
         "//utils:go_default_library",
+        "@com_github_mr_tron_base58//:go_default_library",
     ],
 )
 

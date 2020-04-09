@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//utils:go_default_library",
         "@com_github_mr_tron_base58//:go_default_library",
+        "@com_github_ngchain_secp256k1//:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",
     ],
 )

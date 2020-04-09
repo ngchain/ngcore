@@ -3,24 +3,30 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
-        "ecdsa.go",
-        "file.go",
+        "aes256gcm.go",
         "format.go",
         "helper.go",
         "json.go",
+        "key.go",
         "serialize.go",
     ],
     importpath = "github.com/ngchain/ngcore/utils",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_json_iterator_go//:go_default_library"],
+    deps = [
+        "@com_github_json_iterator_go//:go_default_library",
+        "@com_github_ngchain_secp256k1//:go_default_library",
+        "@org_golang_x_crypto//sha3:go_default_library",
+    ],
 )
 
 go_test(
     name = "go_default_test",
     srcs = [
-        "file_test.go",
+        "aes256gcm_test.go",
         "format_test.go",
+        "key_test.go",
         "serialize_test.go",
     ],
     embed = [":go_default_library"],
+    deps = ["@com_github_ngchain_secp256k1//:go_default_library"],
 )

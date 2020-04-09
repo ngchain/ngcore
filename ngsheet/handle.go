@@ -89,7 +89,7 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	raw := tx.GetParticipants()[0]
-	publicKey := utils.Bytes2ECDSAPublicKey(raw)
+	publicKey := utils.Bytes2PublicKey(raw)
 	if err := tx.Verify(publicKey); err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	raw := tx.GetParticipants()[0]
-	publicKey := utils.Bytes2ECDSAPublicKey(raw)
+	publicKey := utils.Bytes2PublicKey(raw)
 	if err = tx.Verify(publicKey); err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 
 func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	raw := tx.GetParticipants()[0]
-	publicKey := utils.Bytes2ECDSAPublicKey(raw)
+	publicKey := utils.Bytes2PublicKey(raw)
 	if err = tx.Verify(publicKey); err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 		return err
 	}
 
-	pk := utils.Bytes2ECDSAPublicKey(convener.Owner)
+	pk := utils.Bytes2PublicKey(convener.Owner)
 
 	if err = tx.Verify(pk); err != nil {
 		return err
@@ -285,7 +285,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return err
 	}
 
-	pk := utils.Bytes2ECDSAPublicKey(convener.Owner)
+	pk := utils.Bytes2PublicKey(convener.Owner)
 
 	if err = tx.Verify(pk); err != nil {
 		return err
@@ -338,7 +338,7 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return err
 	}
 
-	pk := utils.Bytes2ECDSAPublicKey(convener.Owner)
+	pk := utils.Bytes2PublicKey(convener.Owner)
 
 	if err = tx.Verify(pk); err != nil {
 		return err
