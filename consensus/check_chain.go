@@ -26,8 +26,10 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 	var err error
 	firstVault := items[0].(*ngtypes.Vault)
 	firstBlock := items[1].(*ngtypes.Block)
-	if firstBlock == ngtypes.GetGenesisBlock() && firstVault == ngtypes.GetGenesisVault() {
-		prevBlock = firstBlock
+
+	// GV(V0) -> GB(B0) -> B1 -> B2 ... B9 -> V1 -> B10
+	if firstVault == ngtypes.GetGenesisVault() {
+		prevBlock = ngtypes.GetGenesisBlock()
 		prevVault = firstVault
 		prevBlockHash = ngtypes.GenesisBlockHash
 		prevVaultHash = ngtypes.GenesisVaultHash
