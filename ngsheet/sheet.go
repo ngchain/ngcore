@@ -2,9 +2,10 @@ package ngsheet
 
 import (
 	"bytes"
-	"encoding/hex"
 	"math/big"
 	"sync"
+
+	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -31,8 +32,8 @@ func NewSheetEntry(sheet *ngtypes.Sheet) (*sheetEntry, error) {
 		}
 	}
 
-	for hexPK, balance := range sheet.Anonymous {
-		entry.anonymous[hexPK] = balance
+	for bs58PK, balance := range sheet.Anonymous {
+		entry.anonymous[bs58PK] = balance
 	}
 
 	return entry, nil
@@ -56,8 +57,8 @@ func (m *sheetEntry) ToSheet() (*ngtypes.Sheet, error) {
 		accounts[height] = account
 	}
 
-	for hexPK, balance := range m.anonymous {
-		anonymous[hexPK] = balance
+	for bs58PK, balance := range m.anonymous {
+		anonymous[bs58PK] = balance
 	}
 
 	return ngtypes.NewSheet(accounts, anonymous), nil
@@ -78,7 +79,7 @@ func (m *sheetEntry) GetBalanceByID(id uint64) (*big.Int, error) {
 		return nil, err
 	}
 
-	publicKey := hex.EncodeToString(account.Owner)
+	publicKey := base58.FastBase58Encoding(account.Owner)
 
 	rawBalance, exists := m.anonymous[publicKey]
 	if !exists {
@@ -92,7 +93,7 @@ func (m *sheetEntry) GetBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
 
-	rawBalance, exists := m.anonymous[hex.EncodeToString(publicKey)]
+	rawBalance, exists := m.anonymous[base58.FastBase58Encoding(publicKey)]
 	if !exists {
 		return nil, ngtypes.ErrAccountBalanceNotExists
 	}

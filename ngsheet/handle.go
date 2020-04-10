@@ -2,9 +2,10 @@ package ngsheet
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math/big"
+
+	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -95,12 +96,12 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := anonymous[hex.EncodeToString(participants[0])]
+	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
 	}
 
-	anonymous[hex.EncodeToString(participants[0])] = new(big.Int).Add(
+	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Add(
 		new(big.Int).SetBytes(rawParticipantBalance),
 		new(big.Int).SetBytes(tx.GetValues()[0]),
 	).Bytes()
@@ -135,7 +136,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	totalExpense := new(big.Int).SetBytes(tx.GetFee())
 
 	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := anonymous[hex.EncodeToString(participants[0])]
+	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
 	}
@@ -143,7 +144,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
 		return ngtypes.ErrTxBalanceInsufficient
 	}
-	anonymous[hex.EncodeToString(participants[0])] = new(big.Int).Sub(
+	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
 		new(big.Int).SetBytes(rawParticipantBalance),
 		totalExpense,
 	).Bytes()
@@ -177,7 +178,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	totalExpense := new(big.Int).SetBytes(tx.GetFee())
 
 	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := anonymous[hex.EncodeToString(participants[0])]
+	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
 	}
@@ -185,7 +186,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
 		return ngtypes.ErrTxBalanceInsufficient
 	}
-	anonymous[hex.EncodeToString(participants[0])] = new(big.Int).Sub(
+	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
 		new(big.Int).SetBytes(rawParticipantBalance),
 		totalExpense,
 	).Bytes()
@@ -237,7 +238,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 	totalExpense := new(big.Int).Add(fee, totalValue)
 
-	rawConvenerBalance, exists := anonymous[hex.EncodeToString(convener.Owner)]
+	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
 		return ngtypes.ErrAccountBalanceNotExists
 	}
@@ -247,17 +248,17 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 		return ngtypes.ErrTxBalanceInsufficient
 	}
 
-	anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense).Bytes()
+	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense).Bytes()
 
 	participants := tx.GetParticipants()
 	for i := range participants {
 		var rawParticipantBalance []byte
-		rawParticipantBalance, exists = anonymous[hex.EncodeToString(participants[i])]
+		rawParticipantBalance, exists = anonymous[base58.FastBase58Encoding(participants[i])]
 		if !exists {
 			rawParticipantBalance = ngtypes.GetBig0Bytes()
 		}
 
-		anonymous[hex.EncodeToString(participants[i])] = new(big.Int).Add(
+		anonymous[base58.FastBase58Encoding(participants[i])] = new(big.Int).Add(
 			new(big.Int).SetBytes(rawParticipantBalance),
 			new(big.Int).SetBytes(tx.GetValues()[i]),
 		).Bytes()
@@ -298,7 +299,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 
-	rawConvenerBalance, exists := anonymous[hex.EncodeToString(convener.Owner)]
+	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
 		return ngtypes.ErrAccountBalanceNotExists
 	}
@@ -308,7 +309,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return ngtypes.ErrTxBalanceInsufficient
 	}
 
-	anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
+	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
 	// assign the extra bytes
 	convener.State = tx.GetExtra()
@@ -351,7 +352,7 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 
-	rawConvenerBalance, exists := anonymous[hex.EncodeToString(convener.Owner)]
+	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
 		return ngtypes.ErrAccountBalanceNotExists
 	}
@@ -361,7 +362,7 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return ngtypes.ErrTxBalanceInsufficient
 	}
 
-	anonymous[hex.EncodeToString(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
+	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
 	// assign the extra bytes
 	convener.State = utils.CombineBytes(convener.State, tx.GetExtra())

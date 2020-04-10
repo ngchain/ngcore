@@ -21,7 +21,7 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 	var curBlock, prevBlock *ngtypes.Block
 	var curVault, prevVault *ngtypes.Vault
 
-	var prevBlockHash, prevVaultHash []byte
+	var prevBlockHash, prevVaultHash, curVaultHash, curBlockHash []byte
 
 	var err error
 	firstVault := items[0].(*ngtypes.Vault)
@@ -48,6 +48,11 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 	for i := 0; i < len(items); i++ {
 		switch items[i].(type) {
 		case *ngtypes.Vault:
+			if curVault != nil {
+				prevVault = curVault
+				prevVaultHash = curVaultHash
+			}
+
 			curVault = items[i].(*ngtypes.Vault)
 			if err = curVault.CheckError(); err != nil {
 				return err
@@ -55,16 +60,18 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 
 			// prevVaultHash, _ := prevVault.CalculateHash()
 			if curVault != nil {
-				hash, _ := curVault.CalculateHash()
+				curVaultHash, _ = curVault.CalculateHash()
 				if !bytes.Equal(prevVaultHash, curVault.GetPrevHash()) {
-					return fmt.Errorf("vault@%d:%x 's prevHash: %x is not matching vault@%d:%x 's hash", curVault.GetHeight(), hash, curVault.GetPrevHash(), prevVault.GetHeight(), prevVaultHash)
+					return fmt.Errorf("vault@%d:%x 's prevHash: %x is not matching vault@%d:%x 's hash", curVault.GetHeight(), curVaultHash, curVault.GetPrevHash(), prevVault.GetHeight(), prevVaultHash)
 				}
-
-				prevVault = curVault
-				prevVaultHash = hash
 			}
 
 		case *ngtypes.Block:
+			if curBlock != nil {
+				prevBlock = curBlock
+				prevBlockHash = curBlockHash
+			}
+
 			curBlock = items[i].(*ngtypes.Block)
 			if err = curBlock.CheckError(); err != nil {
 				return err
@@ -79,14 +86,11 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 			}
 
 			if curBlock != nil {
-				hash, _ := curBlock.CalculateHash()
+				curBlockHash, _ = curBlock.CalculateHash()
 				// prevBlockHash, _ := prevBlock.CalculateHash()
 				if !bytes.Equal(prevBlockHash, curBlock.GetPrevHash()) {
-					return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash", curBlock.GetHeight(), hash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
+					return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash", curBlock.GetHeight(), curBlockHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
 				}
-
-				prevBlock = curBlock
-				prevBlockHash = hash
 			}
 
 		default:
