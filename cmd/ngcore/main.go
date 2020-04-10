@@ -75,21 +75,43 @@ var colorFlag = cli.BoolFlag{
 	Usage: "Enable displaying log with color",
 }
 
-var logLevelFlag = cli.BoolFlag{
-	Name:  "log",
-	Usage: "Enable displaying logs which are equal or higher to the level",
+var logLevelFlag = cli.StringFlag{
+	Name:  "log-level",
+	Value: "INFO",
+	Usage: "Enable displaying logs which are equal or higher to the level. Values can be ERROR WARNING NOTICE INFO DEBUG",
 }
 
 // the Main
 var action = func(c *cli.Context) error {
-	var format = logging.MustStringFormatter(
-		"%{time:15:04:05.000} %{color}[%{module}] ▶ %{level}%{color:reset} %{message}",
-	)
+	var format string
+	if c.Bool("color") {
+		format = "%{time:15:04:05.000} %{color}[%{module}] ▶ %{level}%{color:reset} %{message}"
+	} else {
+		format = "%{time:15:04:05.000} [%{module}] ▶ %{level} %{message}"
+	}
 
+	strFormatter := logging.MustStringFormatter(format)
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
-	formatter := logging.NewBackendFormatter(backend, format)
-	logging.SetBackend(formatter)
-	logging.SetLevel(logging.INFO, "")
+	backendFormatter := logging.NewBackendFormatter(backend, strFormatter)
+	logging.SetBackend(backendFormatter)
+
+	var logLevel logging.Level
+	switch strings.ToUpper(c.String("log-level")) {
+	case "ERROR":
+		logLevel = logging.ERROR
+	case "WARNING":
+		logLevel = logging.WARNING
+	case "NOTICE":
+		logLevel = logging.NOTICE
+	case "INFO":
+		logLevel = logging.INFO
+	case "DEBUG":
+		logLevel = logging.DEBUG
+	default:
+		panic("unknown log level:" + c.String("log-level"))
+	}
+
+	logging.SetLevel(logLevel, "")
 
 	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Int("mining") >= 0
@@ -179,6 +201,7 @@ func main() {
 	flags := []cli.Flag{
 		strictModeFlag, logFlag, p2pTCPPortFlag, rpcPortFlag, miningFlag,
 		isBootstrapFlag, keyPassFlag, profileFlag,
+		colorFlag, logLevelFlag,
 	}
 
 	app.Flags = flags
@@ -186,5 +209,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	os.Exit(0)
 }
