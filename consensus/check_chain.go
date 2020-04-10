@@ -29,6 +29,11 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 
 	// GV(V0) -> GB(B0) -> B1 -> B2 ... B9 -> V1 -> B10
 	if firstVault == ngtypes.GetGenesisVault() {
+		// the firstBlock must be GenesisBlock
+		if firstBlock != ngtypes.GetGenesisBlock() {
+			return fmt.Errorf("first Block should be genesis block when vault is genesis vault")
+		}
+
 		prevBlock = ngtypes.GetGenesisBlock()
 		prevVault = firstVault
 		prevBlockHash = ngtypes.GenesisBlockHash
@@ -36,13 +41,13 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 	} else {
 		prevBlock, err = c.GetBlockByHash(firstBlock.GetPrevHash())
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to init prevBlock:%x from db: %s", firstBlock.GetPrevHash(), err)
 		}
 		prevBlockHash, _ = prevBlock.CalculateHash()
 
 		prevVault, err = c.GetVaultByHash(prevBlock.Header.PrevVaultHash)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to init prevVault:%x from db: %s", prevBlock.Header.PrevVaultHash, err)
 		}
 		prevVaultHash, _ = prevVault.CalculateHash()
 	}
