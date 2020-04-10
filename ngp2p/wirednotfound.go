@@ -11,7 +11,7 @@ import (
 )
 
 // NotFound will reply NotFound message to remote node
-func (w *Wired) NotFound(peerID peer.ID, uuid string) {
+func (w *wired) NotFound(peerID peer.ID, uuid string) {
 	log.Debugf("Sending notfound to %s. Message id: %s...", peerID, uuid)
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
@@ -35,7 +35,7 @@ func (w *Wired) NotFound(peerID peer.ID, uuid string) {
 }
 
 // onNotFound is a remote notfound handler
-func (w *Wired) onNotFound(s network.Stream) {
+func (w *wired) onNotFound(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		_ = s.Reset()

@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (b *Broadcaster) broadcastBlock(block *ngtypes.Block, vault *ngtypes.Vault) bool {
+func (b *broadcaster) broadcastBlock(block *ngtypes.Block, vault *ngtypes.Vault) bool {
 	broadcastBlockPayload := &pb.BroadcastBlockPayload{
 		Vault: vault,
 		Block: block,
@@ -30,7 +30,7 @@ func (b *Broadcaster) broadcastBlock(block *ngtypes.Block, vault *ngtypes.Vault)
 	return true
 }
 
-func (b *Broadcaster) onBroadcastBlock(msg *pubsub.Message) {
+func (b *broadcaster) onBroadcastBlock(msg *pubsub.Message) {
 	var broadcastBlockPayload = &pb.BroadcastBlockPayload{}
 	err := broadcastBlockPayload.Unmarshal(msg.Data)
 	if err != nil {

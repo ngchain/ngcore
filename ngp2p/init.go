@@ -9,8 +9,8 @@ import (
 
 func (n *LocalNode) connectBootstrapNodes() {
 	ctx := context.Background()
-	for i := range BootstrapNodes {
-		targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])
+	for i := range bootstrapNodes {
+		targetAddr, err := multiaddr.NewMultiaddr(bootstrapNodes[i])
 		if err != nil {
 			panic(err)
 		}
@@ -29,6 +29,7 @@ func (n *LocalNode) connectBootstrapNodes() {
 	}
 }
 
+// Init will initialize the LocalNode by connecting to the bootstrap nodes
 func (n *LocalNode) Init() {
 	if !n.isBootstrapNode {
 		n.connectBootstrapNodes()

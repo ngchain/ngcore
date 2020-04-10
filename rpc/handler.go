@@ -5,6 +5,7 @@ import (
 	"github.com/maoxs2/go-jsonrpc2/jsonrpc2http"
 )
 
+// NewHTTPHandler will create a jsonrpc2http.HTTPHandler struct and register jsonrpc functions onto it.
 func NewHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler := jsonrpc2http.NewHTTPHandler()
 

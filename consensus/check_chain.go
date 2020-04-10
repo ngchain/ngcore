@@ -88,7 +88,7 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 				return err
 			}
 
-			if err = c.TxPool.CheckTxs(curBlock.Txs...); err != nil {
+			if err = c.SheetManager.CheckCurrentTxs(curBlock.Txs...); err != nil {
 				return err
 			}
 

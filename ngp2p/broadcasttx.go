@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (b *Broadcaster) broadcastTx(tx *ngtypes.Tx) bool {
+func (b *broadcaster) broadcastTx(tx *ngtypes.Tx) bool {
 	raw, err := tx.Marshal()
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -24,7 +24,7 @@ func (b *Broadcaster) broadcastTx(tx *ngtypes.Tx) bool {
 	return true
 }
 
-func (b *Broadcaster) onBroadcastTx(msg *pubsub.Message) {
+func (b *broadcaster) onBroadcastTx(msg *pubsub.Message) {
 	var tx = &ngtypes.Tx{}
 	err := tx.Unmarshal(msg.Data)
 	if err != nil {

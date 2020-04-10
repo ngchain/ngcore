@@ -15,7 +15,7 @@ import (
 type Consensus struct {
 	sync.RWMutex
 
-	*ngsheet.Sheet
+	*ngsheet.SheetManager
 	*ngchain.Chain
 	*txpool.TxPool
 
@@ -28,11 +28,11 @@ type Consensus struct {
 // NewConsensus creates a new proof of work consensus manager
 func NewConsensus(mining bool) *Consensus {
 	return &Consensus{
-		Sheet:      nil,
-		Chain:      nil,
-		TxPool:     nil,
-		isMining:   mining,
-		PrivateKey: nil,
-		miner:      nil,
+		SheetManager: nil,
+		Chain:        nil,
+		TxPool:       nil,
+		isMining:     mining,
+		PrivateKey:   nil,
+		miner:        nil,
 	}
 }

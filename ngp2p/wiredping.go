@@ -13,7 +13,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *Wired) Ping(remotePeerID peer.ID) bool {
+func (w *wired) Ping(remotePeerID peer.ID) bool {
 	payload, err := proto.Marshal(&pb.PingPongPayload{
 		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
 		VaultHeight:     w.node.consensus.GetLatestVaultHeight(),
@@ -54,7 +54,7 @@ func (w *Wired) Ping(remotePeerID peer.ID) bool {
 }
 
 // remote peer requests handler
-func (w *Wired) onPing(s network.Stream) {
+func (w *wired) onPing(s network.Stream) {
 	// get request data
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {

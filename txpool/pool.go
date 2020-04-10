@@ -15,7 +15,7 @@ var log = logging.MustGetLogger("txpool")
 type TxPool struct {
 	sync.RWMutex
 
-	sheetManager *ngsheet.Sheet
+	sheetManager *ngsheet.SheetManager
 
 	Queuing      map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
 	CurrentVault *ngtypes.Vault
@@ -26,7 +26,7 @@ type TxPool struct {
 	NewCreatedTxEvent chan *ngtypes.Tx
 }
 
-func NewTxPool(sheetManager *ngsheet.Sheet) *TxPool {
+func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	return &TxPool{
 		sheetManager: sheetManager,
 

@@ -5,13 +5,13 @@ import (
 )
 
 // Wired type
-type Wired struct {
+type wired struct {
 	node     *LocalNode // local host
 	requests *sync.Map  //map[string]*pb.Message // used to access request data from response handlers
 }
 
-func registerProtocol(node *LocalNode) *Wired {
-	p := &Wired{
+func registerProtocol(node *LocalNode) *wired {
+	p := &wired{
 		node:     node,
 		requests: new(sync.Map),
 	}

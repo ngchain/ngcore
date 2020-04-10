@@ -6,7 +6,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *Wired) UpdateStatus() {
+func (w *wired) updateStatus() {
 	total := 0
 	synced := 0
 	localHeight := w.node.consensus.GetLatestBlockHeight()
@@ -24,7 +24,7 @@ func (w *Wired) UpdateStatus() {
 	w.node.isSyncedCh <- progress > 0.9
 }
 
-func (w *Wired) Sync() {
+func (w *wired) sync() {
 	syncTicker := time.NewTicker(ngtypes.TargetTime)
 	defer syncTicker.Stop()
 
@@ -41,7 +41,7 @@ func (w *Wired) Sync() {
 				w.Ping(peer)
 			}
 
-			go w.UpdateStatus()
+			go w.updateStatus()
 		case isSynced := <-w.node.isSyncedCh:
 			if isSynced && !lastTimeIsSynced {
 				log.Info("localnode is synced with network")

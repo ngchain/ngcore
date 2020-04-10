@@ -1,10 +1,11 @@
 package rpc
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"math/big"
 
 	"github.com/maoxs2/go-jsonrpc2"
+	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -27,7 +28,7 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 
 	var participants = make([][]byte, len(params.Participants))
 	for i := range params.Participants {
-		participants[i], err = base64.RawStdEncoding.DecodeString(params.Participants[i])
+		participants[i], err = base58.FastBase58Decoding(params.Participants[i])
 		if err != nil {
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
@@ -42,7 +43,7 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 
 	nonce := s.sheetManager.GetNextNonce(params.Convener)
 
-	extra, err := base64.RawStdEncoding.DecodeString(params.Extra)
+	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -127,7 +128,7 @@ func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	nonce := s.sheetManager.GetNextNonce(params.Convener)
 
-	extra, err := base64.RawStdEncoding.DecodeString(params.Extra)
+	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -173,7 +174,7 @@ func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	nonce := s.sheetManager.GetNextNonce(params.Convener)
 
-	extra, err := base64.StdEncoding.DecodeString(params.Extra)
+	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -219,7 +220,7 @@ func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	nonce := s.sheetManager.GetNextNonce(params.Convener)
 
-	extra, err := base64.RawStdEncoding.DecodeString(params.Extra)
+	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

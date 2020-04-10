@@ -12,7 +12,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *Wired) GetChain(peerID peer.ID, requestHeight uint64) bool {
+func (w *wired) GetChain(peerID peer.ID, requestHeight uint64) bool {
 	payload, err := proto.Marshal(&pb.GetChainPayload{
 		VaultHeight: requestHeight,
 	})
@@ -48,7 +48,7 @@ func (w *Wired) GetChain(peerID peer.ID, requestHeight uint64) bool {
 	return true
 }
 
-func (w *Wired) onGetChain(s network.Stream) {
+func (w *wired) onGetChain(s network.Stream) {
 	// get request data
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {

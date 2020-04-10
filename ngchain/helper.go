@@ -6,6 +6,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
+// GetBlocksOnVaultHeight is a helper func in ngcore main to fetch all blocks on the vault@*vaultHeight*. It will helps the sheetManager's initial
 func (c *Chain) GetBlocksOnVaultHeight(vaultHeight uint64) ([]*ngtypes.Block, error) {
 	var blocks []*ngtypes.Block
 	tail := (vaultHeight+1)*ngtypes.BlockCheckRound - 1

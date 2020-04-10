@@ -7,7 +7,6 @@ import (
 
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.MustGetLogger("consensus")
@@ -147,7 +146,11 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 	}
 
 	if block.Header.IsTail() {
-		currentVault := c.GenNewVault(block.Header.Height/ngtypes.BlockCheckRound, block.Header.PrevVaultHash)
+		currentVault := c.GenNewVaultCandidate(block.Header.Height/ngtypes.BlockCheckRound, block.Header.PrevVaultHash)
+		err := c.checkVault(currentVault)
+		if err != nil {
+			panic(err)
+		}
 		err = c.Chain.MinedNewVault(currentVault)
 		if err != nil {
 			panic(err)
@@ -155,12 +158,8 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 	}
 }
 
-// GenNewVault is called when the reached a checkpoint, then generate a
-func (c *Consensus) GenNewVault(prevVaultHeight uint64, prevVaultHash []byte) *ngtypes.Vault {
-	// Make this value can be DIY by users
-	accountNumber := utils.RandUint64()
-	log.Infof("New account: %d", accountNumber)
-
+// GenNewVaultCandidate is called when the reached a checkpoint, then generate a
+func (c *Consensus) GenNewVaultCandidate(prevVaultHeight uint64, prevVaultHash []byte) *ngtypes.Vault {
 	sheet, err := c.GenerateNewSheet()
 	if err != nil {
 		log.Error(err)

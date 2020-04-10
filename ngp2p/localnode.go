@@ -27,10 +27,11 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
+// LocalNode is the local host on p2p network
 type LocalNode struct {
 	host.Host // lib-p2p host
-	*Wired
-	*Broadcaster
+	*wired
+	*broadcaster
 
 	isInitialized *atomic.Bool
 
@@ -112,8 +113,8 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 		consensus: consensus,
 
 		Host:        localHost,
-		Wired:       nil,
-		Broadcaster: nil,
+		wired:       nil,
+		broadcaster: nil,
 
 		isInitialized:   atomic.NewBool(false),
 		isBootstrapNode: isBootstrapNode,
@@ -124,10 +125,10 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 		isStrictMode:  isStrictMode,
 	}
 
-	node.Broadcaster = registerBroadcaster(node)
+	node.broadcaster = registerBroadcaster(node)
 
-	node.Wired = registerProtocol(node)
-	go node.Wired.Sync()
+	node.wired = registerProtocol(node)
+	go node.wired.sync()
 
 	// mdns seeding
 	go func() {

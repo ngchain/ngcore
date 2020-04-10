@@ -26,7 +26,7 @@ func main() {
 	}
 
 	raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
-	log.Printf("Hex Genesis PublicKey: %s", raw)
+	log.Printf("BS58 Genesis PublicKey: %s", raw)
 
 	gg := ngtypes.GetGenesisGenerateTx()
 
@@ -36,5 +36,5 @@ func main() {
 		log.Panic(err)
 	}
 
-	log.Printf("Hex Genesis Generate Tx Sign: %s", base58.FastBase58Encoding(gg.Sign))
+	log.Printf("BS58 Genesis Generate Tx Sign: %s", base58.FastBase58Encoding(gg.Sign))
 }

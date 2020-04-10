@@ -13,7 +13,7 @@ import (
 )
 
 // Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *Wired) Chain(peerID peer.ID, uuid string, vault *ngtypes.Vault, blocks ...*ngtypes.Block) bool {
+func (w *wired) Chain(peerID peer.ID, uuid string, vault *ngtypes.Vault, blocks ...*ngtypes.Block) bool {
 	log.Debugf("Sending chain to %s. Message id: %s, chain from vault@%d ...", peerID, uuid, vault.Height)
 
 	payload, err := proto.Marshal(&pb.ChainPayload{
@@ -54,7 +54,7 @@ func (w *Wired) Chain(peerID peer.ID, uuid string, vault *ngtypes.Vault, blocks 
 	return true
 }
 
-func (w *Wired) onChain(s network.Stream) {
+func (w *wired) onChain(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		_ = s.Reset()

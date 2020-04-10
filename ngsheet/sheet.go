@@ -18,7 +18,8 @@ type sheetEntry struct {
 	anonymous map[string][]byte
 }
 
-func NewSheetEntry(sheet *ngtypes.Sheet) (*sheetEntry, error) {
+// newSheetEntry will create a new sheetEntry which is a wrapper of *ngtypes.sheet
+func newSheetEntry(sheet *ngtypes.Sheet) (*sheetEntry, error) {
 	entry := &sheetEntry{
 		accounts:  make(map[uint64][]byte),
 		anonymous: make(map[string][]byte),

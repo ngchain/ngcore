@@ -11,7 +11,7 @@ import (
 )
 
 // Reject will reply Reject message to remote node
-func (w *Wired) Reject(peerID peer.ID, uuid string) {
+func (w *wired) Reject(peerID peer.ID, uuid string) {
 	log.Debugf("Sending Reject to %s. Message id: %s...", peerID, uuid)
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
@@ -35,7 +35,7 @@ func (w *Wired) Reject(peerID peer.ID, uuid string) {
 }
 
 // remote reject handler
-func (w *Wired) onReject(s network.Stream) {
+func (w *wired) onReject(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		_ = s.Reset()

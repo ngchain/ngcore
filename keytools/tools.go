@@ -36,11 +36,7 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	return key
 }
 
-func PrintPublicKey(key *secp256k1.PrivateKey) {
-	publicKey := utils.PublicKey2Bytes(*key.PubKey())
-	log.Warningf("PublicKey is bs58: %v\n", base58.FastBase58Encoding(publicKey))
-}
-
+// CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm
 func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	key, err := secp256k1.GeneratePrivateKey()
 	// key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -65,10 +61,16 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	return key
 }
 
-func PrintKeyPair(key *secp256k1.PrivateKey) {
-	rawPrivateKey := key.D.Bytes()
+// PrintPublicKey will print the privateKey's **publicKey** to the console
+func PrintPublicKey(privateKey *secp256k1.PrivateKey) {
+	publicKey := utils.PublicKey2Bytes(*privateKey.PubKey())
+	log.Warningf("PublicKey is bs58: %s\n", base58.FastBase58Encoding(publicKey))
+}
 
+// PrintKeyPair will print the **privateKey and its publicKey** to the console
+func PrintKeyPair(privateKey *secp256k1.PrivateKey) {
+	rawPrivateKey := privateKey.Serialize() // its D
 	fmt.Println("Private Key: ", base58.FastBase58Encoding(rawPrivateKey))
-	bPubKey := utils.PublicKey2Bytes(*key.PubKey())
+	bPubKey := utils.PublicKey2Bytes(*privateKey.PubKey())
 	fmt.Println("Public Key: ", base58.FastBase58Encoding(bPubKey))
 }

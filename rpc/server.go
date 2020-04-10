@@ -14,16 +14,18 @@ import (
 
 var log = logging.MustGetLogger("rpc")
 
+// Server is a json-rpc v2 server
 type Server struct {
 	consensus    *consensus.Consensus
-	sheetManager *ngsheet.Sheet
+	sheetManager *ngsheet.SheetManager
 	txPool       *txpool.TxPool
 
 	localNode *ngp2p.LocalNode
 	*jsonrpc2http.Server
 }
 
-func NewServer(host string, port int, consensus *consensus.Consensus, localNode *ngp2p.LocalNode, sheetManager *ngsheet.Sheet, txPool *txpool.TxPool) *Server {
+// NewServer will create a new Server, with registered *jsonrpc2http.HTTPHandler. But not running
+func NewServer(host string, port int, consensus *consensus.Consensus, localNode *ngp2p.LocalNode, sheetManager *ngsheet.SheetManager, txPool *txpool.TxPool) *Server {
 	s := &Server{
 		sheetManager: sheetManager,
 		consensus:    consensus,
@@ -36,6 +38,7 @@ func NewServer(host string, port int, consensus *consensus.Consensus, localNode 
 	return s
 }
 
+// Run will make the server running
 func (s *Server) Run() {
 	log.Info("rpc server running")
 	err := s.ListenAndServe()

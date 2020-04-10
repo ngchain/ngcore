@@ -13,7 +13,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *Wired) Pong(peerID peer.ID, uuid string) bool {
+func (w *wired) Pong(peerID peer.ID, uuid string) bool {
 	log.Debugf("Sending Pong to %s. Message id: %s...", peerID, uuid)
 
 	payload, err := proto.Marshal(&pb.PingPongPayload{
@@ -50,7 +50,7 @@ func (w *Wired) Pong(peerID peer.ID, uuid string) bool {
 }
 
 // remote ping response handler
-func (w *Wired) onPong(s network.Stream) {
+func (w *wired) onPong(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		_ = s.Reset()

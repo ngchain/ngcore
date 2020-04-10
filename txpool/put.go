@@ -14,7 +14,7 @@ func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	if err = p.CheckTxs(tx); err != nil {
+	if err = p.sheetManager.CheckCurrentTxs(tx); err != nil {
 		return fmt.Errorf("malformed tx, rejected: %v", err)
 	}
 
@@ -28,7 +28,7 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
 	p.Lock()
 	defer p.Unlock()
 
-	if err := p.CheckTxs(txs...); err != nil {
+	if err := p.sheetManager.CheckCurrentTxs(txs...); err != nil {
 		return fmt.Errorf("malformed tx in txs, reject all txs: %v", err)
 	}
 

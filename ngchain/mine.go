@@ -2,6 +2,7 @@ package ngchain
 
 import "github.com/ngchain/ngcore/ngtypes"
 
+// MinedNewBlock is called when **LOCAL PoW system** mined a new Block, putting it into db and then broadcast it.
 func (c *Chain) MinedNewBlock(block *ngtypes.Block) error {
 	err := c.PutNewBlock(block) // chain will verify the block
 	if err != nil {
@@ -14,6 +15,7 @@ func (c *Chain) MinedNewBlock(block *ngtypes.Block) error {
 	return nil
 }
 
+// MinedNewVault is called when **LOCAL PoW system** mined a new Vault, putting it into db and then broadcast it.
 func (c *Chain) MinedNewVault(vault *ngtypes.Vault) error {
 	err := c.PutNewVault(vault)
 	if err != nil {

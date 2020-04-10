@@ -9,7 +9,7 @@ import (
 const broadcastBlockTopic = "/ngp2p/broadcast/block/0.0.1"
 const broadcastTxTopic = "/ngp2p/broadcast/tx/0.0.1"
 
-type Broadcaster struct {
+type broadcaster struct {
 	PubSub *pubsub.PubSub
 	node   *LocalNode
 
@@ -17,10 +17,10 @@ type Broadcaster struct {
 	subscriptions map[string]*pubsub.Subscription
 }
 
-func registerBroadcaster(node *LocalNode) *Broadcaster {
+func registerBroadcaster(node *LocalNode) *broadcaster {
 	var err error
 
-	b := &Broadcaster{
+	b := &broadcaster{
 		PubSub:        nil,
 		node:          node,
 		topics:        make(map[string]*pubsub.Topic),
@@ -78,7 +78,7 @@ func registerBroadcaster(node *LocalNode) *Broadcaster {
 	return b
 }
 
-func (b *Broadcaster) blockListener(sub *pubsub.Subscription) {
+func (b *broadcaster) blockListener(sub *pubsub.Subscription) {
 	for {
 		msg, err := sub.Next(context.Background())
 		if msg.GetFrom() == b.node.ID() {
@@ -93,7 +93,7 @@ func (b *Broadcaster) blockListener(sub *pubsub.Subscription) {
 	}
 }
 
-func (b *Broadcaster) txListener(sub *pubsub.Subscription) {
+func (b *broadcaster) txListener(sub *pubsub.Subscription) {
 	for {
 		msg, err := sub.Next(context.Background())
 		if msg.GetFrom() == b.node.ID() {
