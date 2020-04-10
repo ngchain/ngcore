@@ -4,3 +4,4 @@
 - lua vm
 - ~~assignment(tx type3)~~
 - rpc: 
+- add recycle balance < 1NG when generating new vault/sheet

@@ -1,10 +1,10 @@
 package ngtypes
 
 // NewAccount receive parameters and return a new Account(class constructor
-func NewAccount(id uint64, ownerKey []byte, state []byte) *Account {
+func NewAccount(id uint64, ownerPublicKey []byte, state []byte) *Account {
 	return &Account{
 		ID:    id,
-		Owner: ownerKey,
+		Owner: ownerPublicKey,
 		State: state,
 	}
 }

@@ -2,7 +2,6 @@ package ngp2p
 
 import (
 	"context"
-	"crypto/rand"
 	"io/ioutil"
 	"os"
 
@@ -36,7 +35,7 @@ func readKeyFromFile(filename string) crypto.PrivKey {
 	}
 	_ = keyFile.Close()
 
-	priv, err := crypto.UnmarshalSecp256k1PrivateKey(raw)
+	priv, err := crypto.UnmarshalPrivateKey(raw)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -47,7 +46,7 @@ func readKeyFromFile(filename string) crypto.PrivKey {
 func getP2PKey() crypto.PrivKey {
 	// read from db / file
 	if _, err := os.Stat("p2p.key"); os.IsNotExist(err) {
-		priv, _, err := crypto.GenerateSecp256k1Key(rand.Reader)
+		priv, _, err := crypto.GenerateKeyPair(crypto.Secp256k1, 256)
 		if err != nil {
 			log.Panic(err)
 		}

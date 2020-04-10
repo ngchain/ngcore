@@ -23,11 +23,12 @@ NGIN is a totally new chain which is not a fork of ethereum or other chain. It i
 - Pure go, support almost all platforms
 - Libp2p(ipfs) powered p2p networking
 - Account ecosystem to keep coin value
+- Schnorr signature
 - ...
 
 ## Requirements
 
-go version >= 1.13
+go version >= 1.14
 
 Or using bazel build tool if you want
 
