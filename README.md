@@ -1,7 +1,8 @@
 # NgCore
-<p align="center">
+<p align="center" style="text-align: center">
 <img width="400" height="400" src="./resources/NG.svg"/>
-<p style="text-align:center"> <b>NgCore:</b> Brand-new golang daemon implement of Ngin Network Node </p>
+<br/>
+<b>NgCore:</b> Brand-new golang daemon implement of Ngin Network Node
 </p>
 
 ## What is NGIN?
