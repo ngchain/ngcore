@@ -271,6 +271,8 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	}
 
 	// DO NOT handle extra
+	// TODO: call vm's tx listener
+
 	return nil
 }
 

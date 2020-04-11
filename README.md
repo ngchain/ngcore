@@ -8,7 +8,6 @@ NGIN is a totally new chain which is not a fork of ethereum or other chain. It i
 
 ## Status
 
-[![DepShield Badge](https://depshield.sonatype.org/badges/ngchain/ngcore/depshield.svg)](https://depshield.github.io)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](https://goreportcard.com/report/github.com/ngchain/ngcore)
 [![CircleCI](https://circleci.com/gh/ngchain/ngcore.svg?style=svg)](https://circleci.com/gh/ngchain/ngcore)
 

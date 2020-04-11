@@ -10,8 +10,9 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+// InitWithGenesis will initialize the chain with genesis block & vault
 func (c *Chain) InitWithGenesis() {
-	if !c.HasGenesisBlock() {
+	if !c.hasGenesisBlock() {
 		log.Infof("initializing with genesis block")
 		block := ngtypes.GetGenesisBlock()
 		err := c.db.Update(func(txn *badger.Txn) error {
@@ -41,7 +42,7 @@ func (c *Chain) InitWithGenesis() {
 		}
 	}
 
-	if !c.HasGenesisVault() {
+	if !c.hasGenesisVault() {
 		log.Infof("initializing with genesis vault")
 		vault := ngtypes.GetGenesisVault()
 		err := c.db.Update(func(txn *badger.Txn) error {
@@ -72,7 +73,8 @@ func (c *Chain) InitWithGenesis() {
 	}
 }
 
-func (c *Chain) HasGenesisBlock() bool {
+// hasGenesisBlock checks whether the genesis vault is in db
+func (c *Chain) hasGenesisBlock() bool {
 	var has = false
 	err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(0)...))
@@ -99,7 +101,8 @@ func (c *Chain) HasGenesisBlock() bool {
 	return has
 }
 
-func (c *Chain) HasGenesisVault() bool {
+// hasGenesisVault checks whether the genesis vault is in db
+func (c *Chain) hasGenesisVault() bool {
 	var has = false
 	err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(vaultPrefix, utils.PackUint64LE(0)...))
@@ -126,6 +129,7 @@ func (c *Chain) HasGenesisVault() bool {
 	return has
 }
 
+// InitWithChain initialize the chain by importing the external chain
 func (c *Chain) InitWithChain(chain ...Item) error {
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")

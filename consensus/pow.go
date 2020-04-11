@@ -77,7 +77,7 @@ func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
 
 	extraData := []byte("ngCore")
 
-	Gen := c.CreateGenerateTx(c.PrivateKey, newBlockHeight, extraData)
+	Gen := c.createGenerateTx(c.PrivateKey, extraData)
 	txsWithGen := append([]*ngtypes.Tx{Gen}, c.TxPool.GetPackTxs()...)
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {

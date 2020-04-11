@@ -137,7 +137,12 @@ var action = func(c *cli.Context) error {
 	keytools.PrintPublicKey(key)
 
 	db := storage.InitStorage()
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	chain := ngchain.NewChain(db)
 	if isStrictMode && chain.GetLatestBlockHeight() == 0 {

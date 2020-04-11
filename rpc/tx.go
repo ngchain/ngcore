@@ -19,6 +19,7 @@ type sendTransactionParams struct {
 	Extra        string    `json:"extra"`
 }
 
+// TODO: allow Participants be Account Num
 func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendTransactionParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)

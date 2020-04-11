@@ -9,8 +9,8 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// CreateGenerateTx will create a generate Tx for new Block
-func (c *Consensus) CreateGenerateTx(privateKey *secp256k1.PrivateKey, blockHeight uint64, extraData []byte) *ngtypes.Tx {
+// createGenerateTx will create a generate Tx for new Block
+func (c *Consensus) createGenerateTx(privateKey *secp256k1.PrivateKey, extraData []byte) *ngtypes.Tx {
 	publicKeyBytes := utils.PublicKey2Bytes(*privateKey.PubKey())
 	gen := ngtypes.NewUnsignedTx(
 		ngtypes.TX_GENERATE,

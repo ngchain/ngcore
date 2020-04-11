@@ -39,7 +39,6 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 // CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm
 func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	key, err := secp256k1.GeneratePrivateKey()
-	// key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		log.Panic(err)
 	}
