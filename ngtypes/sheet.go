@@ -20,7 +20,6 @@ var (
 // NewSheet gets the rows from db and return the sheet for transport/saving
 func NewSheet(accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
 	return &Sheet{
-		Version:   Version,
 		Accounts:  accounts,
 		Anonymous: anonymous,
 	}
@@ -112,7 +111,6 @@ func (m *Sheet) CalculateHash() ([]byte, error) {
 
 func GetGenesisSheet() *Sheet {
 	return &Sheet{
-		Version: Version,
 		Accounts: map[uint64]*Account{
 			0: GetGenesisAccount(),
 		},

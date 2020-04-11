@@ -104,7 +104,6 @@ func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *bi
 	return &Block{
 		NetworkId: NetworkID,
 		Header: &BlockHeader{
-			Version:       Version,
 			Height:        height,
 			PrevBlockHash: prevBlockHash,
 			PrevVaultHash: prevVaultHash,
@@ -141,6 +140,10 @@ func GetGenesisBlock() *Block {
 
 // CheckError will check the errors in block inner fields
 func (m *Block) CheckError() error {
+	if m.NetworkId != NetworkID {
+		return fmt.Errorf("block's network id is incorrect")
+	}
+
 	if m.Header == nil {
 		return ErrBlockHeaderMissing
 	}

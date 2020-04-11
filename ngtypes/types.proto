@@ -13,16 +13,15 @@ message Account {
 }
 
 message BlockHeader {
-    int32 version = 1;
-    uint64 height = 2;
+    uint64 height = 1;
 
-    bytes prev_block_hash = 3;
-    bytes prev_vault_hash = 4;
-    bytes trie_hash = 5;
+    bytes prev_block_hash = 2;
+    bytes prev_vault_hash = 3;
+    bytes trie_hash = 4;
 
-    int64 timestamp = 6;
-    bytes target = 7;
-    bytes nonce = 8;
+    int64 timestamp = 5;
+    bytes target = 6;
+    bytes nonce = 7;
 }
 
 message Block {
@@ -44,29 +43,28 @@ enum TxType {
 }
 
 message TxHeader {
-    int32 version = 1;
-    TxType type = 2;
+    TxType type = 1;
 
-    uint64 convener = 3; // account id required
-    repeated bytes participants = 4;
-    bytes fee = 5;
-    repeated bytes values = 6;
+    uint64 convener = 2; // account id required
+    repeated bytes participants = 3;
+    bytes fee = 4;
+    repeated bytes values = 5;
 
-    uint64 nonce = 7;
+    uint64 nonce = 6;
 
     // extension
-    bytes extra = 8;
+    bytes extra = 7;
 }
 
 message Tx {
-    TxHeader header = 1;
-    bytes sign = 2;
+    int32 network_id = 1;
+    TxHeader header = 2;
+    bytes sign = 3;
 }
 
 option (gogoproto.stable_marshaler_all) = true; // !important
 
 message Sheet {
-    int32 version = 1;
     map<uint64, Account> accounts = 2;
     map<string, bytes> anonymous = 3; // map[hex(publicKey)]balance
 }

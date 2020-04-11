@@ -2,6 +2,7 @@ package ngtypes
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/sha3"
@@ -51,6 +52,9 @@ func GetGenesisVault() *Vault {
 }
 
 func (m *Vault) CheckError() error {
+	if m.NetworkId != NetworkID {
+		return fmt.Errorf("vault's network id is incorrect")
+	}
 	return nil
 }
 

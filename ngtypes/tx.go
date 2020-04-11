@@ -28,7 +28,6 @@ var (
 // NewUnsignedTx will return an unsigned tx, must using Signature()
 func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Tx {
 	header := &TxHeader{
-		Version:      Version,
 		Type:         txType,
 		Convener:     convener,
 		Participants: participants,
@@ -39,8 +38,9 @@ func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values
 	}
 
 	return &Tx{
-		Header: header,
-		Sign:   nil,
+		NetworkId: NetworkID,
+		Header:    header,
+		Sign:      nil,
 	}
 }
 
@@ -51,8 +51,16 @@ func (m *Tx) IsSigned() bool {
 
 // Verify helps verify the transaction whether signed by the public key owner
 func (m *Tx) Verify(publicKey secp256k1.PublicKey) error {
+	if m.NetworkId != NetworkID {
+		return fmt.Errorf("tx's network id is incorrect")
+	}
+
 	if m.Sign == nil {
-		log.Panic("unsigned transaction")
+		return fmt.Errorf("unsigned transaction")
+	}
+
+	if publicKey.X == nil || publicKey.Y == nil {
+		return fmt.Errorf("illegal public key")
 	}
 
 	b, err := proto.Marshal(m.Header)
@@ -356,10 +364,6 @@ func (m *Tx) GetNonce() uint64 {
 	return m.Header.GetNonce()
 }
 
-func (m *Tx) GetVersion() int32 {
-	return m.Header.GetVersion()
-}
-
 func (m *Tx) GetExtra() []byte {
 	return m.Header.GetExtra()
 }
@@ -385,8 +389,7 @@ func GetGenesisGenerateTx() *Tx {
 		nil,
 	)
 
-	// FIXME: before init network should manually init the R & S
-	gen.Sign, _ = base58.FastBase58Decoding("2FZvjTQYC9q8qYqhH2jH2f6xrYPMjXnjeA3NYyiEeQfudukHpMRWYmkZxA6W2TMtXPn12kk1n3ukJHCNgsDbXSrA")
+	gen.Sign = GenesisGenerateTxSign
 
 	return gen
 }

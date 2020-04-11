@@ -7,12 +7,23 @@ import (
 	"github.com/mr-tron/base58"
 )
 
-var GenesisPublicKeyBase58 = "MubnecPG2WYJGen2LtKqnmt3qCrP3aeRTeXZNiiPVdoZgmaCNFsRythAkiX7xAaP1LFp1RcYsKzfwQXTnphB2SSi"
-var GenesisPublicKey, _ = base58.FastBase58Decoding(GenesisPublicKeyBase58)
+// FIXME: before init network should manually init PK & Sign
+var (
+	GenesisPublicKeyBase58 = "fnCRTJ71Qtr971CgXYin1uqP3FoVzdRunRRG1eynpxFA"
+	GenesisPublicKey, _    = base58.FastBase58Decoding(GenesisPublicKeyBase58)
+
+	GenesisGenerateTxSignBase58 = "v2fUbUkM9upEXTmQxwRCvxKNshLswePZNx7AFzwHGLwwm3WihtFDLoB8hUXHULWpiKuHztsLY7bHjoqtH2kmGJW"
+	GenesisGenerateTxSign, _    = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
+)
 
 const (
-	Version   = -1
-	NetworkID = -1
+	mainnetNetworkID = 1
+
+	testnetNetworkID = -1
+)
+
+const (
+	NetworkID = testnetNetworkID // for hard fork
 )
 
 var (
