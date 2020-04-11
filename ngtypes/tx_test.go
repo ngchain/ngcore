@@ -54,6 +54,7 @@ func TestTransaction_Signature(t *testing.T) {
 func TestGetGenesisGenerate(t *testing.T) {
 	gg := GetGenesisGenerateTx()
 	if err := gg.Verify(utils.Bytes2PublicKey(gg.GetParticipants()[0])); err != nil {
+		t.Log(err)
 		t.Fail()
 	}
 }

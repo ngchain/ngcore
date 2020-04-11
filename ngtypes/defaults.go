@@ -7,23 +7,21 @@ import (
 	"github.com/mr-tron/base58"
 )
 
-// FIXME: before init network should manually init PK & Sign
-var (
-	GenesisPublicKeyBase58 = "fnCRTJ71Qtr971CgXYin1uqP3FoVzdRunRRG1eynpxFA"
-	GenesisPublicKey, _    = base58.FastBase58Decoding(GenesisPublicKeyBase58)
-
-	GenesisGenerateTxSignBase58 = "v2fUbUkM9upEXTmQxwRCvxKNshLswePZNx7AFzwHGLwwm3WihtFDLoB8hUXHULWpiKuHztsLY7bHjoqtH2kmGJW"
-	GenesisGenerateTxSign, _    = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
-)
-
 const (
+	NetworkID = testnetNetworkID // for hard fork
+
 	mainnetNetworkID = 1
 
 	testnetNetworkID = -1
 )
 
-const (
-	NetworkID = testnetNetworkID // for hard fork
+// FIXME: before init network should manually init PK & Sign
+var (
+	GenesisPublicKeyBase58 = "v9fATcLJhipGXGGeyKixVrdRpFYuvHAonA2EjDfEni1g"
+	GenesisPublicKey, _    = base58.FastBase58Decoding(GenesisPublicKeyBase58)
+
+	GenesisGenerateTxSignBase58 = "5kVQcqFLNiqQxC7UL8E9wwX9csbD5MGJ2vSuvPZWU8BxfZtDLz7HaUhwaCFwsbFd4GTKC4AEbbChJp18VZa82uTE"
+	GenesisGenerateTxSign, _    = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
 )
 
 var (
@@ -35,18 +33,6 @@ var (
 
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()
 )
-
-func GetBig0() *big.Int {
-	return big.NewInt(0)
-}
-
-func GetBig0Bytes() []byte {
-	return big.NewInt(0).Bytes()
-}
-
-func GetBig1() *big.Int {
-	return big.NewInt(1)
-}
 
 var (
 	BlockMaxTxsSize = 1 << 25 // 32M
@@ -70,3 +56,15 @@ var (
 	MicroNGSymbol  = "μNG"
 	OneBlockReward = new(big.Int).Mul(NG, big.NewInt(10)) // 10NG
 )
+
+func GetBig0() *big.Int {
+	return big.NewInt(0)
+}
+
+func GetBig0Bytes() []byte {
+	return big.NewInt(0).Bytes()
+}
+
+func GetBig1() *big.Int {
+	return big.NewInt(1)
+}
