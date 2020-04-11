@@ -44,6 +44,34 @@ go version >= 1.14
 
 Or using bazel build tool if you want
 
+## Build
+
+### Go
+
+```bash
+# go will automatically sync the dependencies
+go build ./cmd/ngcore
+```
+
+### Tip
+
+Run `set CGO_ENABLED=0` or `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine when your environment don't have gcc.
+
+### Bazel
+
+Bazel works better in linux than windows (personal experience)
+
+```bash
+# BUILD.bazel files are not always updated with codes, it would be better update them (with gazelle)
+bazel run //:gazelle -- -go_prefix github.com/ngchain/ngcore
+
+# update repos from go.mod
+bazel run //:gazelle -- update-repos -from_file=go.mod
+
+# build the ngcore
+bazel build //cmd/ngcore
+```
+
 ## Usage
 
 ```bash
@@ -65,18 +93,10 @@ You can view more flags and options with `--help` flag
 ./ngcore --help
 ```
 
-## Build
-
-### Go
+Or you can choose to run in a docker
 
 ```bash
-# go will automatically sync the dependencies
-go build ./cmd/ngcore
-```
-
-### Docker
-
-```bash
+git clone https://github.com/ngchain/ngcore && cd ngcore
 sudo docker build . -t ngcore:alpine
 
 # Run as a bootstrap node
@@ -84,23 +104,4 @@ sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpin
 
 # Run as a mining node, 0 means using all cpu cores
 sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0
-```
-
-### Tip
-
-Run `set CGO_ENABLED=0` or `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine when your environment don't have gcc.
-
-### Bazel
-
-Bazel works better in linux than windows (personal experience)
-
-```bash
-# BUILD.bazel files are not always updated with codes, it would be better update them (with gazelle)
-bazel run //:gazelle -- -go_prefix github.com/ngchain/ngcore
-
-# update repos from go.mod
-bazel run //:gazelle -- update-repos -from_file=go.mod
-
-# build the ngcore
-bazel build //cmd/ngcore
 ```
