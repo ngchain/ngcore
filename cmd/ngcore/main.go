@@ -78,7 +78,7 @@ var colorFlag = cli.BoolFlag{
 var logLevelFlag = cli.StringFlag{
 	Name:  "log-level",
 	Value: "INFO",
-	Usage: "Enable displaying logs which are equal or higher to the level. Values can be ERROR WARNING NOTICE INFO DEBUG",
+	Usage: "Enable displaying logs which are equal or higher to the level. Values can be ERROR, WARNING, NOTICE, INFO or DEBUG",
 }
 
 // the Main
@@ -198,9 +198,10 @@ var action = func(c *cli.Context) error {
 func main() {
 	app := cli.NewApp()
 
-	app.Name = "NG"
-	app.Usage = "NGIN Network"
-	app.Version = "v0.0.1"
+	app.Name = "ngcore"
+	app.Usage = "Brand-new golang daemon implement of Ngin Network Node"
+	app.Description = `NGIN is a radically updating brand-new blockchain network, which is not a fork of ethereum or any other chain.`
+	app.Version = "v0.0.2"
 	app.Action = action
 
 	flags := []cli.Flag{

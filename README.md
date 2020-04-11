@@ -1,28 +1,40 @@
 # NgCore
+<p align="center">
+<img width="400" height="400" src="./resources/NG.svg"/>
+<p style="text-align:center"> <b>NgCore:</b> Brand-new golang daemon implement of Ngin Network Node </p>
+</p>
 
-New Golang implement of Ngin Network Node Daemon
+## What is NGIN?
 
-## NGIN
+NGIN is a radically updating **brand-new blockchain network**, which is not a fork of ethereum or any other chain.
 
-NGIN is a totally new chain which is not a fork of ethereum or other chain. It is radically updating.
+NGIN's **goal** is to build **a blockchain engine** which acts more **auditable, scalable, security-oriented** and supports more network tasks with vm.
+
+NGIN uses modern models - Vault, Account, Multi-type Tx, and the traditional Block model to build the blockchain ecosystem. 
+And NGIN strictly follow the idea of blockchain, locking items with hash to keep engine work safely.
+Not only blockchain, but Vault will also link up to be a chain for account security and powerful functions like fast ignition, free account state and so on.
+So It's safe and robust like bitcoin and ethereum but more scalable and powerful on the node's operational capacity and p2p network's speed and performance. 
 
 ## Status
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](https://goreportcard.com/report/github.com/ngchain/ngcore)
 [![CircleCI](https://circleci.com/gh/ngchain/ngcore.svg?style=svg)](https://circleci.com/gh/ngchain/ngcore)
+![GitHub](https://img.shields.io/github/license/ngchain/ngcore)
+![GitHub last commit](https://img.shields.io/github/last-commit/ngchain/ngcore)
 
 ## Features
 
-- Fast boot
-- Little storage cost, or no cost(mem only)
-- Humanizing account model
+- Fast ignition
+- Almost no storage cost, or no cost(mem only)
+- With Humanizing account model, users can send tx with memorable short number
 - Absolutely safety ensure with vault model
-- Powerful types of tx
-- Multi-language support on contract vm(lua & javascript yet)
-- Pure go, support almost all platforms
+- Powerful and scalable types of tx
+- Multi-language support on state(contract) vm(lua & javascript yet)
+- Pure go, support all common platforms
 - Libp2p(ipfs) powered p2p networking
-- Account ecosystem to keep coin value
-- Schnorr signature
+- Safe Account ecosystem 
+- Available anonymous address for saving balance
+- Using the schnorr signature, allowing multisig when sending and receiving
 - ...
 
 ## Requirements
@@ -34,7 +46,10 @@ Or using bazel build tool if you want
 ## Usage
 
 ```bash
+# dircetly run the binary
 ./ngcore
+
+# ngwallet is a rpc client in dart for ngin's daemon
 ./ngwallet newtx -to 1567464132546, 7563212343 -value 1NG, 0.1NG  
 ```
 
@@ -42,6 +57,11 @@ If you wanna start mining(proof of work), try `--mining` flag
 
 ```bash
 ./ngcore --mining
+```
+
+You can view more flags and options with `--help` flag
+```bash
+./ngcore --help
 ```
 
 ## Build
