@@ -84,7 +84,7 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 				return err
 			}
 
-			if err = c.checkBlockTarget(curBlock, prevBlock, curVault); err != nil {
+			if err = c.checkBlockTarget(curBlock, prevBlock, prevVault); err != nil {
 				return err
 			}
 

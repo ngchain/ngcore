@@ -26,12 +26,12 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 			return err
 		}
 
-		prevVault, err := c.GetVaultByHash(prevBlock.Header.PrevVaultHash)
+		prevBlocksVault, err := c.GetVaultByHash(prevBlock.Header.PrevVaultHash)
 		if err != nil {
 			return err
 		}
 
-		if err = c.checkBlockTarget(block, prevBlock, prevVault); err != nil {
+		if err = c.checkBlockTarget(block, prevBlock, prevBlocksVault); err != nil {
 			return err
 		}
 	}

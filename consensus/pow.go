@@ -58,15 +58,27 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 	defer c.RUnlock()
 
 	currentBlock := c.Chain.GetLatestBlock()
-	currentBlockHash, _ := currentBlock.CalculateHash()
+	currentBlockHash, err := currentBlock.CalculateHash()
+	if err != nil {
+		log.Error(err)
+	}
+
+	currentBlocksVault, err := c.Chain.GetVaultByHash(currentBlock.Header.PrevVaultHash)
+	if err != nil {
+		log.Error(err)
+	}
+
+	newTarget := ngtypes.GetNextTarget(currentBlock, currentBlocksVault)
 
 	newBlockHeight := currentBlock.Header.Height + 1
-
-	currentVault := c.Chain.GetLatestVault()
-	currentVaultHash, _ := currentVault.CalculateHash()
-
-	currentBlocksVault, _ := c.Chain.GetVaultByHash(currentBlock.Header.PrevVaultHash)
-	newTarget := ngtypes.GetNextTarget(currentBlock, currentBlocksVault)
+	currentVault, err := c.Chain.GetVaultByHeight(newBlockHeight / ngtypes.BlockCheckRound)
+	if err != nil {
+		log.Error(err)
+	}
+	currentVaultHash, err := currentVault.CalculateHash()
+	if err != nil {
+		log.Error(err)
+	}
 
 	newBareBlock := ngtypes.NewBareBlock(
 		newBlockHeight,
@@ -146,7 +158,7 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 	}
 
 	if block.Header.IsTail() {
-		currentVault := c.GenNewVaultCandidate(block.Header.Height/ngtypes.BlockCheckRound, block.Header.PrevVaultHash)
+		currentVault := c.genNewVaultCandidate(block.Header.Height/ngtypes.BlockCheckRound, block.Header.PrevVaultHash)
 		err := c.checkVault(currentVault)
 		if err != nil {
 			panic(err)
@@ -159,7 +171,7 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 }
 
 // GenNewVaultCandidate is called when the reached a checkpoint, then generate a
-func (c *Consensus) GenNewVaultCandidate(prevVaultHeight uint64, prevVaultHash []byte) *ngtypes.Vault {
+func (c *Consensus) genNewVaultCandidate(prevVaultHeight uint64, prevVaultHash []byte) *ngtypes.Vault {
 	sheet, err := c.GenerateNewSheet()
 	if err != nil {
 		log.Error(err)

@@ -12,7 +12,7 @@ func (m *BlockHeader) IsHead() bool {
 }
 
 func (m *BlockHeader) IsTail() bool {
-	return m.GetHeight()%BlockCheckRound+1 == BlockCheckRound
+	return (m.GetHeight()+1)%BlockCheckRound == 0
 }
 
 // GetPoWBlob will return a complete blob for block hash
