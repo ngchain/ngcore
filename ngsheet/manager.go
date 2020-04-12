@@ -1,8 +1,6 @@
 package ngsheet
 
 import (
-	"bytes"
-	"fmt"
 	"math/big"
 
 	"github.com/whyrusleeping/go-logging"
@@ -66,26 +64,7 @@ func (m *SheetManager) HandleTxs(transactions ...*ngtypes.Tx) error {
 	return m.currentSheet.handleTxs(transactions...)
 }
 
-func (m *SheetManager) HandleVault(vault *ngtypes.Vault) error {
-	newBaseSheetHash, err := vault.Sheet.CalculateHash()
-	if err != nil {
-		return err
-	}
-
-	currentSheet, err := m.currentSheet.ToSheet()
-	if err != nil {
-		return err
-	}
-
-	currentSheetHash, err := currentSheet.CalculateHash()
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(newBaseSheetHash, currentSheetHash) {
-		return fmt.Errorf("malformed new sheet")
-	}
-
+func (m *SheetManager) HandleVault(vault *ngtypes.Vault) (err error) {
 	m.baseSheet = m.currentSheet
 	m.currentSheet, err = newSheetEntry(vault.Sheet)
 	if err != nil {
@@ -101,6 +80,10 @@ func (m *SheetManager) GenerateNewSheet() (*ngtypes.Sheet, error) {
 
 func (m *SheetManager) GetAccountsByPublicKey(key []byte) ([]*ngtypes.Account, error) {
 	return m.currentSheet.GetAccountsByPublicKey(key)
+}
+
+func (m *SheetManager) GetAccountByID(id uint64) (*ngtypes.Account, error) {
+	return m.currentSheet.GetAccountByID(id)
 }
 
 func (m *SheetManager) GetBalanceByID(id uint64) (*big.Int, error) {

@@ -39,9 +39,6 @@ type LocalNode struct {
 	OnSynced    func()
 	OnNotSynced func()
 
-	// sheetManager *ngsheet.Sheet
-	// chain        *ngchain.Chain
-	// txPool       *txpool.TxPool
 	consensus *consensus.Consensus
 
 	RemoteHeights   *sync.Map // key:id value:height

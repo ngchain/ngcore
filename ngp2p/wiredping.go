@@ -43,7 +43,7 @@ func (w *wired) Ping(remotePeerID peer.ID) bool {
 
 	ok := w.node.sendProtoMessage(remotePeerID, pingMethod, req)
 	if !ok {
-		log.Infof("failed sending ping to: %s.", remotePeerID)
+		log.Errorf("failed sending ping to: %s.", remotePeerID)
 		return false
 	}
 

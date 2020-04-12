@@ -19,7 +19,6 @@ func (w *wired) updateStatus() {
 		return true
 	})
 
-	log.Infof("localnode synced with remote nodes: (%d/ %d)", synced, total)
 	progress := float64(synced) / float64(total)
 	w.node.isSyncedCh <- progress > 0.9
 }

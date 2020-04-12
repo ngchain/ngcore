@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dgraph-io/badger/v2"
 	"github.com/whyrusleeping/go-logging"
 	"gopkg.in/urfave/cli.v1"
 
@@ -81,6 +82,11 @@ var logLevelFlag = cli.StringFlag{
 	Usage: "Enable displaying logs which are equal or higher to the level. Values can be ERROR, WARNING, NOTICE, INFO or DEBUG",
 }
 
+var inMemFlag = cli.BoolFlag{
+	Name:  "in-mem",
+	Usage: "Run the database of blocks, vaults in memory",
+}
+
 // the Main
 var action = func(c *cli.Context) error {
 	var format string
@@ -120,6 +126,7 @@ var action = func(c *cli.Context) error {
 	rpcPort := c.Int("rpc-port")
 	keyPass := c.String("key-pass")
 	withProfile := c.Bool("profile")
+	inMem := c.Bool("in-mem")
 
 	if withProfile {
 		f, err := os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
@@ -136,7 +143,12 @@ var action = func(c *cli.Context) error {
 	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(keyPass))
 	keytools.PrintPublicKey(key)
 
-	db := storage.InitStorage()
+	var db *badger.DB
+	if inMem {
+		db = storage.InitMemStorage()
+	} else {
+		db = storage.InitStorage()
+	}
 	defer func() {
 		err := db.Close()
 		if err != nil {
@@ -208,6 +220,7 @@ func main() {
 		strictModeFlag, logFlag, p2pTCPPortFlag, rpcPortFlag, miningFlag,
 		isBootstrapFlag, keyPassFlag, profileFlag,
 		colorFlag, logLevelFlag,
+		inMemFlag,
 	}
 
 	app.Flags = flags

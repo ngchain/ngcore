@@ -2,7 +2,7 @@
   <configuration default="false" name="ngcore mining " type="GoApplicationRunConfiguration" factoryName="Go Application" singleton="false">
     <module name="ngcore" />
     <working_directory value="$PROJECT_DIR$/env/mining" />
-    <parameters value="--mining 2" />
+    <parameters value="--mining 2 --in-mem" />
     <envs>
       <env name="CGO_ENABLED" value="0" />
     </envs>

@@ -2,7 +2,9 @@ package rpc
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/mr-tron/base58"
@@ -12,14 +14,13 @@ import (
 )
 
 type sendTransactionParams struct {
-	Convener     uint64    `json:"convener"`
-	Participants []string  `json:"participants"`
-	Values       []float64 `json:"values"`
-	Fee          float64   `json:"fee"`
-	Extra        string    `json:"extra"`
+	Convener     uint64        `json:"convener"`
+	Participants []interface{} `json:"participants"`
+	Values       []float64     `json:"values"`
+	Fee          float64       `json:"fee"`
+	Extra        string        `json:"extra"`
 }
 
-// TODO: allow Participants be Account Num
 func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendTransactionParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
@@ -29,9 +30,22 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 
 	var participants = make([][]byte, len(params.Participants))
 	for i := range params.Participants {
-		participants[i], err = base58.FastBase58Decoding(params.Participants[i])
-		if err != nil {
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		switch p := params.Participants[i].(type) {
+		case string:
+			participants[i], err = base58.FastBase58Decoding(p)
+			if err != nil {
+				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+			}
+		case float64:
+			accountID := uint64(p)
+			account, err := s.sheetManager.GetAccountByID(accountID)
+			if err != nil {
+				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+			}
+			participants[i] = account.Owner
+		default:
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("unknown participant type: %s", reflect.TypeOf(p))))
+
 		}
 	}
 
@@ -69,8 +83,14 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.JSON.Marshal(true)
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+	result := map[string]interface{}{
+		"tx": tx.BS58(),
+	}
+	raw, err := utils.JSON.Marshal(result)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 type sendRegisterParams struct {
@@ -108,8 +128,14 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.JSON.Marshal(true)
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+	result := map[string]interface{}{
+		"tx": tx.BS58(),
+	}
+	raw, err := utils.JSON.Marshal(result)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 type sendLogoutParams struct {
@@ -154,8 +180,14 @@ func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.JSON.Marshal(true)
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+	result := map[string]interface{}{
+		"tx": tx.BS58(),
+	}
+	raw, err := utils.JSON.Marshal(result)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 type sendAssignParams struct {
@@ -200,8 +232,14 @@ func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.JSON.Marshal(true)
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+	result := map[string]interface{}{
+		"tx": tx.BS58(),
+	}
+	raw, err := utils.JSON.Marshal(result)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 type sendAppendParams struct {
@@ -246,6 +284,12 @@ func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok, _ := utils.JSON.Marshal(true)
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+	result := map[string]interface{}{
+		"tx": tx.BS58(),
+	}
+	raw, err := utils.JSON.Marshal(result)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }

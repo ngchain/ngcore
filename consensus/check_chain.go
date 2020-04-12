@@ -66,7 +66,7 @@ func (c *Consensus) checkChain(items ...ngchain.Item) error {
 			}
 
 			// prevVaultHash, _ := prevVault.CalculateHash()
-			if curVault != nil {
+			if curVault != nil && curVault.GetPrevHash() != nil {
 				curVaultHash, _ = curVault.CalculateHash()
 				if !bytes.Equal(prevVaultHash, curVault.GetPrevHash()) {
 					return fmt.Errorf("vault@%d:%x 's prevHash: %x is not matching vault@%d:%x 's hash", curVault.GetHeight(), curVaultHash, curVault.GetPrevHash(), prevVault.GetHeight(), prevVaultHash)

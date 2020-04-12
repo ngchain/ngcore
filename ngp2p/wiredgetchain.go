@@ -108,7 +108,7 @@ func (w *wired) onGetChain(s network.Stream) {
 
 	vault, err := w.node.consensus.GetVaultByHeight(getchain.VaultHeight)
 	if err != nil {
-		log.Errorf("failed to get vault")
+		log.Errorf("failed to get vault@%d", getchain.VaultHeight)
 		go w.NotFound(remoteID, data.Header.Uuid)
 		return
 	}

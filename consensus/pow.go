@@ -21,7 +21,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 
 	if c.isMining {
 		c.miner = miner.NewMiner(workerNum)
-		c.miner.Start(c.GetBlockTemplate())
+		c.miner.Start(c.getBlockTemplate())
 
 		go func() {
 			for {
@@ -29,7 +29,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 				c.MinedNewBlock(b)
 
 				if c.isMining {
-					c.miner.Start(c.GetBlockTemplate())
+					c.miner.Start(c.getBlockTemplate())
 				}
 			}
 		}()
@@ -48,12 +48,12 @@ func (c *Consensus) Stop() {
 func (c *Consensus) Resume() {
 	if c.isMining {
 		log.Info("mining resuming")
-		c.miner.Start(c.GetBlockTemplate())
+		c.miner.Start(c.getBlockTemplate())
 	}
 }
 
-// GetBlockTemplate is a generator of new block. But the generated block has no nonce
-func (c *Consensus) GetBlockTemplate() *ngtypes.Block {
+// getBlockTemplate is a generator of new block. But the generated block has no nonce
+func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 	c.RLock()
 	defer c.RUnlock()
 

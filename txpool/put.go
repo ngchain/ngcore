@@ -35,19 +35,15 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
 	var err error
 	for i := range txs {
 		if !txs[i].IsSigned() {
-			err = errors.New("cannot putting unsigned tx, " + txs[i].HashHex() + " into queuing")
+			err = errors.New("cannot putting unsigned tx, " + txs[i].BS58() + " into queuing")
 			log.Error(err)
 
 			continue
 		}
 
-		if n := p.CurrentVault.Sheet.Accounts[txs[i].GetConvener()].Nonce + 1; txs[i].GetNonce() != n+1 {
-			err = errors.New("Tx" + txs[i].HashHex() + "'s nonce is incorrect")
-			log.Error(err)
-
-			continue
+		if p.Queuing[txs[i].GetConvener()] == nil {
+			p.Queuing[txs[i].GetConvener()] = make(map[uint64]*ngtypes.Tx)
 		}
-
 		p.Queuing[txs[i].GetConvener()][txs[i].GetNonce()] = txs[i]
 	}
 

@@ -2,7 +2,6 @@ package ngtypes
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -83,24 +82,13 @@ func (m *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	return nil
 }
 
-// Bs58 is a tx's ReadableID in string
-func (m *Tx) Bs58() string {
+// BS58 is a tx's ReadableID in string
+func (m *Tx) BS58() string {
 	b, err := proto.Marshal(m)
 	if err != nil {
 		log.Error(err)
 	}
 	return base58.FastBase58Encoding(b)
-}
-
-// HashHex is a tx's ReadableID in string
-func (m *Tx) HashHex() string {
-	b, err := m.CalculateHash()
-	if err != nil {
-		log.Error(err)
-		return ""
-	}
-
-	return hex.EncodeToString(b)
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx
