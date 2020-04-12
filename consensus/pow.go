@@ -63,27 +63,17 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 		log.Error(err)
 	}
 
-	currentBlocksVault, err := c.Chain.GetVaultByHash(currentBlock.Header.PrevVaultHash)
+	lastHeadBlock, err := c.GetBlockByHeight(currentBlock.GetHeight() - ngtypes.BlockCheckRound + 1)
 	if err != nil {
 		log.Error(err)
 	}
-
-	newTarget := ngtypes.GetNextTarget(currentBlock, currentBlocksVault)
+	newTarget := ngtypes.GetNextTarget(currentBlock, lastHeadBlock)
 
 	newBlockHeight := currentBlock.Header.Height + 1
-	currentVault, err := c.Chain.GetVaultByHeight(newBlockHeight / ngtypes.BlockCheckRound)
-	if err != nil {
-		log.Error(err)
-	}
-	currentVaultHash, err := currentVault.CalculateHash()
-	if err != nil {
-		log.Error(err)
-	}
 
 	newBareBlock := ngtypes.NewBareBlock(
 		newBlockHeight,
 		currentBlockHash,
-		currentVaultHash,
 		newTarget,
 	)
 
@@ -94,10 +84,6 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
 		log.Error(err)
-	}
-
-	if newUnsealingBlock.IsHead() {
-		log.Infof("using new vault: %x", newBareBlock.Header.PrevVaultHash)
 	}
 
 	return newUnsealingBlock
@@ -124,26 +110,8 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 		return
 	}
 
-	prevVault, err := c.Chain.GetVaultByHash(block.Header.PrevVaultHash)
-	if err != nil {
-		log.Error("cannot find the prevVault for new block, rejected:", err)
-		return
-	}
-	if prevVault == nil {
-		log.Warning("Malformed block mined: PrevVaultHash")
-		return
-	}
-
 	hash, _ := block.CalculateHash()
 	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
-
-	// TODO: vault should be generated when made the template
-	if block.Header.IsHead() {
-		err := c.HandleVault(prevVault)
-		if err != nil {
-			log.Error(err)
-		}
-	}
 
 	err = c.Chain.MinedNewBlock(block)
 	if err != nil {
@@ -156,29 +124,4 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 		log.Warning(err)
 		return
 	}
-
-	if block.Header.IsTail() {
-		currentVault := c.genNewVaultCandidate(block.Header.Height/ngtypes.BlockCheckRound, block.Header.PrevVaultHash)
-		err := c.checkVault(currentVault)
-		if err != nil {
-			panic(err)
-		}
-		err = c.Chain.MinedNewVault(currentVault)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-// GenNewVaultCandidate is called when the reached a checkpoint, then generate a
-func (c *Consensus) genNewVaultCandidate(prevVaultHeight uint64, prevVaultHash []byte) *ngtypes.Vault {
-	sheet, err := c.GenerateNewSheet()
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	newVault := ngtypes.NewVault(prevVaultHeight, prevVaultHash, sheet)
-	hash, _ := newVault.CalculateHash()
-	log.Infof("Generated a new Vault@%d, %x", newVault.GetHeight(), hash)
-	return newVault
 }

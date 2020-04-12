@@ -26,12 +26,11 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 			return err
 		}
 
-		prevBlocksVault, err := c.GetVaultByHash(prevBlock.Header.PrevVaultHash)
+		lastHeadBlock, err := c.GetBlockByHeight(block.GetHeight() - ngtypes.BlockCheckRound + 1)
 		if err != nil {
 			return err
 		}
-
-		if err = c.checkBlockTarget(block, prevBlock, prevBlocksVault); err != nil {
+		if err = c.checkBlockTarget(block, prevBlock, lastHeadBlock); err != nil {
 			return err
 		}
 	}
@@ -43,8 +42,8 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 	return nil
 }
 
-func (c *Consensus) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block, prevBlocksVault *ngtypes.Vault) error {
-	correctTarget := ngtypes.GetNextTarget(prevBlock, prevBlocksVault)
+func (c *Consensus) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block, lastHeadBlock *ngtypes.Block) error {
+	correctTarget := ngtypes.GetNextTarget(prevBlock, lastHeadBlock)
 	blockTarget := new(big.Int).SetBytes(block.Header.Target)
 	if correctTarget.Cmp(blockTarget) != 0 {
 		return fmt.Errorf("wrong block target for block@%d, target in block: %x shall be %x", block.GetHeight(), blockTarget, correctTarget)

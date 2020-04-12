@@ -28,25 +28,16 @@ func NewSheetManager() *SheetManager {
 }
 
 // Init will initialize the Sheet manager with a specific vault and blocks on the vault
-func (m *SheetManager) Init(currentVault *ngtypes.Vault, blocks ...*ngtypes.Block) {
-	log.Infof("sheet manager initialized on vault@%d", currentVault.Height)
-
+func (m *SheetManager) Init(latestBlocks *ngtypes.Block) {
 	var err error
 
-	m.baseSheet, err = newSheetEntry(currentVault.Sheet)
+	m.baseSheet, err = newSheetEntry(latestBlocks.Sheet)
 	if err != nil {
 		panic(err)
 	}
-	m.currentSheet, err = newSheetEntry(currentVault.Sheet)
+	m.currentSheet, err = newSheetEntry(latestBlocks.Sheet)
 	if err != nil {
 		panic(err)
-	}
-
-	for i := 0; i < len(blocks); i++ {
-		err = m.currentSheet.handleTxs(blocks[i].Txs...)
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
@@ -60,18 +51,9 @@ func (m *SheetManager) CheckCurrentTxs(txs ...*ngtypes.Tx) error {
 	return m.currentSheet.CheckTxs()
 }
 
-func (m *SheetManager) HandleTxs(transactions ...*ngtypes.Tx) error {
-	return m.currentSheet.handleTxs(transactions...)
-}
-
-func (m *SheetManager) HandleVault(vault *ngtypes.Vault) (err error) {
-	m.baseSheet = m.currentSheet
-	m.currentSheet, err = newSheetEntry(vault.Sheet)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (m *SheetManager) HandleTxs(txs ...*ngtypes.Tx) error {
+	log.Info("handling %d txs", len(txs))
+	return m.currentSheet.handleTxs(txs...)
 }
 
 func (m *SheetManager) GenerateNewSheet() (*ngtypes.Sheet, error) {

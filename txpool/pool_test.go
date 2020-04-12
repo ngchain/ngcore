@@ -11,6 +11,6 @@ func TestNewTxPool(t *testing.T) {
 	sheetManager := ngsheet.NewSheetManager()
 	pool := NewTxPool(sheetManager)
 
-	sheetManager.Init(ngtypes.GetGenesisVault(), ngtypes.GetGenesisBlock())
-	pool.Init(ngtypes.GetGenesisVault(), nil, nil)
+	sheetManager.Init(ngtypes.GetGenesisBlock())
+	pool.Init(nil)
 }

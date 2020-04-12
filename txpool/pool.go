@@ -17,11 +17,9 @@ type TxPool struct {
 
 	sheetManager *ngsheet.SheetManager
 
-	Queuing      map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
-	CurrentVault *ngtypes.Vault
+	Queuing map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
 
 	newBlockCh chan *ngtypes.Block
-	newVaultCh chan *ngtypes.Vault
 
 	NewCreatedTxEvent chan *ngtypes.Tx
 }
@@ -30,18 +28,15 @@ func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	return &TxPool{
 		sheetManager: sheetManager,
 
-		Queuing:      make(map[uint64]map[uint64]*ngtypes.Tx),
-		CurrentVault: nil,
+		Queuing: make(map[uint64]map[uint64]*ngtypes.Tx),
 
 		NewCreatedTxEvent: make(chan *ngtypes.Tx),
 	}
 }
 
 // Init inits the txPool with submodules
-func (p *TxPool) Init(currentVault *ngtypes.Vault, newBlockCh chan *ngtypes.Block, newVaultCh chan *ngtypes.Vault) {
-	p.CurrentVault = currentVault
+func (p *TxPool) Init(newBlockCh chan *ngtypes.Block) {
 	p.newBlockCh = newBlockCh
-	p.newVaultCh = newVaultCh
 }
 
 // Run starts listening to the new block & vault
@@ -52,9 +47,6 @@ func (p *TxPool) Run() {
 			case block := <-p.newBlockCh:
 				log.Infof("start popping txs in block@%d", block.GetHeight())
 				p.DelBlockTxs(block.Txs...)
-			case vault := <-p.newVaultCh:
-				log.Infof("new backend vault@%d for txpool", vault.GetHeight())
-				p.CurrentVault = vault
 			}
 		}
 	}()

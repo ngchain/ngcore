@@ -7,17 +7,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *wired) Chain(peerID peer.ID, uuid string, vault *ngtypes.Vault, blocks ...*ngtypes.Block) bool {
-	log.Debugf("Sending chain to %s. Message id: %s, chain from vault@%d ...", peerID, uuid, vault.Height)
+func (w *wired) Chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) bool {
+	log.Debugf("Sending chain to %s. Message id: %s, chain from block@%d ...", peerID, uuid, blocks[0].GetHeight())
 
 	payload, err := proto.Marshal(&pb.ChainPayload{
-		Vault:        vault,
 		Blocks:       blocks,
 		LatestHeight: w.node.consensus.GetLatestBlockHeight(),
 	})
@@ -93,20 +91,13 @@ func (w *wired) onChain(s network.Stream) {
 
 	if len(payload.Blocks) > 0 {
 		log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", remoteID, data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
-	} else if payload.Vault != nil {
-		log.Debugf("Received chain from %s. Message id:%s. Vault@%d only, LatestHeight: %d..", remoteID, data.Header.Uuid, payload.Vault.GetHeight(), payload.LatestHeight)
 	}
 
 	w.node.RemoteHeights.Store(remoteID, payload.LatestHeight)
 
 	// init
 	if !w.node.isStrictMode && !w.node.isInitialized.Load() {
-		c := []ngchain.Item{payload.Vault}
-		for i := 0; i < len(payload.Blocks); i++ {
-			c = append(c, payload.Blocks[i])
-		}
-
-		err = w.node.consensus.InitWithChain(c...)
+		err = w.node.consensus.InitWithChain(payload.Blocks...)
 		if err != nil {
 			log.Error("failed initializing with chain: %s", err)
 		}
@@ -115,31 +106,22 @@ func (w *wired) onChain(s network.Stream) {
 			w.node.isInitialized.Store(true)
 			log.Infof("p2p init finished")
 		} else {
-			go w.GetChain(remoteID, w.node.consensus.GetLatestVaultHeight()+1)
+			go w.GetChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
 		}
 		return
 	}
 
-	localVaultHeight := w.node.consensus.GetLatestVaultHeight()
-	if payload.Vault.Height > localVaultHeight {
-		//append
-		c := []ngchain.Item{payload.Vault}
-		for i := 0; i < len(payload.Blocks); i++ {
-			c = append(c, payload.Blocks[i])
-		}
-
-		err = w.node.consensus.PutNewChain(c...)
+	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
+	if payload.Blocks[len(payload.Blocks)-1].GetHeight() > localBlockHeight {
+		// append
+		err = w.node.consensus.PutNewChain(payload.Blocks...)
 		if err != nil {
 			log.Errorf("failed putting new chain: %s", err)
 			return
 		}
 	} else {
 		// forkto
-		c := []ngchain.Item{payload.Vault}
-		for i := 1; i < len(payload.Blocks); i++ {
-			c = append(c, payload.Blocks[i])
-		}
-		err = w.node.consensus.SwitchTo(c...)
+		err = w.node.consensus.SwitchTo(payload.Blocks...)
 		if err != nil {
 			log.Errorf("failed switching to new chain: %s", err)
 			return
@@ -148,7 +130,7 @@ func (w *wired) onChain(s network.Stream) {
 
 	// continue get chain
 	if w.node.consensus.GetLatestBlockHeight() < payload.LatestHeight {
-		go w.GetChain(remoteID, payload.Vault.Height+1)
+		go w.GetChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
 		return
 	}
 }

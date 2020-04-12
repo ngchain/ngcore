@@ -20,7 +20,7 @@ func (m *BlockHeader) GetPoWBlob(nonce []byte) []byte {
 	raw := make([]byte, 144)
 
 	copy(raw[0:32], m.GetPrevBlockHash())
-	copy(raw[32:64], m.GetPrevVaultHash())
+	copy(raw[32:64], m.GetSheetHash())
 	copy(raw[64:96], m.GetTrieHash())
 	binary.LittleEndian.PutUint64(raw[96:104], uint64(m.GetTimestamp()))
 	copy(raw[104:136], m.GetTarget()) // uint256

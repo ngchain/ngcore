@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 
@@ -122,6 +123,8 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
+
+	log.Info(new(jsonpb.Marshaler).MarshalToString(tx))
 
 	err = s.txPool.PutNewTxFromLocal(tx)
 	if err != nil {

@@ -1,7 +1,6 @@
 package ngp2p
 
 import (
-	"bytes"
 	"io/ioutil"
 
 	"github.com/gogo/protobuf/proto"
@@ -18,9 +17,7 @@ func (w *wired) Pong(peerID peer.ID, uuid string) bool {
 
 	payload, err := proto.Marshal(&pb.PingPongPayload{
 		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
-		VaultHeight:     w.node.consensus.GetLatestVaultHeight(),
 		LatestBlockHash: w.node.consensus.GetLatestBlockHash(),
-		LatestVaultHash: w.node.consensus.GetLatestVaultHash(),
 	})
 	if err != nil {
 		log.Error("failed to sign pb data")
@@ -90,32 +87,28 @@ func (w *wired) onPong(s network.Stream) {
 	w.node.Peerstore().AddAddrs(remotePeerID, []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
 
 	w.node.RemoteHeights.Store(remotePeerID.String(), pong.BlockHeight)
-
-	localVaultHeight := w.node.consensus.GetLatestVaultHeight()
-	localVaultHash := w.node.consensus.GetLatestVaultHash()
 	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
 
+	// fast mode init
 	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.consensus.GetLatestBlockHeight() == 0 {
-		go w.GetChain(remotePeerID, pong.VaultHeight-2)
+		go w.GetChain(remotePeerID, pong.BlockHeight-20, pong.BlockHeight)
 		return
 	}
 
-	if localVaultHeight < pong.VaultHeight {
-		// start sync
-		log.Infof("start syncing with %s", remotePeerID)
-		if w.node.isStrictMode {
-			requestHeight := (localBlockHeight + 1) / ngtypes.BlockCheckRound
-			go w.GetChain(remotePeerID, requestHeight)
-		} else {
-			go w.GetChain(remotePeerID, pong.VaultHeight-2)
-		}
-		return
+	// start sync
+	log.Infof("start syncing with %s", remotePeerID)
+	if w.node.isStrictMode {
+		requestHeight := (localBlockHeight + 1) / ngtypes.BlockCheckRound
+		go w.GetChain(remotePeerID, requestHeight, pong.BlockHeight)
+	} else {
+		go w.GetChain(remotePeerID, pong.BlockHeight-20, pong.BlockHeight)
 	}
+	return
 
-	if localVaultHeight == pong.VaultHeight && !bytes.Equal(localVaultHash, pong.LatestVaultHash) {
-		// start fork
-		log.Infof("start switching to the chain of %s", remotePeerID)
-		go w.GetChain(remotePeerID, pong.VaultHeight)
-		return
-	}
+	// if localVaultHeight == pong.VaultHeight && !bytes.Equal(localVaultHash, pong.LatestVaultHash) {
+	// 	// start fork
+	// 	log.Infof("start switching to the chain of %s", remotePeerID)
+	// 	go w.GetChain(remotePeerID, pong.VaultHeight)
+	// 	return
+	// }
 }

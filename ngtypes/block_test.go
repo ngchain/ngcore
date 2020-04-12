@@ -28,7 +28,7 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 	// new genesisBlock
 	runtime.GOMAXPROCS(3)
 
-	b := NewBareBlock(2, nil, nil, GenesisTarget)
+	b := NewBareBlock(2, nil, GenesisTarget)
 	b, err := b.ToUnsealing(nil)
 	if err != nil {
 		log.Fatal(err)
@@ -70,7 +70,6 @@ func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh ch
 			blob := b.Header.GetPoWBlob(random)
 
 			hash := cryptonight.Sum(blob, 0)
-			//fmt.Println(new(big.Int).SetBytes(hash).Uint64())
 			if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
 				answerCh <- random
 				fmt.Println("Found ", random, hash)

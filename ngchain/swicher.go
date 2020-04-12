@@ -12,30 +12,14 @@ import (
 
 // SwitchTo changes the items in db, requiring the first one of chain is an vault. The chain should follow the order vault0-block0-block1...-block6-vault2-block7...
 // SwitchTo will override the origin data, using carefully
-func (c *Chain) SwitchTo(chain ...Item) error {
+func (c *Chain) SwitchTo(chain ...*ngtypes.Block) error {
 	log.Info("switching to new chain")
 	/* Check Start */
 	if len(chain) < 3 {
 		return fmt.Errorf("chain is nil")
 	}
 
-	firstVault, ok := chain[0].(*ngtypes.Vault)
-	if !ok {
-		return fmt.Errorf("first one of chain shall be an vault")
-	}
-
-	if hash, _ := firstVault.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisVaultHash) {
-		// not genesis
-		_, err := c.GetVaultByHash(firstVault.GetPrevHash())
-		if err != nil {
-			return fmt.Errorf("the first vault's prevHash is invalid: %s", err)
-		}
-	}
-
-	firstBlock, ok := chain[1].(*ngtypes.Block)
-	if !ok {
-		return fmt.Errorf("second one of chain shall be a block")
-	}
+	firstBlock := chain[0]
 	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
 		// not genesis
 		_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
@@ -49,53 +33,26 @@ func (c *Chain) SwitchTo(chain ...Item) error {
 	/* Put start */
 	err := c.db.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(chain); i++ {
-			switch item := chain[i].(type) {
-			case *ngtypes.Block:
-				block := item
+			block := chain[i]
 
-				hash, _ := block.CalculateHash()
-				raw, _ := block.Marshal()
-				log.Infof("putting block@%d: %x", block.Header.Height, hash)
-				err := txn.Set(append(blockPrefix, hash...), raw)
-				if err != nil {
-					return err
-				}
-				err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
-				if err != nil {
-					return err
-				}
-				err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
-				if err != nil {
-					return err
-				}
-				err = txn.Set(append(blockPrefix, latestHashTag...), hash)
-				if err != nil {
-					return err
-				}
-			case *ngtypes.Vault:
-				vault := item
-
-				hash, _ := vault.CalculateHash()
-				raw, _ := vault.Marshal()
-				log.Infof("putting vault@%d: %x", vault.Height, hash)
-				err := txn.Set(append(vaultPrefix, hash...), raw)
-				if err != nil {
-					return err
-				}
-				err = txn.Set(append(vaultPrefix, utils.PackUint64LE(vault.Height)...), hash)
-				if err != nil {
-					return err
-				}
-				err = txn.Set(append(vaultPrefix, latestHeightTag...), utils.PackUint64LE(vault.Height))
-				if err != nil {
-					return err
-				}
-				err = txn.Set(append(vaultPrefix, latestHashTag...), hash)
-				if err != nil {
-					return err
-				}
-			default:
-				panic("unknown item")
+			hash, _ := block.CalculateHash()
+			raw, _ := block.Marshal()
+			log.Infof("putting block@%d: %x", block.Header.Height, hash)
+			err := txn.Set(append(blockPrefix, hash...), raw)
+			if err != nil {
+				return err
+			}
+			err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
+			if err != nil {
+				return err
+			}
+			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
+			if err != nil {
+				return err
+			}
+			err = txn.Set(append(blockPrefix, latestHashTag...), hash)
+			if err != nil {
+				return err
 			}
 		}
 		return nil

@@ -14,12 +14,12 @@ message Account {
 
 message BlockHeader {
     uint64 height = 1;
+    int64 timestamp = 2;
 
-    bytes prev_block_hash = 2;
-    bytes prev_vault_hash = 3;
-    bytes trie_hash = 4;
+    bytes prev_block_hash = 3;
+    bytes sheet_hash = 4; // assemble vault into block
+    bytes trie_hash = 5;
 
-    int64 timestamp = 5;
     bytes target = 6;
     bytes nonce = 7;
 }
@@ -27,7 +27,8 @@ message BlockHeader {
 message Block {
     int32 network_id = 1;
     BlockHeader header = 2;
-    repeated Tx txs = 3; // miner should build the generate tx by themselves
+    Sheet sheet = 3;
+    repeated Tx txs = 4; // miner should build the generate tx by themselves
 }
 
 enum TxType {
@@ -69,11 +70,3 @@ message Sheet {
     map<string, bytes> anonymous = 3; // map[hex(publicKey)]balance
 }
 
-message Vault {
-    int32 network_id = 1;
-    Sheet sheet = 2;
-    uint64 height = 3;
-    int64 timestamp = 4;
-
-    bytes prev_vault_hash = 5;
-}

@@ -116,6 +116,7 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 }
 
 func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
+	log.Info("handling new register: %s", tx.BS58())
 	rawConvener, exists := accounts[tx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists

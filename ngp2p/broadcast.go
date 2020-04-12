@@ -59,14 +59,9 @@ func registerBroadcaster(node *LocalNode) *broadcaster {
 			select {
 			case block := <-b.node.consensus.MinedBlockToP2PCh:
 				if block.IsHead() {
-					v, err := b.node.consensus.GetVaultByHash(block.Header.PrevVaultHash)
-					if err != nil {
-						log.Errorf("failed to get vault from new mined block ")
-						continue
-					}
-					b.broadcastBlock(block, v)
+					b.broadcastBlock(block)
 				} else {
-					b.broadcastBlock(block, nil)
+					b.broadcastBlock(block)
 				}
 
 			case tx := <-b.node.consensus.NewCreatedTxEvent:

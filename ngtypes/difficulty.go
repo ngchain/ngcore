@@ -6,7 +6,7 @@ import (
 )
 
 // GetNextTarget is a helper to get next pow block target field
-func GetNextTarget(tailBlock *Block, tailBlocksVault *Vault) *big.Int {
+func GetNextTarget(tailBlock *Block, lastHeadBlock *Block) *big.Int {
 	target := new(big.Int).SetBytes(tailBlock.Header.Target)
 	if !tailBlock.Header.IsTail() {
 		return target
@@ -14,7 +14,7 @@ func GetNextTarget(tailBlock *Block, tailBlocksVault *Vault) *big.Int {
 
 	// when next block is head(checkpoint)
 	diff := new(big.Int).Div(MaxTarget, target)
-	elapsed := tailBlock.Header.Timestamp - tailBlocksVault.Timestamp
+	elapsed := tailBlock.Header.Timestamp - lastHeadBlock.Header.Timestamp
 	if elapsed < int64(TargetTime/time.Second)*(BlockCheckRound-2) {
 		diff = new(big.Int).Add(diff, new(big.Int).Div(diff, big.NewInt(10)))
 	}

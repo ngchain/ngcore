@@ -14,16 +14,3 @@ func (c *Chain) MinedNewBlock(block *ngtypes.Block) error {
 
 	return nil
 }
-
-// MinedNewVault is called when **LOCAL PoW system** mined a new Vault, putting it into db and then broadcast it.
-func (c *Chain) MinedNewVault(vault *ngtypes.Vault) error {
-	err := c.PutNewVault(vault)
-	if err != nil {
-		return err
-	}
-
-	// for txpool
-	c.NewVaultToTxPoolCh <- vault
-
-	return nil
-}

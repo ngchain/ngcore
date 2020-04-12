@@ -119,3 +119,5 @@ func GetGenesisSheet() *Sheet {
 		},
 	}
 }
+
+var GenesisSheetHash, _ = GetGenesisSheet().CalculateHash()

@@ -129,10 +129,10 @@ func (m *Account) GetState() []byte {
 
 type BlockHeader struct {
 	Height        uint64 `protobuf:"varint,1,opt,name=height,proto3" json:"height,omitempty"`
-	PrevBlockHash []byte `protobuf:"bytes,2,opt,name=prev_block_hash,json=prevBlockHash,proto3" json:"prev_block_hash,omitempty"`
-	PrevVaultHash []byte `protobuf:"bytes,3,opt,name=prev_vault_hash,json=prevVaultHash,proto3" json:"prev_vault_hash,omitempty"`
-	TrieHash      []byte `protobuf:"bytes,4,opt,name=trie_hash,json=trieHash,proto3" json:"trie_hash,omitempty"`
-	Timestamp     int64  `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Timestamp     int64  `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	PrevBlockHash []byte `protobuf:"bytes,3,opt,name=prev_block_hash,json=prevBlockHash,proto3" json:"prev_block_hash,omitempty"`
+	SheetHash     []byte `protobuf:"bytes,4,opt,name=sheet_hash,json=sheetHash,proto3" json:"sheet_hash,omitempty"`
+	TrieHash      []byte `protobuf:"bytes,5,opt,name=trie_hash,json=trieHash,proto3" json:"trie_hash,omitempty"`
 	Target        []byte `protobuf:"bytes,6,opt,name=target,proto3" json:"target,omitempty"`
 	Nonce         []byte `protobuf:"bytes,7,opt,name=nonce,proto3" json:"nonce,omitempty"`
 }
@@ -172,6 +172,13 @@ func (m *BlockHeader) GetHeight() uint64 {
 	return 0
 }
 
+func (m *BlockHeader) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
 func (m *BlockHeader) GetPrevBlockHash() []byte {
 	if m != nil {
 		return m.PrevBlockHash
@@ -179,9 +186,9 @@ func (m *BlockHeader) GetPrevBlockHash() []byte {
 	return nil
 }
 
-func (m *BlockHeader) GetPrevVaultHash() []byte {
+func (m *BlockHeader) GetSheetHash() []byte {
 	if m != nil {
-		return m.PrevVaultHash
+		return m.SheetHash
 	}
 	return nil
 }
@@ -191,13 +198,6 @@ func (m *BlockHeader) GetTrieHash() []byte {
 		return m.TrieHash
 	}
 	return nil
-}
-
-func (m *BlockHeader) GetTimestamp() int64 {
-	if m != nil {
-		return m.Timestamp
-	}
-	return 0
 }
 
 func (m *BlockHeader) GetTarget() []byte {
@@ -217,7 +217,8 @@ func (m *BlockHeader) GetNonce() []byte {
 type Block struct {
 	NetworkId int32        `protobuf:"varint,1,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
 	Header    *BlockHeader `protobuf:"bytes,2,opt,name=header,proto3" json:"header,omitempty"`
-	Txs       []*Tx        `protobuf:"bytes,3,rep,name=txs,proto3" json:"txs,omitempty"`
+	Sheet     *Sheet       `protobuf:"bytes,3,opt,name=sheet,proto3" json:"sheet,omitempty"`
+	Txs       []*Tx        `protobuf:"bytes,4,rep,name=txs,proto3" json:"txs,omitempty"`
 }
 
 func (m *Block) Reset()      { *m = Block{} }
@@ -258,6 +259,13 @@ func (m *Block) GetNetworkId() int32 {
 func (m *Block) GetHeader() *BlockHeader {
 	if m != nil {
 		return m.Header
+	}
+	return nil
+}
+
+func (m *Block) GetSheet() *Sheet {
+	if m != nil {
+		return m.Sheet
 	}
 	return nil
 }
@@ -459,77 +467,6 @@ func (m *Sheet) GetAnonymous() map[string][]byte {
 	return nil
 }
 
-type Vault struct {
-	NetworkId     int32  `protobuf:"varint,1,opt,name=network_id,json=networkId,proto3" json:"network_id,omitempty"`
-	Sheet         *Sheet `protobuf:"bytes,2,opt,name=sheet,proto3" json:"sheet,omitempty"`
-	Height        uint64 `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
-	Timestamp     int64  `protobuf:"varint,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	PrevVaultHash []byte `protobuf:"bytes,5,opt,name=prev_vault_hash,json=prevVaultHash,proto3" json:"prev_vault_hash,omitempty"`
-}
-
-func (m *Vault) Reset()      { *m = Vault{} }
-func (*Vault) ProtoMessage() {}
-func (*Vault) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d938547f84707355, []int{6}
-}
-func (m *Vault) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Vault) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *Vault) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Vault.Merge(m, src)
-}
-func (m *Vault) XXX_Size() int {
-	return m.Size()
-}
-func (m *Vault) XXX_DiscardUnknown() {
-	xxx_messageInfo_Vault.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Vault proto.InternalMessageInfo
-
-func (m *Vault) GetNetworkId() int32 {
-	if m != nil {
-		return m.NetworkId
-	}
-	return 0
-}
-
-func (m *Vault) GetSheet() *Sheet {
-	if m != nil {
-		return m.Sheet
-	}
-	return nil
-}
-
-func (m *Vault) GetHeight() uint64 {
-	if m != nil {
-		return m.Height
-	}
-	return 0
-}
-
-func (m *Vault) GetTimestamp() int64 {
-	if m != nil {
-		return m.Timestamp
-	}
-	return 0
-}
-
-func (m *Vault) GetPrevVaultHash() []byte {
-	if m != nil {
-		return m.PrevVaultHash
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterEnum("ngtypes.TxType", TxType_name, TxType_value)
 	proto.RegisterType((*Account)(nil), "ngtypes.Account")
@@ -540,62 +477,60 @@ func init() {
 	proto.RegisterType((*Sheet)(nil), "ngtypes.Sheet")
 	proto.RegisterMapType((map[uint64]*Account)(nil), "ngtypes.Sheet.AccountsEntry")
 	proto.RegisterMapType((map[string][]byte)(nil), "ngtypes.Sheet.AnonymousEntry")
-	proto.RegisterType((*Vault)(nil), "ngtypes.Vault")
 }
 
 func init() { proto.RegisterFile("types.proto", fileDescriptor_d938547f84707355) }
 
 var fileDescriptor_d938547f84707355 = []byte{
-	// 775 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0x41, 0x6f, 0xe3, 0x44,
-	0x14, 0xce, 0xd8, 0x71, 0x9a, 0xbc, 0xa4, 0xa9, 0x19, 0x05, 0x64, 0x85, 0xad, 0x55, 0x0c, 0x5a,
-	0x15, 0x04, 0xa9, 0x54, 0x2e, 0x2b, 0xe0, 0x92, 0x25, 0x51, 0x88, 0xb4, 0xa4, 0xab, 0x89, 0x59,
-	0x45, 0xec, 0x21, 0x72, 0xdc, 0x59, 0xdb, 0x6a, 0x63, 0x47, 0xf6, 0x24, 0x9b, 0x88, 0x0b, 0x77,
-	0x2e, 0xfc, 0x0c, 0xc4, 0xff, 0x40, 0xe2, 0xd8, 0x63, 0x4f, 0x88, 0xba, 0x17, 0x8e, 0xfd, 0x09,
-	0x68, 0xc6, 0x93, 0xc4, 0x89, 0x2a, 0xf5, 0xe4, 0xf9, 0xbe, 0xf7, 0xbd, 0x37, 0xf3, 0xbe, 0x99,
-	0x67, 0xa8, 0xb2, 0xd5, 0x8c, 0x26, 0xad, 0x59, 0x1c, 0xb1, 0x08, 0x1f, 0x84, 0x9e, 0x80, 0xcd,
-	0xaf, 0xbc, 0x80, 0xf9, 0xf3, 0x49, 0xcb, 0x8d, 0xa6, 0x67, 0x5e, 0xe4, 0x45, 0x67, 0x22, 0x3e,
-	0x99, 0xbf, 0x13, 0x48, 0x00, 0xb1, 0xca, 0xf2, 0xac, 0xb7, 0x70, 0xd0, 0x76, 0xdd, 0x68, 0x1e,
-	0x32, 0x5c, 0x07, 0xa5, 0xdf, 0x31, 0xd0, 0x09, 0x3a, 0x2d, 0x12, 0x25, 0xe8, 0xe0, 0x06, 0x68,
-	0xd1, 0xfb, 0x90, 0xc6, 0x86, 0x72, 0x82, 0x4e, 0x6b, 0x24, 0x03, 0x9c, 0x0d, 0xa3, 0xd0, 0xa5,
-	0x46, 0x51, 0x08, 0x33, 0xc0, 0xd9, 0x84, 0x39, 0x8c, 0x1a, 0x5a, 0xa6, 0x15, 0xc0, 0xfa, 0x07,
-	0x41, 0xf5, 0xe5, 0x75, 0xe4, 0x5e, 0xfd, 0x40, 0x9d, 0x4b, 0x1a, 0xe3, 0x8f, 0xa0, 0xe4, 0xd3,
-	0xc0, 0xf3, 0x99, 0xdc, 0x45, 0x22, 0xfc, 0x1c, 0x8e, 0x66, 0x31, 0x5d, 0x8c, 0x27, 0x5c, 0x3b,
-	0xf6, 0x9d, 0xc4, 0x97, 0x7b, 0x1e, 0x72, 0x3a, 0xab, 0xe0, 0x24, 0xfe, 0x46, 0xb7, 0x70, 0xe6,
-	0xd7, 0x2c, 0xd3, 0xa9, 0x5b, 0xdd, 0x1b, 0xce, 0x0a, 0xdd, 0xc7, 0x50, 0x61, 0x71, 0x40, 0x33,
-	0x45, 0x51, 0x28, 0xca, 0x9c, 0x10, 0xc1, 0x67, 0x50, 0x61, 0xc1, 0x94, 0x26, 0xcc, 0x99, 0xce,
-	0xc4, 0x71, 0x55, 0xb2, 0x25, 0xf8, 0x11, 0x99, 0x13, 0x7b, 0x94, 0x19, 0x25, 0x91, 0x27, 0xd1,
-	0xb6, 0xed, 0x83, 0xac, 0x41, 0x01, 0xac, 0x04, 0x34, 0x71, 0x3a, 0x7c, 0x0c, 0x10, 0x52, 0xf6,
-	0x3e, 0x8a, 0xaf, 0xc6, 0xc1, 0xa5, 0xe8, 0x4e, 0x23, 0x15, 0xc9, 0xf4, 0x2f, 0xf1, 0x97, 0xbc,
-	0x71, 0x6e, 0x81, 0xe8, 0xab, 0x7a, 0xde, 0x68, 0xc9, 0xeb, 0x6a, 0xe5, 0xec, 0x21, 0x52, 0x83,
-	0x8f, 0x41, 0x65, 0xcb, 0xc4, 0x50, 0x4f, 0xd4, 0xd3, 0xea, 0x79, 0x75, 0x23, 0xb5, 0x97, 0x84,
-	0xf3, 0xd6, 0x5f, 0x08, 0xca, 0xf6, 0x52, 0x5a, 0xfa, 0x29, 0x14, 0x79, 0x54, 0x6c, 0x59, 0x3f,
-	0x3f, 0xca, 0x89, 0xed, 0xd5, 0x8c, 0x12, 0x11, 0xc4, 0x4d, 0x28, 0xbb, 0x51, 0xb8, 0xa0, 0xeb,
-	0xcb, 0x2c, 0x92, 0x0d, 0xc6, 0x16, 0xd4, 0x66, 0x4e, 0xcc, 0x02, 0x37, 0x98, 0x39, 0x21, 0xcb,
-	0x76, 0xad, 0x91, 0x1d, 0x0e, 0xeb, 0xa0, 0xbe, 0xa3, 0x54, 0x3a, 0xc9, 0x97, 0xdc, 0xa6, 0x85,
-	0x73, 0x3d, 0xa7, 0x89, 0xa1, 0x09, 0xbd, 0x44, 0x5b, 0x9b, 0x4a, 0x7b, 0xaf, 0x83, 0x2e, 0x59,
-	0xec, 0xac, 0xcd, 0x13, 0xc0, 0x9a, 0x80, 0x62, 0x2f, 0x9f, 0x72, 0xee, 0xf3, 0x3d, 0xe7, 0x3e,
-	0xc8, 0x75, 0xb8, 0x67, 0x1b, 0x86, 0x62, 0x12, 0x78, 0xa1, 0x7c, 0x12, 0x62, 0x6d, 0xfd, 0xa6,
-	0x80, 0x36, 0xf4, 0x29, 0x65, 0xf8, 0x05, 0x94, 0x9d, 0xec, 0xa1, 0x27, 0x86, 0x22, 0x9c, 0x7d,
-	0xb6, 0x29, 0x25, 0x14, 0x2d, 0x39, 0x07, 0x49, 0x37, 0x64, 0xf1, 0x8a, 0x6c, 0xd4, 0xf8, 0x5b,
-	0xa8, 0x38, 0x61, 0x14, 0xae, 0xa6, 0xd1, 0x7c, 0x7d, 0x29, 0xc7, 0xfb, 0xa9, 0xeb, 0x78, 0x96,
-	0xbb, 0xd5, 0x37, 0x7f, 0x84, 0xc3, 0x9d, 0xba, 0xdc, 0xcb, 0x2b, 0xba, 0x92, 0x03, 0xc0, 0x97,
-	0xf8, 0x39, 0x68, 0xc2, 0x3d, 0xd9, 0xa1, 0xbe, 0xa9, 0x2d, 0x13, 0x49, 0x16, 0xfe, 0x46, 0x79,
-	0x81, 0x9a, 0xdf, 0x41, 0x7d, 0x77, 0xaf, 0x7c, 0xbd, 0x4a, 0x56, 0xaf, 0x91, 0xaf, 0x57, 0xcb,
-	0x65, 0x5b, 0x7f, 0x22, 0xd0, 0xc4, 0x94, 0x3c, 0xe5, 0xfa, 0x67, 0xa0, 0x25, 0xbc, 0x31, 0x79,
-	0xa4, 0xfa, 0x6e, 0xbb, 0x24, 0x0b, 0xe6, 0xc6, 0x59, 0xdd, 0x19, 0xe7, 0x9d, 0x09, 0x2b, 0xee,
-	0x4f, 0xd8, 0x23, 0x43, 0xac, 0x3d, 0x32, 0xc4, 0x5f, 0xfc, 0x02, 0xa5, 0xec, 0x11, 0xe3, 0x3a,
-	0x80, 0x3d, 0x1a, 0xf7, 0x07, 0x6f, 0xda, 0xaf, 0xfa, 0x1d, 0xbd, 0x80, 0x8f, 0xa0, 0x6a, 0x8f,
-	0xc6, 0xbd, 0xee, 0xa0, 0x4b, 0xda, 0x76, 0x57, 0x47, 0x92, 0x20, 0xdd, 0x5e, 0x7f, 0x68, 0x77,
-	0x89, 0xae, 0xe0, 0x43, 0xa8, 0xd8, 0xa3, 0xf1, 0xab, 0x8b, 0xde, 0xc5, 0x4f, 0xb6, 0xae, 0x62,
-	0x0c, 0x75, 0x7b, 0x34, 0xb6, 0x49, 0x7b, 0x30, 0x6c, 0x7f, 0x6f, 0xf7, 0x2f, 0x06, 0x3a, 0x48,
-	0x49, 0x7b, 0x38, 0xec, 0xf7, 0x06, 0x7a, 0x63, 0x0d, 0x5f, 0xbf, 0xee, 0x0e, 0x3a, 0xfa, 0x87,
-	0x2f, 0xdf, 0xde, 0xdc, 0x99, 0x85, 0xdb, 0x3b, 0xb3, 0xf0, 0x70, 0x67, 0xa2, 0x5f, 0x53, 0x13,
-	0xfd, 0x91, 0x9a, 0xe8, 0xef, 0xd4, 0x44, 0x37, 0xa9, 0x89, 0x6e, 0x53, 0x13, 0xfd, 0x9b, 0x9a,
-	0xe8, 0xbf, 0xd4, 0x2c, 0x3c, 0xa4, 0x26, 0xfa, 0xfd, 0xde, 0x2c, 0xdc, 0xdc, 0x9b, 0x85, 0xdb,
-	0x7b, 0xb3, 0xf0, 0xf3, 0x27, 0xb9, 0xff, 0x6f, 0xe8, 0xb9, 0xbe, 0x13, 0x84, 0xfc, 0x1b, 0xc5,
-	0xf4, 0x4c, 0x9a, 0x38, 0x29, 0x89, 0x5f, 0xef, 0xd7, 0xff, 0x07, 0x00, 0x00, 0xff, 0xff, 0x5d,
-	0xf3, 0x3b, 0xa6, 0xc1, 0x05, 0x00, 0x00,
+	// 753 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0x4d, 0x6f, 0xe3, 0x44,
+	0x18, 0xce, 0xd8, 0x71, 0xda, 0xbc, 0x6e, 0x53, 0x33, 0x0a, 0x2b, 0x2b, 0x6c, 0xad, 0x10, 0xd0,
+	0x2a, 0x20, 0x48, 0xa5, 0x70, 0x59, 0x01, 0x97, 0x2c, 0x89, 0x42, 0xa4, 0x25, 0x5d, 0x4d, 0x0c,
+	0x8a, 0xd8, 0x43, 0xe4, 0xb8, 0xb3, 0xb6, 0xd5, 0x8d, 0x1d, 0xd9, 0x93, 0x6e, 0x22, 0x2e, 0xdc,
+	0xb9, 0x70, 0xe5, 0x1f, 0xf0, 0x47, 0x90, 0x38, 0xf6, 0x82, 0xd4, 0x23, 0x75, 0x2f, 0x1c, 0xfb,
+	0x13, 0xd0, 0x7c, 0xe4, 0xf3, 0xb2, 0xa7, 0xcc, 0xf3, 0x31, 0xef, 0x3b, 0xef, 0x93, 0x19, 0x83,
+	0xc9, 0x56, 0x73, 0x9a, 0xb5, 0xe6, 0x69, 0xc2, 0x12, 0x7c, 0x14, 0x07, 0x02, 0xd6, 0xbe, 0x0c,
+	0x22, 0x16, 0x2e, 0xa6, 0x2d, 0x3f, 0x99, 0x5d, 0x04, 0x49, 0x90, 0x5c, 0x08, 0x7d, 0xba, 0x78,
+	0x23, 0x90, 0x00, 0x62, 0x25, 0xf7, 0x35, 0x5e, 0xc3, 0x51, 0xc7, 0xf7, 0x93, 0x45, 0xcc, 0x70,
+	0x05, 0xb4, 0x41, 0xd7, 0x46, 0x75, 0xd4, 0x2c, 0x12, 0x2d, 0xea, 0xe2, 0x2a, 0x18, 0xc9, 0xbb,
+	0x98, 0xa6, 0xb6, 0x56, 0x47, 0xcd, 0x13, 0x22, 0x01, 0x67, 0xe3, 0x24, 0xf6, 0xa9, 0x5d, 0x14,
+	0x46, 0x09, 0x38, 0x9b, 0x31, 0x8f, 0x51, 0xdb, 0x90, 0x5e, 0x01, 0x1a, 0xff, 0x20, 0x30, 0x5f,
+	0xbc, 0x4d, 0xfc, 0xeb, 0xef, 0xa9, 0x77, 0x45, 0x53, 0xfc, 0x04, 0x4a, 0x21, 0x8d, 0x82, 0x90,
+	0xa9, 0x2e, 0x0a, 0xe1, 0xa7, 0x50, 0x66, 0xd1, 0x8c, 0x66, 0xcc, 0x9b, 0xcd, 0x45, 0x37, 0x9d,
+	0x6c, 0x09, 0xfc, 0x0c, 0xce, 0xe6, 0x29, 0xbd, 0x99, 0x4c, 0x79, 0xa5, 0x49, 0xe8, 0x65, 0xa1,
+	0xad, 0x8b, 0x2e, 0xa7, 0x9c, 0x96, 0xf5, 0xbd, 0x2c, 0xc4, 0xe7, 0x00, 0x59, 0x48, 0x29, 0x93,
+	0x96, 0xa2, 0xb0, 0x94, 0x05, 0x23, 0xe4, 0x8f, 0xa0, 0xcc, 0xd2, 0x88, 0x4a, 0x55, 0x1e, 0xf3,
+	0x98, 0x13, 0x42, 0x7c, 0x02, 0x25, 0xe6, 0xa5, 0x01, 0x65, 0x76, 0x49, 0x28, 0x0a, 0x6d, 0xa7,
+	0x3d, 0x92, 0x73, 0x09, 0xd0, 0xf8, 0x03, 0x81, 0x21, 0xfa, 0xf2, 0x9e, 0x31, 0x65, 0xef, 0x92,
+	0xf4, 0x7a, 0x12, 0x5d, 0x89, 0xa9, 0x0c, 0x52, 0x56, 0xcc, 0xe0, 0x0a, 0x7f, 0xc1, 0x07, 0xe6,
+	0xa3, 0x8b, 0xa9, 0xcc, 0x76, 0xb5, 0xa5, 0xfe, 0xa6, 0xd6, 0x4e, 0x2c, 0x44, 0x79, 0xf0, 0xa7,
+	0x60, 0x88, 0xe3, 0x8a, 0xf1, 0xcc, 0x76, 0x65, 0x63, 0x1e, 0x71, 0x96, 0x48, 0x11, 0x9f, 0x83,
+	0xce, 0x96, 0x99, 0x5d, 0xac, 0xeb, 0x4d, 0xb3, 0x6d, 0x6e, 0x3c, 0xee, 0x92, 0x70, 0xbe, 0xf1,
+	0x17, 0x82, 0x63, 0x77, 0xa9, 0x02, 0xff, 0x04, 0x8a, 0x5c, 0x15, 0x07, 0xab, 0xb4, 0xcf, 0x76,
+	0xcc, 0xee, 0x6a, 0x4e, 0x89, 0x10, 0x71, 0x0d, 0x8e, 0xfd, 0x24, 0xbe, 0xa1, 0xeb, 0xbf, 0xba,
+	0x48, 0x36, 0x18, 0x37, 0xe0, 0x64, 0xee, 0xa5, 0x2c, 0xf2, 0xa3, 0xb9, 0x17, 0xb3, 0xcc, 0xd6,
+	0xeb, 0x7a, 0xf3, 0x84, 0xec, 0x71, 0xd8, 0x02, 0xfd, 0x0d, 0xa5, 0x2a, 0x70, 0xbe, 0xe4, 0x69,
+	0xde, 0x78, 0x6f, 0x17, 0x34, 0xb3, 0x0d, 0xe1, 0x57, 0x68, 0x9b, 0x66, 0xe9, 0xe0, 0xee, 0xd0,
+	0x25, 0x4b, 0xbd, 0x75, 0xc6, 0x02, 0x34, 0xa6, 0xa0, 0xb9, 0xcb, 0xf7, 0xe5, 0xfb, 0xd9, 0x41,
+	0xbe, 0x1f, 0xec, 0x4c, 0x78, 0x10, 0x2e, 0x86, 0x62, 0x16, 0x05, 0xb1, 0xba, 0x3a, 0x62, 0xdd,
+	0xf8, 0x4d, 0x03, 0x43, 0x64, 0x8b, 0x9f, 0xc3, 0xb1, 0x27, 0x9f, 0x41, 0x66, 0x6b, 0x22, 0xd9,
+	0xa7, 0xfb, 0xe9, 0xb7, 0xd4, 0x2b, 0xc9, 0x7a, 0x31, 0x4b, 0x57, 0x64, 0xe3, 0xc6, 0xdf, 0x40,
+	0xd9, 0x8b, 0x93, 0x78, 0x35, 0x4b, 0x16, 0x32, 0x1e, 0xb3, 0x7d, 0x7e, 0xb8, 0x75, 0xad, 0xcb,
+	0xbd, 0x5b, 0x7f, 0xed, 0x07, 0x38, 0xdd, 0xab, 0xcb, 0xb3, 0xbc, 0xa6, 0x2b, 0xf5, 0x3c, 0xf8,
+	0x12, 0x3f, 0x03, 0x43, 0xa4, 0xa7, 0x26, 0xb4, 0x36, 0xb5, 0xd5, 0x46, 0x22, 0xe5, 0xaf, 0xb5,
+	0xe7, 0xa8, 0xf6, 0x2d, 0x54, 0xf6, 0x7b, 0xed, 0xd6, 0x2b, 0xcb, 0x7a, 0xd5, 0xdd, 0x7a, 0x27,
+	0x3b, 0xbb, 0x3f, 0xff, 0x05, 0x4a, 0xf2, 0x5e, 0xe0, 0x0a, 0x80, 0x3b, 0x9e, 0x0c, 0x86, 0x3f,
+	0x75, 0x5e, 0x0e, 0xba, 0x56, 0x01, 0x9f, 0x81, 0xe9, 0x8e, 0x27, 0xfd, 0xde, 0xb0, 0x47, 0x3a,
+	0x6e, 0xcf, 0x42, 0x8a, 0x20, 0xbd, 0xfe, 0x60, 0xe4, 0xf6, 0x88, 0xa5, 0xe1, 0x53, 0x28, 0xbb,
+	0xe3, 0xc9, 0xcb, 0xcb, 0xfe, 0xe5, 0x8f, 0xae, 0xa5, 0x63, 0x0c, 0x15, 0x77, 0x3c, 0x71, 0x49,
+	0x67, 0x38, 0xea, 0x7c, 0xe7, 0x0e, 0x2e, 0x87, 0x16, 0x28, 0x4b, 0x67, 0x34, 0x1a, 0xf4, 0x87,
+	0x56, 0x75, 0x0d, 0x5f, 0xbd, 0xea, 0x0d, 0xbb, 0xd6, 0x87, 0x2f, 0x5e, 0xdf, 0xde, 0x3b, 0x85,
+	0xbb, 0x7b, 0xa7, 0xf0, 0x78, 0xef, 0xa0, 0x5f, 0x73, 0x07, 0xfd, 0x99, 0x3b, 0xe8, 0xef, 0xdc,
+	0x41, 0xb7, 0xb9, 0x83, 0xee, 0x72, 0x07, 0xfd, 0x9b, 0x3b, 0xe8, 0xbf, 0xdc, 0x29, 0x3c, 0xe6,
+	0x0e, 0xfa, 0xfd, 0xc1, 0x29, 0xdc, 0x3e, 0x38, 0x85, 0xbb, 0x07, 0xa7, 0xf0, 0xf3, 0xc7, 0x3b,
+	0x1f, 0xbc, 0x38, 0xf0, 0x43, 0x2f, 0x8a, 0xf9, 0x6f, 0x92, 0xd2, 0x0b, 0x15, 0xd5, 0xb4, 0x24,
+	0xbe, 0x75, 0x5f, 0xfd, 0x1f, 0x00, 0x00, 0xff, 0xff, 0x8b, 0x0f, 0x8d, 0xac, 0x32, 0x05, 0x00,
+	0x00,
 }
 
 func (x TxType) String() string {
@@ -660,16 +595,16 @@ func (this *BlockHeader) Equal(that interface{}) bool {
 	if this.Height != that1.Height {
 		return false
 	}
+	if this.Timestamp != that1.Timestamp {
+		return false
+	}
 	if !bytes.Equal(this.PrevBlockHash, that1.PrevBlockHash) {
 		return false
 	}
-	if !bytes.Equal(this.PrevVaultHash, that1.PrevVaultHash) {
+	if !bytes.Equal(this.SheetHash, that1.SheetHash) {
 		return false
 	}
 	if !bytes.Equal(this.TrieHash, that1.TrieHash) {
-		return false
-	}
-	if this.Timestamp != that1.Timestamp {
 		return false
 	}
 	if !bytes.Equal(this.Target, that1.Target) {
@@ -703,6 +638,9 @@ func (this *Block) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.Header.Equal(that1.Header) {
+		return false
+	}
+	if !this.Sheet.Equal(that1.Sheet) {
 		return false
 	}
 	if len(this.Txs) != len(that1.Txs) {
@@ -834,42 +772,6 @@ func (this *Sheet) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Vault) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*Vault)
-	if !ok {
-		that2, ok := that.(Vault)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.NetworkId != that1.NetworkId {
-		return false
-	}
-	if !this.Sheet.Equal(that1.Sheet) {
-		return false
-	}
-	if this.Height != that1.Height {
-		return false
-	}
-	if this.Timestamp != that1.Timestamp {
-		return false
-	}
-	if !bytes.Equal(this.PrevVaultHash, that1.PrevVaultHash) {
-		return false
-	}
-	return true
-}
 func (this *Account) GoString() string {
 	if this == nil {
 		return "nil"
@@ -890,10 +792,10 @@ func (this *BlockHeader) GoString() string {
 	s := make([]string, 0, 11)
 	s = append(s, "&ngtypes.BlockHeader{")
 	s = append(s, "Height: "+fmt.Sprintf("%#v", this.Height)+",\n")
-	s = append(s, "PrevBlockHash: "+fmt.Sprintf("%#v", this.PrevBlockHash)+",\n")
-	s = append(s, "PrevVaultHash: "+fmt.Sprintf("%#v", this.PrevVaultHash)+",\n")
-	s = append(s, "TrieHash: "+fmt.Sprintf("%#v", this.TrieHash)+",\n")
 	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
+	s = append(s, "PrevBlockHash: "+fmt.Sprintf("%#v", this.PrevBlockHash)+",\n")
+	s = append(s, "SheetHash: "+fmt.Sprintf("%#v", this.SheetHash)+",\n")
+	s = append(s, "TrieHash: "+fmt.Sprintf("%#v", this.TrieHash)+",\n")
 	s = append(s, "Target: "+fmt.Sprintf("%#v", this.Target)+",\n")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
 	s = append(s, "}")
@@ -903,11 +805,14 @@ func (this *Block) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 7)
+	s := make([]string, 0, 8)
 	s = append(s, "&ngtypes.Block{")
 	s = append(s, "NetworkId: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
 	if this.Header != nil {
 		s = append(s, "Header: "+fmt.Sprintf("%#v", this.Header)+",\n")
+	}
+	if this.Sheet != nil {
+		s = append(s, "Sheet: "+fmt.Sprintf("%#v", this.Sheet)+",\n")
 	}
 	if this.Txs != nil {
 		s = append(s, "Txs: "+fmt.Sprintf("%#v", this.Txs)+",\n")
@@ -977,22 +882,6 @@ func (this *Sheet) GoString() string {
 	if this.Anonymous != nil {
 		s = append(s, "Anonymous: "+mapStringForAnonymous+",\n")
 	}
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *Vault) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 9)
-	s = append(s, "&ngtypes.Vault{")
-	s = append(s, "NetworkId: "+fmt.Sprintf("%#v", this.NetworkId)+",\n")
-	if this.Sheet != nil {
-		s = append(s, "Sheet: "+fmt.Sprintf("%#v", this.Sheet)+",\n")
-	}
-	s = append(s, "Height: "+fmt.Sprintf("%#v", this.Height)+",\n")
-	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
-	s = append(s, "PrevVaultHash: "+fmt.Sprintf("%#v", this.PrevVaultHash)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1085,31 +974,31 @@ func (m *BlockHeader) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if m.Timestamp != 0 {
-		i = encodeVarintTypes(dAtA, i, uint64(m.Timestamp))
-		i--
-		dAtA[i] = 0x28
-	}
 	if len(m.TrieHash) > 0 {
 		i -= len(m.TrieHash)
 		copy(dAtA[i:], m.TrieHash)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.TrieHash)))
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 	}
-	if len(m.PrevVaultHash) > 0 {
-		i -= len(m.PrevVaultHash)
-		copy(dAtA[i:], m.PrevVaultHash)
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.PrevVaultHash)))
+	if len(m.SheetHash) > 0 {
+		i -= len(m.SheetHash)
+		copy(dAtA[i:], m.SheetHash)
+		i = encodeVarintTypes(dAtA, i, uint64(len(m.SheetHash)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x22
 	}
 	if len(m.PrevBlockHash) > 0 {
 		i -= len(m.PrevBlockHash)
 		copy(dAtA[i:], m.PrevBlockHash)
 		i = encodeVarintTypes(dAtA, i, uint64(len(m.PrevBlockHash)))
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x1a
+	}
+	if m.Timestamp != 0 {
+		i = encodeVarintTypes(dAtA, i, uint64(m.Timestamp))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Height != 0 {
 		i = encodeVarintTypes(dAtA, i, uint64(m.Height))
@@ -1150,8 +1039,20 @@ func (m *Block) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i = encodeVarintTypes(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x22
 		}
+	}
+	if m.Sheet != nil {
+		{
+			size, err := m.Sheet.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintTypes(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
 	}
 	if m.Header != nil {
 		{
@@ -1368,63 +1269,6 @@ func (m *Sheet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *Vault) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Vault) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Vault) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.PrevVaultHash) > 0 {
-		i -= len(m.PrevVaultHash)
-		copy(dAtA[i:], m.PrevVaultHash)
-		i = encodeVarintTypes(dAtA, i, uint64(len(m.PrevVaultHash)))
-		i--
-		dAtA[i] = 0x2a
-	}
-	if m.Timestamp != 0 {
-		i = encodeVarintTypes(dAtA, i, uint64(m.Timestamp))
-		i--
-		dAtA[i] = 0x20
-	}
-	if m.Height != 0 {
-		i = encodeVarintTypes(dAtA, i, uint64(m.Height))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.Sheet != nil {
-		{
-			size, err := m.Sheet.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintTypes(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.NetworkId != 0 {
-		i = encodeVarintTypes(dAtA, i, uint64(m.NetworkId))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
 func encodeVarintTypes(dAtA []byte, offset int, v uint64) int {
 	offset -= sovTypes(v)
 	base := offset
@@ -1468,20 +1312,20 @@ func (m *BlockHeader) Size() (n int) {
 	if m.Height != 0 {
 		n += 1 + sovTypes(uint64(m.Height))
 	}
+	if m.Timestamp != 0 {
+		n += 1 + sovTypes(uint64(m.Timestamp))
+	}
 	l = len(m.PrevBlockHash)
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
-	l = len(m.PrevVaultHash)
+	l = len(m.SheetHash)
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
 	}
 	l = len(m.TrieHash)
 	if l > 0 {
 		n += 1 + l + sovTypes(uint64(l))
-	}
-	if m.Timestamp != 0 {
-		n += 1 + sovTypes(uint64(m.Timestamp))
 	}
 	l = len(m.Target)
 	if l > 0 {
@@ -1505,6 +1349,10 @@ func (m *Block) Size() (n int) {
 	}
 	if m.Header != nil {
 		l = m.Header.Size()
+		n += 1 + l + sovTypes(uint64(l))
+	}
+	if m.Sheet != nil {
+		l = m.Sheet.Size()
 		n += 1 + l + sovTypes(uint64(l))
 	}
 	if len(m.Txs) > 0 {
@@ -1608,32 +1456,6 @@ func (m *Sheet) Size() (n int) {
 	return n
 }
 
-func (m *Vault) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.NetworkId != 0 {
-		n += 1 + sovTypes(uint64(m.NetworkId))
-	}
-	if m.Sheet != nil {
-		l = m.Sheet.Size()
-		n += 1 + l + sovTypes(uint64(l))
-	}
-	if m.Height != 0 {
-		n += 1 + sovTypes(uint64(m.Height))
-	}
-	if m.Timestamp != 0 {
-		n += 1 + sovTypes(uint64(m.Timestamp))
-	}
-	l = len(m.PrevVaultHash)
-	if l > 0 {
-		n += 1 + l + sovTypes(uint64(l))
-	}
-	return n
-}
-
 func sovTypes(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
 }
@@ -1659,10 +1481,10 @@ func (this *BlockHeader) String() string {
 	}
 	s := strings.Join([]string{`&BlockHeader{`,
 		`Height:` + fmt.Sprintf("%v", this.Height) + `,`,
-		`PrevBlockHash:` + fmt.Sprintf("%v", this.PrevBlockHash) + `,`,
-		`PrevVaultHash:` + fmt.Sprintf("%v", this.PrevVaultHash) + `,`,
-		`TrieHash:` + fmt.Sprintf("%v", this.TrieHash) + `,`,
 		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
+		`PrevBlockHash:` + fmt.Sprintf("%v", this.PrevBlockHash) + `,`,
+		`SheetHash:` + fmt.Sprintf("%v", this.SheetHash) + `,`,
+		`TrieHash:` + fmt.Sprintf("%v", this.TrieHash) + `,`,
 		`Target:` + fmt.Sprintf("%v", this.Target) + `,`,
 		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`}`,
@@ -1681,6 +1503,7 @@ func (this *Block) String() string {
 	s := strings.Join([]string{`&Block{`,
 		`NetworkId:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
 		`Header:` + strings.Replace(this.Header.String(), "BlockHeader", "BlockHeader", 1) + `,`,
+		`Sheet:` + strings.Replace(this.Sheet.String(), "Sheet", "Sheet", 1) + `,`,
 		`Txs:` + repeatedStringForTxs + `,`,
 		`}`,
 	}, "")
@@ -1741,20 +1564,6 @@ func (this *Sheet) String() string {
 	s := strings.Join([]string{`&Sheet{`,
 		`Accounts:` + mapStringForAccounts + `,`,
 		`Anonymous:` + mapStringForAnonymous + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *Vault) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&Vault{`,
-		`NetworkId:` + fmt.Sprintf("%v", this.NetworkId) + `,`,
-		`Sheet:` + strings.Replace(this.Sheet.String(), "Sheet", "Sheet", 1) + `,`,
-		`Height:` + fmt.Sprintf("%v", this.Height) + `,`,
-		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
-		`PrevVaultHash:` + fmt.Sprintf("%v", this.PrevVaultHash) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1975,6 +1784,25 @@ func (m *BlockHeader) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			m.Timestamp = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Timestamp |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PrevBlockHash", wireType)
 			}
@@ -2008,9 +1836,9 @@ func (m *BlockHeader) Unmarshal(dAtA []byte) error {
 				m.PrevBlockHash = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevVaultHash", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SheetHash", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -2037,12 +1865,12 @@ func (m *BlockHeader) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PrevVaultHash = append(m.PrevVaultHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.PrevVaultHash == nil {
-				m.PrevVaultHash = []byte{}
+			m.SheetHash = append(m.SheetHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.SheetHash == nil {
+				m.SheetHash = []byte{}
 			}
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TrieHash", wireType)
 			}
@@ -2076,25 +1904,6 @@ func (m *BlockHeader) Unmarshal(dAtA []byte) error {
 				m.TrieHash = []byte{}
 			}
 			iNdEx = postIndex
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
-			}
-			m.Timestamp = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Timestamp |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Target", wireType)
@@ -2272,6 +2081,42 @@ func (m *Block) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sheet", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTypes
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTypes
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTypes
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Sheet == nil {
+				m.Sheet = &Sheet{}
+			}
+			if err := m.Sheet.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Txs", wireType)
 			}
@@ -2984,186 +2829,6 @@ func (m *Sheet) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.Anonymous[mapkey] = mapvalue
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTypes(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Vault) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTypes
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Vault: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Vault: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NetworkId", wireType)
-			}
-			m.NetworkId = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.NetworkId |= int32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sheet", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthTypes
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Sheet == nil {
-				m.Sheet = &Sheet{}
-			}
-			if err := m.Sheet.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Height", wireType)
-			}
-			m.Height = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Height |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
-			}
-			m.Timestamp = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Timestamp |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PrevVaultHash", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTypes
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTypes
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTypes
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PrevVaultHash = append(m.PrevVaultHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.PrevVaultHash == nil {
-				m.PrevVaultHash = []byte{}
-			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

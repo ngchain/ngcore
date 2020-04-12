@@ -100,15 +100,15 @@ func (m *Block) VerifyNonce() error {
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N
-func NewBareBlock(height uint64, prevBlockHash, prevVaultHash []byte, target *big.Int) *Block {
+func NewBareBlock(height uint64, prevBlockHash []byte, target *big.Int) *Block {
 	return &Block{
 		NetworkId: NetworkID,
 		Header: &BlockHeader{
 			Height:        height,
-			PrevBlockHash: prevBlockHash,
-			PrevVaultHash: prevVaultHash,
-			TrieHash:      nil,
 			Timestamp:     time.Now().Unix(),
+			PrevBlockHash: prevBlockHash,
+			SheetHash:     nil,
+			TrieHash:      nil,
 			Target:        target.Bytes(),
 			Nonce:         nil,
 		},
@@ -123,17 +123,19 @@ func GetGenesisBlock() *Block {
 	}
 
 	header := &BlockHeader{
+		Height:        0,
 		Timestamp:     1500000000,
-		TrieHash:      NewTxTrie(txs).TrieRoot(),
 		PrevBlockHash: nil,
-		PrevVaultHash: GenesisVaultHash,
-		Nonce:         GenesisNonce.Bytes(),
+		SheetHash:     GenesisSheetHash,
+		TrieHash:      NewTxTrie(txs).TrieRoot(),
 		Target:        GenesisTarget.Bytes(),
+		Nonce:         GenesisNonce.Bytes(),
 	}
 
 	return &Block{
 		NetworkId: NetworkID,
 		Header:    header,
+		Sheet:     GetGenesisSheet(),
 		Txs:       txs,
 	}
 }

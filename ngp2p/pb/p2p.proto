@@ -25,18 +25,15 @@ message Message {
 /* wired */
 message PingPongPayload {
     uint64 block_height = 1;
-    uint64 vault_height = 2;
-
     bytes latest_block_hash = 3;
-    bytes latest_vault_hash = 4;
 }
 
 message GetChainPayload {
-    uint64 vault_height = 1;
+    uint64 from = 1;
+    uint64 to = 2;
 }
 
 message ChainPayload {
-    ngtypes.Vault vault = 1;
     repeated ngtypes.Block blocks = 2;
     uint64 latest_height = 3;
 }
@@ -49,9 +46,4 @@ message PoolPayload {
 }
 
 /* broadcast(pub-sub) */
-message BroadcastBlockPayload {
-    ngtypes.Vault vault = 1;
-    ngtypes.Block block = 2;
-}
 
-// BroadcastTransactionPayload = ngtypes.Tx
