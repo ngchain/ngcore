@@ -46,11 +46,7 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 			return err
 		}
 
-		lastHeadBlock, err := c.GetBlockByHeight(curBlock.GetHeight() - ngtypes.BlockCheckRound + 1)
-		if err != nil {
-			return err
-		}
-		if err = c.checkBlockTarget(curBlock, prevBlock, lastHeadBlock); err != nil {
+		if err = c.checkBlockTarget(curBlock, prevBlock); err != nil {
 			return err
 		}
 

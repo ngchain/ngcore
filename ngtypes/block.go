@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"time"
 
 	"golang.org/x/crypto/sha3"
@@ -51,7 +50,8 @@ func (m *Block) IsTail() bool {
 }
 
 func (m *Block) IsGenesis() bool {
-	return reflect.DeepEqual(m, GetGenesisBlock())
+	hash, _ := m.CalculateHash()
+	return bytes.Equal(hash, GenesisBlockHash)
 }
 
 // GetPoWBlob will return a complete blob for block hash

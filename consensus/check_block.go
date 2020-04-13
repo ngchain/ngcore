@@ -10,13 +10,12 @@ import (
 
 // checkBlock checks block before putting into chain
 func (c *Consensus) checkBlock(block *ngtypes.Block) error {
-	if err := block.CheckError(); err != nil {
-		return err
+	if block.IsGenesis() {
+		return nil
 	}
 
-	genesisBlock := ngtypes.GetGenesisBlock()
-	if block == genesisBlock {
-		return nil
+	if err := block.CheckError(); err != nil {
+		return err
 	}
 
 	prevHash := block.GetPrevHash()
@@ -26,11 +25,10 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 			return err
 		}
 
-		lastHeadBlock, err := c.GetBlockByHeight(block.GetHeight() - ngtypes.BlockCheckRound + 1)
 		if err != nil {
 			return err
 		}
-		if err = c.checkBlockTarget(block, prevBlock, lastHeadBlock); err != nil {
+		if err = c.checkBlockTarget(block, prevBlock); err != nil {
 			return err
 		}
 	}
@@ -42,8 +40,8 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 	return nil
 }
 
-func (c *Consensus) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block, lastHeadBlock *ngtypes.Block) error {
-	correctTarget := ngtypes.GetNextTarget(prevBlock, lastHeadBlock)
+func (c *Consensus) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
+	correctTarget := ngtypes.GetNextTarget(prevBlock)
 	blockTarget := new(big.Int).SetBytes(block.Header.Target)
 	if correctTarget.Cmp(blockTarget) != 0 {
 		return fmt.Errorf("wrong block target for block@%d, target in block: %x shall be %x", block.GetHeight(), blockTarget, correctTarget)

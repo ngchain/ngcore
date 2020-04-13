@@ -44,7 +44,6 @@ var (
 const (
 	TargetTime      = 12 * time.Second
 	BlockCheckRound = 10
-	VaultCheckRound = 3
 )
 
 // Units

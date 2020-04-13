@@ -54,6 +54,19 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 	fmt.Printf("Nonce is %s Hash is %s", base58.FastBase58Encoding(answer), base58.FastBase58Encoding(hash))
 }
 
+func TestBlock_IsGenesis(t *testing.T) {
+	g := GetGenesisBlock()
+	if !g.IsGenesis() {
+		t.Fail()
+	}
+	raw, _ := g.Marshal()
+	gg := new(Block)
+	_ = gg.Unmarshal(raw)
+	if !gg.IsGenesis() {
+		t.Fail()
+	}
+}
+
 // calcHash get the hash of block
 func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {
 	fmt.Println("thread ", id, " running")

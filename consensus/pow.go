@@ -63,11 +63,7 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 		log.Error(err)
 	}
 
-	lastHeadBlock, err := c.GetBlockByHeight(currentBlock.GetHeight() - ngtypes.BlockCheckRound + 1)
-	if err != nil {
-		log.Error(err)
-	}
-	newTarget := ngtypes.GetNextTarget(currentBlock, lastHeadBlock)
+	newTarget := ngtypes.GetNextTarget(currentBlock)
 
 	newBlockHeight := currentBlock.Header.Height + 1
 
