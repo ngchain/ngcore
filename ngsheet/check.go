@@ -79,7 +79,7 @@ func (m *sheetEntry) CheckGenerate(generateTx *ngtypes.Tx) error {
 
 	// check nonce
 	if generateTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong generate nonce: %d", generateTx.GetNonce())
+		return fmt.Errorf("wrong generate nonce: %d, should be ", generateTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 		return err
 	}
 	if registerTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong register nonce: %d", registerTx.GetNonce())
+		return fmt.Errorf("wrong register nonce: %d, should be %d", registerTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil
@@ -152,7 +152,7 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
 
 	// check nonce
 	if logoutTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong logout nonce: %d", logoutTx.GetNonce())
+		return fmt.Errorf("wrong logout nonce: %d, should be %d", logoutTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil
@@ -188,7 +188,7 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
 
 	// check nonce
 	if transactionTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong transaction nonce: %d", transactionTx.GetNonce())
+		return fmt.Errorf("wrong transaction nonce: %d, should be %d", transactionTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil
@@ -224,7 +224,7 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 
 	// check nonce
 	if assignTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong assign nonce: %d", assignTx.GetNonce())
+		return fmt.Errorf("wrong assign nonce: %d, should be ", assignTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil
@@ -260,7 +260,7 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
 
 	// check nonce
 	if appendTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong append nonce: %d", appendTx.GetNonce())
+		return fmt.Errorf("wrong append nonce: %d, should be %d", appendTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil

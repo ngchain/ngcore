@@ -105,7 +105,7 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	nonce := s.sheetManager.GetNextNonce(0)
+	nonce := s.sheetManager.GetNextNonce(1)
 
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TX_REGISTER,
