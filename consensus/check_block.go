@@ -24,10 +24,6 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 		if err != nil {
 			return err
 		}
-
-		if err != nil {
-			return err
-		}
 		if err = c.checkBlockTarget(block, prevBlock); err != nil {
 			return err
 		}

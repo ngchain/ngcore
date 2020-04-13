@@ -3,7 +3,6 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -12,22 +11,6 @@ import (
 
 	"github.com/ngchain/cryptonight-go"
 	"github.com/whyrusleeping/go-logging"
-)
-
-// all block strcuture inner errors
-var (
-	ErrBlockHeaderMissing     = errors.New("the block's header is missing")
-	ErrBlockHeaderHashMissing = errors.New("the block's header hash is missing")
-	ErrBlockIsBare            = errors.New("the block is bare")
-	ErrBlockIsUnsealing       = errors.New("the block is unsealing")
-	ErrBlockHeightInvalid     = errors.New("the block's height is invalid")
-	ErrBlockMTreeInvalid      = errors.New("the merkle tree in block is invalid")
-	ErrBlockPrevBlockHash     = errors.New("the block's previous block hash is invalid")
-	ErrBlockPrevTreasuryHash  = errors.New("the block's backend vault is invalid")
-	ErrBlockDiffInvalid       = errors.New("the block's difficulty is invalid")
-	ErrBlockHashInvalid       = errors.New("the block's hash is invalid")
-	ErrBlockNonceInvalid      = errors.New("the block's Nonce is invalid")
-	ErrBlockMalformed         = errors.New("the block structure is malformed")
 )
 
 var log = logging.MustGetLogger("types")
@@ -83,7 +66,7 @@ func (m *Block) CalculateHeaderHash() []byte {
 // ToUnsealing converts a bare block to an unsealing block
 func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	if m.GetHeader() == nil {
-		return nil, ErrBlockHeaderMissing
+		return nil, fmt.Errorf("missing header")
 	}
 
 	for i := 0; i < len(txsWithGen); i++ {
@@ -105,11 +88,11 @@ func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 // ToSealed converts an unsealing block to a sealed block
 func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 	if m.GetHeader() == nil {
-		return nil, ErrBlockHeaderMissing
+		return nil, fmt.Errorf("missing header")
 	}
 
 	if !m.IsUnsealing() {
-		return nil, ErrBlockIsBare
+		return nil, fmt.Errorf("the block is bare")
 	}
 
 	m.Header.Nonce = nonce
@@ -123,7 +106,7 @@ func (m *Block) VerifyNonce() error {
 		return nil
 	}
 
-	return ErrBlockNonceInvalid
+	return fmt.Errorf("block@%d's nonce is invalid", m.GetHeight())
 }
 
 // NewBareBlock will return an unsealing block and
@@ -175,15 +158,15 @@ func (m *Block) CheckError() error {
 	}
 
 	if m.GetHeader() == nil {
-		return ErrBlockHeaderMissing
+		return fmt.Errorf("missing header")
 	}
 
-	if m.GetHeader().GetNonce() == nil {
-		return ErrBlockNonceInvalid
+	if !m.IsSealed() {
+		return fmt.Errorf("block@%d has not sealed with nonce", m.GetHeight())
 	}
 
 	if !bytes.Equal(NewTxTrie(m.Txs).TrieRoot(), m.GetHeader().GetTrieHash()) {
-		return ErrBlockMTreeInvalid
+		return fmt.Errorf("the merkle tree in block@%d is invalid", m.GetHeight())
 	}
 
 	if err := m.VerifyNonce(); err != nil {

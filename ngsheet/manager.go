@@ -52,7 +52,7 @@ func (m *SheetManager) CheckCurrentTxs(txs ...*ngtypes.Tx) error {
 }
 
 func (m *SheetManager) HandleTxs(txs ...*ngtypes.Tx) error {
-	log.Info("handling %d txs", len(txs))
+	log.Debugf("handling %d txs", len(txs))
 	return m.currentSheet.handleTxs(txs...)
 }
 
