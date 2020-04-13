@@ -24,10 +24,7 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 
 	firstBlock := blocks[0]
 
-	if firstBlock.IsGenesis() {
-		prevBlock = ngtypes.GetGenesisBlock()
-		prevBlockHash = ngtypes.GenesisBlockHash
-	} else {
+	if !firstBlock.IsGenesis() {
 		prevBlock, err = c.GetBlockByHash(firstBlock.GetPrevHash())
 		if err != nil {
 			return fmt.Errorf("failed to init prevBlock %x from db: %s", firstBlock.GetPrevHash(), err)
@@ -56,7 +53,6 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 
 		if curBlock != nil {
 			curBlockHash, _ = curBlock.CalculateHash()
-			// prevBlockHash, _ := prevBlock.CalculateHash()
 			if !bytes.Equal(prevBlockHash, curBlock.GetPrevHash()) {
 				return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash", curBlock.GetHeight(), curBlockHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
 			}
