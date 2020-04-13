@@ -51,4 +51,4 @@ env/*
 storage/data
 
 #Binary
-ngcore
+./ngcore
