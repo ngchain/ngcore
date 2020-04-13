@@ -6,7 +6,6 @@ go_library(
         "chain.go",
         "check_block.go",
         "check_chain.go",
-        "check_vault.go",
         "consensus.go",
         "forker.go",
         "generation.go",

@@ -6,7 +6,6 @@ go_library(
         "chain.go",
         "helper.go",
         "init.go",
-        "item.go",
         "mine.go",
         "put.go",
         "swicher.go",
@@ -17,7 +16,6 @@ go_library(
         "//ngtypes:go_default_library",
         "//utils:go_default_library",
         "@com_github_dgraph_io_badger_v2//:go_default_library",
-        "@com_github_gogo_protobuf//proto:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",
     ],
 )

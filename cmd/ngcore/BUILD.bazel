@@ -2,7 +2,11 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["main.go"],
+    srcs = [
+        "genesistools.go",
+        "keytools.go",
+        "main.go",
+    ],
     importpath = "github.com/ngchain/ngcore/cmd/ngcore",
     visibility = ["//visibility:private"],
     deps = [
@@ -11,11 +15,17 @@ go_library(
         "//ngchain:go_default_library",
         "//ngp2p:go_default_library",
         "//ngsheet:go_default_library",
+        "//ngtypes:go_default_library",
         "//rpc:go_default_library",
         "//storage:go_default_library",
         "//txpool:go_default_library",
+        "//utils:go_default_library",
+        "@com_github_dgraph_io_badger_v2//:go_default_library",
+        "@com_github_mr_tron_base58//:go_default_library",
+        "@com_github_nebulouslabs_fastrand//:go_default_library",
+        "@com_github_ngin_network_cryptonight_go//:go_default_library",
+        "@com_github_urfave_cli_v2//:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",
-        "@in_gopkg_urfave_cli_v1//:go_default_library",
     ],
 )
 

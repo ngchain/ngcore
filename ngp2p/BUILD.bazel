@@ -26,7 +26,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//consensus:go_default_library",
-        "//ngchain:go_default_library",
         "//ngp2p/pb:go_default_library",
         "//ngtypes:go_default_library",
         "@com_github_gogo_protobuf//io:go_default_library",

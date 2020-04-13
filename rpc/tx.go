@@ -14,6 +14,11 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+type commonTxReply struct {
+	TxID string `json:"txid"`
+	Raw  string `json:"raw"`
+}
+
 type sendTransactionParams struct {
 	Convener     uint64        `json:"convener"`
 	Participants []interface{} `json:"participants"`
@@ -84,8 +89,9 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	result := map[string]interface{}{
-		"tx": tx.BS58(),
+	result := commonTxReply{
+		TxID: tx.ID(),
+		Raw:  tx.BS58(),
 	}
 	raw, err := utils.JSON.Marshal(result)
 	if err != nil {
@@ -131,8 +137,9 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	result := map[string]interface{}{
-		"tx": tx.BS58(),
+	result := commonTxReply{
+		TxID: tx.ID(),
+		Raw:  tx.BS58(),
 	}
 	raw, err := utils.JSON.Marshal(result)
 	if err != nil {
@@ -183,8 +190,9 @@ func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	result := map[string]interface{}{
-		"tx": tx.BS58(),
+	result := commonTxReply{
+		TxID: tx.ID(),
+		Raw:  tx.BS58(),
 	}
 	raw, err := utils.JSON.Marshal(result)
 	if err != nil {
@@ -235,8 +243,9 @@ func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	result := map[string]interface{}{
-		"tx": tx.BS58(),
+	result := commonTxReply{
+		TxID: tx.ID(),
+		Raw:  tx.BS58(),
 	}
 	raw, err := utils.JSON.Marshal(result)
 	if err != nil {
@@ -287,8 +296,9 @@ func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	result := map[string]interface{}{
-		"tx": tx.BS58(),
+	result := commonTxReply{
+		TxID: tx.ID(),
+		Raw:  tx.BS58(),
 	}
 	raw, err := utils.JSON.Marshal(result)
 	if err != nil {

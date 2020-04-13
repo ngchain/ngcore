@@ -1543,8 +1543,8 @@ go_repository(
 go_repository(
     name = "com_github_cpuguy83_go_md2man_v2",
     importpath = "github.com/cpuguy83/go-md2man/v2",
-    sum = "h1:EoUDS0afbrsXAZ9YQ9jdu/mZ2sXgT1/2yyNng4PGlyM=",
-    version = "v2.0.0",
+    sum = "h1:U+s90UTSYgptZMwQh2aRr3LuazLJIa+Pg3Kc1ylSYVY=",
+    version = "v2.0.0-20190314233015-f79a8a8ca69d",
 )
 
 go_repository(
@@ -1949,8 +1949,8 @@ go_repository(
 go_repository(
     name = "com_github_dop251_goja",
     importpath = "github.com/dop251/goja",
-    sum = "h1:q0PO2pntEwlTkw46qrn1T2Qj5Q2sYJbIfgTA4in9AMI=",
-    version = "v0.0.0-20200326102500-6438c8ddc517",
+    sum = "h1:IcoMa2nBHhE8UwH+dESzYeMZRmf3Su81RDOuVBDv/dQ=",
+    version = "v0.0.0-20200409105836-0cd29d81c048",
 )
 
 go_repository(
@@ -2014,4 +2014,11 @@ go_repository(
     importpath = "go.uber.org/goleak",
     sum = "h1:qsup4IcBdlmsnGfqyLl4Ntn3C2XCCuKAE7DwHpScyUo=",
     version = "v1.0.0",
+)
+
+go_repository(
+    name = "com_github_urfave_cli_v2",
+    importpath = "github.com/urfave/cli/v2",
+    sum = "h1:JTTnM6wKzdA0Jqodd966MVj4vWbbquZykeX1sKbe2C4=",
+    version = "v2.2.0",
 )

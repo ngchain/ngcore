@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "js.go",
         "lua.go",
+        "project.go",
     ],
     importpath = "github.com/ngchain/ngcore/vm",
     visibility = ["//visibility:public"],
