@@ -31,7 +31,7 @@ var (
 	MaxTarget         = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}) // new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0)) // Target = MaxTarget / diff
 	GenesisTarget     = new(big.Int).Div(MaxTarget, MinimumDifficulty)
 
-	GenesisNonceBytes, _ = hex.DecodeString("9377ddaa012ca1aa")
+	GenesisNonceBytes, _ = hex.DecodeString("4363158771f4c85c")
 	GenesisNonce         = new(big.Int).SetBytes(GenesisNonceBytes)
 
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()

@@ -2,6 +2,9 @@ package ngsheet
 
 import (
 	"fmt"
+	"math/big"
+
+	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -83,6 +86,25 @@ func (m *sheetEntry) CheckGenerate(generateTx *ngtypes.Tx) error {
 }
 
 func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
+	// check structure and key
+	if err := registerTx.CheckRegister(); err != nil {
+		return err
+	}
+
+	// check balance
+	payer := registerTx.GetParticipants()[0]
+	rawPayerBalance, exists := m.anonymous[base58.FastBase58Encoding(payer)]
+	if !exists {
+		return ngtypes.ErrAccountNotExists
+	}
+	payerBalance := new(big.Int).SetBytes(rawPayerBalance)
+
+	expenditure := registerTx.TotalExpenditure()
+	if payerBalance.Cmp(expenditure) < 0 {
+		return fmt.Errorf("balance is insufficient for register")
+	}
+
+	// check nonce
 	rawConvener, exists := m.accounts[registerTx.GetConvener()]
 	if !exists {
 		return ngtypes.ErrAccountNotExists
@@ -93,24 +115,6 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	if err != nil {
 		return err
 	}
-
-	// check structure and key
-	if err = registerTx.CheckRegister(); err != nil {
-		return err
-	}
-
-	// check balance
-	totalCharge := registerTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByID(registerTx.GetConvener())
-	if err != nil {
-		return err
-	}
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return fmt.Errorf("balance is insufficient for register")
-	}
-
-	// check nonce
 	if registerTx.GetNonce() != convener.Nonce+1 {
 		return fmt.Errorf("wrong register nonce: %d", registerTx.GetNonce())
 	}

@@ -10,9 +10,9 @@ func NewAccount(id uint64, ownerPublicKey []byte, state []byte) *Account {
 }
 
 // GetGenesisAccount will return the genesis account (id=1)
-func GetGenesisAccount() *Account {
+func GetGenesisAccount(id uint64) *Account {
 	return &Account{
-		ID: 1,
+		ID: id,
 		// Balance:  big.NewInt(math.MaxInt64).Bytes(), // Init balance
 		Owner: GenesisPublicKey,
 		Nonce: 0,

@@ -178,8 +178,8 @@ func (m *Tx) CheckRegister() error {
 		return errors.New("register is missing header")
 	}
 
-	if m.GetConvener() != 0 {
-		return fmt.Errorf("register's convener should be 0")
+	if m.GetConvener() != 01 {
+		return fmt.Errorf("register's convener should be 1")
 	}
 
 	if len(m.GetParticipants()) != 1 {

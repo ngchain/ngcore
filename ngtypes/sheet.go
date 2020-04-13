@@ -110,10 +110,14 @@ func (m *Sheet) CalculateHash() ([]byte, error) {
 }
 
 func GetGenesisSheet() *Sheet {
+	// reserve 1-10 to provide official functions
+	genesisAccounts := make(map[uint64]*Account)
+	for i := uint64(0); i <= 10; i++ {
+		genesisAccounts[i] = GetGenesisAccount(i)
+	}
+
 	return &Sheet{
-		Accounts: map[uint64]*Account{
-			0: GetGenesisAccount(),
-		},
+		Accounts: genesisAccounts,
 		Anonymous: map[string][]byte{
 			GenesisPublicKeyBase58: GetBig0Bytes(),
 		},
