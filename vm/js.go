@@ -35,6 +35,7 @@ func (vm *JSVM) RunState(raw []byte) []byte {
 }
 
 // Watch is used to update tx extra code from a specific account
+// TODO
 func (vm *JSVM) Watch(accountID uint64) {
 
 }

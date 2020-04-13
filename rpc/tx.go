@@ -44,7 +44,7 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 			}
 		case float64:
 			accountID := uint64(p)
-			account, err := s.sheetManager.GetAccountByID(accountID)
+			account, err := s.sheetManager.GetAccountByNum(accountID)
 			if err != nil {
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}

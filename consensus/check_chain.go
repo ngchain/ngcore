@@ -44,7 +44,7 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 			}
 		}
 
-		if err = c.SheetManager.CheckCurrentTxs(curBlock.Txs...); err != nil {
+		if err = c.SheetManager.CheckTxs(curBlock.Txs...); err != nil {
 			return err
 		}
 

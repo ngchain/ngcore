@@ -29,7 +29,7 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 		}
 	}
 
-	if err := c.SheetManager.CheckCurrentTxs(block.Txs...); err != nil {
+	if err := c.SheetManager.CheckTxs(block.Txs...); err != nil {
 		return err
 	}
 

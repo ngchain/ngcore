@@ -47,18 +47,18 @@ func (s *Server) getBalanceFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type getBalanceByIDParams struct {
-	ID uint64 `json:"id"`
+type getBalanceByNumParams struct {
+	Num uint64 `json:"id"`
 }
 
-func (s *Server) getBalanceByIDFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	params := new(getBalanceByIDParams)
+func (s *Server) getBalanceByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	params := new(getBalanceByNumParams)
 	err := utils.JSON.Unmarshal(msg.Params, params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	balance, err := s.sheetManager.GetBalanceByID(params.ID)
+	balance, err := s.sheetManager.GetBalanceByNum(params.Num)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -66,6 +66,30 @@ func (s *Server) getBalanceByIDFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	raw, err := utils.JSON.Marshal(getBalanceReply{
 		Balance: balance,
 	})
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
+
+type getAccountByNumParams struct {
+	Num uint64 `json:"id"`
+}
+
+func (s *Server) getAccountByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	params := new(getAccountByNumParams)
+	err := utils.JSON.Unmarshal(msg.Params, params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	account, err := s.sheetManager.GetAccountByNum(params.Num)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := utils.JSON.Marshal(account)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

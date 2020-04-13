@@ -34,8 +34,8 @@ func (m *Sheet) RegisterAccount(account *Account) error {
 	return nil
 }
 
-// GetAccountByID determine whether the Sheet exist by accountID
-func (m *Sheet) GetAccountByID(accountID uint64) (*Account, error) {
+// GetAccountByNum determine whether the Sheet exist by accountID
+func (m *Sheet) GetAccountByNum(accountID uint64) (*Account, error) {
 	if !m.HasAccount(accountID) {
 		return nil, errors.New("no such account")
 	}

@@ -41,13 +41,13 @@ func (m *SheetManager) Init(latestBlocks *ngtypes.Block) {
 	}
 }
 
-// GetCurrentBalanceByID is a helper to call GetBalanceByID from currentSheet
-func (m *SheetManager) GetCurrentBalanceByID(id uint64) (*big.Int, error) {
-	return m.currentSheet.GetBalanceByID(id)
+// GetBalanceByNum is a helper to call GetBalanceByNum from currentSheet
+func (m *SheetManager) GetBalanceByNum(id uint64) (*big.Int, error) {
+	return m.currentSheet.GetBalanceByNum(id)
 }
 
-// CheckCurrentTxs is a helper to call CheckTxs from currentSheet
-func (m *SheetManager) CheckCurrentTxs(txs ...*ngtypes.Tx) error {
+// CheckTxs is a helper to call CheckTxs from currentSheet
+func (m *SheetManager) CheckTxs(txs ...*ngtypes.Tx) error {
 	return m.currentSheet.CheckTxs()
 }
 
@@ -64,12 +64,8 @@ func (m *SheetManager) GetAccountsByPublicKey(key []byte) ([]*ngtypes.Account, e
 	return m.currentSheet.GetAccountsByPublicKey(key)
 }
 
-func (m *SheetManager) GetAccountByID(id uint64) (*ngtypes.Account, error) {
-	return m.currentSheet.GetAccountByID(id)
-}
-
-func (m *SheetManager) GetBalanceByID(id uint64) (*big.Int, error) {
-	return m.currentSheet.GetBalanceByID(id)
+func (m *SheetManager) GetAccountByNum(id uint64) (*ngtypes.Account, error) {
+	return m.currentSheet.GetAccountByNum(id)
 }
 
 func (m *SheetManager) GetBalanceByPublicKey(pk []byte) (*big.Int, error) {

@@ -33,7 +33,7 @@ func (b *broadcaster) onBroadcastTx(msg *pubsub.Message) {
 		return
 	}
 
-	err = b.node.consensus.CheckCurrentTxs(tx)
+	err = b.node.consensus.CheckTxs(tx)
 	if err != nil {
 		log.Errorf("failed dealing new tx %s from broadcast: %s", tx.BS58(), err)
 		return

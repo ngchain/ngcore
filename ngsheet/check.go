@@ -141,7 +141,7 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := logoutTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByID(logoutTx.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(logoutTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := transactionTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByID(transactionTx.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(transactionTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := assignTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByID(assignTx.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(assignTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := appendTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByID(appendTx.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(appendTx.GetConvener())
 	if err != nil {
 		return err
 	}

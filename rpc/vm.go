@@ -4,18 +4,27 @@ import (
 	"github.com/maoxs2/go-jsonrpc2"
 
 	"github.com/ngchain/ngcore/utils"
+	"github.com/ngchain/ngcore/vm"
 )
 
-func (s *Server) runState(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	key := utils.PublicKey2Bytes(*s.consensus.PrivateKey.PubKey())
-	accounts, err := s.sheetManager.GetAccountsByPublicKey(key)
+// TODO: add options on machine joining, e.g. encryption
+type runStateParams struct {
+	Num uint64 `json:"num"`
+}
+
+func (s *Server) runStateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params runStateParams
+	err := utils.JSON.Unmarshal(msg.Params, params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	result := make([]uint64, len(accounts))
-	for i := range accounts {
-		result[i] = accounts[i].Num
+
+	account, err := s.sheetManager.GetAccountByNum(params.Num)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
+	js := vm.NewJSVM()
+	go js.RunState(account.State)
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }

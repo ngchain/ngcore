@@ -65,7 +65,7 @@ func (m *sheetEntry) ToSheet() (*ngtypes.Sheet, error) {
 	return ngtypes.NewSheet(accounts, anonymous), nil
 }
 
-func (m *sheetEntry) GetBalanceByID(id uint64) (*big.Int, error) {
+func (m *sheetEntry) GetBalanceByNum(id uint64) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -110,7 +110,7 @@ func (m *sheetEntry) AccountIsRegistered(accountID uint64) bool {
 	return exists
 }
 
-func (m *sheetEntry) GetAccountByID(id uint64) (account *ngtypes.Account, err error) {
+func (m *sheetEntry) GetAccountByNum(id uint64) (account *ngtypes.Account, err error) {
 	m.RLock()
 	defer m.RUnlock()
 
