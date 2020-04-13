@@ -37,9 +37,9 @@ func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values
 	}
 
 	return &Tx{
-		NetworkId: NetworkID,
-		Header:    header,
-		Sign:      nil,
+		Network: Network,
+		Header:  header,
+		Sign:    nil,
 	}
 }
 
@@ -50,7 +50,7 @@ func (m *Tx) IsSigned() bool {
 
 // Verify helps verify the transaction whether signed by the public key owner
 func (m *Tx) Verify(publicKey secp256k1.PublicKey) error {
-	if m.NetworkId != NetworkID {
+	if m.Network != Network {
 		return fmt.Errorf("tx's network id is incorrect")
 	}
 

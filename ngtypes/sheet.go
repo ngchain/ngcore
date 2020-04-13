@@ -26,11 +26,11 @@ func NewSheet(accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet 
 }
 
 func (m *Sheet) RegisterAccount(account *Account) error {
-	if m.Accounts[account.ID] != nil {
+	if m.Accounts[account.Num] != nil {
 		return errors.New("failed to register, account already exists")
 	}
 
-	m.Accounts[account.ID] = account
+	m.Accounts[account.Num] = account
 	return nil
 }
 

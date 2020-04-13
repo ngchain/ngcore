@@ -14,7 +14,7 @@ func (s *Server) runState(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage
 	}
 	result := make([]uint64, len(accounts))
 	for i := range accounts {
-		result[i] = accounts[i].ID
+		result[i] = accounts[i].Num
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	NetworkID = testnetNetworkID // for hard fork
+	Network = testnetNetworkID // for hard fork
 
 	mainnetNetworkID = 1
 

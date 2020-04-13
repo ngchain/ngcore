@@ -1,10 +1,9 @@
 package rpc
 
 import (
-	"fmt"
+	"math/big"
 
 	"github.com/maoxs2/go-jsonrpc2"
-	"github.com/mr-tron/base58/base58"
 
 	"github.com/ngchain/ngcore/utils"
 )
@@ -17,7 +16,7 @@ func (s *Server) getAccountsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 	result := make([]uint64, len(accounts))
 	for i := range accounts {
-		result[i] = accounts[i].ID
+		result[i] = accounts[i].Num
 	}
 
 	raw, err := utils.JSON.Marshal(result)
@@ -28,14 +27,18 @@ func (s *Server) getAccountsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
+type getBalanceReply struct {
+	Balance *big.Int `json:"balance"`
+}
+
 func (s *Server) getBalanceFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	key := utils.PublicKey2Bytes(*s.consensus.PrivateKey.PubKey())
 	balance, err := s.sheetManager.GetBalanceByPublicKey(key)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	raw, err := utils.JSON.Marshal(map[string]interface{}{
-		base58.FastBase58Encoding(key): balance,
+	raw, err := utils.JSON.Marshal(getBalanceReply{
+		Balance: balance,
 	})
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -60,8 +63,8 @@ func (s *Server) getBalanceByIDFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(map[string]interface{}{
-		fmt.Sprintf("%d", params.ID): balance,
+	raw, err := utils.JSON.Marshal(getBalanceReply{
+		Balance: balance,
 	})
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

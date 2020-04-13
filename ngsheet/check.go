@@ -224,7 +224,7 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 
 	// check nonce
 	if assignTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong assign nonce: %d, should be ", assignTx.GetNonce(), convener.Nonce+1)
+		return fmt.Errorf("wrong assign nonce: %d, should be %d", assignTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil

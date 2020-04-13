@@ -6,7 +6,7 @@ option go_package = "github.com/ngchain/ngcore/ngtypes";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message Account {
-    uint64 ID = 1;
+    uint64 num = 1;
     bytes owner = 2; // pk -> balance in anonymous fields
     uint64 nonce = 4;
     bytes state = 5;
@@ -25,7 +25,7 @@ message BlockHeader {
 }
 
 message Block {
-    int32 network_id = 1;
+    int32 network = 1;
     BlockHeader header = 2;
     Sheet sheet = 3;
     repeated Tx txs = 4; // miner should build the generate tx by themselves
@@ -46,7 +46,7 @@ enum TxType {
 message TxHeader {
     TxType type = 1;
 
-    uint64 convener = 2; // account id required
+    uint64 convener = 2; // account num required
     repeated bytes participants = 3;
     bytes fee = 4;
     repeated bytes values = 5;
@@ -58,7 +58,7 @@ message TxHeader {
 }
 
 message Tx {
-    int32 network_id = 1;
+    int32 network = 1;
     TxHeader header = 2;
     bytes sign = 3;
 }

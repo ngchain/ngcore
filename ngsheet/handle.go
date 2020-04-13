@@ -151,11 +151,11 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	).Bytes()
 
 	newAccount := ngtypes.NewAccount(binary.LittleEndian.Uint64(tx.GetExtra()), tx.GetParticipants()[0], nil)
-	if _, exists := accounts[newAccount.ID]; exists {
-		return fmt.Errorf("failed to register account@%d", newAccount.ID)
+	if _, exists := accounts[newAccount.Num]; exists {
+		return fmt.Errorf("failed to register account@%d", newAccount.Num)
 	}
 
-	accounts[newAccount.ID], err = newAccount.Marshal()
+	accounts[newAccount.Num], err = newAccount.Marshal()
 	if err != nil {
 		return err
 	}
@@ -203,12 +203,12 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return err
 	}
 
-	if _, exists := accounts[delAccount.ID]; !exists {
+	if _, exists := accounts[delAccount.Num]; !exists {
 
-		return fmt.Errorf("failed to delete account@%d", delAccount.ID)
+		return fmt.Errorf("failed to delete account@%d", delAccount.Num)
 	}
 
-	delete(accounts, delAccount.ID)
+	delete(accounts, delAccount.Num)
 
 	return nil
 }

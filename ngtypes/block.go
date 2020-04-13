@@ -113,7 +113,7 @@ func (m *Block) verifyNonce() error {
 // then you need to add txs and seal with the correct N
 func NewBareBlock(height uint64, prevBlockHash []byte, target *big.Int) *Block {
 	return &Block{
-		NetworkId: NetworkID,
+		Network: Network,
 		Header: &BlockHeader{
 			Height:        height,
 			Timestamp:     time.Now().Unix(),
@@ -144,16 +144,16 @@ func GetGenesisBlock() *Block {
 	}
 
 	return &Block{
-		NetworkId: NetworkID,
-		Header:    header,
-		Sheet:     GetGenesisSheet(),
-		Txs:       txs,
+		Network: Network,
+		Header:  header,
+		Sheet:   GetGenesisSheet(),
+		Txs:     txs,
 	}
 }
 
 // CheckError will check the errors in block inner fields
 func (m *Block) CheckError() error {
-	if m.NetworkId != NetworkID {
+	if m.Network != Network {
 		return fmt.Errorf("block's network id is incorrect")
 	}
 

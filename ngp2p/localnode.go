@@ -239,7 +239,7 @@ func (n *LocalNode) NewHeader(uuid string) *pb.Header {
 	}
 
 	return &pb.Header{
-		NetworkId: ngtypes.NetworkID,
+		NetworkId: ngtypes.Network,
 		Uuid:      uuid,
 		Timestamp: 0,
 		PeerKey:   peerKey,
