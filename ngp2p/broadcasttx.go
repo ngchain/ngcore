@@ -9,6 +9,7 @@ import (
 )
 
 func (b *broadcaster) broadcastTx(tx *ngtypes.Tx) bool {
+	log.Debugf("broadcasting tx %s", tx.BS58())
 	raw, err := tx.Marshal()
 	if err != nil {
 		log.Errorf("failed to sign pb data")

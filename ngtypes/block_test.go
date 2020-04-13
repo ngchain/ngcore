@@ -12,7 +12,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/mr-tron/base58"
 	"github.com/ngchain/cryptonight-go"
 )
 
@@ -51,7 +50,7 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 		log.Panic(err)
 	}
 	hash := cryptonight.Sum(blob, 0)
-	fmt.Printf("Nonce is %s Hash is %s", base58.FastBase58Encoding(answer), base58.FastBase58Encoding(hash))
+	fmt.Printf("Nonce is %x Hash is %x", answer, hash)
 }
 
 func TestBlock_IsGenesis(t *testing.T) {

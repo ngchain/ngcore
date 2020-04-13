@@ -26,6 +26,7 @@ require (
 	github.com/ngchain/cryptonight-go v0.0.0-20200408114201-bdcadf0ac3e1
 	github.com/ngchain/go-schnorr v0.0.0-20200408152807-bc2a7ea6e0de
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
+	github.com/urfave/cli/v2 v2.2.0
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
 	go.uber.org/atomic v1.6.0
@@ -33,6 +34,5 @@ require (
 	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
-	gopkg.in/urfave/cli.v1 v1.20.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

@@ -1,6 +1,7 @@
 package ngtypes
 
 import (
+	"encoding/hex"
 	"math/big"
 	"time"
 
@@ -30,7 +31,7 @@ var (
 	MaxTarget         = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}) // new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0)) // Target = MaxTarget / diff
 	GenesisTarget     = new(big.Int).Div(MaxTarget, MinimumDifficulty)
 
-	GenesisNonceBytes, _ = base58.FastBase58Decoding("jUtk3T1Uw59")
+	GenesisNonceBytes, _ = hex.DecodeString("74ba15b9b7bc1df3")
 	GenesisNonce         = new(big.Int).SetBytes(GenesisNonceBytes)
 
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()

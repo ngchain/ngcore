@@ -106,7 +106,7 @@ func (m *Block) VerifyNonce() error {
 		return nil
 	}
 
-	return fmt.Errorf("block@%d's nonce is invalid", m.GetHeight())
+	return fmt.Errorf("block@%d's nonce %x is invalid", m.GetHeight(), m.Header.GetNonce())
 }
 
 // NewBareBlock will return an unsealing block and

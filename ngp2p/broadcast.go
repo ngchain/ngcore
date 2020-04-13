@@ -58,11 +58,7 @@ func registerBroadcaster(node *LocalNode) *broadcaster {
 		for {
 			select {
 			case block := <-b.node.consensus.MinedBlockToP2PCh:
-				if block.IsHead() {
-					b.broadcastBlock(block)
-				} else {
-					b.broadcastBlock(block)
-				}
+				b.broadcastBlock(block)
 
 			case tx := <-b.node.consensus.NewCreatedTxEvent:
 				b.broadcastTx(tx)

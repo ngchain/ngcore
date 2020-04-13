@@ -107,7 +107,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for register")
 	}
 
 	// check nonce
@@ -143,7 +143,7 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for logout")
 	}
 
 	// check nonce
@@ -179,7 +179,7 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for transaction")
 	}
 
 	// check nonce
@@ -215,7 +215,7 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for assign")
 	}
 
 	// check nonce
@@ -251,7 +251,7 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for append")
 	}
 
 	// check nonce

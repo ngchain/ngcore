@@ -143,7 +143,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for register")
 	}
 	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
 		new(big.Int).SetBytes(rawParticipantBalance),
@@ -185,7 +185,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	}
 
 	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for logout")
 	}
 	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
 		new(big.Int).SetBytes(rawParticipantBalance),
@@ -246,7 +246,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 
 	convenerBalance := new(big.Int).SetBytes(rawConvenerBalance)
 	if convenerBalance.Cmp(totalExpense) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for transaction")
 	}
 
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense).Bytes()
@@ -309,7 +309,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	convenerBalance := new(big.Int).SetBytes(rawConvenerBalance)
 	if convenerBalance.Cmp(fee) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for assign")
 	}
 
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
@@ -362,7 +362,7 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	convenerBalance := new(big.Int).SetBytes(rawConvenerBalance)
 	if convenerBalance.Cmp(fee) < 0 {
-		return ngtypes.ErrTxBalanceInsufficient
+		return fmt.Errorf("balance is insufficient for append")
 	}
 
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()

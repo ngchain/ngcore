@@ -8,7 +8,7 @@ import (
 
 // PutNewTxFromLocal puts tx from local(rpc) into txpool
 func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
-	log.Info("putting new tx from rpc")
+	log.Debugf("putting new tx %s from rpc", tx.BS58())
 	if err = p.sheetManager.CheckCurrentTxs(tx); err != nil {
 		return fmt.Errorf("malformed tx, rejected: %v", err)
 	}

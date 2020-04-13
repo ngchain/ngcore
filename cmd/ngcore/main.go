@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
+	"github.com/urfave/cli/v2"
 	"github.com/whyrusleeping/go-logging"
-	"gopkg.in/urfave/cli.v1"
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
@@ -27,62 +27,64 @@ import (
 
 var log = logging.MustGetLogger("main")
 
-var strictModeFlag = cli.BoolTFlag{
+var strictModeFlag = &cli.BoolFlag{
 	Name:  "strict",
+	Value: true,
 	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
-var logFlag = cli.StringFlag{
+var logFlag = &cli.StringFlag{
 	Name:  "log-file",
+	Value: "",
 	Usage: "Enable save the log into the file",
 }
 
-var p2pTCPPortFlag = cli.IntFlag{
+var p2pTCPPortFlag = &cli.IntFlag{
 	Name:  "p2p-port",
 	Usage: "Port for P2P connection",
 	Value: 52520,
 }
 
-var rpcPortFlag = cli.IntFlag{
+var rpcPortFlag = &cli.IntFlag{
 	Name:  "rpc-port",
 	Usage: "Port for RPC",
 	Value: 52521,
 }
 
-var isBootstrapFlag = cli.BoolFlag{
+var isBootstrapFlag = &cli.BoolFlag{
 	Name:  "bootstrap",
 	Usage: "Enable starting local node as a bootstrap peer",
 }
 
-var profileFlag = cli.BoolFlag{
+var profileFlag = &cli.BoolFlag{
 	Name:  "profile",
 	Usage: "Enable writing cpu profile to the file",
 }
 
-var keyPassFlag = cli.StringFlag{
+var keyPassFlag = &cli.StringFlag{
 	Name:  "key-pass",
 	Usage: "The password to unlock the key file",
 	Value: "",
 }
 
-var miningFlag = cli.IntFlag{
+var miningFlag = &cli.IntFlag{
 	Name:  "mining",
 	Usage: "The worker number on mining. Mining starts when value is not negative. And when value equals to 0, use all cpu cores",
 	Value: -1,
 }
 
-var colorFlag = cli.BoolFlag{
+var colorFlag = &cli.BoolFlag{
 	Name:  "color",
 	Usage: "Enable displaying log with color",
 }
 
-var logLevelFlag = cli.StringFlag{
+var logLevelFlag = &cli.StringFlag{
 	Name:  "log-level",
 	Value: "INFO",
 	Usage: "Enable displaying logs which are equal or higher to the level. Values can be ERROR, WARNING, NOTICE, INFO or DEBUG",
 }
 
-var inMemFlag = cli.BoolFlag{
+var inMemFlag = &cli.BoolFlag{
 	Name:  "in-mem",
 	Usage: "Run the database of blocks, vaults in memory",
 }
@@ -121,7 +123,7 @@ var action = func(c *cli.Context) error {
 
 	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Int("mining") >= 0
-	isStrictMode := isBootstrapNode || c.BoolT("strict")
+	isStrictMode := isBootstrapNode || c.Bool("strict")
 	p2pTCPPort := c.Int("p2p-port")
 	rpcPort := c.Int("rpc-port")
 	keyPass := c.String("key-pass")
@@ -212,14 +214,18 @@ func main() {
 	app.Version = "v0.0.3"
 	app.Action = action
 
-	flags := []cli.Flag{
+	app.Flags = []cli.Flag{
 		strictModeFlag, logFlag, p2pTCPPortFlag, rpcPortFlag, miningFlag,
 		isBootstrapFlag, keyPassFlag, profileFlag,
 		colorFlag, logLevelFlag,
 		inMemFlag,
 	}
 
-	app.Flags = flags
+	// TODO integrate tools into subcommands
+	app.Commands = []*cli.Command{
+		daemonCommand, keytoolsCommand, genesistoolsCommand,
+	}
+
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)

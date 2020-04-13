@@ -19,9 +19,8 @@ import (
 )
 
 var (
-	ErrTxIsNotSigned         = errors.New("the transaction is not signed")
-	ErrTxBalanceInsufficient = errors.New("balance is insufficient for payment")
-	ErrTxWrongSign           = errors.New("the signer of transaction is not the own of the account")
+	ErrTxIsNotSigned = errors.New("the transaction is not signed")
+	ErrTxWrongSign   = errors.New("the signer of transaction is not the own of the account")
 )
 
 // NewUnsignedTx will return an unsigned tx, must using Signature()
