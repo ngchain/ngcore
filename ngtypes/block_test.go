@@ -19,8 +19,8 @@ import (
 // TestBlock_GetHash test func GetGenesisBlock() and return Hash value
 func TestBlock_GetHash(t *testing.T) {
 	b := GetGenesisBlock()
-	block := b.Header.CalculateHash()
-	t.Log(len(block))
+	headerHash := b.CalculateHeaderHash()
+	t.Log(len(headerHash))
 }
 
 // TestGetGenesisBlockNonce test func NewBareBlock()
@@ -46,12 +46,12 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 
 	answer := <-nCh
 	stopCh <- struct{}{}
-	blob := b.Header.GetPoWBlob(answer)
+	blob := b.GetPoWBlob(answer)
 	if err != nil {
 		log.Panic(err)
 	}
 	hash := cryptonight.Sum(blob, 0)
-	fmt.Println("N is ", answer, " Hash is ", base58.FastBase58Encoding(hash))
+	fmt.Printf("Nonce is %s Hash is %s", base58.FastBase58Encoding(answer), base58.FastBase58Encoding(hash))
 }
 
 // calcHash get the hash of block
@@ -67,7 +67,7 @@ func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh ch
 			return
 		default:
 			random := fastrand.Bytes(8)
-			blob := b.Header.GetPoWBlob(random)
+			blob := b.GetPoWBlob(random)
 
 			hash := cryptonight.Sum(blob, 0)
 			if new(big.Int).SetBytes(hash).Cmp(target) < 0 {

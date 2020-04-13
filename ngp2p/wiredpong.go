@@ -98,8 +98,7 @@ func (w *wired) onPong(s network.Stream) {
 	// start sync
 	log.Infof("start syncing with %s", remotePeerID)
 	if w.node.isStrictMode {
-		requestHeight := (localBlockHeight + 1) / ngtypes.BlockCheckRound
-		go w.GetChain(remotePeerID, requestHeight, pong.BlockHeight)
+		go w.GetChain(remotePeerID, localBlockHeight, pong.BlockHeight)
 	} else {
 		go w.GetChain(remotePeerID, pong.BlockHeight-20, pong.BlockHeight)
 	}

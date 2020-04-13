@@ -61,9 +61,6 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 func (c *Chain) PutNewChain(chain ...*ngtypes.Block) error {
 	log.Info("putting new chain")
 	/* Check Start */
-	if len(chain) < 3 {
-		return fmt.Errorf("chain is nil")
-	}
 
 	firstBlock := chain[0]
 	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {

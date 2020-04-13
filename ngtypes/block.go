@@ -2,9 +2,11 @@ package ngtypes
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"time"
 
 	"golang.org/x/crypto/sha3"
@@ -25,36 +27,62 @@ var (
 	ErrBlockPrevTreasuryHash  = errors.New("the block's backend vault is invalid")
 	ErrBlockDiffInvalid       = errors.New("the block's difficulty is invalid")
 	ErrBlockHashInvalid       = errors.New("the block's hash is invalid")
-	ErrBlockNonceInvalid      = errors.New("the block's N is invalid")
+	ErrBlockNonceInvalid      = errors.New("the block's Nonce is invalid")
 	ErrBlockMalformed         = errors.New("the block structure is malformed")
 )
 
 var log = logging.MustGetLogger("types")
 
-/* Body Start */
-
-func (m *Block) IsUnsealing() (bool, error) {
-	if m.Header != nil {
-		return false, ErrBlockHeaderMissing
-	}
-	return m.Header.IsUnsealing(), nil
+func (m *Block) IsUnsealing() bool {
+	return m.GetHeader().GetTrieHash() != nil
 }
 
-func (m *Block) IsSealed() (bool, error) {
-	if m.Header != nil {
-		return false, ErrBlockHeaderMissing
-	}
-
-	return m.Header.IsSealed(), nil
+func (m *Block) IsSealed() bool {
+	return m.GetHeader().GetNonce() != nil
 }
 
+// IsHead will check whether the Block is the checkpoint
 func (m *Block) IsHead() bool {
-	return m.Header.IsHead()
+	return m.GetHeight()%BlockCheckRound == 0
+}
+
+func (m *Block) IsTail() bool {
+	return (m.GetHeight()+1)%BlockCheckRound == 0
+}
+
+func (m *Block) IsGenesis() bool {
+	return reflect.DeepEqual(m, GetGenesisBlock())
+}
+
+// GetPoWBlob will return a complete blob for block hash
+func (m *Block) GetPoWBlob(nonce []byte) []byte {
+	raw := make([]byte, 144)
+
+	h := m.GetHeader()
+	copy(raw[0:32], h.GetPrevBlockHash())
+	copy(raw[32:64], h.GetSheetHash())
+	copy(raw[64:96], h.GetTrieHash())
+	binary.LittleEndian.PutUint64(raw[96:104], uint64(h.GetTimestamp()))
+	copy(raw[104:136], h.GetTarget()) // uint256
+
+	if nonce == nil {
+		copy(raw[136:144], h.GetNonce()) // 8
+	} else {
+		copy(raw[136:144], nonce) // 8
+	}
+
+	return raw
+}
+
+// CalculateHeaderHash will help you get the hash of block
+func (m *Block) CalculateHeaderHash() []byte {
+	blob := m.GetPoWBlob(nil)
+	return cryptonight.Sum(blob, 0)
 }
 
 // ToUnsealing converts a bare block to an unsealing block
 func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
-	if m.Header == nil {
+	if m.GetHeader() == nil {
 		return nil, ErrBlockHeaderMissing
 	}
 
@@ -76,11 +104,11 @@ func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 
 // ToSealed converts an unsealing block to a sealed block
 func (m *Block) ToSealed(nonce []byte) (*Block, error) {
-	if m.Header == nil {
+	if m.GetHeader() == nil {
 		return nil, ErrBlockHeaderMissing
 	}
 
-	if !m.Header.IsUnsealing() {
+	if !m.IsUnsealing() {
 		return nil, ErrBlockIsBare
 	}
 
@@ -91,7 +119,7 @@ func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 
 // VerifyNonce will verify whether the nonce meets the target
 func (m *Block) VerifyNonce() error {
-	if new(big.Int).SetBytes(cryptonight.Sum(m.Header.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(m.Header.Target)) < 0 {
+	if new(big.Int).SetBytes(cryptonight.Sum(m.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(m.GetHeader().GetTarget())) < 0 {
 		return nil
 	}
 
@@ -146,15 +174,15 @@ func (m *Block) CheckError() error {
 		return fmt.Errorf("block's network id is incorrect")
 	}
 
-	if m.Header == nil {
+	if m.GetHeader() == nil {
 		return ErrBlockHeaderMissing
 	}
 
-	if m.Header.Nonce == nil {
+	if m.GetHeader().GetNonce() == nil {
 		return ErrBlockNonceInvalid
 	}
 
-	if !bytes.Equal(NewTxTrie(m.Txs).TrieRoot(), m.Header.TrieHash) {
+	if !bytes.Equal(NewTxTrie(m.Txs).TrieRoot(), m.GetHeader().GetTrieHash()) {
 		return ErrBlockMTreeInvalid
 	}
 
@@ -177,12 +205,12 @@ func (m *Block) CalculateHash() ([]byte, error) {
 
 // GetHeight is a helper to get the height from block header
 func (m *Block) GetHeight() uint64 {
-	return m.Header.Height
+	return m.GetHeader().GetHeight()
 }
 
 // GetPrevHash is a helper to get the prev block hash from block header
 func (m *Block) GetPrevHash() []byte {
-	return m.Header.PrevBlockHash
+	return m.GetHeader().GetPrevBlockHash()
 }
 
 // GenesisBlockHash is a helper to get the genesis block's hash

@@ -29,7 +29,9 @@ var (
 	MinimumDifficulty = big.NewInt(50 * 10)
 	MaxTarget         = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}) // new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0)) // Target = MaxTarget / diff
 	GenesisTarget     = new(big.Int).Div(MaxTarget, MinimumDifficulty)
-	GenesisNonce      = new(big.Int).SetUint64(0)
+
+	GenesisNonceBytes, _ = base58.FastBase58Decoding("jUtk3T1Uw59")
+	GenesisNonce         = new(big.Int).SetBytes(GenesisNonceBytes)
 
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()
 )

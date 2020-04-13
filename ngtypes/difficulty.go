@@ -8,7 +8,7 @@ import (
 // GetNextTarget is a helper to get next pow block target field
 func GetNextTarget(tailBlock *Block, lastHeadBlock *Block) *big.Int {
 	target := new(big.Int).SetBytes(tailBlock.Header.Target)
-	if !tailBlock.Header.IsTail() {
+	if !tailBlock.IsTail() {
 		return target
 	}
 

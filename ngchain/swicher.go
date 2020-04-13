@@ -15,9 +15,6 @@ import (
 func (c *Chain) SwitchTo(chain ...*ngtypes.Block) error {
 	log.Info("switching to new chain")
 	/* Check Start */
-	if len(chain) < 3 {
-		return fmt.Errorf("chain is nil")
-	}
 
 	firstBlock := chain[0]
 	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {

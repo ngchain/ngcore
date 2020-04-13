@@ -86,24 +86,18 @@ func (m *Miner) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 
 	for {
 		select {
-		//case newJob := <-m.newJobCh:
-		//	if !reflect.DeepEqual(b.Header, newJob.Header) {
-		//		log.Debugf("Thread %d mining block@%d", threadID, newJob.Header.Height)
-		//		b = newJob
-		//		target = new(big.Int).SetBytes(b.Header.Target)
-		//	}
 		case <-m.abortCh:
 			// Mining terminated, update stats and abort
 			return
 		default:
-			if job == nil || !job.Header.IsUnsealing() {
+			if job == nil || !job.IsUnsealing() {
 				continue
 			}
 
 			// Compute the PoW value of this nonce
 			nonce := make([]byte, 4)
 			fastrand.Read(nonce)
-			blob := job.Header.GetPoWBlob(nonce)
+			blob := job.GetPoWBlob(nonce)
 			hash := cryptonight.Sum(blob, 0)
 			m.hashes.Inc()
 

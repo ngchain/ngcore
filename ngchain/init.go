@@ -2,7 +2,6 @@ package ngchain
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
 
@@ -73,10 +72,6 @@ func (c *Chain) hasGenesisBlock() bool {
 
 // InitWithChain initialize the chain by importing the external chain
 func (c *Chain) InitWithChain(chain ...*ngtypes.Block) error {
-	if len(chain) < 3 {
-		return fmt.Errorf("chain is nil")
-	}
-
 	/* Put start */
 	err := c.db.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(chain); i++ {

@@ -18,18 +18,22 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 	}
 
 	var curBlock, prevBlock *ngtypes.Block
-
 	var prevBlockHash, curBlockHash []byte
 
 	var err error
 
 	firstBlock := blocks[0]
 
-	prevBlock, err = c.GetBlockByHash(firstBlock.GetPrevHash())
-	if err != nil {
-		return fmt.Errorf("failed to init prevBlock:%x from db: %s", firstBlock.GetPrevHash(), err)
+	if firstBlock.IsGenesis() {
+		prevBlock = ngtypes.GetGenesisBlock()
+		prevBlockHash = ngtypes.GenesisBlockHash
+	} else {
+		prevBlock, err = c.GetBlockByHash(firstBlock.GetPrevHash())
+		if err != nil {
+			return fmt.Errorf("failed to init prevBlock %x from db: %s", firstBlock.GetPrevHash(), err)
+		}
+		prevBlockHash, _ = prevBlock.CalculateHash()
 	}
-	prevBlockHash, _ = prevBlock.CalculateHash()
 
 	for i := 0; i < len(blocks); i++ {
 		if curBlock != nil {

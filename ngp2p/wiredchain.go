@@ -89,9 +89,11 @@ func (w *wired) onChain(s network.Stream) {
 	remoteID := s.Conn().RemotePeer()
 	_ = s.Close()
 
-	if len(payload.Blocks) > 0 {
-		log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", remoteID, data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
+	if len(payload.Blocks) == 0 {
+		return
 	}
+
+	log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", remoteID, data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
 
 	w.node.RemoteHeights.Store(remoteID, payload.LatestHeight)
 
