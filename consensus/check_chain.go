@@ -33,31 +33,28 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 	}
 
 	for i := 0; i < len(blocks); i++ {
-		if curBlock != nil {
-			prevBlock = curBlock
-			prevBlockHash = curBlockHash
-		}
-
 		curBlock = blocks[i]
 		if err = curBlock.CheckError(); err != nil {
 			return err
 		}
 
-		if err = c.checkBlockTarget(curBlock, prevBlock); err != nil {
-			return err
+		if prevBlock != nil {
+			if err = c.checkBlockTarget(curBlock, prevBlock); err != nil {
+				return err
+			}
 		}
 
 		if err = c.SheetManager.CheckCurrentTxs(curBlock.Txs...); err != nil {
 			return err
 		}
 
-		if curBlock != nil {
-			curBlockHash, _ = curBlock.CalculateHash()
-			if !bytes.Equal(prevBlockHash, curBlock.GetPrevHash()) {
-				return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash", curBlock.GetHeight(), curBlockHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
-			}
+		curBlockHash, _ = curBlock.CalculateHash()
+		if !bytes.Equal(prevBlockHash, curBlock.GetPrevHash()) {
+			return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash", curBlock.GetHeight(), curBlockHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
 		}
 
+		prevBlock = curBlock
+		prevBlockHash = curBlockHash
 	}
 
 	return nil

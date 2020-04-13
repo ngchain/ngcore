@@ -109,7 +109,7 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TX_REGISTER,
-		0,
+		1,
 		[][]byte{
 			utils.PublicKey2Bytes(*s.consensus.PrivateKey.PubKey()),
 		},
