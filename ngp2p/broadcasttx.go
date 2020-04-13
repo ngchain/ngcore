@@ -16,7 +16,7 @@ func (b *broadcaster) broadcastTx(tx *ngtypes.Tx) bool {
 		return false
 	}
 
-	err = b.topics[broadcastBlockTopic].Publish(context.Background(), raw)
+	err = b.topics[broadcastTxTopic].Publish(context.Background(), raw)
 	if err != nil {
 		log.Error(err)
 		return false

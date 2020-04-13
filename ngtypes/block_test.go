@@ -27,12 +27,7 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 	// new genesisBlock
 	runtime.GOMAXPROCS(3)
 
-	b := NewBareBlock(2, nil, GenesisTarget)
-	b, err := b.ToUnsealing(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	b := GetGenesisBlock()
 	genesisTarget := new(big.Int).SetBytes(b.Header.Target)
 
 	nCh := make(chan []byte, 1)
@@ -46,11 +41,8 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 	answer := <-nCh
 	stopCh <- struct{}{}
 	blob := b.GetPoWBlob(answer)
-	if err != nil {
-		log.Panic(err)
-	}
 	hash := cryptonight.Sum(blob, 0)
-	fmt.Printf("Nonce is %x Hash is %x", answer, hash)
+	fmt.Printf("Nonce is %x, Hash is %x", answer, hash)
 }
 
 func TestBlock_IsGenesis(t *testing.T) {
@@ -58,10 +50,20 @@ func TestBlock_IsGenesis(t *testing.T) {
 	if !g.IsGenesis() {
 		t.Fail()
 	}
+	if err := g.CheckError(); err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+
 	raw, _ := g.Marshal()
 	gg := new(Block)
 	_ = gg.Unmarshal(raw)
 	if !gg.IsGenesis() {
+		t.Fail()
+	}
+
+	if err := gg.CheckError(); err != nil {
+		t.Log(err)
 		t.Fail()
 	}
 }

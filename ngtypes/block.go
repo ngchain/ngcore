@@ -100,8 +100,8 @@ func (m *Block) ToSealed(nonce []byte) (*Block, error) {
 	return m, nil
 }
 
-// VerifyNonce will verify whether the nonce meets the target
-func (m *Block) VerifyNonce() error {
+// verifyNonce will verify whether the nonce meets the target
+func (m *Block) verifyNonce() error {
 	if new(big.Int).SetBytes(cryptonight.Sum(m.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(m.GetHeader().GetTarget())) < 0 {
 		return nil
 	}
@@ -169,7 +169,7 @@ func (m *Block) CheckError() error {
 		return fmt.Errorf("the merkle tree in block@%d is invalid", m.GetHeight())
 	}
 
-	if err := m.VerifyNonce(); err != nil {
+	if err := m.verifyNonce(); err != nil {
 		return err
 	}
 
