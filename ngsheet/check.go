@@ -79,7 +79,7 @@ func (m *sheetEntry) CheckGenerate(generateTx *ngtypes.Tx) error {
 
 	// check nonce
 	if generateTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong generate nonce: %d, should be ", generateTx.GetNonce(), convener.Nonce+1)
+		return fmt.Errorf("wrong generate nonce: %d, should be %d", generateTx.GetNonce(), convener.Nonce+1)
 	}
 
 	return nil

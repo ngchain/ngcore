@@ -11,9 +11,9 @@ NGIN is a radically updating **brand-new blockchain network**, which is not a fo
 
 NGIN's **goal** is to build **a blockchain engine** which acts more **auditable, scalable, security-oriented** and supports more network tasks with vm.
 
-NGIN uses modern models - Vault, Account, Multi-type Tx, and the traditional Block model to build the blockchain ecosystem. 
+NGIN uses modern models - Vault(Block), Account, Multi-type Tx, and the traditional Block model to build the blockchain ecosystem. 
 And NGIN strictly follow the idea of blockchain, locking items with hash to keep engine work safely.
-Not only blockchain, but Vault will also link up to be a chain for account security and powerful functions like fast ignition, free account state and so on.
+Not only blockchain, but Vault(Block) will also link up to be a chain for account security and powerful functions like fast ignition, free account state and so on.
 So It's safe and robust like bitcoin and ethereum but more scalable and powerful on the node's operational capacity and p2p network's speed and performance. 
 
 ## Status
@@ -28,14 +28,14 @@ So It's safe and robust like bitcoin and ethereum but more scalable and powerful
 - Fast ignition
 - Almost no storage cost, or no cost(mem only)
 - With Humanizing account model, users can send tx with memorable short number
-- Absolutely safety ensure with vault model
+- Absolutely safety ensure with Sheet and Vault(Block) model
 - Powerful and scalable types of tx
 - Multi-language support on state(contract) vm(lua & javascript yet)
 - Pure go, support all common platforms
 - Libp2p(ipfs) powered p2p networking
 - Safe Account ecosystem 
 - Available anonymous address for saving balance
-- Using the schnorr signature, allowing multisig when sending and receiving
+- Using the schnorr signature, allowing Multi-Sig when sending and receiving
 - ...
 
 ## Requirements
@@ -102,6 +102,6 @@ sudo docker build . -t ngcore:alpine
 # Run as a bootstrap node
 sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --bootstrap true
 
-# Run as a mining node, 0 means using all cpu cores
-sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0
+# Run as a mining node, 0 means using all cpu cores, --in-mem will disable writing into disk and make the miner lighter
+sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0 --in-mem
 ```
