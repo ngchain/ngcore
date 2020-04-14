@@ -24,6 +24,7 @@ func TestNewAccount(t *testing.T) {
 		utils.PublicKey2Bytes(*privateKey.PubKey()),
 		// big.NewInt(0),
 		nil,
+		nil,
 	)
 	fmt.Println(acc)
 }

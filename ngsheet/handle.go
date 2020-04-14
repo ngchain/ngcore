@@ -150,7 +150,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 		totalExpense,
 	).Bytes()
 
-	newAccount := ngtypes.NewAccount(binary.LittleEndian.Uint64(tx.GetExtra()), tx.GetParticipants()[0], nil)
+	newAccount := ngtypes.NewAccount(binary.LittleEndian.Uint64(tx.GetExtra()), tx.GetParticipants()[0], nil, nil)
 	if _, exists := accounts[newAccount.Num]; exists {
 		return fmt.Errorf("failed to register account@%d", newAccount.Num)
 	}
@@ -315,7 +315,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
 	// assign the extra bytes
-	convener.State = tx.GetExtra()
+	convener.Contract = tx.GetExtra()
 	accounts[tx.GetConvener()], err = convener.Marshal()
 	if err != nil {
 		return err
@@ -367,8 +367,8 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
-	// assign the extra bytes
-	convener.State = utils.CombineBytes(convener.State, tx.GetExtra())
+	// append the extra bytes
+	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
 	accounts[tx.GetConvener()], err = convener.Marshal()
 	if err != nil {
 		return err

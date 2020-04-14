@@ -8,12 +8,13 @@ import (
 )
 
 // TODO: add options on machine joining, e.g. encryption
-type runStateParams struct {
+type runContractParams struct {
 	Num uint64 `json:"num"`
 }
 
-func (s *Server) runStateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params runStateParams
+// runContractFunc typically used to run the long loop task. Can be treated as a deploy
+func (s *Server) runContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params runContractParams
 	err := utils.JSON.Unmarshal(msg.Params, params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -24,7 +25,7 @@ func (s *Server) runStateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMes
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 	js := vm.NewJSVM()
-	go js.RunState(account.State)
+	go js.RunContract(account.Contract)
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }

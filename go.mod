@@ -26,6 +26,7 @@ require (
 	github.com/ngchain/cryptonight-go v0.0.0-20200408114201-bdcadf0ac3e1
 	github.com/ngchain/go-schnorr v0.0.0-20200408152807-bc2a7ea6e0de
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb

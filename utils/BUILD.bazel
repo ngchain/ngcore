@@ -13,7 +13,6 @@ go_library(
     importpath = "github.com/ngchain/ngcore/utils",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_gogo_protobuf//jsonpb:go_default_library",
         "@com_github_json_iterator_go//:go_default_library",
         "@com_github_ngchain_go_schnorr//:go_default_library",
         "@com_github_ngchain_secp256k1//:go_default_library",

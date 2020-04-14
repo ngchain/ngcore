@@ -1,11 +1,17 @@
 package ngtypes
 
+import (
+	"github.com/ngchain/ngcore/utils"
+)
+
 // NewAccount receive parameters and return a new Account(class constructor
-func NewAccount(num uint64, ownerPublicKey []byte, state []byte) *Account {
+func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Account {
 	return &Account{
-		Num:   num,
-		Owner: ownerPublicKey,
-		State: state,
+		Num:      num,
+		Owner:    ownerPublicKey,
+		Nonce:    0,
+		Contract: contract,
+		State:    state,
 	}
 }
 
@@ -16,6 +22,10 @@ func GetGenesisAccount(num uint64) *Account {
 		// Balance:  big.NewInt(math.MaxInt64).Bytes(), // Init balance
 		Owner: GenesisPublicKey,
 		Nonce: 0,
-		State: []byte(`{'name':'NGIN OFFICIAL'}`),
+		State: genesisState,
 	}
 }
+
+var genesisState, _ = utils.JSON.Marshal(map[string]interface{}{
+	"name": "ngchain",
+})

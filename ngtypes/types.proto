@@ -9,7 +9,9 @@ message Account {
     uint64 num = 1;
     bytes owner = 2; // pk -> balance in anonymous fields
     uint64 nonce = 4;
-    bytes state = 5;
+
+    bytes contract = 5; // separate the code and state
+    bytes state = 6;
 }
 
 message BlockHeader {

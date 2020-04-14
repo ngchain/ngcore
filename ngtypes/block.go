@@ -140,7 +140,7 @@ func GetGenesisBlock() *Block {
 		SheetHash:     GenesisSheetHash,
 		TrieHash:      NewTxTrie(txs).TrieRoot(),
 		Target:        GenesisTarget.Bytes(),
-		Nonce:         GenesisNonce.Bytes(),
+		Nonce:         GenesisBlockNonce.Bytes(),
 	}
 
 	return &Block{
