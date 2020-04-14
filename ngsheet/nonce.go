@@ -2,6 +2,7 @@ package ngsheet
 
 import (
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func (m *sheetEntry) GetNextNonce(accountID uint64) uint64 {
@@ -14,7 +15,7 @@ func (m *sheetEntry) GetNextNonce(accountID uint64) uint64 {
 	}
 
 	account := new(ngtypes.Account)
-	_ = account.Unmarshal(rawAccount)
+	_ = utils.Proto.Unmarshal(rawAccount, account)
 
 	return account.GetNonce() + 1
 }

@@ -119,7 +119,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 			return fmt.Errorf("no such block in hash")
 		}
 
-		err = block.Unmarshal(raw)
+		err = utils.Proto.Unmarshal(raw, block)
 		if err != nil {
 			return err
 		}
@@ -152,7 +152,7 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 			return fmt.Errorf("no such block in hash")
 		}
 
-		err = block.Unmarshal(raw)
+		err = utils.Proto.Unmarshal(raw, block)
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
 				return err
 			}
 			var block = &ngtypes.Block{}
-			err = block.Unmarshal(raw)
+			err = utils.Proto.Unmarshal(raw, block)
 			if err != nil {
 				return err
 			}
@@ -218,7 +218,7 @@ func (c *Chain) DumpAllBlocksByHash() map[string]*ngtypes.Block {
 				return err
 			}
 			var block = &ngtypes.Block{}
-			err = block.Unmarshal(raw)
+			err = utils.Proto.Unmarshal(raw, block)
 			if err != nil {
 				return err
 			}

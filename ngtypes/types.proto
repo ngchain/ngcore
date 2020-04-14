@@ -3,8 +3,6 @@ syntax = "proto3";
 package ngtypes;
 option go_package = "github.com/ngchain/ngcore/ngtypes";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-
 message Account {
     uint64 num = 1;
     bytes owner = 2; // pk -> balance in anonymous fields
@@ -34,15 +32,15 @@ message Block {
 }
 
 enum TxType {
-    TX_INVALID = 0;
-    TX_GENERATE = 1;
-    TX_REGISTER = 2;
-    TX_LOGOUT = 3;
+    INVALID = 0;
+    GENERATE = 1;
+    REGISTER = 2;
+    LOGOUT = 3;
 
-    TX_TRANSACTION = 10;
+    TRANSACTION = 10;
 
-    TX_ASSIGN = 20;
-    TX_APPEND = 21;
+    ASSIGN = 20;
+    APPEND = 21;
 }
 
 message TxHeader {
@@ -64,8 +62,6 @@ message Tx {
     TxHeader header = 2;
     bytes sign = 3;
 }
-
-option (gogoproto.stable_marshaler_all) = true; // !important
 
 message Sheet {
     map<uint64, Account> accounts = 2;

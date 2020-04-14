@@ -16,7 +16,7 @@ func (c *Chain) InitWithGenesis() {
 		block := ngtypes.GetGenesisBlock()
 		err := c.db.Update(func(txn *badger.Txn) error {
 			hash, _ := block.CalculateHash()
-			raw, _ := block.Marshal()
+			raw, _ := utils.Proto.Marshal(block)
 			log.Infof("putting block@%d: %x", block.Header.Height, hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {
@@ -77,7 +77,7 @@ func (c *Chain) InitWithChain(chain ...*ngtypes.Block) error {
 		for i := 0; i < len(chain); i++ {
 			block := chain[i]
 			hash, _ := block.CalculateHash()
-			raw, _ := block.Marshal()
+			raw, _ := utils.Proto.Marshal(block)
 			log.Infof("putting block@%d: %x", block.Header.Height, hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {

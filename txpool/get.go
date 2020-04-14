@@ -1,6 +1,10 @@
 package txpool
 
-import "github.com/ngchain/ngcore/ngtypes"
+import (
+	"google.golang.org/protobuf/proto"
+
+	"github.com/ngchain/ngcore/ngtypes"
+)
 
 // GetPack will gives a sorted TxTire
 func (p *TxPool) GetPack() *ngtypes.TxTrie {
@@ -23,7 +27,7 @@ func (p *TxPool) GetPackTxs() []*ngtypes.Tx {
 	size := 0
 
 	for i := 0; i < len(txs); i++ {
-		size += txs[i].Size()
+		size += proto.Size(txs[i])
 		if size > ngtypes.BlockMaxTxsSize {
 			return txs[:i]
 		}

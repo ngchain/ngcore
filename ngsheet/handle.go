@@ -43,29 +43,29 @@ func (m *sheetEntry) handleTxs(txs ...*ngtypes.Tx) (err error) {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.GetType() {
-		case ngtypes.TX_INVALID:
+		case ngtypes.TxType_INVALID:
 			return fmt.Errorf("invalid tx")
-		case ngtypes.TX_GENERATE:
+		case ngtypes.TxType_GENERATE:
 			if err = handleGenerate(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-		case ngtypes.TX_REGISTER:
+		case ngtypes.TxType_REGISTER:
 			if err = handleRegister(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-		case ngtypes.TX_LOGOUT:
+		case ngtypes.TxType_LOGOUT:
 			if err = handleLogout(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-		case ngtypes.TX_TRANSACTION:
+		case ngtypes.TxType_TRANSACTION:
 			if err = handleTransaction(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-		case ngtypes.TX_ASSIGN: // assign tx
+		case ngtypes.TxType_ASSIGN: // assign tx
 			if err = handleAssign(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
-		case ngtypes.TX_APPEND: // append tx
+		case ngtypes.TxType_APPEND: // append tx
 			if err = handleAppend(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
@@ -84,7 +84,7 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	convener := new(ngtypes.Account)
-	err = convener.Unmarshal(rawConvener)
+	err = utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	).Bytes()
 
 	convener.Nonce++
-	accounts[tx.GetConvener()], err = convener.Marshal()
+	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	convener := new(ngtypes.Account)
-	err = convener.Unmarshal(rawConvener)
+	err = utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -155,13 +155,13 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 		return fmt.Errorf("failed to register account@%d", newAccount.Num)
 	}
 
-	accounts[newAccount.Num], err = newAccount.Marshal()
+	accounts[newAccount.Num], err = utils.Proto.Marshal(newAccount)
 	if err != nil {
 		return err
 	}
 
 	convener.Nonce++
-	accounts[tx.GetConvener()], err = convener.Marshal()
+	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	}
 
 	delAccount := new(ngtypes.Account)
-	err = delAccount.Unmarshal(rawAccount)
+	err = utils.Proto.Unmarshal(rawAccount, delAccount)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	}
 
 	convener := new(ngtypes.Account)
-	err = convener.Unmarshal(rawConvener)
+	err = utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -266,7 +266,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	}
 
 	convener.Nonce++
-	accounts[tx.GetConvener()], err = convener.Marshal()
+	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -284,7 +284,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	}
 
 	convener := new(ngtypes.Account)
-	err = convener.Unmarshal(rawConvener)
+	err = utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -316,13 +316,9 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	// assign the extra bytes
 	convener.Contract = tx.GetExtra()
-	accounts[tx.GetConvener()], err = convener.Marshal()
-	if err != nil {
-		return err
-	}
 
 	convener.Nonce++
-	accounts[tx.GetConvener()], err = convener.Marshal()
+	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -337,7 +333,7 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	}
 
 	convener := new(ngtypes.Account)
-	err = convener.Unmarshal(rawConvener)
+	err = utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -369,13 +365,13 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	// append the extra bytes
 	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
-	accounts[tx.GetConvener()], err = convener.Marshal()
+	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
 
 	convener.Nonce++
-	accounts[tx.GetConvener()], err = convener.Marshal()
+	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}

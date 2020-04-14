@@ -6,12 +6,13 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func (b *broadcaster) broadcastBlock(block *ngtypes.Block) bool {
 	broadcastBlockPayload := block
 
-	raw, err := broadcastBlockPayload.Marshal()
+	raw, err := utils.Proto.Marshal(broadcastBlockPayload)
 	if err != nil {
 		log.Errorf("failed to sign pb data")
 		return false
@@ -28,7 +29,7 @@ func (b *broadcaster) broadcastBlock(block *ngtypes.Block) bool {
 
 func (b *broadcaster) onBroadcastBlock(msg *pubsub.Message) {
 	var broadcastBlockPayload = new(ngtypes.Block)
-	err := broadcastBlockPayload.Unmarshal(msg.Data)
+	err := utils.Proto.Unmarshal(msg.Data, broadcastBlockPayload)
 	if err != nil {
 		log.Error(err)
 		return

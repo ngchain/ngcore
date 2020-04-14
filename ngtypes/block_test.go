@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/NebulousLabs/fastrand"
-	"github.com/gogo/protobuf/proto"
 	"golang.org/x/crypto/sha3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/cryptonight-go"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 // TestBlock_GetHash test func GetGenesisBlock() and return Hash value
@@ -55,9 +57,9 @@ func TestBlock_IsGenesis(t *testing.T) {
 		t.Fail()
 	}
 
-	raw, _ := g.Marshal()
+	raw, _ := utils.Proto.Marshal(g)
 	gg := new(Block)
-	_ = gg.Unmarshal(raw)
+	_ = utils.Proto.Unmarshal(raw, gg)
 	if !gg.IsGenesis() {
 		t.Fail()
 	}
@@ -97,11 +99,11 @@ func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh ch
 
 // TestBlock_Marshal test func GetGenesisBlock()'s Marshal()
 func TestBlock_Marshal(t *testing.T) {
-	block, _ := GetGenesisBlock().Marshal()
+	block, _ := utils.Proto.Marshal(GetGenesisBlock())
 
 	var genesisBlock Block
 	_ = proto.Unmarshal(block, &genesisBlock)
-	_block, _ := genesisBlock.Marshal()
+	_block, _ := utils.Proto.Marshal(&genesisBlock)
 	if !bytes.Equal(block, _block) {
 		t.Fail()
 	}
@@ -109,7 +111,7 @@ func TestBlock_Marshal(t *testing.T) {
 
 // TestGetGenesisBlock test func GetGenesisBlock()'s parameter passing
 func TestGetGenesisBlock(t *testing.T) {
-	d, _ := GetGenesisBlock().Marshal()
+	d, _ := utils.Proto.Marshal(GetGenesisBlock())
 	hash := sha3.Sum256(d)
 
 	log.Infof("GenesisBlock hex: %x", d)

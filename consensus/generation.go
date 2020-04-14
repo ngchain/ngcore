@@ -13,7 +13,7 @@ import (
 func (c *Consensus) createGenerateTx(privateKey *secp256k1.PrivateKey, extraData []byte) *ngtypes.Tx {
 	publicKeyBytes := utils.PublicKey2Bytes(*privateKey.PubKey())
 	gen := ngtypes.NewUnsignedTx(
-		ngtypes.TX_GENERATE,
+		ngtypes.TxType_GENERATE,
 		0,
 		[][]byte{publicKeyBytes},
 		[]*big.Int{ngtypes.OneBlockReward},

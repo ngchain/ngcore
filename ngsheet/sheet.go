@@ -8,6 +8,7 @@ import (
 	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 type sheetEntry struct {
@@ -27,7 +28,7 @@ func newSheetEntry(sheet *ngtypes.Sheet) (*sheetEntry, error) {
 
 	var err error
 	for id, account := range sheet.Accounts {
-		entry.accounts[id], err = account.Marshal()
+		entry.accounts[id], err = utils.Proto.Marshal(account)
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +52,7 @@ func (m *sheetEntry) ToSheet() (*ngtypes.Sheet, error) {
 	var err error
 	for height, raw := range m.accounts {
 		account := new(ngtypes.Account)
-		err = account.Unmarshal(raw)
+		err = utils.Proto.Unmarshal(raw, account)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +76,7 @@ func (m *sheetEntry) GetBalanceByNum(id uint64) (*big.Int, error) {
 	}
 
 	account := new(ngtypes.Account)
-	err := account.Unmarshal(rawAccount)
+	err := utils.Proto.Unmarshal(rawAccount, account)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func (m *sheetEntry) GetAccountByNum(id uint64) (account *ngtypes.Account, err e
 	}
 
 	account = new(ngtypes.Account)
-	err = account.Unmarshal(rawAccount)
+	err = utils.Proto.Unmarshal(rawAccount, account)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +137,7 @@ func (m *sheetEntry) GetAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Accoun
 	var err error
 	for _, raw := range m.accounts {
 		account := new(ngtypes.Account)
-		err = account.Unmarshal(raw)
+		err = utils.Proto.Unmarshal(raw, account)
 		if err != nil {
 			return nil, err
 		}

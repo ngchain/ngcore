@@ -33,7 +33,7 @@ func (c *Chain) SwitchTo(chain ...*ngtypes.Block) error {
 			block := chain[i]
 
 			hash, _ := block.CalculateHash()
-			raw, _ := block.Marshal()
+			raw, _ := utils.Proto.Marshal(block)
 			log.Infof("putting block@%d: %x", block.Header.Height, hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {

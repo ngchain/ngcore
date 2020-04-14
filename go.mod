@@ -9,8 +9,7 @@ require (
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/dop251/goja v0.0.0-20200409105836-0cd29d81c048
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
-	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.3.5 // indirect
+	github.com/golang/protobuf v1.4.0-rc.4.0.20200313231945-b860323f09d0
 	github.com/google/uuid v1.1.1
 	github.com/json-iterator/go v1.1.9
 	github.com/libp2p/go-libp2p v0.7.4
@@ -26,14 +25,13 @@ require (
 	github.com/ngchain/cryptonight-go v0.0.0-20200408114201-bdcadf0ac3e1
 	github.com/ngchain/go-schnorr v0.0.0-20200408152807-bc2a7ea6e0de
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
-	github.com/opentracing/opentracing-go v1.1.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/whyrusleeping/go-logging v0.0.1
-	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb
 	go.uber.org/atomic v1.6.0
 	go.uber.org/zap v1.14.1 // indirect
 	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
+	google.golang.org/protobuf v1.21.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

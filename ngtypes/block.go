@@ -11,6 +11,8 @@ import (
 
 	"github.com/ngchain/cryptonight-go"
 	"github.com/whyrusleeping/go-logging"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.MustGetLogger("types")
@@ -70,11 +72,11 @@ func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	}
 
 	for i := 0; i < len(txsWithGen); i++ {
-		if i == 0 && txsWithGen[i].GetType() != TX_GENERATE {
+		if i == 0 && txsWithGen[i].GetType() != TxType_GENERATE {
 			return nil, fmt.Errorf("first tx shall be a generate")
 		}
 
-		if i != 0 && txsWithGen[i].GetType() == TX_GENERATE {
+		if i != 0 && txsWithGen[i].GetType() == TxType_GENERATE {
 			return nil, fmt.Errorf("except first, other tx shall not be a generate")
 		}
 	}
@@ -139,8 +141,8 @@ func GetGenesisBlock() *Block {
 		PrevBlockHash: nil,
 		SheetHash:     GenesisSheetHash,
 		TrieHash:      NewTxTrie(txs).TrieRoot(),
-		Target:        GenesisTarget.Bytes(),
-		Nonce:         GenesisBlockNonce.Bytes(),
+		Target:        genesisTarget.Bytes(),
+		Nonce:         genesisBlockNonce.Bytes(),
 	}
 
 	return &Block{
@@ -178,7 +180,7 @@ func (m *Block) CheckError() error {
 
 // CalculateHash will help you get the hash of block
 func (m *Block) CalculateHash() ([]byte, error) {
-	raw, err := m.Marshal()
+	raw, err := utils.Proto.Marshal(m)
 	if err != nil {
 		return nil, err
 	}

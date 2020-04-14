@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/utils"
 )
@@ -101,7 +101,7 @@ func (m *Sheet) Copy() *Sheet {
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx
 func (m *Sheet) CalculateHash() ([]byte, error) {
-	raw, err := m.Marshal()
+	raw, err := utils.Proto.Marshal(m)
 	if err != nil {
 		return nil, err
 	}

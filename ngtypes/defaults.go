@@ -23,16 +23,16 @@ var (
 
 	GenesisGenerateTxSignBase58 = "5kVQcqFLNiqQxC7UL8E9wwX9csbD5MGJ2vSuvPZWU8BxfZtDLz7HaUhwaCFwsbFd4GTKC4AEbbChJp18VZa82uTE"
 	GenesisGenerateTxSign, _    = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
+
+	genesisBlockNonceBytes, _ = hex.DecodeString("57ac0cb04c2f5846")
+	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)
 )
 
 var (
 	// MinimumDifficulty is the minimum of pow difficulty because my laptop has 50 h/s, I believe you can either
-	MinimumDifficulty = big.NewInt(50 * 10)
-	MaxTarget         = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}) // new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0)) // Target = MaxTarget / diff
-	GenesisTarget     = new(big.Int).Div(MaxTarget, MinimumDifficulty)
-
-	GenesisBlockNonceBytes, _ = hex.DecodeString("57ac0cb04c2f5846")
-	GenesisBlockNonce         = new(big.Int).SetBytes(GenesisBlockNonceBytes)
+	minimumDifficulty = big.NewInt(50 * 10)
+	maxTarget         = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}) // new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0)) // Target = MaxTarget / diff
+	genesisTarget     = new(big.Int).Div(maxTarget, minimumDifficulty)
 
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()
 )

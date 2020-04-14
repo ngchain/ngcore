@@ -9,9 +9,9 @@ import (
 
 	"github.com/ngchain/go-schnorr"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
@@ -103,7 +103,7 @@ func (m *Tx) ID() string {
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx
 func (m *Tx) CalculateHash() ([]byte, error) {
-	raw, err := m.Marshal()
+	raw, err := utils.Proto.Marshal(m)
 	if err != nil {
 		log.Error(err)
 	}
@@ -378,7 +378,7 @@ func (m *Tx) TotalExpenditure() *big.Int {
 // GetGenesisGenerateTx is a constructed function
 func GetGenesisGenerateTx() *Tx {
 	gen := NewUnsignedTx(
-		TX_GENERATE,
+		TxType_GENERATE,
 		0,
 		[][]byte{GenesisPublicKey},
 		[]*big.Int{OneBlockReward},

@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 
@@ -70,7 +69,7 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 	}
 
 	tx := ngtypes.NewUnsignedTx(
-		ngtypes.TX_TRANSACTION,
+		ngtypes.TxType_TRANSACTION,
 		params.Convener,
 		participants,
 		values,
@@ -114,7 +113,7 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 	nonce := s.sheetManager.GetNextNonce(1)
 
 	tx := ngtypes.NewUnsignedTx(
-		ngtypes.TX_REGISTER,
+		ngtypes.TxType_REGISTER,
 		1,
 		[][]byte{
 			utils.PublicKey2Bytes(*s.consensus.PrivateKey.PubKey()),
@@ -129,8 +128,6 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-
-	log.Info(new(jsonpb.Marshaler).MarshalToString(tx))
 
 	err = s.txPool.PutNewTxFromLocal(tx)
 	if err != nil {
@@ -171,7 +168,7 @@ func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 
 	tx := ngtypes.NewUnsignedTx(
-		ngtypes.TX_LOGOUT,
+		ngtypes.TxType_LOGOUT,
 		params.Convener,
 		nil,
 		nil,
@@ -224,7 +221,7 @@ func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 
 	tx := ngtypes.NewUnsignedTx(
-		ngtypes.TX_ASSIGN,
+		ngtypes.TxType_ASSIGN,
 		params.Convener,
 		nil,
 		nil,
@@ -277,7 +274,7 @@ func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 
 	tx := ngtypes.NewUnsignedTx(
-		ngtypes.TX_ASSIGN,
+		ngtypes.TxType_APPEND,
 		params.Convener,
 		nil,
 		nil,

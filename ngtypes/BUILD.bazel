@@ -8,7 +8,6 @@ go_proto_library(
     importpath = "github.com/ngchain/ngcore/ngtypes",
     proto = ":ngtypes_proto",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_gogo_protobuf//gogoproto:go_default_library"],
 )
 
 go_library(
@@ -30,12 +29,12 @@ go_library(
     deps = [
         "//utils:go_default_library",
         "@com_github_cbergoon_merkletree//:go_default_library",
-        "@com_github_gogo_protobuf//proto:go_default_library",
         "@com_github_mr_tron_base58//:go_default_library",
         "@com_github_ngchain_go_schnorr//:go_default_library",
         "@com_github_ngchain_secp256k1//:go_default_library",
         "@com_github_ngin_network_cryptonight_go//:go_default_library",
         "@com_github_whyrusleeping_go_logging//:go_default_library",
+        "@org_golang_google_protobuf//proto:go_default_library",
         "@org_golang_x_crypto//sha3:go_default_library",
     ],
 )
@@ -51,10 +50,10 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//utils:go_default_library",
-        "@com_github_gogo_protobuf//proto:go_default_library",
         "@com_github_nebulouslabs_fastrand//:go_default_library",
         "@com_github_ngchain_secp256k1//:go_default_library",
         "@com_github_ngin_network_cryptonight_go//:go_default_library",
+        "@org_golang_google_protobuf//proto:go_default_library",
         "@org_golang_x_crypto//sha3:go_default_library",
     ],
 )
@@ -63,5 +62,4 @@ proto_library(
     name = "ngtypes_proto",
     srcs = ["types.proto"],
     visibility = ["//visibility:public"],
-    deps = ["@gogo_special_proto//github.com/gogo/protobuf/gogoproto"],
 )

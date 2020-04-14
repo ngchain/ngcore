@@ -23,32 +23,32 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
 		}
 
 		switch tx.GetType() {
-		case ngtypes.TX_GENERATE: // generate
+		case ngtypes.TxType_GENERATE: // generate
 			if err := m.CheckGenerate(tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TX_REGISTER: // register
+		case ngtypes.TxType_REGISTER: // register
 			if err := m.CheckRegister(tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TX_LOGOUT: // register
+		case ngtypes.TxType_LOGOUT: // logout
 			if err := m.CheckLogout(tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TX_TRANSACTION: // transaction
+		case ngtypes.TxType_TRANSACTION: // transaction
 			if err := m.CheckTransaction(tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TX_ASSIGN: // assign & append
+		case ngtypes.TxType_ASSIGN: // assign & append
 			if err := m.CheckAssign(tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TX_APPEND: // assign & append
+		case ngtypes.TxType_APPEND: // assign & append
 			if err := m.CheckAppend(tx); err != nil {
 				return err
 			}
@@ -65,7 +65,7 @@ func (m *sheetEntry) CheckGenerate(generateTx *ngtypes.Tx) error {
 	}
 
 	convener := new(ngtypes.Account)
-	err := convener.Unmarshal(rawConvener)
+	err := utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	}
 
 	convener := new(ngtypes.Account)
-	err := convener.Unmarshal(rawConvener)
+	err := utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
 	}
 
 	convener := new(ngtypes.Account)
-	err := convener.Unmarshal(rawConvener)
+	err := utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	}
 
 	convener := new(ngtypes.Account)
-	err := convener.Unmarshal(rawConvener)
+	err := utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 	}
 
 	convener := new(ngtypes.Account)
-	err := convener.Unmarshal(rawConvener)
+	err := utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
 	}
 
 	convener := new(ngtypes.Account)
-	err := convener.Unmarshal(rawConvener)
+	err := utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}

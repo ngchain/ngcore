@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/ngchain/secp256k1"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/utils"
 )
@@ -14,7 +14,7 @@ import (
 // TestDeserialize test unsigned transaction whether it is possible to deserialize
 func TestDeserialize(t *testing.T) {
 	tx := NewUnsignedTx(
-		TX_GENERATE,
+		TxType_GENERATE,
 		0,
 		[][]byte{GenesisPublicKey},
 		[]*big.Int{new(big.Int).Mul(NG, big.NewInt(1000))},
@@ -23,9 +23,9 @@ func TestDeserialize(t *testing.T) {
 		nil,
 	)
 
-	t.Log(tx.Size())
+	t.Log(proto.Size(tx))
 
-	raw, _ := proto.Marshal(tx)
+	raw, _ := utils.Proto.Marshal(tx)
 	result := hex.EncodeToString(raw)
 	t.Log(result)
 

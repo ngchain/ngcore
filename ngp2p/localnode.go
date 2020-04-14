@@ -1,13 +1,12 @@
 package ngp2p
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/gogo/protobuf/io"
-	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/helpers"
@@ -21,10 +20,12 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
 	"go.uber.org/atomic"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // LocalNode is the local host on p2p network
@@ -251,14 +252,20 @@ func (n *LocalNode) NewHeader(uuid string) *pb.Header {
 // data: reference of protobuf go data object to send (not the object itself)
 // s: network stream to write the data to
 func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data proto.Message) bool {
+	raw, err := utils.Proto.Marshal(data)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
 	s, err := n.NewStream(context.Background(), peerID, method)
 	if err != nil {
 		log.Error(err)
 		return false
 	}
 
-	writer := io.NewFullWriter(s)
-	err = writer.WriteMsg(data)
+	writer := bufio.NewWriter(s)
+	_, err = writer.Write(raw)
 	if err != nil {
 		log.Error(err)
 		_ = s.Reset()
