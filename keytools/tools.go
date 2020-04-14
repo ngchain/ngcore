@@ -63,7 +63,7 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 // PrintPublicKey will print the privateKey's **publicKey** to the console
 func PrintPublicKey(privateKey *secp256k1.PrivateKey) {
 	publicKey := utils.PublicKey2Bytes(*privateKey.PubKey())
-	log.Warningf("PublicKey is bs58: %s\n", base58.FastBase58Encoding(publicKey))
+	log.Warnf("PublicKey is bs58: %s\n", base58.FastBase58Encoding(publicKey))
 }
 
 // PrintKeyPair will print the **privateKey and its publicKey** to the console

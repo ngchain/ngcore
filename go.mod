@@ -7,7 +7,7 @@ require (
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dgraph-io/badger/v2 v2.0.3
 	github.com/dlclark/regexp2 v1.2.0 // indirect
-	github.com/dop251/goja v0.0.0-20200409105836-0cd29d81c048
+	github.com/dop251/goja v0.0.0-20200414142002-77e84ffb8c65
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/golang/protobuf v1.4.0
 	github.com/google/uuid v1.1.1

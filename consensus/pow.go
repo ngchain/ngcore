@@ -91,7 +91,7 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 	defer c.Unlock()
 
 	if err := c.checkBlock(block); err != nil {
-		log.Warning("Malformed block mined:", err)
+		log.Warn("Malformed block mined:", err)
 		return
 	}
 
@@ -102,7 +102,7 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 	}
 
 	if prevBlock == nil {
-		log.Warning("Malformed block mined: PrevBlockHash")
+		log.Warn("Malformed block mined: PrevBlockHash")
 		return
 	}
 
@@ -111,13 +111,13 @@ func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
 
 	err = c.Chain.MinedNewBlock(block)
 	if err != nil {
-		log.Warning(err)
+		log.Warn(err)
 		return
 	}
 
 	err = c.HandleTxs(block.Txs...)
 	if err != nil {
-		log.Warning(err)
+		log.Warn(err)
 		return
 	}
 }

@@ -24,7 +24,7 @@ var genesistoolsCommand = &cli.Command{
 		}
 
 		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
-		log.Warningf("BS58 Genesis PublicKey: %s", raw)
+		log.Warnf("BS58 Genesis PublicKey: %s", raw)
 
 		gtx := ngtypes.GetGenesisGenerateTx()
 		err := gtx.Signature(localKey)
@@ -32,7 +32,7 @@ var genesistoolsCommand = &cli.Command{
 			log.Panic(err)
 		}
 
-		log.Warningf("BS58 Genesis Generate Tx Sign: %s", base58.FastBase58Encoding(gtx.Sign))
+		log.Warnf("BS58 Genesis Generate Tx Sign: %s", base58.FastBase58Encoding(gtx.Sign))
 
 		b := ngtypes.GetGenesisBlock()
 		b, err = b.ToUnsealing([]*ngtypes.Tx{gtx})
@@ -60,7 +60,7 @@ func genBlockNonce(b *ngtypes.Block) {
 	stopCh <- struct{}{}
 	blob := b.GetPoWBlob(answer)
 	hash := cryptonight.Sum(blob, 0)
-	log.Warningf("Nonce is %x, Hash is %x", answer, hash)
+	log.Warnf("Nonce is %x, Hash is %x", answer, hash)
 }
 
 // calcHash get the hash of block
