@@ -1,7 +1,6 @@
 package ngp2p
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"sync"
@@ -263,9 +262,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 		log.Error(err)
 		return false
 	}
-
-	writer := bufio.NewWriter(s)
-	_, err = writer.Write(raw)
+	_, err = s.Write(raw)
 	if err != nil {
 		log.Error(err)
 		_ = s.Reset()
