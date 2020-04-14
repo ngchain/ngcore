@@ -17,7 +17,7 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash, _ := block.CalculateHash()
-	if !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+	if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
 		// when block is not genesis block, checking error
 		if block.GetHeight() != 0 {
 			if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
@@ -63,7 +63,7 @@ func (c *Chain) PutNewChain(chain ...*ngtypes.Block) error {
 	/* Check Start */
 
 	firstBlock := chain[0]
-	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
 		// not genesis
 		_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
 		if err != nil {

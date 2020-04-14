@@ -124,4 +124,12 @@ func GetGenesisSheet() *Sheet {
 	}
 }
 
-var GenesisSheetHash, _ = GetGenesisSheet().CalculateHash()
+var genesisSheetHash []byte
+
+func GetGenesisSheetHash() []byte {
+	if len(genesisBlockHash) != 32 {
+		genesisSheetHash, _ = GetGenesisSheet().CalculateHash()
+	}
+
+	return genesisSheetHash
+}

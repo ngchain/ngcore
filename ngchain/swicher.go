@@ -17,7 +17,7 @@ func (c *Chain) SwitchTo(chain ...*ngtypes.Block) error {
 	/* Check Start */
 
 	firstBlock := chain[0]
-	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+	if hash, _ := firstBlock.CalculateHash(); !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
 		// not genesis
 		_, err := c.GetBlockByHash(firstBlock.GetPrevHash())
 		if err != nil {

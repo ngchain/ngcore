@@ -134,7 +134,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 }
 
 func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
-	if bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+	if bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
 		return ngtypes.GetGenesisBlock(), nil
 	}
 

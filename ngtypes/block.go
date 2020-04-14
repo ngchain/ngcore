@@ -36,7 +36,7 @@ func (m *Block) IsTail() bool {
 
 func (m *Block) IsGenesis() bool {
 	hash, _ := m.CalculateHash()
-	return bytes.Equal(hash, GenesisBlockHash)
+	return bytes.Equal(hash, GetGenesisBlockHash())
 }
 
 // GetPoWBlob will return a complete blob for block hash
@@ -139,7 +139,7 @@ func GetGenesisBlock() *Block {
 		Height:        0,
 		Timestamp:     1500000000,
 		PrevBlockHash: nil,
-		SheetHash:     GenesisSheetHash,
+		SheetHash:     GetGenesisSheetHash(),
 		TrieHash:      NewTxTrie(txs).TrieRoot(),
 		Target:        genesisTarget.Bytes(),
 		Nonce:         genesisBlockNonce.Bytes(),
@@ -198,5 +198,13 @@ func (m *Block) GetPrevHash() []byte {
 	return m.GetHeader().GetPrevBlockHash()
 }
 
-// GenesisBlockHash is a helper to get the genesis block's hash
-var GenesisBlockHash, _ = GetGenesisBlock().CalculateHash()
+var genesisBlockHash []byte
+
+// GetGenesisBlockHash is a helper to get the genesis block's hash
+func GetGenesisBlockHash() []byte {
+	if len(genesisBlockHash) != 32 {
+		genesisBlockHash, _ = GetGenesisBlock().CalculateHash()
+	}
+
+	return genesisBlockHash
+}

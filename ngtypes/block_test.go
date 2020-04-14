@@ -42,9 +42,7 @@ func TestGetGenesisBlockNonce(t *testing.T) {
 
 	answer := <-nCh
 	stopCh <- struct{}{}
-	blob := b.GetPoWBlob(answer)
-	hash := cryptonight.Sum(blob, 0)
-	fmt.Printf("Nonce is %x, Hash is %x", answer, hash)
+	fmt.Printf("Genesis Block's Nonce: %x", answer)
 }
 
 func TestBlock_IsGenesis(t *testing.T) {
