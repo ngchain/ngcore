@@ -5,13 +5,13 @@ import (
 	"io/ioutil"
 	"os"
 
+	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/whyrusleeping/go-logging"
 )
 
-var log = logging.MustGetLogger("p2p")
+var log = logging.Logger("p2p")
 
 type mdnsNotifee struct {
 	h          host.Host

@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/NebulousLabs/fastrand"
+	logging "github.com/ipfs/go-log"
 	"github.com/ngchain/cryptonight-go"
-	"github.com/whyrusleeping/go-logging"
 	"go.uber.org/atomic"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var log = logging.MustGetLogger("miner")
+var log = logging.Logger("miner")
 
 // Miner is an inner miner for proof of work
 type Miner struct {

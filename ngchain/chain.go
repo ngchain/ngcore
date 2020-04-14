@@ -7,13 +7,13 @@ import (
 	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
-	"github.com/whyrusleeping/go-logging"
+	logging "github.com/ipfs/go-log"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-var log = logging.MustGetLogger("chain")
+var log = logging.Logger("chain")
 
 const (
 	latestHeightTag = "height"

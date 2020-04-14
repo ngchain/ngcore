@@ -1189,7 +1189,7 @@ go_repository(
 
 go_repository(
     name = "com_github_whyrusleeping_go_logging",
-    importpath = "github.com/whyrusleeping/go-logging",
+    importpath = logging "github.com/ipfs/go-log",
     sum = "h1:fwpzlmT0kRC/Fmd0MdmGgJG/CXIZ6gFq46FQZjprUcc=",
     version = "v0.0.1",
 )

@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
+	logging "github.com/ipfs/go-log"
 	"github.com/urfave/cli/v2"
-	"github.com/whyrusleeping/go-logging"
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
@@ -25,7 +25,7 @@ import (
 	"github.com/ngchain/ngcore/txpool"
 )
 
-var log = logging.MustGetLogger("main")
+var log = logging.Logger("main")
 
 var strictModeFlag = &cli.BoolFlag{
 	Name:  "strict",
@@ -73,11 +73,6 @@ var miningFlag = &cli.IntFlag{
 	Value: -1,
 }
 
-var colorFlag = &cli.BoolFlag{
-	Name:  "color",
-	Usage: "Enable displaying log with color",
-}
-
 var logLevelFlag = &cli.StringFlag{
 	Name:  "log-level",
 	Value: "INFO",
@@ -91,35 +86,11 @@ var inMemFlag = &cli.BoolFlag{
 
 // the Main
 var action = func(c *cli.Context) error {
-	var format string
-	if c.Bool("color") {
-		format = "%{time:15:04:05.000} %{color}[%{module}] ▶ %{level}%{color:reset} %{message}"
-	} else {
-		format = "%{time:15:04:05.000} [%{module}] ▶ %{level} %{message}"
+	logLevel, err := logging.LevelFromString(c.String("log-level"))
+	if err != nil {
+		panic(err)
 	}
-
-	strFormatter := logging.MustStringFormatter(format)
-	backend := logging.NewLogBackend(os.Stderr, "", 0)
-	backendFormatter := logging.NewBackendFormatter(backend, strFormatter)
-	logging.SetBackend(backendFormatter)
-
-	var logLevel logging.Level
-	switch strings.ToUpper(c.String("log-level")) {
-	case "ERROR":
-		logLevel = logging.ERROR
-	case "WARNING":
-		logLevel = logging.WARNING
-	case "NOTICE":
-		logLevel = logging.NOTICE
-	case "INFO":
-		logLevel = logging.INFO
-	case "DEBUG":
-		logLevel = logging.DEBUG
-	default:
-		panic("unknown log level:" + c.String("log-level"))
-	}
-
-	logging.SetLevel(logLevel, "")
+	logging.SetAllLoggers(logLevel)
 
 	isBootstrapNode := c.Bool("bootstrap")
 	isMining := c.Int("mining") >= 0
@@ -133,7 +104,7 @@ var action = func(c *cli.Context) error {
 	if withProfile {
 		f, err := os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
@@ -217,7 +188,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		strictModeFlag, logFlag, p2pTCPPortFlag, rpcPortFlag, miningFlag,
 		isBootstrapFlag, keyPassFlag, profileFlag,
-		colorFlag, logLevelFlag,
+		logLevelFlag,
 		inMemFlag,
 	}
 

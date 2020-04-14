@@ -3,8 +3,8 @@ package rpc
 import (
 	"fmt"
 
+	logging "github.com/ipfs/go-log"
 	"github.com/maoxs2/go-jsonrpc2/jsonrpc2http"
-	"github.com/whyrusleeping/go-logging"
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngp2p"
@@ -12,7 +12,7 @@ import (
 	"github.com/ngchain/ngcore/txpool"
 )
 
-var log = logging.MustGetLogger("rpc")
+var log = logging.Logger("rpc")
 
 // Server is a json-rpc v2 server
 type Server struct {

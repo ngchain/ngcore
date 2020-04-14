@@ -11,6 +11,7 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/golang/protobuf v1.4.0
 	github.com/google/uuid v1.1.1
+	github.com/ipfs/go-log v1.0.3
 	github.com/json-iterator/go v1.1.9
 	github.com/libp2p/go-libp2p v0.7.4
 	github.com/libp2p/go-libp2p-core v0.5.1
@@ -35,3 +36,5 @@ require (
 	google.golang.org/protobuf v1.21.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
+
+replace github.com/ipfs/go-log v1.0.3 => github.com/maoxs2/go-log v1.0.3

@@ -3,13 +3,13 @@ package consensus
 import (
 	"runtime"
 
-	"github.com/whyrusleeping/go-logging"
+	logging "github.com/ipfs/go-log"
 
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var log = logging.MustGetLogger("consensus")
+var log = logging.Logger("consensus")
 
 // InitPoW inits the main of consensus, shouldn't be shut down
 func (c *Consensus) InitPoW(workerNum int) {

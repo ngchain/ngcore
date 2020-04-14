@@ -9,13 +9,13 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
+	logging "github.com/ipfs/go-log"
 	"github.com/ngchain/cryptonight-go"
-	"github.com/whyrusleeping/go-logging"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
-var log = logging.MustGetLogger("types")
+var log = logging.Logger("types")
 
 func (m *Block) IsUnsealing() bool {
 	return m.GetHeader().GetTrieHash() != nil

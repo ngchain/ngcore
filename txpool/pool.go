@@ -3,13 +3,13 @@ package txpool
 import (
 	"sync"
 
-	"github.com/whyrusleeping/go-logging"
+	logging "github.com/ipfs/go-log"
 
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var log = logging.MustGetLogger("txpool")
+var log = logging.Logger("txpool")
 
 // TxPool is a little mem db which stores **signed** tx
 type TxPool struct {

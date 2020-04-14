@@ -6,15 +6,15 @@ import (
 	"math/big"
 	"os"
 
+	logging "github.com/ipfs/go-log"
 	"github.com/mr-tron/base58"
-	"github.com/whyrusleeping/go-logging"
 
 	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
-var log = logging.MustGetLogger("key")
+var log = logging.Logger("key")
 
 // ReadLocalKey will read the local x509 key file to load an ecdsa private key
 func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {

@@ -3,12 +3,12 @@ package ngsheet
 import (
 	"math/big"
 
-	"github.com/whyrusleeping/go-logging"
+	logging "github.com/ipfs/go-log"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var log = logging.MustGetLogger("sheet")
+var log = logging.Logger("sheet")
 
 // SheetManager is a SheetManager manager module
 type SheetManager struct {
