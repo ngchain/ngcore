@@ -64,7 +64,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 		return fmt.Errorf("illegal public key")
 	}
 
-	b, err := proto.Marshal(x.Header)
+	b, err := utils.Proto.Marshal(x.Header)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 
 // BS58 is a tx's Readable Raw in string
 func (x *Tx) BS58() string {
-	b, err := proto.Marshal(x)
+	b, err := utils.Proto.Marshal(x)
 	if err != nil {
 		log.Error(err)
 	}
@@ -95,7 +95,7 @@ func (x *Tx) BS58() string {
 
 // ID is a tx's Readable ID in string
 func (x *Tx) ID() string {
-	b, err := proto.Marshal(x)
+	b, err := utils.Proto.Marshal(x)
 	if err != nil {
 		log.Error(err)
 	}
@@ -121,13 +121,13 @@ func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 		return false, errors.New("invalid transaction type")
 	}
 
-	otherRawHeader, err := proto.Marshal(tx.Header)
+	otherRawHeader, err := utils.Proto.Marshal(tx.Header)
 	if err != nil {
 		return false, err
 	}
 	otherHash := sha3.Sum256(otherRawHeader)
 
-	selfRawHeader, err := proto.Marshal(x.Header)
+	selfRawHeader, err := utils.Proto.Marshal(x.Header)
 	if err != nil {
 		return false, err
 	}
@@ -324,7 +324,7 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 
 // Signature will re-sign the Tx with private key
 func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
-	b, err := proto.Marshal(x.Header)
+	b, err := utils.Proto.Marshal(x.Header)
 	if err != nil {
 		log.Error(err)
 	}

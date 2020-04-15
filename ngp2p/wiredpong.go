@@ -10,12 +10,13 @@ import (
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func (w *wired) pong(peerID peer.ID, uuid string) bool {
 	log.Debugf("Sending pong to %s. Message id: %s...", peerID, uuid)
 
-	payload, err := proto.Marshal(&pb.PingPongPayload{
+	payload, err := utils.Proto.Marshal(&pb.PingPongPayload{
 		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
 		LatestBlockHash: w.node.consensus.GetLatestBlockHash(),
 	})
@@ -83,8 +84,16 @@ func (w *wired) onPong(s network.Stream) {
 		return
 	}
 
-	log.Debugf("Received pong from %s. Message id:%s. Remote height: %d.", remotePeerID, data.Header.Uuid, pong.BlockHeight)
-	w.node.Peerstore().AddAddrs(remotePeerID, []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
+	log.Debugf("Received pong from %s. Message id:%s. Remote height: %d.",
+		remotePeerID,
+		data.Header.Uuid,
+		pong.BlockHeight,
+	)
+	w.node.Peerstore().AddAddrs(
+		remotePeerID,
+		[]core.Multiaddr{s.Conn().RemoteMultiaddr()},
+		ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound,
+	)
 
 	w.node.RemoteHeights.Store(remotePeerID.String(), pong.BlockHeight)
 	localBlockHeight := w.node.consensus.GetLatestBlockHeight()

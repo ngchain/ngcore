@@ -33,7 +33,7 @@ func (s *Server) getBlockByHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 }
 
 type getBlockByHashParams struct {
-	Hash string `json:"height"`
+	Hash string `json:"hash"`
 }
 
 func (s *Server) getBlockByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -54,6 +54,35 @@ func (s *Server) getBlockByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	}
 
 	raw, err := utils.JSON.MarshalToString(block)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(raw))
+}
+
+type getTxByHashParams struct {
+	Hash string `json:"hash"`
+}
+
+func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getTxByHashParams
+	err := utils.JSON.Unmarshal(msg.Params, params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	hash, err := hex.DecodeString(params.Hash)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	tx, err := s.consensus.GetTxByHash(hash)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := utils.JSON.MarshalToString(tx)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func (w *wired) getChain(peerID peer.ID, from uint64, to uint64) bool {
@@ -21,7 +22,7 @@ func (w *wired) getChain(peerID peer.ID, from uint64, to uint64) bool {
 		to = from + 200
 	}
 
-	payload, err := proto.Marshal(&pb.GetChainPayload{
+	payload, err := utils.Proto.Marshal(&pb.GetChainPayload{
 		From: from,
 		To:   to,
 	})

@@ -11,10 +11,11 @@ import (
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func (w *wired) ping(remotePeerID peer.ID) bool {
-	payload, err := proto.Marshal(&pb.PingPongPayload{
+	payload, err := utils.Proto.Marshal(&pb.PingPongPayload{
 		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
 		LatestBlockHash: w.node.consensus.GetLatestBlockHash(),
 	})
@@ -91,7 +92,11 @@ func (w *wired) onPing(s network.Stream) {
 	log.Debugf("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
 
 	// pong
-	w.node.Peerstore().AddAddrs(s.Conn().RemotePeer(), []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
+	w.node.Peerstore().AddAddrs(
+		s.Conn().RemotePeer(),
+		[]core.Multiaddr{s.Conn().RemoteMultiaddr()},
+		ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound,
+	)
 
 	go w.pong(remotePeerID, data.Header.Uuid)
 }

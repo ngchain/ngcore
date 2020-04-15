@@ -36,6 +36,8 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	err := c.db.Update(func(txn *badger.Txn) error {
 		raw, _ := utils.Proto.Marshal(block)
 		log.Infof("putting block@%d: %x", block.Header.Height, hash)
+
+		// put block hash & height
 		err := txn.Set(append(blockPrefix, hash...), raw)
 		if err != nil {
 			return err
@@ -44,6 +46,14 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		if err != nil {
 			return err
 		}
+
+		// put txs
+		err = putTxs(txn, block.Txs...)
+		if err != nil {
+			return err
+		}
+
+		// update helper
 		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 		if err != nil {
 			return err
@@ -55,6 +65,23 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		return nil
 	})
 	return err
+}
+
+func putTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
+	for i := range txs {
+		hash, _ := txs[i].CalculateHash()
+		raw, err := utils.Proto.Marshal(txs[i])
+		if err != nil {
+			return err
+		}
+
+		err = txn.Set(append(txPrefix, hash...), raw)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // PutNewChain puts a new chain(vault + block) into db
@@ -80,7 +107,10 @@ func (c *Chain) PutNewChain(chain ...*ngtypes.Block) error {
 
 			hash, _ := block.CalculateHash()
 			raw, _ := utils.Proto.Marshal(block)
+
 			log.Infof("putting block@%d: %x", block.Header.Height, hash)
+
+			// put block hash & height
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {
 				return err
@@ -89,6 +119,14 @@ func (c *Chain) PutNewChain(chain ...*ngtypes.Block) error {
 			if err != nil {
 				return err
 			}
+
+			// put txs
+			err = putTxs(txn, block.Txs...)
+			if err != nil {
+				return err
+			}
+
+			//  update helper
 			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 			if err != nil {
 				return err

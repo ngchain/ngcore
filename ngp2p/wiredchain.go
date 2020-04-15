@@ -9,6 +9,7 @@ import (
 
 	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
@@ -18,7 +19,7 @@ func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) boo
 	}
 	log.Debugf("Sending chain to %s. Message id: %s, chain from block@%d ...", peerID, uuid, blocks[0].GetHeight())
 
-	payload, err := proto.Marshal(&pb.ChainPayload{
+	payload, err := utils.Proto.Marshal(&pb.ChainPayload{
 		Blocks:       blocks,
 		LatestHeight: w.node.consensus.GetLatestBlockHeight(),
 	})
@@ -96,7 +97,12 @@ func (w *wired) onChain(s network.Stream) {
 		return
 	}
 
-	log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.", remoteID, data.Header.Uuid, payload.Blocks[0].GetHeight(), payload.Blocks[len(payload.Blocks)-1].GetHeight(), payload.LatestHeight)
+	log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.",
+		remoteID, data.Header.Uuid,
+		payload.Blocks[0].GetHeight(),
+		payload.Blocks[len(payload.Blocks)-1].GetHeight(),
+		payload.LatestHeight,
+	)
 
 	w.node.RemoteHeights.Store(remoteID, payload.LatestHeight)
 

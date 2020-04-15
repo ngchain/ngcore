@@ -163,7 +163,7 @@ func (n *LocalNode) authenticateMessage(remotePeerID peer.ID, message *pb.Messag
 	sign := message.Header.Sign
 	message.Header.Sign = nil
 
-	raw, err := proto.Marshal(message)
+	raw, err := utils.Proto.Marshal(message)
 	if err != nil {
 		log.Errorf("failed to marshal pb message: %v", err)
 		return false
@@ -177,7 +177,7 @@ func (n *LocalNode) authenticateMessage(remotePeerID peer.ID, message *pb.Messag
 // sign an outgoing p2p message payload
 func (n *LocalNode) signMessage(message *pb.Message) ([]byte, error) {
 	message.Header.Sign = nil
-	data, err := proto.Marshal(message)
+	data, err := utils.Proto.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
