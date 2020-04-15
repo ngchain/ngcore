@@ -3,7 +3,7 @@ package consensus
 import (
 	"runtime"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -26,7 +26,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 		go func() {
 			for {
 				b := <-c.miner.FoundBlockCh
-				c.MinedNewBlock(b)
+				c.minedNewBlock(b)
 
 				if c.isMining {
 					c.miner.Start(c.getBlockTemplate())
@@ -86,7 +86,7 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 }
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain
-func (c *Consensus) MinedNewBlock(block *ngtypes.Block) {
+func (c *Consensus) minedNewBlock(block *ngtypes.Block) {
 	c.Lock()
 	defer c.Unlock()
 

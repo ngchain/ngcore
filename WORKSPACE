@@ -429,7 +429,7 @@ go_repository(
 
 go_repository(
     name = "com_github_ipfs_go_log",
-    importpath = "github.com/ipfs/go-log",
+    importpath = "github.com/ipfs/go-log/v2",
     sum = "h1:Gg7SUYSZ7BrqaKMwM+hRgcAkKv4QLfzP4XPQt5Sx/OI=",
     version = "v1.0.3",
 )
@@ -1189,7 +1189,7 @@ go_repository(
 
 go_repository(
     name = "com_github_whyrusleeping_go_logging",
-    importpath = logging "github.com/ipfs/go-log",
+    importpath = logging "github.com/ipfs/go-log/v2",
     sum = "h1:fwpzlmT0kRC/Fmd0MdmGgJG/CXIZ6gFq46FQZjprUcc=",
     version = "v0.0.1",
 )

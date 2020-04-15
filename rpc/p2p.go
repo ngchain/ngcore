@@ -32,8 +32,6 @@ func (s *Server) addNodeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	s.localNode.Ping(targetInfo.ID)
-
 	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
 }

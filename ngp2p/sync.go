@@ -37,7 +37,7 @@ func (w *wired) sync() {
 					continue
 				}
 				log.Debugf("pinging to %s", peer)
-				w.Ping(peer)
+				w.ping(peer)
 			}
 
 			go w.updateStatus()

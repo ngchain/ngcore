@@ -101,7 +101,6 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 	mdns.RegisterNotifee(
 		&mdnsNotifee{
 			h:          localHost,
-			ctx:        ctx,
 			PeerInfoCh: peerInfoCh,
 		},
 	)
@@ -136,7 +135,7 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 				log.Errorf("Connection failed: %s", err)
 				continue
 			}
-			node.Ping(pi.ID)
+			node.ping(pi.ID)
 		}
 	}()
 

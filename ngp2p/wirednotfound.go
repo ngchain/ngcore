@@ -10,8 +10,8 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
-// NotFound will reply NotFound message to remote node
-func (w *wired) NotFound(peerID peer.ID, uuid string) {
+// notFound will reply notFound message to remote node
+func (w *wired) notFound(peerID peer.ID, uuid string) {
 	log.Debugf("Sending notfound to %s. Message id: %s...", peerID, uuid)
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),

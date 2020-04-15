@@ -4,10 +4,10 @@ import (
 	"runtime"
 
 	"github.com/dgraph-io/badger/v2"
-	"github.com/whyrusleeping/go-logging"
+	logging "github.com/ipfs/go-log/v2"
 )
 
-var log = logging.MustGetLogger("storage")
+var log = logging.Logger("storage")
 
 // InitStorage inits a new DB in data folder
 func InitStorage() *badger.DB {

@@ -10,9 +10,9 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
-// Reject will reply Reject message to remote node
-func (w *wired) Reject(peerID peer.ID, uuid string) {
-	log.Debugf("Sending Reject to %s. Message id: %s...", peerID, uuid)
+// reject will reply reject message to remote node
+func (w *wired) reject(peerID peer.ID, uuid string) {
+	log.Debugf("Sending reject to %s. Message id: %s...", peerID, uuid)
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
 		Payload: nil,
@@ -30,7 +30,7 @@ func (w *wired) Reject(peerID peer.ID, uuid string) {
 
 	// send the response
 	if ok := w.node.sendProtoMessage(peerID, rejectMethod, resp); ok {
-		log.Debugf("Reject to %s sent.", peerID)
+		log.Debugf("reject to %s sent.", peerID)
 	}
 }
 
@@ -64,5 +64,5 @@ func (w *wired) onReject(s network.Stream) {
 		return
 	}
 
-	log.Debugf("Received Reject from %s. Message id:%s. Message: %s.", remotePeerID, data.Header.Uuid, data.Payload)
+	log.Debugf("Received reject from %s. Message id:%s. Message: %s.", remotePeerID, data.Header.Uuid, data.Payload)
 }

@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/cryptonight-go"
 
 	"github.com/ngchain/ngcore/utils"
@@ -17,33 +17,33 @@ import (
 
 var log = logging.Logger("types")
 
-func (m *Block) IsUnsealing() bool {
-	return m.GetHeader().GetTrieHash() != nil
+func (x *Block) IsUnsealing() bool {
+	return x.GetHeader().GetTrieHash() != nil
 }
 
-func (m *Block) IsSealed() bool {
-	return m.GetHeader().GetNonce() != nil
+func (x *Block) IsSealed() bool {
+	return x.GetHeader().GetNonce() != nil
 }
 
 // IsHead will check whether the Block is the checkpoint
-func (m *Block) IsHead() bool {
-	return m.GetHeight()%BlockCheckRound == 0
+func (x *Block) IsHead() bool {
+	return x.GetHeight()%BlockCheckRound == 0
 }
 
-func (m *Block) IsTail() bool {
-	return (m.GetHeight()+1)%BlockCheckRound == 0
+func (x *Block) IsTail() bool {
+	return (x.GetHeight()+1)%BlockCheckRound == 0
 }
 
-func (m *Block) IsGenesis() bool {
-	hash, _ := m.CalculateHash()
+func (x *Block) IsGenesis() bool {
+	hash, _ := x.CalculateHash()
 	return bytes.Equal(hash, GetGenesisBlockHash())
 }
 
 // GetPoWBlob will return a complete blob for block hash
-func (m *Block) GetPoWBlob(nonce []byte) []byte {
+func (x *Block) GetPoWBlob(nonce []byte) []byte {
 	raw := make([]byte, 144)
 
-	h := m.GetHeader()
+	h := x.GetHeader()
 	copy(raw[0:32], h.GetPrevBlockHash())
 	copy(raw[32:64], h.GetSheetHash())
 	copy(raw[64:96], h.GetTrieHash())
@@ -60,14 +60,14 @@ func (m *Block) GetPoWBlob(nonce []byte) []byte {
 }
 
 // CalculateHeaderHash will help you get the hash of block
-func (m *Block) CalculateHeaderHash() []byte {
-	blob := m.GetPoWBlob(nil)
+func (x *Block) CalculateHeaderHash() []byte {
+	blob := x.GetPoWBlob(nil)
 	return cryptonight.Sum(blob, 0)
 }
 
 // ToUnsealing converts a bare block to an unsealing block
-func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
-	if m.GetHeader() == nil {
+func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
+	if x.GetHeader() == nil {
 		return nil, fmt.Errorf("missing header")
 	}
 
@@ -81,34 +81,34 @@ func (m *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 		}
 	}
 
-	m.Header.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
-	m.Txs = txsWithGen
+	x.Header.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
+	x.Txs = txsWithGen
 
-	return m, nil
+	return x, nil
 }
 
 // ToSealed converts an unsealing block to a sealed block
-func (m *Block) ToSealed(nonce []byte) (*Block, error) {
-	if m.GetHeader() == nil {
+func (x *Block) ToSealed(nonce []byte) (*Block, error) {
+	if x.GetHeader() == nil {
 		return nil, fmt.Errorf("missing header")
 	}
 
-	if !m.IsUnsealing() {
+	if !x.IsUnsealing() {
 		return nil, fmt.Errorf("the block is bare")
 	}
 
-	m.Header.Nonce = nonce
+	x.Header.Nonce = nonce
 
-	return m, nil
+	return x, nil
 }
 
 // verifyNonce will verify whether the nonce meets the target
-func (m *Block) verifyNonce() error {
-	if new(big.Int).SetBytes(cryptonight.Sum(m.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(m.GetHeader().GetTarget())) < 0 {
+func (x *Block) verifyNonce() error {
+	if new(big.Int).SetBytes(cryptonight.Sum(x.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(x.GetHeader().GetTarget())) < 0 {
 		return nil
 	}
 
-	return fmt.Errorf("block@%d's nonce %x is invalid", m.GetHeight(), m.Header.GetNonce())
+	return fmt.Errorf("block@%d's nonce %x is invalid", x.GetHeight(), x.Header.GetNonce())
 }
 
 // NewBareBlock will return an unsealing block and
@@ -154,24 +154,24 @@ func GetGenesisBlock() *Block {
 }
 
 // CheckError will check the errors in block inner fields
-func (m *Block) CheckError() error {
-	if m.Network != Network {
+func (x *Block) CheckError() error {
+	if x.Network != Network {
 		return fmt.Errorf("block's network id is incorrect")
 	}
 
-	if m.GetHeader() == nil {
+	if x.GetHeader() == nil {
 		return fmt.Errorf("missing header")
 	}
 
-	if !m.IsSealed() {
-		return fmt.Errorf("block@%d has not sealed with nonce", m.GetHeight())
+	if !x.IsSealed() {
+		return fmt.Errorf("block@%d has not sealed with nonce", x.GetHeight())
 	}
 
-	if !bytes.Equal(NewTxTrie(m.Txs).TrieRoot(), m.GetHeader().GetTrieHash()) {
-		return fmt.Errorf("the merkle tree in block@%d is invalid", m.GetHeight())
+	if !bytes.Equal(NewTxTrie(x.Txs).TrieRoot(), x.GetHeader().GetTrieHash()) {
+		return fmt.Errorf("the merkle tree in block@%d is invalid", x.GetHeight())
 	}
 
-	if err := m.verifyNonce(); err != nil {
+	if err := x.verifyNonce(); err != nil {
 		return err
 	}
 
@@ -179,8 +179,8 @@ func (m *Block) CheckError() error {
 }
 
 // CalculateHash will help you get the hash of block
-func (m *Block) CalculateHash() ([]byte, error) {
-	raw, err := utils.Proto.Marshal(m)
+func (x *Block) CalculateHash() ([]byte, error) {
+	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
 		return nil, err
 	}
@@ -189,13 +189,13 @@ func (m *Block) CalculateHash() ([]byte, error) {
 }
 
 // GetHeight is a helper to get the height from block header
-func (m *Block) GetHeight() uint64 {
-	return m.GetHeader().GetHeight()
+func (x *Block) GetHeight() uint64 {
+	return x.GetHeader().GetHeight()
 }
 
 // GetPrevHash is a helper to get the prev block hash from block header
-func (m *Block) GetPrevHash() []byte {
-	return m.GetHeader().GetPrevBlockHash()
+func (x *Block) GetPrevHash() []byte {
+	return x.GetHeader().GetPrevBlockHash()
 }
 
 var genesisBlockHash []byte

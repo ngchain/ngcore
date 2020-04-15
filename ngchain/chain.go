@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -24,7 +24,7 @@ var (
 	blockPrefix = []byte("blk")
 )
 
-// Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing
+// chain managers a badger DB, which stores vaults and blocks and some helper tags for managing
 type Chain struct {
 	db *badger.DB
 

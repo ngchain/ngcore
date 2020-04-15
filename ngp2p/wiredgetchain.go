@@ -12,7 +12,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *wired) GetChain(peerID peer.ID, from uint64, to uint64) bool {
+func (w *wired) getChain(peerID peer.ID, from uint64, to uint64) bool {
 	if to < from {
 		return false
 	}
@@ -106,10 +106,10 @@ func (w *wired) onGetChain(s network.Stream) {
 		if b == nil {
 			log.Errorf("missing block@%d", i)
 			break
-		} else {
-			blocks = append(blocks, b)
 		}
+
+		blocks = append(blocks, b)
 	}
 
-	go w.Chain(remoteID, data.Header.Uuid, blocks...)
+	go w.chain(remoteID, data.Header.Uuid, blocks...)
 }

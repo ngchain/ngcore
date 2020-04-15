@@ -25,7 +25,9 @@ var (
 )
 
 // NewUnsignedTx will return an unsigned tx, must using Signature()
-func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, nonce uint64, extraData []byte) *Tx {
+func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int,
+	nonce uint64, extraData []byte) *Tx {
+
 	header := &TxHeader{
 		Type:         txType,
 		Convener:     convener,
@@ -44,17 +46,17 @@ func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values
 }
 
 // IsSigned will return whether the op has been signed
-func (m *Tx) IsSigned() bool {
-	return m.Sign != nil
+func (x *Tx) IsSigned() bool {
+	return x.Sign != nil
 }
 
 // Verify helps verify the transaction whether signed by the public key owner
-func (m *Tx) Verify(publicKey secp256k1.PublicKey) error {
-	if m.Network != Network {
+func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
+	if x.Network != Network {
 		return fmt.Errorf("tx's network id is incorrect")
 	}
 
-	if m.Sign == nil {
+	if x.Sign == nil {
 		return fmt.Errorf("unsigned transaction")
 	}
 
@@ -62,13 +64,13 @@ func (m *Tx) Verify(publicKey secp256k1.PublicKey) error {
 		return fmt.Errorf("illegal public key")
 	}
 
-	b, err := proto.Marshal(m.Header)
+	b, err := proto.Marshal(x.Header)
 	if err != nil {
 		return err
 	}
 
 	var signature [64]byte
-	copy(signature[:], m.Sign)
+	copy(signature[:], x.Sign)
 
 	var key [33]byte
 	copy(key[:], publicKey.SerializeCompressed())
@@ -83,8 +85,8 @@ func (m *Tx) Verify(publicKey secp256k1.PublicKey) error {
 }
 
 // BS58 is a tx's Readable Raw in string
-func (m *Tx) BS58() string {
-	b, err := proto.Marshal(m)
+func (x *Tx) BS58() string {
+	b, err := proto.Marshal(x)
 	if err != nil {
 		log.Error(err)
 	}
@@ -92,8 +94,8 @@ func (m *Tx) BS58() string {
 }
 
 // ID is a tx's Readable ID in string
-func (m *Tx) ID() string {
-	b, err := proto.Marshal(m)
+func (x *Tx) ID() string {
+	b, err := proto.Marshal(x)
 	if err != nil {
 		log.Error(err)
 	}
@@ -102,8 +104,8 @@ func (m *Tx) ID() string {
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx
-func (m *Tx) CalculateHash() ([]byte, error) {
-	raw, err := utils.Proto.Marshal(m)
+func (x *Tx) CalculateHash() ([]byte, error) {
+	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
 		log.Error(err)
 	}
@@ -113,22 +115,25 @@ func (m *Tx) CalculateHash() ([]byte, error) {
 }
 
 // Equals mainly for calculating the tire root of txs
-func (m *Tx) Equals(other merkletree.Content) (bool, error) {
+func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 	tx, ok := other.(*Tx)
 	if !ok {
 		return false, errors.New("invalid transaction type")
 	}
 
-	otherHash, err := tx.Header.CalculateHash()
+	otherRawHeader, err := proto.Marshal(tx.Header)
 	if err != nil {
 		return false, err
 	}
-	mHash, err := m.Header.CalculateHash()
-	if err != nil {
-		return false, err
-	}
+	otherHash := sha3.Sum256(otherRawHeader)
 
-	return bytes.Equal(otherHash, mHash), nil
+	selfRawHeader, err := proto.Marshal(x.Header)
+	if err != nil {
+		return false, err
+	}
+	selfHash := sha3.Sum256(selfRawHeader)
+
+	return bytes.Equal(selfHash[:], otherHash[:]), nil
 }
 
 // TxsToMerkleTreeContents make a []merkletree.Content whose values is from txs
@@ -141,8 +146,8 @@ func TxsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
 	return mtc
 }
 
-func (m *Tx) Copy() *Tx {
-	tx := proto.Clone(m).(*Tx)
+func (x *Tx) Copy() *Tx {
+	tx := proto.Clone(x).(*Tx)
 	return tx
 }
 
@@ -155,162 +160,162 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	return bytesList
 }
 
-func (m *Tx) CheckGenerate() error {
-	if m.Header == nil {
+func (x *Tx) CheckGenerate() error {
+	if x.Header == nil {
 		return errors.New("generate is missing header")
 	}
 
-	if m.GetConvener() != 0 {
+	if x.GetConvener() != 0 {
 		return fmt.Errorf("generate's convener should be 0")
 	}
 
-	if len(m.GetValues()) != len(m.GetParticipants()) {
+	if len(x.GetValues()) != len(x.GetParticipants()) {
 		return fmt.Errorf("generate should have same len with participants")
 	}
 
-	if !bytes.Equal(m.TotalExpenditure().Bytes(), OneBlockReward.Bytes()) {
+	if !bytes.Equal(x.TotalExpenditure().Bytes(), OneBlockReward.Bytes()) {
 		return fmt.Errorf("wrong block reward")
 	}
 
-	if !bytes.Equal(m.GetFee(), GetBig0Bytes()) {
+	if !bytes.Equal(x.GetFee(), GetBig0Bytes()) {
 		return fmt.Errorf("generate's fee should be ZERO")
 	}
 
-	publicKey := utils.Bytes2PublicKey(m.GetParticipants()[0])
-	if err := m.Verify(publicKey); err != nil {
+	publicKey := utils.Bytes2PublicKey(x.GetParticipants()[0])
+	if err := x.Verify(publicKey); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Tx) CheckRegister() error {
-	if m.Header == nil {
+func (x *Tx) CheckRegister() error {
+	if x.Header == nil {
 		return errors.New("register is missing header")
 	}
 
-	if m.GetConvener() != 01 {
+	if x.GetConvener() != 01 {
 		return fmt.Errorf("register's convener should be 1")
 	}
 
-	if len(m.GetParticipants()) != 1 {
+	if len(x.GetParticipants()) != 1 {
 		return fmt.Errorf("register should have only one participant")
 	}
 
-	if len(m.GetValues()) != 1 {
+	if len(x.GetValues()) != 1 {
 		return fmt.Errorf("register should have only one value")
 	}
 
-	if !bytes.Equal(m.GetValues()[0], GetBig0Bytes()) {
+	if !bytes.Equal(x.GetValues()[0], GetBig0Bytes()) {
 		return fmt.Errorf("register should have only one 0 value")
 	}
 
-	if new(big.Int).SetBytes(m.GetFee()).Cmp(new(big.Int).Mul(NG, big.NewInt(10))) < 0 {
+	if new(big.Int).SetBytes(x.GetFee()).Cmp(new(big.Int).Mul(NG, big.NewInt(10))) < 0 {
 		return fmt.Errorf("register should have at least 10NG fee")
 	}
 
-	if len(m.GetExtra()) != 8 {
+	if len(x.GetExtra()) != 8 {
 		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
 	}
 
-	publicKey := utils.Bytes2PublicKey(m.GetParticipants()[0])
-	if err := m.Verify(publicKey); err != nil {
+	publicKey := utils.Bytes2PublicKey(x.GetParticipants()[0])
+	if err := x.Verify(publicKey); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Tx) CheckLogout(key secp256k1.PublicKey) error {
-	if m.Header == nil {
+func (x *Tx) CheckLogout(key secp256k1.PublicKey) error {
+	if x.Header == nil {
 		return errors.New("logout is missing header")
 	}
 
-	if len(m.GetParticipants()) != 0 {
+	if len(x.GetParticipants()) != 0 {
 		return fmt.Errorf("logout should have NO participant")
 	}
 
-	if m.GetConvener() == 0 {
+	if x.GetConvener() == 0 {
 		return fmt.Errorf("logout's convener should NOT be 0")
 	}
 
-	if len(m.GetValues()) != 0 {
+	if len(x.GetValues()) != 0 {
 		return fmt.Errorf("logout should have NO value")
 	}
 
-	if len(m.GetValues()) != len(m.GetParticipants()) {
+	if len(x.GetValues()) != len(x.GetParticipants()) {
 		return fmt.Errorf("logout should have same len with participants")
 	}
 
-	if err := m.Verify(key); err != nil {
+	if err := x.Verify(key); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Tx) CheckTransaction(key secp256k1.PublicKey) error {
-	if m.Header == nil {
+func (x *Tx) CheckTransaction(key secp256k1.PublicKey) error {
+	if x.Header == nil {
 		return errors.New("transaction is missing header")
 	}
 
-	if m.GetConvener() == 0 {
+	if x.GetConvener() == 0 {
 		return fmt.Errorf("transaction's convener should NOT be 0")
 	}
 
-	if len(m.GetValues()) != len(m.GetParticipants()) {
+	if len(x.GetValues()) != len(x.GetParticipants()) {
 		return fmt.Errorf("transaction should have same len with participants")
 	}
 
-	if err := m.Verify(key); err != nil {
+	if err := x.Verify(key); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Tx) CheckAssign(key secp256k1.PublicKey) error {
-	if m.Header == nil {
+func (x *Tx) CheckAssign(key secp256k1.PublicKey) error {
+	if x.Header == nil {
 		return errors.New("assign is missing header")
 	}
 
-	if m.GetConvener() == 0 {
+	if x.GetConvener() == 0 {
 		return fmt.Errorf("assign's convener should NOT be 0")
 	}
 
-	if len(m.GetParticipants()) != 0 {
+	if len(x.GetParticipants()) != 0 {
 		return fmt.Errorf("assign should have NO participant")
 	}
 
-	if len(m.GetValues()) != 0 {
+	if len(x.GetValues()) != 0 {
 		return fmt.Errorf("assign should have NO value")
 	}
 
-	if err := m.Verify(key); err != nil {
+	if err := x.Verify(key); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *Tx) CheckAppend(key secp256k1.PublicKey) error {
-	if m.Header == nil {
+func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
+	if x.Header == nil {
 		return errors.New("append is missing header")
 	}
 
-	if len(m.GetParticipants()) != 0 {
+	if len(x.GetParticipants()) != 0 {
 		return fmt.Errorf("append should have NO participant")
 	}
 
-	if m.GetConvener() == 0 {
+	if x.GetConvener() == 0 {
 		return fmt.Errorf("append's convener should NOT be 0")
 	}
 
-	if len(m.GetValues()) != 0 {
+	if len(x.GetValues()) != 0 {
 		return fmt.Errorf("append should have NO value")
 	}
 
-	if err := m.Verify(key); err != nil {
+	if err := x.Verify(key); err != nil {
 		return err
 	}
 
@@ -318,8 +323,8 @@ func (m *Tx) CheckAppend(key secp256k1.PublicKey) error {
 }
 
 // Signature will re-sign the Tx with private key
-func (m *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
-	b, err := proto.Marshal(m.Header)
+func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
+	b, err := proto.Marshal(x.Header)
 	if err != nil {
 		log.Error(err)
 	}
@@ -333,46 +338,46 @@ func (m *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 		log.Panic(err)
 	}
 
-	m.Sign = sign[:]
+	x.Sign = sign[:]
 
 	return
 }
 
-func (m *Tx) GetType() TxType {
-	return m.Header.GetType()
+func (x *Tx) GetType() TxType {
+	return x.Header.GetType()
 }
 
-func (m *Tx) GetConvener() uint64 {
-	return m.Header.GetConvener()
+func (x *Tx) GetConvener() uint64 {
+	return x.Header.GetConvener()
 }
 
-func (m *Tx) GetValues() [][]byte {
-	return m.Header.GetValues()
+func (x *Tx) GetValues() [][]byte {
+	return x.Header.GetValues()
 }
 
-func (m *Tx) GetParticipants() [][]byte {
-	return m.Header.GetParticipants()
+func (x *Tx) GetParticipants() [][]byte {
+	return x.Header.GetParticipants()
 }
 
-func (m *Tx) GetFee() []byte {
-	return m.Header.GetFee()
+func (x *Tx) GetFee() []byte {
+	return x.Header.GetFee()
 }
 
-func (m *Tx) GetNonce() uint64 {
-	return m.Header.GetNonce()
+func (x *Tx) GetNonce() uint64 {
+	return x.Header.GetNonce()
 }
 
-func (m *Tx) GetExtra() []byte {
-	return m.Header.GetExtra()
+func (x *Tx) GetExtra() []byte {
+	return x.Header.GetExtra()
 }
 
-func (m *Tx) TotalExpenditure() *big.Int {
+func (x *Tx) TotalExpenditure() *big.Int {
 	total := GetBig0()
-	for i := range m.Header.Values {
-		total.Add(total, new(big.Int).SetBytes(m.Header.Values[i]))
+	for i := range x.Header.Values {
+		total.Add(total, new(big.Int).SetBytes(x.Header.Values[i]))
 	}
 
-	return new(big.Int).Add(new(big.Int).SetBytes(m.Header.Fee), total)
+	return new(big.Int).Add(new(big.Int).SetBytes(x.Header.Fee), total)
 }
 
 // GetGenesisGenerateTx is a constructed function

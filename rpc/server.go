@@ -3,7 +3,7 @@ package rpc
 import (
 	"fmt"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/maoxs2/go-jsonrpc2/jsonrpc2http"
 
 	"github.com/ngchain/ngcore/consensus"
@@ -34,7 +34,7 @@ func NewServer(host string, port int, consensus *consensus.Consensus, localNode 
 		Server:       nil,
 	}
 
-	s.Server = jsonrpc2http.NewServer(fmt.Sprintf("%s:%d", host, port), NewHTTPHandler(s))
+	s.Server = jsonrpc2http.NewServer(fmt.Sprintf("%s:%d", host, port), newHTTPHandler(s))
 	return s
 }
 

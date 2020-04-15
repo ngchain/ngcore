@@ -25,7 +25,7 @@ func (n *LocalNode) connectBootstrapNodes() {
 			panic(err)
 		}
 
-		n.Ping(targetInfo.ID)
+		n.ping(targetInfo.ID)
 	}
 }
 

@@ -12,8 +12,8 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (w *wired) Pong(peerID peer.ID, uuid string) bool {
-	log.Debugf("Sending Pong to %s. Message id: %s...", peerID, uuid)
+func (w *wired) pong(peerID peer.ID, uuid string) bool {
+	log.Debugf("Sending pong to %s. Message id: %s...", peerID, uuid)
 
 	payload, err := proto.Marshal(&pb.PingPongPayload{
 		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
@@ -41,7 +41,7 @@ func (w *wired) Pong(peerID peer.ID, uuid string) bool {
 
 	// send the response
 	if ok := w.node.sendProtoMessage(peerID, pongMethod, resp); ok {
-		log.Debugf("Pong to %s sent.", peerID.String())
+		log.Debugf("pong to %s sent.", peerID.String())
 	}
 	return true
 }
@@ -83,7 +83,7 @@ func (w *wired) onPong(s network.Stream) {
 		return
 	}
 
-	log.Debugf("Received Pong from %s. Message id:%s. Remote height: %d.", remotePeerID, data.Header.Uuid, pong.BlockHeight)
+	log.Debugf("Received pong from %s. Message id:%s. Remote height: %d.", remotePeerID, data.Header.Uuid, pong.BlockHeight)
 	w.node.Peerstore().AddAddrs(remotePeerID, []core.Multiaddr{s.Conn().RemoteMultiaddr()}, ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound)
 
 	w.node.RemoteHeights.Store(remotePeerID.String(), pong.BlockHeight)
@@ -91,16 +91,16 @@ func (w *wired) onPong(s network.Stream) {
 
 	// fast mode init
 	if !w.node.isStrictMode && !w.node.isInitialized.Load() && w.node.consensus.GetLatestBlockHeight() == 0 {
-		go w.GetChain(remotePeerID, pong.BlockHeight-20, pong.BlockHeight)
+		go w.getChain(remotePeerID, pong.BlockHeight-20, pong.BlockHeight)
 		return
 	}
 
 	// start sync
 	log.Infof("start syncing with %s", remotePeerID)
 	if w.node.isStrictMode {
-		go w.GetChain(remotePeerID, localBlockHeight, pong.BlockHeight)
+		go w.getChain(remotePeerID, localBlockHeight, pong.BlockHeight)
 	} else {
-		go w.GetChain(remotePeerID, pong.BlockHeight-20, pong.BlockHeight)
+		go w.getChain(remotePeerID, pong.BlockHeight-20, pong.BlockHeight)
 	}
 	return
 

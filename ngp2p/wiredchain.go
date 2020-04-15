@@ -11,8 +11,8 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *wired) Chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) bool {
+// chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
+func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) bool {
 	if len(blocks) == 0 {
 		return false
 	}
@@ -111,7 +111,7 @@ func (w *wired) onChain(s network.Stream) {
 			w.node.isInitialized.Store(true)
 			log.Infof("p2p init finished")
 		} else {
-			go w.GetChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
+			go w.getChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
 		}
 		return
 	}
@@ -135,7 +135,7 @@ func (w *wired) onChain(s network.Stream) {
 
 	// continue get chain
 	if w.node.consensus.GetLatestBlockHeight() < payload.LatestHeight {
-		go w.GetChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
+		go w.getChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
 		return
 	}
 }

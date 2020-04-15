@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"os"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/secp256k1"

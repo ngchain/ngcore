@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/keytools"
 )
 
-func GetKeyToolsFlag() *cli.Command {
+func getKeyToolsCommand() *cli.Command {
 	var filenameFlag = &cli.StringFlag{
 		Name:    "filename",
 		Aliases: []string{"f"},

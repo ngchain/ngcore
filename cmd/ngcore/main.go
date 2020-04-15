@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ngchain/ngcore/consensus"
@@ -194,7 +194,7 @@ func main() {
 
 	// TODO integrate tools into subcommands
 	app.Commands = []*cli.Command{
-		GetKeyToolsFlag(), genesistoolsCommand,
+		getKeyToolsCommand(), genesistoolsCommand,
 	}
 
 	err := app.Run(os.Args)

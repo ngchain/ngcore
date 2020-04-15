@@ -25,32 +25,32 @@ func NewSheet(accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet 
 	}
 }
 
-func (m *Sheet) RegisterAccount(account *Account) error {
-	if m.Accounts[account.Num] != nil {
+func (x *Sheet) RegisterAccount(account *Account) error {
+	if x.Accounts[account.Num] != nil {
 		return errors.New("failed to register, account already exists")
 	}
 
-	m.Accounts[account.Num] = account
+	x.Accounts[account.Num] = account
 	return nil
 }
 
 // GetAccountByNum determine whether the Sheet exist by accountID
-func (m *Sheet) GetAccountByNum(accountID uint64) (*Account, error) {
-	if !m.HasAccount(accountID) {
+func (x *Sheet) GetAccountByNum(accountID uint64) (*Account, error) {
+	if !x.HasAccount(accountID) {
 		return nil, errors.New("no such account")
 	}
 
-	return m.Accounts[accountID], nil
+	return x.Accounts[accountID], nil
 }
 
 // GetAccountByKey determine whether the public key byte array is generated correctly and assign it to Sheet m
-func (m *Sheet) GetAccountByKey(publicKey secp256k1.PublicKey) ([]*Account, error) {
+func (x *Sheet) GetAccountByKey(publicKey secp256k1.PublicKey) ([]*Account, error) {
 	accounts := make([]*Account, 0)
 	bPublicKey := utils.PublicKey2Bytes(publicKey)
 
-	for i := range m.Accounts {
-		if bytes.Equal(m.Accounts[i].Owner, bPublicKey) {
-			accounts = append(accounts, m.Accounts[i])
+	for i := range x.Accounts {
+		if bytes.Equal(x.Accounts[i].Owner, bPublicKey) {
+			accounts = append(accounts, x.Accounts[i])
 		}
 	}
 
@@ -58,11 +58,11 @@ func (m *Sheet) GetAccountByKey(publicKey secp256k1.PublicKey) ([]*Account, erro
 }
 
 // GetAccountByKeyBytes append new object if m and bPublicKey have different value
-func (m *Sheet) GetAccountByKeyBytes(bPublicKey []byte) ([]*Account, error) {
+func (x *Sheet) GetAccountByKeyBytes(bPublicKey []byte) ([]*Account, error) {
 	accounts := make([]*Account, 0)
-	for i := range m.Accounts {
-		if !bytes.Equal(m.Accounts[i].Owner, bPublicKey) {
-			accounts = append(accounts, m.Accounts[i])
+	for i := range x.Accounts {
+		if !bytes.Equal(x.Accounts[i].Owner, bPublicKey) {
+			accounts = append(accounts, x.Accounts[i])
 		}
 	}
 
@@ -70,38 +70,38 @@ func (m *Sheet) GetAccountByKeyBytes(bPublicKey []byte) ([]*Account, error) {
 }
 
 // HasAccount determine m.Account if it is empty by accountID
-func (m *Sheet) HasAccount(accountID uint64) bool {
-	return m.Accounts[accountID] != nil
+func (x *Sheet) HasAccount(accountID uint64) bool {
+	return x.Accounts[accountID] != nil
 }
 
 // DelAccount clear the value of m.Accounts by accountID
-func (m *Sheet) DelAccount(accountID uint64) error {
-	if !m.HasAccount(accountID) {
+func (x *Sheet) DelAccount(accountID uint64) error {
+	if !x.HasAccount(accountID) {
 		return errors.New("no such account")
 	}
 
-	m.Accounts[accountID] = nil
+	x.Accounts[accountID] = nil
 	return nil
 }
 
 // ExportAccounts export the value of m.Accounts to a new list
-func (m *Sheet) ExportAccounts() []*Account {
-	accounts := make([]*Account, len(m.Accounts))
-	for i, row := range m.Accounts {
+func (x *Sheet) ExportAccounts() []*Account {
+	accounts := make([]*Account, len(x.Accounts))
+	for i, row := range x.Accounts {
 		accounts[i] = row
 	}
 	return accounts
 }
 
 // Copy copy the value of m to s
-func (m *Sheet) Copy() *Sheet {
-	s := proto.Clone(m).(*Sheet)
+func (x *Sheet) Copy() *Sheet {
+	s := proto.Clone(x).(*Sheet)
 	return s
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx
-func (m *Sheet) CalculateHash() ([]byte, error) {
-	raw, err := utils.Proto.Marshal(m)
+func (x *Sheet) CalculateHash() ([]byte, error) {
+	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
 		return nil, err
 	}

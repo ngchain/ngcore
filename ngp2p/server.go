@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -15,12 +15,12 @@ var log = logging.Logger("ngp2p")
 
 type mdnsNotifee struct {
 	h          host.Host
-	ctx        context.Context
 	PeerInfoCh chan peer.AddrInfo
 }
 
+// HandlePeerFound is required for mdnsNotifee to be a Notifee
 func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
-	_ = m.h.Connect(m.ctx, pi)
+	_ = m.h.Connect(context.Background(), pi)
 }
 
 func readKeyFromFile(filename string) crypto.PrivKey {

@@ -3,7 +3,7 @@ package txpool
 import (
 	"sync"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -52,6 +52,8 @@ func (p *TxPool) Run() {
 	}()
 }
 
+// IsInPool checks one tx is in pool or not
+// TODO: export it into rpc
 func (p *TxPool) IsInPool(tx *ngtypes.Tx) (exists bool) {
 	_, exists = p.Queuing[tx.GetConvener()]
 	if !exists {
