@@ -83,15 +83,16 @@ func (s *forkManager) handlePong(remotePeerID peer.ID, pong *pb.PingPongPayload)
 		log.Infof("start syncing with %s, forcing local chain switching", remotePeerID)
 	}
 
-	go s.w.getChain(remotePeerID, pong.LatestHeight-ngtypes.BlockCheckRound, pong.LatestHeight)
+	var from uint64
+	to := pong.LatestHeight
+	if to > ngtypes.BlockCheckRound {
+		from = to - ngtypes.BlockCheckRound
+	}
+
+	go s.w.getChain(remotePeerID, from, to)
 }
 
 func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) {
-	localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
-	if chain.LatestHeight < localBlockHeight+ngtypes.BlockCheckRound {
-		return
-	}
-
 	if s.enabled.Load() {
 		if s.w.node.isStrictMode {
 			// todo: maybe using trie will be better
@@ -113,16 +114,22 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 					return
 				}
 
+				localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
+				if chain.LatestHeight > localBlockHeight {
+					go s.w.getChain(remotePeerID, localBlockHeight, chain.LatestHeight)
+					return
+				}
+
 				// finally done
 				s.enabled.Store(false)
 				return
 			}
 
 			// not found
+			var from uint64
 			to := chain.Blocks[0].GetHeight() - 1
-			from := to - ngtypes.BlockCheckRound
-			if from < 0 {
-				from = 0
+			if to > ngtypes.BlockCheckRound {
+				from = to - ngtypes.BlockCheckRound
 			}
 
 			go s.w.getChain(remotePeerID, from, to)
@@ -133,6 +140,12 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 			err := s.w.node.consensus.SwitchTo(chain.Blocks...)
 			if err != nil {
 				log.Errorf("failed to putting chain: %s", err)
+				return
+			}
+
+			localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
+			if chain.LatestHeight > localBlockHeight {
+				go s.w.getChain(remotePeerID, localBlockHeight, chain.LatestHeight)
 				return
 			}
 

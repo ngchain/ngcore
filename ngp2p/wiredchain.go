@@ -108,6 +108,9 @@ func (w *wired) onChain(s network.Stream) {
 	w.node.RemoteHeights.Store(remotePeerID, payload.LatestHeight)
 
 	if w.forkManager.enabled.Load() {
-		w.node.forkManager.handleChain(remotePeerID, payload)
+		localBlockHeight := w.node.consensus.GetLatestBlockHeight()
+		if localBlockHeight < payload.LatestHeight-ngtypes.BlockCheckRound {
+			go w.node.forkManager.handleChain(remotePeerID, payload)
+		}
 	}
 }
