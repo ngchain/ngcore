@@ -24,7 +24,7 @@ var (
 	GenesisGenerateTxSignBase58 = "5kVQcqFLNiqQxC7UL8E9wwX9csbD5MGJ2vSuvPZWU8BxfZtDLz7HaUhwaCFwsbFd4GTKC4AEbbChJp18VZa82uTE"
 	GenesisGenerateTxSign, _    = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
 
-	genesisBlockNonceBytes, _ = hex.DecodeString("9cfd62715bf71b6b")
+	genesisBlockNonceBytes, _ = hex.DecodeString("8149d830a04b01d3")
 	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)
 )
 

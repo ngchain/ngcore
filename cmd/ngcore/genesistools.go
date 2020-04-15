@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/NebulousLabs/fastrand"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/cryptonight-go"
 	"github.com/urfave/cli/v2"
@@ -18,6 +19,8 @@ var genesistoolsCommand = &cli.Command{
 	Name:        "gen",
 	Description: "built-in helper func for generate initial variables for genesis items",
 	Action: func(context *cli.Context) error {
+		logging.SetAllLoggers(logging.LevelDebug)
+
 		localKey := keytools.ReadLocalKey("genesis.key", "")
 		if localKey == nil {
 			log.Panic("genesis.key is missing, using keytools to create one first")
@@ -39,6 +42,7 @@ var genesistoolsCommand = &cli.Command{
 		if err != nil {
 			log.Error(err)
 		}
+
 		genBlockNonce(b)
 
 		return nil
@@ -58,9 +62,7 @@ func genBlockNonce(b *ngtypes.Block) {
 
 	answer := <-nCh
 	stopCh <- struct{}{}
-	blob := b.GetPoWBlob(answer)
-	hash := cryptonight.Sum(blob, 0)
-	log.Warnf("Nonce is %x, Hash is %x", answer, hash)
+	log.Warnf("Genesis Block Nonce Hex: %x", answer)
 }
 
 // calcHash get the hash of block
