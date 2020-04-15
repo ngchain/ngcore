@@ -13,6 +13,14 @@ import (
 )
 
 func (w *wired) GetChain(peerID peer.ID, from uint64, to uint64) bool {
+	if to < from {
+		return false
+	}
+
+	if to-from > 200 {
+		to = from + 200
+	}
+
 	payload, err := proto.Marshal(&pb.GetChainPayload{
 		From: from,
 		To:   to,
@@ -82,6 +90,10 @@ func (w *wired) onGetChain(s network.Stream) {
 	_ = s.Close()
 
 	log.Debugf("Received getchain request from %s. Requested %d to %d", remoteID, getchain.From, getchain.To)
+
+	if getchain.From > getchain.To || getchain.To-getchain.From > 200 {
+		return
+	}
 
 	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
 	for i := getchain.From; i <= getchain.To; i++ {

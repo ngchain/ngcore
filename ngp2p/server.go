@@ -11,7 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var log = logging.Logger("p2p")
+var log = logging.Logger("ngp2p")
 
 type mdnsNotifee struct {
 	h          host.Host

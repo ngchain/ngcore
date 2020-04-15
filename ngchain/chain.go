@@ -13,7 +13,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-var log = logging.Logger("chain")
+var log = logging.Logger("ngchain")
 
 const (
 	latestHeightTag = "height"
