@@ -90,7 +90,7 @@ func (w *wired) onChain(s network.Stream) {
 		return
 	}
 
-	remoteID := s.Conn().RemotePeer()
+	remotePeerID := s.Conn().RemotePeer()
 	_ = s.Close()
 
 	if len(payload.Blocks) == 0 {
@@ -98,50 +98,15 @@ func (w *wired) onChain(s network.Stream) {
 	}
 
 	log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.",
-		remoteID, data.Header.Uuid,
+		remotePeerID, data.Header.Uuid,
 		payload.Blocks[0].GetHeight(),
 		payload.Blocks[len(payload.Blocks)-1].GetHeight(),
 		payload.LatestHeight,
 	)
 
-	w.node.RemoteHeights.Store(remoteID, payload.LatestHeight)
+	w.node.RemoteHeights.Store(remotePeerID, payload.LatestHeight)
 
-	// init
-	if !w.node.isStrictMode && !w.node.isInitialized.Load() {
-		err = w.node.consensus.InitWithChain(payload.Blocks...)
-		if err != nil {
-			log.Error("failed initializing with chain: %s", err)
-		}
-
-		if w.node.consensus.GetLatestBlockHeight() == payload.LatestHeight {
-			w.node.isInitialized.Store(true)
-			log.Infof("p2p init finished")
-		} else {
-			go w.getChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
-		}
-		return
-	}
-
-	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
-	if payload.Blocks[len(payload.Blocks)-1].GetHeight() > localBlockHeight {
-		// append
-		err = w.node.consensus.PutNewChain(payload.Blocks...)
-		if err != nil {
-			log.Errorf("failed putting new chain: %s", err)
-			return
-		}
-	} else {
-		// forkto
-		err = w.node.consensus.SwitchTo(payload.Blocks...)
-		if err != nil {
-			log.Errorf("failed switching to new chain: %s", err)
-			return
-		}
-	}
-
-	// continue get chain
-	if w.node.consensus.GetLatestBlockHeight() < payload.LatestHeight {
-		go w.getChain(remoteID, w.node.consensus.GetLatestBlock().GetHeight()+1, payload.LatestHeight)
-		return
+	if w.forkManager.enabled.Load() {
+		w.node.forkManager.handleChain(remotePeerID, payload)
 	}
 }

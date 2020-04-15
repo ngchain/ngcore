@@ -123,8 +123,8 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 
 	node.broadcaster = registerBroadcaster(node)
 
-	node.wired = registerProtocol(node)
-	go node.wired.sync()
+	node.wired = registerWired(node)
+	go node.wired.syncLoop()
 
 	// mdns seeding
 	go func() {

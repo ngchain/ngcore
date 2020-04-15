@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"math/big"
@@ -16,4 +17,14 @@ func RandUint64() uint64 {
 // BigIntPlusPlus is a helper func to calculate i++ for big int i
 func BigIntPlusPlus(bigInt *big.Int) *big.Int {
 	return new(big.Int).Add(bigInt, big.NewInt(1))
+}
+
+func InBytesList(li [][]byte, sub []byte) (in bool) {
+	for i := range li {
+		if bytes.Equal(li[i], sub) {
+			return true
+		}
+	}
+
+	return false
 }

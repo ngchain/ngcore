@@ -15,9 +15,26 @@ import (
 )
 
 func (w *wired) ping(remotePeerID peer.ID) bool {
+
+	hashes := make([][]byte, 0)
+	latestHeight := w.node.consensus.GetLatestBlockHeight()
+	for i := uint64(0); i < ngtypes.BlockCheckRound; i++ {
+		if latestHeight < i {
+			break
+		}
+		// todo: optimize
+		block, err := w.node.consensus.GetBlockByHeight(latestHeight - i)
+		if err != nil {
+			log.Error(err)
+			return false
+		}
+		hash, _ := block.CalculateHash()
+		hashes = append(hashes, hash)
+	}
+
 	payload, err := utils.Proto.Marshal(&pb.PingPongPayload{
-		BlockHeight:     w.node.consensus.GetLatestBlockHeight(),
-		LatestBlockHash: w.node.consensus.GetLatestBlockHash(),
+		LatestHeight: latestHeight,
+		LatestHashes: hashes,
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -89,7 +106,7 @@ func (w *wired) onPing(s network.Stream) {
 		return
 	}
 
-	log.Debugf("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.BlockHeight)
+	log.Debugf("Received ping request from %s. Remote height: %d", s.Conn().RemotePeer(), ping.LatestHeight)
 
 	// pong
 	w.node.Peerstore().AddAddrs(

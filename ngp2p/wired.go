@@ -2,27 +2,36 @@ package ngp2p
 
 import (
 	"sync"
+
+	"go.uber.org/atomic"
 )
 
 // Wired type
 type wired struct {
-	node     *LocalNode // local host
-	requests *sync.Map  //map[string]*pb.Message // used to access request data from response handlers
+	node        *LocalNode // local host
+	requests    *sync.Map  // map[string]*pb.Message // used to access request data from response handlers
+	forkManager *forkManager
 }
 
-func registerProtocol(node *LocalNode) *wired {
-	p := &wired{
+func registerWired(node *LocalNode) *wired {
+	w := &wired{
 		node:     node,
 		requests: new(sync.Map),
 	}
+
+	w.forkManager = &forkManager{
+		w:       w,
+		enabled: atomic.NewBool(true),
+	}
+
 	// register handlers
-	node.SetStreamHandler(pingMethod, p.onPing)
-	node.SetStreamHandler(pongMethod, p.onPong)
-	node.SetStreamHandler(rejectMethod, p.onReject)
-	node.SetStreamHandler(notfoundMethod, p.onNotFound)
+	node.SetStreamHandler(pingMethod, w.onPing)
+	node.SetStreamHandler(pongMethod, w.onPong)
+	node.SetStreamHandler(rejectMethod, w.onReject)
+	node.SetStreamHandler(notfoundMethod, w.onNotFound)
 
-	node.SetStreamHandler(getChainMethod, p.onGetChain)
-	node.SetStreamHandler(chainMethod, p.onChain)
+	node.SetStreamHandler(getChainMethod, w.onGetChain)
+	node.SetStreamHandler(chainMethod, w.onChain)
 
-	return p
+	return w
 }

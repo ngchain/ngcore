@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/cbergoon/merkletree"
+	"golang.org/x/crypto/sha3"
 )
 
 // TxTrie is a fixed ordered tx container, mainly for pending
@@ -48,12 +49,12 @@ func (tt *TxTrie) ReverseSort() *TxTrie {
 	return sort.Reverse(tt).(*TxTrie)
 }
 
-// Append will append new object to the end of TxTrie
+// Append will append new tx to the end of TxTrie's txs
 func (tt *TxTrie) Append(tx *Tx) {
 	tt.Txs = append(tt.Txs, tx)
 }
 
-// Del make the value of tt.Txs the same as tx
+// Del removes a tx from txs
 func (tt *TxTrie) Del(tx *Tx) error {
 	for i := range tt.Txs {
 		if tt.Txs[i] == tx {
@@ -75,13 +76,13 @@ func (tt *TxTrie) Contains(tx *Tx) bool {
 	return false
 }
 
-// TrieRoot sort tt by trie tree and return the root
+// TrieRoot sort tx tire by trie tree and return the root hash
 func (tt *TxTrie) TrieRoot() []byte {
 	if len(tt.Txs) == 0 {
 		return make([]byte, 32)
 	}
 
-	trie, err := merkletree.NewTree(TxsToMerkleTreeContents(tt.Txs))
+	trie, err := merkletree.NewTreeWithHashStrategy(TxsToMerkleTreeContents(tt.Txs), sha3.New256)
 	if err != nil {
 		log.Error(err)
 	}

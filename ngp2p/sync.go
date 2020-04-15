@@ -3,8 +3,17 @@ package ngp2p
 import (
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+	"go.uber.org/atomic"
+
+	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/ngtypes"
 )
+
+type forkManager struct {
+	w       *wired
+	enabled *atomic.Bool
+}
 
 func (w *wired) updateStatus() {
 	total := 0
@@ -23,7 +32,7 @@ func (w *wired) updateStatus() {
 	w.node.isSyncedCh <- progress > 0.9
 }
 
-func (w *wired) sync() {
+func (w *wired) syncLoop() {
 	syncTicker := time.NewTicker(ngtypes.TargetTime)
 	defer syncTicker.Stop()
 
@@ -32,15 +41,16 @@ func (w *wired) sync() {
 	for {
 		select {
 		case <-syncTicker.C:
-			for _, peer := range w.node.Peerstore().Peers() {
-				if peer == w.node.ID() {
+			for _, p := range w.node.Peerstore().Peers() {
+				if p == w.node.ID() {
 					continue
 				}
-				log.Debugf("pinging to %s", peer)
-				w.ping(peer)
+				log.Debugf("pinging to %s", p)
+				w.ping(p)
 			}
 
 			go w.updateStatus()
+
 		case isSynced := <-w.node.isSyncedCh:
 			if isSynced && !lastTimeIsSynced {
 				log.Info("localnode is synced with network")
@@ -57,6 +67,78 @@ func (w *wired) sync() {
 			}
 
 			lastTimeIsSynced = isSynced
+		}
+	}
+}
+
+func (s *forkManager) handlePong(remotePeerID peer.ID, pong *pb.PingPongPayload) {
+	// ignite sync/fork
+	if !s.enabled.Load() {
+		s.enabled.Store(true)
+	}
+
+	if s.w.node.isStrictMode {
+		log.Infof("start syncing with %s, finding last same block", remotePeerID)
+	} else {
+		log.Infof("start syncing with %s, forcing local chain switching", remotePeerID)
+	}
+
+	go s.w.getChain(remotePeerID, pong.LatestHeight-3*ngtypes.BlockCheckRound, pong.LatestHeight)
+}
+
+func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) {
+	localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
+	if chain.LatestHeight < localBlockHeight+3*ngtypes.BlockCheckRound {
+		return
+	}
+
+	if s.enabled.Load() {
+		if s.w.node.isStrictMode {
+			// todo: maybe using trie will be better
+			for i := len(chain.Blocks) - 1; i >= 0; i-- {
+				hash, err := chain.Blocks[i].CalculateHash()
+				if err != nil {
+					log.Errorf("failed to hash block: %v: %s", chain.Blocks[i], err)
+				}
+				_, err = s.w.node.consensus.GetBlockByHash(hash)
+				if err != nil {
+					// not in local, continue searching
+					continue
+				}
+
+				// got i
+				err = s.w.node.consensus.PutNewChain(chain.Blocks[i:]...)
+				if err != nil {
+					log.Errorf("failed to putting chain: %s", err)
+					return
+				}
+
+				// finally done
+				s.enabled.Store(false)
+				return
+			}
+
+			// not found
+			to := chain.Blocks[0].GetHeight() - 1
+			from := to - 3*ngtypes.BlockCheckRound
+			if from < 0 {
+				from = 0
+			}
+
+			go s.w.getChain(remotePeerID, from, to)
+			return
+
+		} else {
+			log.Infof("start syncing with %s, forcing local chain switching", remotePeerID)
+			err := s.w.node.consensus.SwitchTo(chain.Blocks...)
+			if err != nil {
+				log.Errorf("failed to putting chain: %s", err)
+				return
+			}
+
+			// finally done
+			s.enabled.Store(false)
+			return
 		}
 	}
 }
