@@ -112,7 +112,7 @@ func (w *wired) onPing(s network.Stream) {
 	w.node.Peerstore().AddAddrs(
 		s.Conn().RemotePeer(),
 		[]core.Multiaddr{s.Conn().RemoteMultiaddr()},
-		ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound,
+		ngtypes.TargetTime*ngtypes.BlockCheckRound,
 	)
 
 	go w.pong(remotePeerID, data.Header.Uuid)

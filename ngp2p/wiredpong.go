@@ -108,7 +108,7 @@ func (w *wired) onPong(s network.Stream) {
 	w.node.Peerstore().AddAddrs(
 		remotePeerID,
 		[]core.Multiaddr{s.Conn().RemoteMultiaddr()},
-		ngtypes.TargetTime*ngtypes.BlockCheckRound*ngtypes.BlockCheckRound,
+		ngtypes.TargetTime*ngtypes.BlockCheckRound,
 	)
 
 	w.node.RemoteHeights.Store(remotePeerID.String(), payload.LatestHeight)

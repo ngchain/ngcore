@@ -17,7 +17,8 @@ func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) boo
 	if len(blocks) == 0 {
 		return false
 	}
-	log.Debugf("Sending chain to %s. Message id: %s, chain from block@%d ...", peerID, uuid, blocks[0].GetHeight())
+	log.Debugf("Sending chain to %s. Message id: %s, chain from block@%d ...",
+		peerID, uuid, blocks[0].GetHeight())
 
 	payload, err := utils.Proto.Marshal(&pb.ChainPayload{
 		Blocks:       blocks,

@@ -83,12 +83,12 @@ func (s *forkManager) handlePong(remotePeerID peer.ID, pong *pb.PingPongPayload)
 		log.Infof("start syncing with %s, forcing local chain switching", remotePeerID)
 	}
 
-	go s.w.getChain(remotePeerID, pong.LatestHeight-3*ngtypes.BlockCheckRound, pong.LatestHeight)
+	go s.w.getChain(remotePeerID, pong.LatestHeight-ngtypes.BlockCheckRound, pong.LatestHeight)
 }
 
 func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) {
 	localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
-	if chain.LatestHeight < localBlockHeight+3*ngtypes.BlockCheckRound {
+	if chain.LatestHeight < localBlockHeight+ngtypes.BlockCheckRound {
 		return
 	}
 
@@ -120,7 +120,7 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 
 			// not found
 			to := chain.Blocks[0].GetHeight() - 1
-			from := to - 3*ngtypes.BlockCheckRound
+			from := to - ngtypes.BlockCheckRound
 			if from < 0 {
 				from = 0
 			}

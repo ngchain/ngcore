@@ -14,12 +14,17 @@ import (
 )
 
 func (w *wired) getChain(peerID peer.ID, from uint64, to uint64) bool {
+	if from < 0 {
+		from = 0
+	}
+
 	if to < from {
+		log.Errorf("from %d is larger than to %d!", from, to)
 		return false
 	}
 
-	if to-from > 200 {
-		to = from + 200
+	if to-from > ngtypes.BlockCheckRound {
+		to = from + ngtypes.BlockCheckRound
 	}
 
 	payload, err := utils.Proto.Marshal(&pb.GetChainPayload{
@@ -80,8 +85,8 @@ func (w *wired) onGetChain(s network.Stream) {
 		return
 	}
 
-	var getchain = &pb.GetChainPayload{}
-	err = proto.Unmarshal(data.Payload, getchain)
+	var payload = &pb.GetChainPayload{}
+	err = proto.Unmarshal(data.Payload, payload)
 	if err != nil {
 		log.Error(err)
 		return
@@ -90,14 +95,14 @@ func (w *wired) onGetChain(s network.Stream) {
 	remoteID := s.Conn().RemotePeer()
 	_ = s.Close()
 
-	log.Debugf("Received getchain request from %s. Requested %d to %d", remoteID, getchain.From, getchain.To)
+	log.Debugf("Received getchain request from %s. Requested %d to %d", remoteID, payload.From, payload.To)
 
-	if getchain.From > getchain.To || getchain.To-getchain.From > 200 {
+	if payload.From > payload.To || payload.To-payload.From > 200 {
 		return
 	}
 
 	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
-	for i := getchain.From; i <= getchain.To; i++ {
+	for i := payload.From; i <= payload.To; i++ {
 		b, err := w.node.consensus.GetBlockByHeight(i)
 		if err != nil {
 			log.Errorf("missing block@%d: %s", i, err)
