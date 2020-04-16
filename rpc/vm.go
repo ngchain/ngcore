@@ -9,7 +9,8 @@ import (
 
 // TODO: add options on machine joining, e.g. encryption
 type runContractParams struct {
-	Num uint64 `json:"num"`
+	Num    uint64        `json:"num"`
+	Params []interface{} `json:"params"`
 }
 
 // runContractFunc typically used to run the long loop task. Can be treated as a deploy
@@ -24,8 +25,13 @@ func (s *Server) runContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	js := vm.NewJSVM()
-	go js.RunContract(account.Contract)
+
+	newVM, err := vm.NewWasmVM(account.Contract)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	newVM.RunDeploy(params.Params...)
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }

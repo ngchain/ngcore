@@ -24,6 +24,7 @@ type TxPool struct {
 	NewCreatedTxEvent chan *ngtypes.Tx
 }
 
+// NewTxPool will create a new txpool based on the sheetManager
 func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	return &TxPool{
 		sheetManager: sheetManager,

@@ -6,9 +6,6 @@ require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dgraph-io/badger/v2 v2.0.3
-	github.com/dlclark/regexp2 v1.2.0 // indirect
-	github.com/dop251/goja v0.0.0-20200414142002-77e84ffb8c65
-	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/golang/protobuf v1.4.0
 	github.com/google/uuid v1.1.1
 	github.com/ipfs/go-log/v2 v2.0.4
@@ -27,11 +24,11 @@ require (
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/urfave/cli/v2 v2.2.0
+	github.com/wasmerio/go-ext-wasm v0.3.1
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
-	golang.org/x/tools v0.0.0-20191216052735-49a3e744a425
 	google.golang.org/protobuf v1.21.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

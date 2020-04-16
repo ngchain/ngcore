@@ -7,24 +7,24 @@ import (
 // Manager is a manager to control the life circle of state vms
 // TODO
 type Manager struct {
-	vms map[uint64]*JSVM
+	vms map[uint64]*WasmVM
 }
 
+// NewVMManager creates a new manager of wasm VM
 func NewVMManager() *Manager {
 	return &Manager{
-		vms: map[uint64]*JSVM{},
+		vms: map[uint64]*WasmVM{},
 	}
 }
 
-func (m *Manager) CreateVM(account *ngtypes.Account) *JSVM {
-	vm := NewJSVM()
+// CreateVM creates a new wasm vm
+func (m *Manager) CreateVM(account *ngtypes.Account) (*WasmVM, error) {
+	vm, err := NewWasmVM(account.Contract)
+	if err != nil {
+		return nil, err
+	}
 
-	vm.RunContract(account.Contract)
 	m.vms[account.Num] = vm
 
-	return vm
-}
-
-func (m *Manager) CalledByTx(tx *ngtypes.Tx) {
-
+	return vm, nil
 }

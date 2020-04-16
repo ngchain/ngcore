@@ -41,6 +41,13 @@ load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 gazelle_dependencies()
 
+// wasmer
+git_repository(
+    name = "com_github_wasmerio_go_ext_wasm",
+    remote = "https://github.com/wasmerio/go-ext-wasm",
+    commit = "",
+)
+
 go_repository(
     name = "co_honnef_go_tools",
     importpath = "honnef.co/go/tools",

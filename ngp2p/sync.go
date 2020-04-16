@@ -135,7 +135,9 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 			go s.w.getChain(remotePeerID, from, to)
 			return
 
-		} else {
+		}
+
+		// not strict
 			log.Infof("start syncing with %s, forcing local chain switching", remotePeerID)
 			err := s.w.node.consensus.SwitchTo(chain.Blocks...)
 			if err != nil {
@@ -152,6 +154,6 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 			// finally done
 			s.enabled.Store(false)
 			return
-		}
+		
 	}
 }
