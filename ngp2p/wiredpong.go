@@ -103,7 +103,7 @@ func (w *wired) onPong(s network.Stream) {
 	log.Debugf("Received pong from %s. Message id:%s. Remote height: %d.",
 		remotePeerID,
 		data.Header.Uuid,
-		payload.LatestHashes,
+		payload.LatestHeight,
 	)
 	w.node.Peerstore().AddAddrs(
 		remotePeerID,
@@ -114,13 +114,11 @@ func (w *wired) onPong(s network.Stream) {
 	w.node.RemoteHeights.Store(remotePeerID.String(), payload.LatestHeight)
 
 	// trigger
-	if w.forkManager.enabled.Load() {
-		localBlockHeight := w.node.consensus.GetLatestBlockHeight()
-		localBlockHash := w.node.consensus.GetLatestBlockHash()
-		if localBlockHeight < payload.LatestHeight-ngtypes.BlockCheckRound ||
-			!utils.InBytesList(payload.LatestHashes, localBlockHash) {
+	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
+	localBlockHash := w.node.consensus.GetLatestBlockHash()
+	if localBlockHeight < payload.LatestHeight-ngtypes.BlockCheckRound ||
+		!utils.InBytesList(payload.LatestHashes, localBlockHash) {
 
-			w.forkManager.handlePong(remotePeerID, payload)
-		}
+		w.forkManager.handlePong(remotePeerID, payload)
 	}
 }

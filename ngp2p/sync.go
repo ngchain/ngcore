@@ -46,7 +46,7 @@ func (w *wired) syncLoop() {
 					continue
 				}
 				log.Debugf("pinging to %s", p)
-				w.ping(p)
+				go w.ping(p)
 			}
 
 			go w.updateStatus()
