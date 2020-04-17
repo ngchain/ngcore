@@ -27,10 +27,10 @@ func TestNewConsensusManager(t *testing.T) {
 		}
 	}()
 
-	chain := ngchain.GetChain(db)
+	chain := ngchain.NewChain(db)
 	chain.InitWithGenesis()
 	sheetManager := ngsheet.GetSheetManager()
-	txPool := txpool.GetTxPool(sheetManager)
+	txPool := txpool.NewTxPool(sheetManager)
 
 	consensus := GetConsensus()
 	consensus.Init(true, chain, sheetManager, key, txPool)

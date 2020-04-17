@@ -43,6 +43,11 @@ const GetAccountMyBadRequestCode int = 400
 swagger:response getAccountMyBadRequest
 */
 type GetAccountMyBadRequest struct {
+
+	/*error text
+	  In: Body
+	*/
+	Payload string `json:"body,omitempty"`
 }
 
 // NewGetAccountMyBadRequest creates GetAccountMyBadRequest with default headers values
@@ -51,10 +56,23 @@ func NewGetAccountMyBadRequest() *GetAccountMyBadRequest {
 	return &GetAccountMyBadRequest{}
 }
 
+// WithPayload adds the payload to the get account my bad request response
+func (o *GetAccountMyBadRequest) WithPayload(payload string) *GetAccountMyBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get account my bad request response
+func (o *GetAccountMyBadRequest) SetPayload(payload string) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetAccountMyBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(400)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }

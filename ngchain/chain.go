@@ -29,8 +29,8 @@ type Chain struct {
 
 var chain *Chain
 
-// GetChain will return a chain, but no initialization
-func GetChain(db *badger.DB) *Chain {
+// NewChain will return a chain, but no initialization
+func NewChain(db *badger.DB) *Chain {
 	if chain == nil {
 		chain = &Chain{
 			db: db,
@@ -38,6 +38,14 @@ func GetChain(db *badger.DB) *Chain {
 			MinedBlockToP2PCh:    make(chan *ngtypes.Block),
 			MinedBlockToTxPoolCh: make(chan *ngtypes.Block),
 		}
+	}
+
+	return chain
+}
+
+func GetChain() *Chain {
+	if chain == nil {
+		panic("chain is closed")
 	}
 
 	return chain

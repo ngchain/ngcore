@@ -26,7 +26,7 @@ type TxPool struct {
 
 var txpool *TxPool
 
-func GetTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
+func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	if txpool == nil {
 		txpool = &TxPool{
 			sheetManager: sheetManager,
@@ -35,6 +35,14 @@ func GetTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 
 			NewCreatedTxEvent: make(chan *ngtypes.Tx),
 		}
+	}
+
+	return txpool
+}
+
+func GetTxPool() *TxPool {
+	if txpool == nil {
+		panic("txpool is closed")
 	}
 
 	return txpool

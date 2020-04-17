@@ -3,17 +3,25 @@
 package restapi
 
 import (
+	"context"
 	"crypto/tls"
+	"encoding/hex"
 	"net/http"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/consensus"
+	"github.com/ngchain/ngcore/models"
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/restapi/operations"
+	"github.com/ngchain/ngcore/txpool"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -42,69 +50,110 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 	})
 	api.GetAccountAllHandler = operations.GetAccountAllHandlerFunc(
 		func(params operations.GetAccountAllParams) middleware.Responder {
-			key := utils.PublicKey2Bytes(*consensus.GetConsensus().PrivateKey.PubKey())
-			accounts, err := ngsheet.GetSheetManager().GetAccountsByPublicKey(key)
-			if err != nil {
-				return operations.NewGetAccountAllBadRequest()
-			}
-			result := make([]uint64, len(accounts))
-			for i := range accounts {
-				result[i] = accounts[i].Num
-			}
-
-			return operations.NewGetAccountAllOK()
+			return middleware.NotImplemented("not implemented")
 		},
 	)
-	if api.GetAccountAtNumHandler == nil {
-		api.GetAccountAtNumHandler = operations.GetAccountAtNumHandlerFunc(func(params operations.GetAccountAtNumParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetAccountAtNum has not yet been implemented")
-		})
-	}
-	if api.GetAccountAtNumBalanceHandler == nil {
-		api.GetAccountAtNumBalanceHandler = operations.GetAccountAtNumBalanceHandlerFunc(func(params operations.GetAccountAtNumBalanceParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetAccountAtNumBalance has not yet been implemented")
-		})
-	}
-	if api.GetAccountMyHandler == nil {
-		api.GetAccountMyHandler = operations.GetAccountMyHandlerFunc(func(params operations.GetAccountMyParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetAccountMy has not yet been implemented")
-		})
-	}
-	if api.GetBalanceMyHandler == nil {
-		api.GetBalanceMyHandler = operations.GetBalanceMyHandlerFunc(func(params operations.GetBalanceMyParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetBalanceMy has not yet been implemented")
-		})
-	}
-	if api.GetBlockAtHeightHandler == nil {
-		api.GetBlockAtHeightHandler = operations.GetBlockAtHeightHandlerFunc(func(params operations.GetBlockAtHeightParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetBlockAtHeight has not yet been implemented")
-		})
-	}
-	if api.GetBlockHashHandler == nil {
-		api.GetBlockHashHandler = operations.GetBlockHashHandlerFunc(func(params operations.GetBlockHashParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetBlockHash has not yet been implemented")
-		})
-	}
-	if api.GetTxHashHandler == nil {
-		api.GetTxHashHandler = operations.GetTxHashHandlerFunc(func(params operations.GetTxHashParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetTxHash has not yet been implemented")
-		})
-	}
-	if api.GetTxpoolCheckHashHandler == nil {
-		api.GetTxpoolCheckHashHandler = operations.GetTxpoolCheckHashHandlerFunc(func(params operations.GetTxpoolCheckHashParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetTxpoolCheckHash has not yet been implemented")
-		})
-	}
-	if api.PostNodeAddrHandler == nil {
-		api.PostNodeAddrHandler = operations.PostNodeAddrHandlerFunc(func(params operations.PostNodeAddrParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.PostNodeAddr has not yet been implemented")
-		})
-	}
-	if api.PostTxpoolSendRawTxHandler == nil {
-		api.PostTxpoolSendRawTxHandler = operations.PostTxpoolSendRawTxHandlerFunc(func(params operations.PostTxpoolSendRawTxParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.PostTxpoolSendRawTx has not yet been implemented")
-		})
-	}
+
+	api.GetAccountAtNumHandler = operations.GetAccountAtNumHandlerFunc(func(params operations.GetAccountAtNumParams) middleware.Responder {
+		return middleware.NotImplemented("operation operations.GetAccountAtNum has not yet been implemented")
+	})
+
+	api.GetAccountAtNumBalanceHandler = operations.GetAccountAtNumBalanceHandlerFunc(func(params operations.GetAccountAtNumBalanceParams) middleware.Responder {
+		return middleware.NotImplemented("operation operations.GetAccountAtNumBalance has not yet been implemented")
+	})
+
+	api.GetAccountMyHandler = operations.GetAccountMyHandlerFunc(func(params operations.GetAccountMyParams) middleware.Responder {
+		key := utils.PublicKey2Bytes(*consensus.GetConsensus().PrivateKey.PubKey())
+		accounts, err := ngsheet.GetSheetManager().GetAccountsByPublicKey(key)
+		if err != nil {
+			return operations.NewGetAccountAllBadRequest().WithPayload(err.Error())
+		}
+		result := make([]*models.Account, len(accounts))
+		for i := range accounts {
+			result[i] = models.NewAccount(accounts[i])
+		}
+
+		return operations.NewGetAccountAllOK().WithPayload(result)
+	})
+
+	api.GetBalanceMyHandler = operations.GetBalanceMyHandlerFunc(func(params operations.GetBalanceMyParams) middleware.Responder {
+		return middleware.NotImplemented("operation operations.GetBalanceMy has not yet been implemented")
+	})
+
+	api.GetBlockAtHeightHandler = operations.GetBlockAtHeightHandlerFunc(func(params operations.GetBlockAtHeightParams) middleware.Responder {
+		chain := ngchain.GetChain()
+		block, err := chain.GetBlockByHeight(uint64(params.Height))
+		if err != nil {
+			return operations.NewGetBlockAtHeightBadRequest().WithPayload(err.Error())
+		}
+
+		return operations.NewGetBlockAtHeightOK().WithPayload(models.NewBlock(block))
+	})
+
+	api.GetBlockHashHandler = operations.GetBlockHashHandlerFunc(func(params operations.GetBlockHashParams) middleware.Responder {
+		chain := ngchain.GetChain()
+		hash, err := hex.DecodeString(params.Hash)
+		if err != nil {
+			return operations.NewGetBlockHashBadRequest().WithPayload(err.Error())
+		}
+
+		block, err := chain.GetBlockByHash(hash)
+		if err != nil {
+			return operations.NewGetBlockHashBadRequest().WithPayload(err.Error())
+		}
+
+		return operations.NewGetBlockHashOK().WithPayload(models.NewBlock(block))
+	})
+
+	api.GetTxHashHandler = operations.GetTxHashHandlerFunc(func(params operations.GetTxHashParams) middleware.Responder {
+		chain := ngchain.GetChain()
+		hash, err := hex.DecodeString(params.Hash)
+		if err != nil {
+			return operations.NewGetTxHashBadRequest().WithPayload(err.Error())
+		}
+
+		tx, err := chain.GetTxByHash(hash)
+		if err != nil {
+			return operations.NewGetTxHashBadRequest().WithPayload(err.Error())
+		}
+
+		return operations.NewGetTxHashOK().WithPayload(models.NewTx(tx))
+	})
+
+	api.GetTxpoolCheckHashHandler = operations.GetTxpoolCheckHashHandlerFunc(func(params operations.GetTxpoolCheckHashParams) middleware.Responder {
+		return middleware.NotImplemented("operation operations.GetTxpoolCheckHash has not yet been implemented")
+	})
+
+	api.PostNodeAddrHandler = operations.PostNodeAddrHandlerFunc(func(params operations.PostNodeAddrParams) middleware.Responder {
+		localNode := ngp2p.GetLocalNode()
+		targetAddr, err := multiaddr.NewMultiaddr(params.Addr)
+		if err != nil {
+			return operations.NewPostNodeAddrBadRequest().WithPayload(err.Error())
+		}
+
+		targetInfo, err := peer.AddrInfoFromP2pAddr(targetAddr)
+		if err != nil {
+			return operations.NewPostNodeAddrBadRequest().WithPayload(err.Error())
+		}
+		err = localNode.Connect(context.Background(), *targetInfo)
+		if err != nil {
+			return operations.NewPostNodeAddrBadRequest().WithPayload(err.Error())
+		}
+
+		return operations.NewPostNodeAddrOK()
+	})
+
+	api.PostTxpoolSendHandler = operations.PostTxpoolSendHandlerFunc(func(params operations.PostTxpoolSendParams) middleware.Responder {
+		tx, err := params.Tx.T()
+		if err != nil {
+			return operations.NewPostTxpoolSendBadRequest().WithPayload(err.Error())
+		}
+		err = txpool.GetTxPool().PutTxs(tx)
+		if err != nil {
+			return operations.NewPostTxpoolSendBadRequest().WithPayload(err.Error())
+		}
+		return operations.NewPostTxpoolSendRawTxOK()
+	})
 
 	api.PreServerShutdown = func() {}
 

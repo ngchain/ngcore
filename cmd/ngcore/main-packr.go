@@ -5,4 +5,4 @@
 // and any other packr generated files.
 package main
 
-import _ "github.com/ngchain/ngcore/cmd/ngcore/packrd"
+import _ "mnt/c/Users/C/OneDrive/ngcore/cmd/ngcore/packrd"

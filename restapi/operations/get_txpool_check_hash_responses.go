@@ -43,6 +43,11 @@ const GetTxpoolCheckHashBadRequestCode int = 400
 swagger:response getTxpoolCheckHashBadRequest
 */
 type GetTxpoolCheckHashBadRequest struct {
+
+	/*error text
+	  In: Body
+	*/
+	Payload string `json:"body,omitempty"`
 }
 
 // NewGetTxpoolCheckHashBadRequest creates GetTxpoolCheckHashBadRequest with default headers values
@@ -51,10 +56,23 @@ func NewGetTxpoolCheckHashBadRequest() *GetTxpoolCheckHashBadRequest {
 	return &GetTxpoolCheckHashBadRequest{}
 }
 
+// WithPayload adds the payload to the get txpool check hash bad request response
+func (o *GetTxpoolCheckHashBadRequest) WithPayload(payload string) *GetTxpoolCheckHashBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get txpool check hash bad request response
+func (o *GetTxpoolCheckHashBadRequest) SetPayload(payload string) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetTxpoolCheckHashBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(400)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }

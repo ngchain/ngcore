@@ -10,6 +10,9 @@
     "http"
   ],
   "definitions": {
+    "network": {
+      "type": "integer"
+    },
     "account": {
       "properties": {
         "num": {
@@ -25,6 +28,110 @@
           "type": "string"
         },
         "state": {
+          "type": "string"
+        }
+      }
+    },
+    "blockHeader": {
+      "properties": {
+        "height": {
+          "type": "integer"
+        },
+        "timestamp": {
+          "type": "integer"
+        },
+        "prevBlockHash": {
+          "type": "string"
+        },
+        "sheet_hash": {
+          "type": "string"
+        },
+        "trie_hash": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "nonce": {
+          "type": "string"
+        }
+      }
+    },
+    "block": {
+      "properties": {
+        "network": {
+          "$ref": "#/definitions/network"
+        },
+        "header": {
+          "$ref": "#/definitions/blockHeader"
+        },
+        "sheet": {
+          "$ref": "#/definitions/sheet"
+        },
+        "txs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tx"
+          }
+        }
+      }
+    },
+    "sheet": {
+      "properties": {
+        "accounts": {
+          "type": "object",
+          "default": {
+            "$ref": "#/definitions/account"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/account"
+          }
+        },
+        "anonymous": {
+          "type": "object"
+        }
+      }
+    },
+    "txHeader": {
+      "properties": {
+        "type": {
+          "type": "integer"
+        },
+        "convener": {
+          "type": "integer"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fee": {
+          "type": "number"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "nonce": {
+          "type": "integer"
+        },
+        "extra": {
+          "type": "string"
+        }
+      }
+    },
+    "tx": {
+      "properties": {
+        "network": {
+          "$ref": "#/definitions/network"
+        },
+        "header": {
+          "$ref": "#/definitions/txHeader"
+        },
+        "sign": {
           "type": "string"
         }
       }
@@ -94,7 +201,10 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/block"
+            }
           },
           "400": {
             "description": "Error",
@@ -121,7 +231,10 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/tx"
+            }
           },
           "400": {
             "description": "Error",
@@ -277,17 +390,18 @@
         }
       }
     },
-
-    "/txpool/send/{rawTx}": {
+    "/txpool/send": {
       "post": {
         "description": "send tx into network",
         "parameters": [
           {
-            "name": "rawTx",
-            "in": "path",
+            "name": "tx",
+            "in": "body",
             "required": true,
-            "type": "string",
-            "description": "raw of the tx"
+            "description": "send the tx",
+            "schema": {
+              "$ref": "#/definitions/tx"
+            }
           }
         ],
         "responses": {

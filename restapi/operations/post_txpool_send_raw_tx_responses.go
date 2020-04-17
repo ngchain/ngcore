@@ -43,6 +43,11 @@ const PostTxpoolSendRawTxBadRequestCode int = 400
 swagger:response postTxpoolSendRawTxBadRequest
 */
 type PostTxpoolSendRawTxBadRequest struct {
+
+	/*error text
+	  In: Body
+	*/
+	Payload string `json:"body,omitempty"`
 }
 
 // NewPostTxpoolSendRawTxBadRequest creates PostTxpoolSendRawTxBadRequest with default headers values
@@ -51,10 +56,23 @@ func NewPostTxpoolSendRawTxBadRequest() *PostTxpoolSendRawTxBadRequest {
 	return &PostTxpoolSendRawTxBadRequest{}
 }
 
+// WithPayload adds the payload to the post txpool send raw tx bad request response
+func (o *PostTxpoolSendRawTxBadRequest) WithPayload(payload string) *PostTxpoolSendRawTxBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post txpool send raw tx bad request response
+func (o *PostTxpoolSendRawTxBadRequest) SetPayload(payload string) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *PostTxpoolSendRawTxBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(400)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }

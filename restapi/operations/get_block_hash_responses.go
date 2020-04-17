@@ -61,6 +61,11 @@ const GetBlockHashBadRequestCode int = 400
 swagger:response getBlockHashBadRequest
 */
 type GetBlockHashBadRequest struct {
+
+	/*error text
+	  In: Body
+	*/
+	Payload string `json:"body,omitempty"`
 }
 
 // NewGetBlockHashBadRequest creates GetBlockHashBadRequest with default headers values
@@ -69,10 +74,23 @@ func NewGetBlockHashBadRequest() *GetBlockHashBadRequest {
 	return &GetBlockHashBadRequest{}
 }
 
+// WithPayload adds the payload to the get block hash bad request response
+func (o *GetBlockHashBadRequest) WithPayload(payload string) *GetBlockHashBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get block hash bad request response
+func (o *GetBlockHashBadRequest) SetPayload(payload string) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetBlockHashBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(400)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }

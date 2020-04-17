@@ -131,18 +131,18 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	chain := ngchain.GetChain(db)
+	chain := ngchain.NewChain(db)
 	if isStrictMode && chain.GetLatestBlockHeight() == 0 {
 		chain.InitWithGenesis()
 		// then sync
 	}
 	sheetManager := ngsheet.GetSheetManager()
-	txPool := txpool.GetTxPool(sheetManager)
+	txPool := txpool.NewTxPool(sheetManager)
 
 	consensus := consensus.GetConsensus()
 	consensus.Init(isMining, chain, sheetManager, key, txPool)
 
-	localNode := ngp2p.GetLocalNode(consensus, p2pTCPPort, isStrictMode, isBootstrapNode)
+	localNode := ngp2p.NewLocalNode(consensus, p2pTCPPort, isStrictMode, isBootstrapNode)
 
 	// rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
 	// go rpc.Run()

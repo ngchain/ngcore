@@ -48,8 +48,8 @@ type LocalNode struct {
 
 var localNode *LocalNode
 
-// GetLocalNode creates a new node with its implemented protocols
-func GetLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
+// NewLocalNode creates a new node with its implemented protocols
+func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 	if localNode == nil {
 		ctx := context.Background()
 		priv := getP2PKey()
@@ -145,6 +145,14 @@ func GetLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 		if err != nil {
 			panic(err)
 		}
+	}
+
+	return localNode
+}
+
+func GetLocalNode() *LocalNode {
+	if localNode == nil {
+		panic("localNode is closed")
 	}
 
 	return localNode

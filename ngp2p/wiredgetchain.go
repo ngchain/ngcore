@@ -14,10 +14,6 @@ import (
 )
 
 func (w *wired) getChain(peerID peer.ID, from uint64, to uint64) bool {
-	if from < 0 {
-		from = 0
-	}
-
 	if to < from {
 		log.Errorf("from %d is larger than to %d!", from, to)
 		return false

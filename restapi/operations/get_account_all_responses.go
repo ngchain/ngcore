@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/ngchain/ngcore/models"
 )
 
 // GetAccountAllOKCode is the HTTP code returned for type GetAccountAllOK
@@ -19,6 +21,11 @@ const GetAccountAllOKCode int = 200
 swagger:response getAccountAllOK
 */
 type GetAccountAllOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload []*models.Account `json:"body,omitempty"`
 }
 
 // NewGetAccountAllOK creates GetAccountAllOK with default headers values
@@ -27,12 +34,30 @@ func NewGetAccountAllOK() *GetAccountAllOK {
 	return &GetAccountAllOK{}
 }
 
+// WithPayload adds the payload to the get account all o k response
+func (o *GetAccountAllOK) WithPayload(payload []*models.Account) *GetAccountAllOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get account all o k response
+func (o *GetAccountAllOK) SetPayload(payload []*models.Account) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetAccountAllOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(200)
+	payload := o.Payload
+	if payload == nil {
+		// return empty array
+		payload = make([]*models.Account, 0, 50)
+	}
+
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }
 
 // GetAccountAllBadRequestCode is the HTTP code returned for type GetAccountAllBadRequest
@@ -43,6 +68,11 @@ const GetAccountAllBadRequestCode int = 400
 swagger:response getAccountAllBadRequest
 */
 type GetAccountAllBadRequest struct {
+
+	/*error text
+	  In: Body
+	*/
+	Payload string `json:"body,omitempty"`
 }
 
 // NewGetAccountAllBadRequest creates GetAccountAllBadRequest with default headers values
@@ -51,10 +81,23 @@ func NewGetAccountAllBadRequest() *GetAccountAllBadRequest {
 	return &GetAccountAllBadRequest{}
 }
 
+// WithPayload adds the payload to the get account all bad request response
+func (o *GetAccountAllBadRequest) WithPayload(payload string) *GetAccountAllBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get account all bad request response
+func (o *GetAccountAllBadRequest) SetPayload(payload string) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetAccountAllBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(400)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }

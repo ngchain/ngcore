@@ -74,8 +74,8 @@ func NewEmptyAPI(spec *loads.Document) *EmptyAPI {
 		PostNodeAddrHandler: PostNodeAddrHandlerFunc(func(params PostNodeAddrParams) middleware.Responder {
 			return middleware.NotImplemented("operation PostNodeAddr has not yet been implemented")
 		}),
-		PostTxpoolSendRawTxHandler: PostTxpoolSendRawTxHandlerFunc(func(params PostTxpoolSendRawTxParams) middleware.Responder {
-			return middleware.NotImplemented("operation PostTxpoolSendRawTx has not yet been implemented")
+		PostTxpoolSendHandler: PostTxpoolSendHandlerFunc(func(params PostTxpoolSendParams) middleware.Responder {
+			return middleware.NotImplemented("operation PostTxpoolSend has not yet been implemented")
 		}),
 	}
 }
@@ -132,8 +132,8 @@ type EmptyAPI struct {
 	GetTxpoolCheckHashHandler GetTxpoolCheckHashHandler
 	// PostNodeAddrHandler sets the operation handler for the post node addr operation
 	PostNodeAddrHandler PostNodeAddrHandler
-	// PostTxpoolSendRawTxHandler sets the operation handler for the post txpool send raw tx operation
-	PostTxpoolSendRawTxHandler PostTxpoolSendRawTxHandler
+	// PostTxpoolSendHandler sets the operation handler for the post txpool send operation
+	PostTxpoolSendHandler PostTxpoolSendHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -233,8 +233,8 @@ func (o *EmptyAPI) Validate() error {
 	if o.PostNodeAddrHandler == nil {
 		unregistered = append(unregistered, "PostNodeAddrHandler")
 	}
-	if o.PostTxpoolSendRawTxHandler == nil {
-		unregistered = append(unregistered, "PostTxpoolSendRawTxHandler")
+	if o.PostTxpoolSendHandler == nil {
+		unregistered = append(unregistered, "PostTxpoolSendHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -371,7 +371,7 @@ func (o *EmptyAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/txpool/send/{rawTx}"] = NewPostTxpoolSendRawTx(o.context, o.PostTxpoolSendRawTxHandler)
+	o.handlers["POST"]["/txpool/send"] = NewPostTxpoolSend(o.context, o.PostTxpoolSendHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

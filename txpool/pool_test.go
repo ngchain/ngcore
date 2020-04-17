@@ -9,7 +9,7 @@ import (
 
 func TestNewTxPool(t *testing.T) {
 	sheetManager := ngsheet.GetSheetManager()
-	pool := GetTxPool(sheetManager)
+	pool := NewTxPool(sheetManager)
 
 	sheetManager.Init(ngtypes.GetGenesisBlock())
 	pool.Init(nil)

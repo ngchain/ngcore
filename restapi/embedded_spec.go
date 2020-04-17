@@ -48,10 +48,20 @@ func init() {
         "description": "dump all accounts in network",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/account"
+              }
+            }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -64,7 +74,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -86,7 +100,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -108,7 +126,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -121,7 +143,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -146,7 +172,11 @@ func init() {
             }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -165,10 +195,17 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/block"
+            }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -190,7 +227,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -209,10 +250,17 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/tx"
+            }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -234,21 +282,27 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
     },
-    "/txpool/send/{rawTx}": {
+    "/txpool/send": {
       "post": {
         "description": "send tx into network",
         "parameters": [
           {
-            "type": "string",
-            "description": "raw of the tx",
-            "name": "rawTx",
-            "in": "path",
-            "required": true
+            "description": "send the tx",
+            "name": "tx",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/tx"
+            }
           }
         ],
         "responses": {
@@ -256,7 +310,139 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "account": {
+      "properties": {
+        "contract": {
+          "type": "string"
+        },
+        "nonce": {
+          "type": "integer"
+        },
+        "num": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "block": {
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/blockHeader"
+        },
+        "network": {
+          "$ref": "#/definitions/network"
+        },
+        "sheet": {
+          "$ref": "#/definitions/sheet"
+        },
+        "txs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tx"
+          }
+        }
+      }
+    },
+    "blockHeader": {
+      "properties": {
+        "height": {
+          "type": "integer"
+        },
+        "nonce": {
+          "type": "string"
+        },
+        "prevBlockHash": {
+          "type": "string"
+        },
+        "sheet_hash": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        },
+        "trie_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "network": {
+      "type": "integer"
+    },
+    "sheet": {
+      "properties": {
+        "accounts": {
+          "type": "object",
+          "default": {
+            "$ref": "#/definitions/account"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/account"
+          }
+        },
+        "anonymous": {
+          "type": "object"
+        }
+      }
+    },
+    "tx": {
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/txHeader"
+        },
+        "network": {
+          "$ref": "#/definitions/network"
+        },
+        "sign": {
+          "type": "string"
+        }
+      }
+    },
+    "txHeader": {
+      "properties": {
+        "convener": {
+          "type": "integer"
+        },
+        "extra": {
+          "type": "string"
+        },
+        "fee": {
+          "type": "number"
+        },
+        "nonce": {
+          "type": "integer"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "integer"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "number"
           }
         }
       }
@@ -294,10 +480,20 @@ func init() {
         "description": "dump all accounts in network",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/account"
+              }
+            }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -310,7 +506,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -332,7 +532,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -354,7 +558,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -367,7 +575,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -392,7 +604,11 @@ func init() {
             }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -411,10 +627,17 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/block"
+            }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -436,7 +659,11 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -455,10 +682,17 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/tx"
+            }
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
@@ -480,21 +714,27 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
           }
         }
       }
     },
-    "/txpool/send/{rawTx}": {
+    "/txpool/send": {
       "post": {
         "description": "send tx into network",
         "parameters": [
           {
-            "type": "string",
-            "description": "raw of the tx",
-            "name": "rawTx",
-            "in": "path",
-            "required": true
+            "description": "send the tx",
+            "name": "tx",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/tx"
+            }
           }
         ],
         "responses": {
@@ -502,7 +742,139 @@ func init() {
             "description": "OK"
           },
           "400": {
-            "description": "Error"
+            "description": "Error",
+            "schema": {
+              "description": "error text",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "account": {
+      "properties": {
+        "contract": {
+          "type": "string"
+        },
+        "nonce": {
+          "type": "integer"
+        },
+        "num": {
+          "type": "integer"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "block": {
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/blockHeader"
+        },
+        "network": {
+          "$ref": "#/definitions/network"
+        },
+        "sheet": {
+          "$ref": "#/definitions/sheet"
+        },
+        "txs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tx"
+          }
+        }
+      }
+    },
+    "blockHeader": {
+      "properties": {
+        "height": {
+          "type": "integer"
+        },
+        "nonce": {
+          "type": "string"
+        },
+        "prevBlockHash": {
+          "type": "string"
+        },
+        "sheet_hash": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "integer"
+        },
+        "trie_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "network": {
+      "type": "integer"
+    },
+    "sheet": {
+      "properties": {
+        "accounts": {
+          "type": "object",
+          "default": {
+            "$ref": "#/definitions/account"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/account"
+          }
+        },
+        "anonymous": {
+          "type": "object"
+        }
+      }
+    },
+    "tx": {
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/txHeader"
+        },
+        "network": {
+          "$ref": "#/definitions/network"
+        },
+        "sign": {
+          "type": "string"
+        }
+      }
+    },
+    "txHeader": {
+      "properties": {
+        "convener": {
+          "type": "integer"
+        },
+        "extra": {
+          "type": "string"
+        },
+        "fee": {
+          "type": "number"
+        },
+        "nonce": {
+          "type": "integer"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "integer"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "number"
           }
         }
       }

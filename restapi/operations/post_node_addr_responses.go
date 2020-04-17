@@ -43,6 +43,11 @@ const PostNodeAddrBadRequestCode int = 400
 swagger:response postNodeAddrBadRequest
 */
 type PostNodeAddrBadRequest struct {
+
+	/*error text
+	  In: Body
+	*/
+	Payload string `json:"body,omitempty"`
 }
 
 // NewPostNodeAddrBadRequest creates PostNodeAddrBadRequest with default headers values
@@ -51,10 +56,23 @@ func NewPostNodeAddrBadRequest() *PostNodeAddrBadRequest {
 	return &PostNodeAddrBadRequest{}
 }
 
+// WithPayload adds the payload to the post node addr bad request response
+func (o *PostNodeAddrBadRequest) WithPayload(payload string) *PostNodeAddrBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the post node addr bad request response
+func (o *PostNodeAddrBadRequest) SetPayload(payload string) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *PostNodeAddrBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(400)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }

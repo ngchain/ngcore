@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
+
+	"github.com/ngchain/ngcore/models"
 )
 
 // GetTxHashOKCode is the HTTP code returned for type GetTxHashOK
@@ -19,6 +21,11 @@ const GetTxHashOKCode int = 200
 swagger:response getTxHashOK
 */
 type GetTxHashOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Tx `json:"body,omitempty"`
 }
 
 // NewGetTxHashOK creates GetTxHashOK with default headers values
@@ -27,12 +34,27 @@ func NewGetTxHashOK() *GetTxHashOK {
 	return &GetTxHashOK{}
 }
 
+// WithPayload adds the payload to the get tx hash o k response
+func (o *GetTxHashOK) WithPayload(payload *models.Tx) *GetTxHashOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get tx hash o k response
+func (o *GetTxHashOK) SetPayload(payload *models.Tx) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetTxHashOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // GetTxHashBadRequestCode is the HTTP code returned for type GetTxHashBadRequest
@@ -43,6 +65,11 @@ const GetTxHashBadRequestCode int = 400
 swagger:response getTxHashBadRequest
 */
 type GetTxHashBadRequest struct {
+
+	/*error text
+	  In: Body
+	*/
+	Payload string `json:"body,omitempty"`
 }
 
 // NewGetTxHashBadRequest creates GetTxHashBadRequest with default headers values
@@ -51,10 +78,23 @@ func NewGetTxHashBadRequest() *GetTxHashBadRequest {
 	return &GetTxHashBadRequest{}
 }
 
+// WithPayload adds the payload to the get tx hash bad request response
+func (o *GetTxHashBadRequest) WithPayload(payload string) *GetTxHashBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get tx hash bad request response
+func (o *GetTxHashBadRequest) SetPayload(payload string) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetTxHashBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(400)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }
