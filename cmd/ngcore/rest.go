@@ -5,7 +5,10 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/loads"
-	"github.com/gobuffalo/packr/v2"
+
+	"github.com/rakyll/statik/fs"
+
+	_ "github.com/ngchain/ngcore/statik"
 
 	"github.com/ngchain/ngcore/restapi"
 	"github.com/ngchain/ngcore/restapi/operations"
@@ -32,9 +35,13 @@ func runSwaggerServer(port int) {
 }
 
 func runSwaggerUI(host string, port int) {
-	box := packr.New("swagger-ui", "../../swagger-ui/")
-	fs := http.FileServer(box)
-	http.Handle("/", fs)
+	swaggerFs, err := fs.New()
+	if err != nil {
+		panic(err)
+	}
+
+	fileServer := http.FileServer(swaggerFs)
+	http.Handle("/", fileServer)
 	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), nil); err != nil {
 		panic(err)
 	}

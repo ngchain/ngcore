@@ -36,16 +36,15 @@ require (
 	github.com/ngchain/cryptonight-go v0.0.0-20200408114201-bdcadf0ac3e1
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
+	github.com/rakyll/statik v0.1.7
 	github.com/sirupsen/logrus v1.5.0 // indirect
-	github.com/spf13/cobra v1.0.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/urfave/cli/v2 v2.2.0
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
 	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect
-	golang.org/x/tools v0.0.0-20200416214402-fc959738d646 // indirect
+	golang.org/x/tools v0.0.0-20200417140056-c07e33ef3290 // indirect
 	google.golang.org/protobuf v1.21.0
 )
 
