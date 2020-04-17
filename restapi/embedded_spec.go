@@ -34,7 +34,11 @@ func init() {
         "description": "get the hello world",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "A hello world",
+            "schema": {
+              "type": "string",
+              "example": "hello world"
+            }
           }
         }
       }
@@ -136,7 +140,10 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "got the block",
+            "schema": {
+              "type": "object"
+            }
           },
           "400": {
             "description": "Error"
@@ -273,7 +280,11 @@ func init() {
         "description": "get the hello world",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "A hello world",
+            "schema": {
+              "type": "string",
+              "example": "hello world"
+            }
           }
         }
       }
@@ -375,7 +386,10 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "got the block",
+            "schema": {
+              "type": "object"
+            }
           },
           "400": {
             "description": "Error"

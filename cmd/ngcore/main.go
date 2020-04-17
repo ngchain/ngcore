@@ -67,15 +67,17 @@ var keyPassFlag = &cli.StringFlag{
 }
 
 var miningFlag = &cli.IntFlag{
-	Name:  "mining",
-	Usage: "The worker number on mining. Mining starts when value is not negative. And when value equals to 0, use all cpu cores",
+	Name: "mining",
+	Usage: "The worker number on mining. Mining starts when value is not negative. " +
+		"And when value equals to 0, use all cpu cores",
 	Value: -1,
 }
 
 var logLevelFlag = &cli.StringFlag{
 	Name:  "log-level",
 	Value: "INFO",
-	Usage: "Enable displaying logs which are equal or higher to the level. Values can be ERROR, WARNING, NOTICE, INFO or DEBUG",
+	Usage: "Enable displaying logs which are equal or higher to the level. " +
+		"Values can be ERROR, WARNING, NOTICE, INFO or DEBUG",
 }
 
 var inMemFlag = &cli.BoolFlag{
@@ -101,7 +103,8 @@ var action = func(c *cli.Context) error {
 	inMem := c.Bool("in-mem")
 
 	if withProfile {
-		f, err := os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
+		var f *os.File
+		f, err = os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
 		if err != nil {
 			panic(err)
 		}
@@ -122,7 +125,7 @@ var action = func(c *cli.Context) error {
 		db = storage.InitStorage()
 	}
 	defer func() {
-		err := db.Close()
+		err = db.Close()
 		if err != nil {
 			panic(err)
 		}
@@ -133,11 +136,11 @@ var action = func(c *cli.Context) error {
 		chain.InitWithGenesis()
 		// then sync
 	}
-	sheetManager := ngsheet.NewSheetManager()
+	sheetManager := ngsheet.GetSheetManager()
 	txPool := txpool.GetTxPool(sheetManager)
 
-	consensus := consensus.GetConsensus(isMining)
-	consensus.Init(chain, sheetManager, key, txPool)
+	consensus := consensus.GetConsensus()
+	consensus.Init(isMining, chain, sheetManager, key, txPool)
 
 	localNode := ngp2p.GetLocalNode(consensus, p2pTCPPort, isStrictMode, isBootstrapNode)
 

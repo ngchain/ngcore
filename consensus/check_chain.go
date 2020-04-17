@@ -50,7 +50,8 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 
 		curBlockHash, _ = curBlock.CalculateHash()
 		if !bytes.Equal(prevBlockHash, curBlock.GetPrevHash()) {
-			return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash", curBlock.GetHeight(), curBlockHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
+			return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash",
+				curBlock.GetHeight(), curBlockHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)
 		}
 
 		prevBlock = curBlock

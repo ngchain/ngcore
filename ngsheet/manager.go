@@ -19,8 +19,8 @@ type SheetManager struct {
 
 var sheetManager *SheetManager
 
-// NewSheetManager will create a Sheet manager
-func NewSheetManager() *SheetManager {
+// GetSheetManager will create a Sheet manager
+func GetSheetManager() *SheetManager {
 	if sheetManager == nil {
 		sheetManager = &SheetManager{
 			baseSheet:    nil,

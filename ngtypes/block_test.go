@@ -2,17 +2,10 @@ package ngtypes
 
 import (
 	"bytes"
-	"fmt"
-	"math/big"
-	"runtime"
 	"testing"
-	"time"
 
-	"github.com/NebulousLabs/fastrand"
 	"golang.org/x/crypto/sha3"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/ngchain/cryptonight-go"
 
 	"github.com/ngchain/ngcore/utils"
 )
@@ -22,27 +15,6 @@ func TestBlock_GetHash(t *testing.T) {
 	b := GetGenesisBlock()
 	headerHash := b.CalculateHeaderHash()
 	t.Log(len(headerHash))
-}
-
-// TestGetGenesisBlockNonce test func NewBareBlock()
-func TestGetGenesisBlockNonce(t *testing.T) {
-	// new genesisBlock
-	runtime.GOMAXPROCS(3)
-
-	b := GetGenesisBlock()
-	genesisTarget := new(big.Int).SetBytes(b.Header.Target)
-
-	nCh := make(chan []byte, 1)
-	stopCh := make(chan struct{}, 1)
-	thread := 3
-
-	for i := 0; i < thread; i++ {
-		go calcHash(i, b, genesisTarget, nCh, stopCh)
-	}
-
-	answer := <-nCh
-	stopCh <- struct{}{}
-	fmt.Printf("Genesis Block's Nonce: %x", answer)
 }
 
 func TestBlock_IsGenesis(t *testing.T) {
@@ -65,33 +37,6 @@ func TestBlock_IsGenesis(t *testing.T) {
 	if err := gg.CheckError(); err != nil {
 		t.Log(err)
 		t.Fail()
-	}
-}
-
-// calcHash get the hash of block
-func calcHash(id int, b *Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {
-	fmt.Println("thread ", id, " running")
-	fmt.Println("target is ", target.String())
-
-	t := time.Now()
-
-	for {
-		select {
-		case <-stopCh:
-			return
-		default:
-			random := fastrand.Bytes(8)
-			blob := b.GetPoWBlob(random)
-
-			hash := cryptonight.Sum(blob, 0)
-			if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
-				answerCh <- random
-				fmt.Println("Found ", random, hash)
-				elapsed := time.Since(t)
-				fmt.Println("Elapsed: ", elapsed)
-				return
-			}
-		}
 	}
 }
 

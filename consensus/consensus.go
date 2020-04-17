@@ -28,16 +28,9 @@ type Consensus struct {
 var consensus *Consensus
 
 // GetConsensus creates a new proof of work consensus manager
-func GetConsensus(mining bool) *Consensus {
+func GetConsensus() *Consensus {
 	if consensus == nil {
-		consensus = &Consensus{
-			SheetManager: nil,
-			Chain:        nil,
-			TxPool:       nil,
-			isMining:     mining,
-			PrivateKey:   nil,
-			miner:        nil,
-		}
+		consensus = &Consensus{}
 	}
 
 	return consensus

@@ -11,7 +11,10 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	logging "github.com/ipfs/go-log/v2"
 
+	"github.com/ngchain/ngcore/consensus"
+	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/restapi/operations"
+	"github.com/ngchain/ngcore/utils"
 )
 
 //go:generate swagger generate server --target ../../ngcore --name  --spec ../swagger.json
@@ -35,13 +38,23 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 
 	api.JSONProducer = runtime.JSONProducer()
 	api.GetHandler = operations.GetHandlerFunc(func(params operations.GetParams) middleware.Responder {
-		return operations.NewGetOK()
+		return operations.NewGetOK().WithPayload("hello world")
 	})
-	if api.GetAccountAllHandler == nil {
-		api.GetAccountAllHandler = operations.GetAccountAllHandlerFunc(func(params operations.GetAccountAllParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetAccountAll has not yet been implemented")
-		})
-	}
+	api.GetAccountAllHandler = operations.GetAccountAllHandlerFunc(
+		func(params operations.GetAccountAllParams) middleware.Responder {
+			key := utils.PublicKey2Bytes(*consensus.GetConsensus().PrivateKey.PubKey())
+			accounts, err := ngsheet.GetSheetManager().GetAccountsByPublicKey(key)
+			if err != nil {
+				return operations.NewGetAccountAllBadRequest()
+			}
+			result := make([]uint64, len(accounts))
+			for i := range accounts {
+				result[i] = accounts[i].Num
+			}
+
+			return operations.NewGetAccountAllOK()
+		},
+	)
 	if api.GetAccountAtNumHandler == nil {
 		api.GetAccountAtNumHandler = operations.GetAccountAtNumHandlerFunc(func(params operations.GetAccountAtNumParams) middleware.Responder {
 			return middleware.NotImplemented("operation operations.GetAccountAtNum has not yet been implemented")

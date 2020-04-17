@@ -14,11 +14,16 @@ import (
 // GetBlockHashOKCode is the HTTP code returned for type GetBlockHashOK
 const GetBlockHashOKCode int = 200
 
-/*GetBlockHashOK OK
+/*GetBlockHashOK got the block
 
 swagger:response getBlockHashOK
 */
 type GetBlockHashOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload interface{} `json:"body,omitempty"`
 }
 
 // NewGetBlockHashOK creates GetBlockHashOK with default headers values
@@ -27,12 +32,25 @@ func NewGetBlockHashOK() *GetBlockHashOK {
 	return &GetBlockHashOK{}
 }
 
+// WithPayload adds the payload to the get block hash o k response
+func (o *GetBlockHashOK) WithPayload(payload interface{}) *GetBlockHashOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the get block hash o k response
+func (o *GetBlockHashOK) SetPayload(payload interface{}) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *GetBlockHashOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(200)
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
 }
 
 // GetBlockHashBadRequestCode is the HTTP code returned for type GetBlockHashBadRequest

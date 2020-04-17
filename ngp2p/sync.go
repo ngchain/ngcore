@@ -94,58 +94,40 @@ func (s *forkManager) handlePong(remotePeerID peer.ID, pong *pb.PingPongPayload)
 
 func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) {
 	if s.enabled.Load() {
-		if s.w.node.isStrictMode {
-			// todo: maybe using trie will be better
-			for i := len(chain.Blocks) - 1; i >= 0; i-- {
-				hash, err := chain.Blocks[i].CalculateHash()
-				if err != nil {
-					log.Errorf("failed to hash block: %v: %s", chain.Blocks[i], err)
-				}
-				_, err = s.w.node.consensus.GetBlockByHash(hash)
-				if err != nil {
-					// not in local, continue searching
-					continue
-				}
+		// todo: maybe using trie will be better
+		for i := len(chain.Blocks) - 1; i >= 0; i-- {
+			hash, err := chain.Blocks[i].CalculateHash()
+			if err != nil {
+				log.Errorf("failed to hash block: %v: %s", chain.Blocks[i], err)
+			}
+			_, err = s.w.node.consensus.GetBlockByHash(hash)
+			if err != nil {
+				// not in local, continue searching
+				continue
+			}
 
-				// got i
+			// got i
+			if s.w.node.isStrictMode {
 				err = s.w.node.consensus.PutNewChain(chain.Blocks[i:]...)
 				if err != nil {
 					log.Errorf("failed to putting chain: %s", err)
 					return
 				}
-
-				localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
-				if chain.LatestHeight > localBlockHeight {
-					go s.w.getChain(remotePeerID, localBlockHeight, chain.LatestHeight)
+			} else {
+				err = s.w.node.consensus.ForkToNewChain(chain.Blocks...)
+				if err != nil {
+					log.Errorf("failed to putting chain: %s", err)
 					return
 				}
-
-				// finally done
-				s.enabled.Store(false)
-				return
-			}
-
-			// not found
-			var from uint64
-			to := chain.Blocks[0].GetHeight() - 1
-			if to > ngtypes.BlockCheckRound {
-				from = to - ngtypes.BlockCheckRound
-			}
-
-			go s.w.getChain(remotePeerID, from, to)
-			return
-
-		} else {
-			log.Infof("start syncing with %s, forcing local chain switching", remotePeerID)
-			err := s.w.node.consensus.SwitchTo(chain.Blocks...)
-			if err != nil {
-				log.Errorf("failed to putting chain: %s", err)
-				return
 			}
 
 			localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
 			if chain.LatestHeight > localBlockHeight {
-				go s.w.getChain(remotePeerID, localBlockHeight, chain.LatestHeight)
+				if chain.LatestHeight > localBlockHeight+ngtypes.BlockCheckRound {
+					go s.w.getChain(remotePeerID, localBlockHeight, localBlockHeight+ngtypes.BlockCheckRound)
+				} else {
+					go s.w.getChain(remotePeerID, localBlockHeight, chain.LatestHeight)
+				}
 				return
 			}
 
@@ -153,5 +135,14 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 			s.enabled.Store(false)
 			return
 		}
+
+		// not found
+		var from uint64
+		to := chain.Blocks[0].GetHeight() - 1
+		if to > ngtypes.BlockCheckRound {
+			from = to - ngtypes.BlockCheckRound
+		}
+
+		go s.w.getChain(remotePeerID, from, to)
 	}
 }
