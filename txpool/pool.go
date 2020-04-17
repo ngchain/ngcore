@@ -24,14 +24,20 @@ type TxPool struct {
 	NewCreatedTxEvent chan *ngtypes.Tx
 }
 
-func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
-	return &TxPool{
-		sheetManager: sheetManager,
+var txpool *TxPool
 
-		Queuing: make(map[uint64]map[uint64]*ngtypes.Tx),
+func GetTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
+	if txpool == nil {
+		txpool = &TxPool{
+			sheetManager: sheetManager,
 
-		NewCreatedTxEvent: make(chan *ngtypes.Tx),
+			Queuing: make(map[uint64]map[uint64]*ngtypes.Tx),
+
+			NewCreatedTxEvent: make(chan *ngtypes.Tx),
+		}
 	}
+
+	return txpool
 }
 
 // Init inits the txPool with submodules

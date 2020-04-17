@@ -5,5 +5,5 @@ import (
 )
 
 func TestNewConsensusManager(t *testing.T) {
-	NewConsensus(true)
+	GetConsensus(true)
 }

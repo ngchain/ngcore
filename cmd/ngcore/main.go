@@ -20,7 +20,6 @@ import (
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngsheet"
-	"github.com/ngchain/ngcore/rpc"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/txpool"
 )
@@ -45,9 +44,9 @@ var p2pTCPPortFlag = &cli.IntFlag{
 	Value: 52520,
 }
 
-var rpcPortFlag = &cli.IntFlag{
-	Name:  "rpc-port",
-	Usage: "Port for RPC",
+var apiPortFlag = &cli.IntFlag{
+	Name:  "api-port",
+	Usage: "Port for API",
 	Value: 52521,
 }
 
@@ -96,7 +95,7 @@ var action = func(c *cli.Context) error {
 	isMining := c.Int("mining") >= 0
 	isStrictMode := isBootstrapNode || c.Bool("strict")
 	p2pTCPPort := c.Int("p2p-port")
-	rpcPort := c.Int("rpc-port")
+	apiPort := c.Int("api-port")
 	keyPass := c.String("key-pass")
 	withProfile := c.Bool("profile")
 	inMem := c.Bool("in-mem")
@@ -129,21 +128,24 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	chain := ngchain.NewChain(db)
+	chain := ngchain.GetChain(db)
 	if isStrictMode && chain.GetLatestBlockHeight() == 0 {
 		chain.InitWithGenesis()
 		// then sync
 	}
 	sheetManager := ngsheet.NewSheetManager()
-	txPool := txpool.NewTxPool(sheetManager)
+	txPool := txpool.GetTxPool(sheetManager)
 
-	consensus := consensus.NewConsensus(isMining)
+	consensus := consensus.GetConsensus(isMining)
 	consensus.Init(chain, sheetManager, key, txPool)
 
-	localNode := ngp2p.NewLocalNode(consensus, p2pTCPPort, isStrictMode, isBootstrapNode)
+	localNode := ngp2p.GetLocalNode(consensus, p2pTCPPort, isStrictMode, isBootstrapNode)
 
-	rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
-	go rpc.Run()
+	// rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
+	// go rpc.Run()
+
+	go runSwaggerServer(apiPort)
+	go runSwaggerUI("127.0.0.1", apiPort+1)
 
 	latestBlock := chain.GetLatestBlock()
 	sheetManager.Init(latestBlock)
@@ -183,11 +185,11 @@ func main() {
 	app.Usage = "Brand-new golang daemon implement of Ngin Network Node"
 	app.Description = "NGIN is a radically updating brand-new blockchain network, " +
 		"which is not a fork of ethereum or any other chain."
-	app.Version = "v0.0.8"
+	app.Version = "v0.0.9"
 	app.Action = action
 
 	app.Flags = []cli.Flag{
-		strictModeFlag, logFlag, p2pTCPPortFlag, rpcPortFlag, miningFlag,
+		strictModeFlag, logFlag, p2pTCPPortFlag, apiPortFlag, miningFlag,
 		isBootstrapFlag, keyPassFlag, profileFlag,
 		logLevelFlag,
 		inMemFlag,

@@ -23,6 +23,10 @@ func (w *wired) getChain(peerID peer.ID, from uint64, to uint64) bool {
 		return false
 	}
 
+	if to == from {
+		return false
+	}
+
 	if to-from > ngtypes.BlockCheckRound {
 		to = from + ngtypes.BlockCheckRound
 	}

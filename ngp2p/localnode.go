@@ -46,105 +46,108 @@ type LocalNode struct {
 	isBootstrapNode bool
 }
 
-// NewLocalNode creates a new node with its implemented protocols
-func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
-	ctx := context.Background()
+var localNode *LocalNode
 
-	priv := getP2PKey()
+// GetLocalNode creates a new node with its implemented protocols
+func GetLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
+	if localNode == nil {
+		ctx := context.Background()
+		priv := getP2PKey()
 
-	transports := libp2p.ChainOptions(
-		libp2p.Transport(tcp.NewTCPTransport),
-		// libp2p.Transport(ws.New),
-	)
+		transports := libp2p.ChainOptions(
+			libp2p.Transport(tcp.NewTCPTransport),
+			// libp2p.Transport(ws.New),
+		)
 
-	listenAddrs := libp2p.ListenAddrStrings(
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
-		fmt.Sprintf("/ip6/::/tcp/%d", port),
-	)
+		listenAddrs := libp2p.ListenAddrStrings(
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
+			fmt.Sprintf("/ip6/::/tcp/%d", port),
+		)
 
-	muxers := libp2p.ChainOptions(
-		libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-		libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
-	)
+		muxers := libp2p.ChainOptions(
+			libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
+			libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
+		)
 
-	var p2pDHT *dht.IpfsDHT
-	newDHT := func(h host.Host) (routing.PeerRouting, error) {
-		var err error
-		p2pDHT, err = dht.New(ctx, h)
-		return p2pDHT, err
-	}
-
-	localHost, err := libp2p.New(
-		ctx,
-		transports,
-		listenAddrs,
-		muxers,
-		libp2p.Identity(priv),
-		libp2p.Routing(newDHT),
-		libp2p.NATPortMap(),
-		libp2p.EnableAutoRelay(),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	// init
-	for _, addr := range localHost.Addrs() {
-		log.Infof("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
-	}
-
-	mdns, err := discovery.NewMdnsService(ctx, localHost, time.Second*10, "") // using ipfs network
-	if err != nil {
-		panic(err)
-	}
-	peerInfoCh := make(chan peer.AddrInfo)
-	mdns.RegisterNotifee(
-		&mdnsNotifee{
-			h:          localHost,
-			PeerInfoCh: peerInfoCh,
-		},
-	)
-
-	node := &LocalNode{
-		consensus: consensus,
-
-		Host:        localHost,
-		wired:       nil,
-		broadcaster: nil,
-
-		isInitialized:   atomic.NewBool(false),
-		isBootstrapNode: isBootstrapNode,
-		isSyncedCh:      make(chan bool),
-		OnNotSynced:     nil,
-
-		RemoteHeights: new(sync.Map),
-		isStrictMode:  isStrictMode,
-	}
-
-	node.broadcaster = registerBroadcaster(node)
-
-	node.wired = registerWired(node)
-	go node.wired.syncLoop()
-
-	// mdns seeding
-	go func() {
-		for {
-			pi := <-peerInfoCh // will block until we discover a peer
-			log.Infof("Found peer:", pi, ", connecting")
-			if err = node.Connect(ctx, pi); err != nil {
-				log.Errorf("Connection failed: %s", err)
-				continue
-			}
-			node.ping(pi.ID)
+		var p2pDHT *dht.IpfsDHT
+		newDHT := func(h host.Host) (routing.PeerRouting, error) {
+			var err error
+			p2pDHT, err = dht.New(ctx, h)
+			return p2pDHT, err
 		}
-	}()
 
-	err = p2pDHT.Bootstrap(ctx)
-	if err != nil {
-		panic(err)
+		localHost, err := libp2p.New(
+			ctx,
+			transports,
+			listenAddrs,
+			muxers,
+			libp2p.Identity(priv),
+			libp2p.Routing(newDHT),
+			libp2p.NATPortMap(),
+			libp2p.EnableAutoRelay(),
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		// init
+		for _, addr := range localHost.Addrs() {
+			log.Infof("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
+		}
+
+		mdns, err := discovery.NewMdnsService(ctx, localHost, time.Second*10, "") // using ipfs network
+		if err != nil {
+			panic(err)
+		}
+		peerInfoCh := make(chan peer.AddrInfo)
+		mdns.RegisterNotifee(
+			&mdnsNotifee{
+				h:          localHost,
+				PeerInfoCh: peerInfoCh,
+			},
+		)
+
+		localNode = &LocalNode{
+			consensus: consensus,
+
+			Host:        localHost,
+			wired:       nil,
+			broadcaster: nil,
+
+			isInitialized:   atomic.NewBool(false),
+			isBootstrapNode: isBootstrapNode,
+			isSyncedCh:      make(chan bool),
+			OnNotSynced:     nil,
+
+			RemoteHeights: new(sync.Map),
+			isStrictMode:  isStrictMode,
+		}
+
+		localNode.broadcaster = registerBroadcaster(localNode)
+
+		localNode.wired = registerWired(localNode)
+		go localNode.wired.syncLoop()
+
+		// mdns seeding
+		go func() {
+			for {
+				pi := <-peerInfoCh // will block until we discover a peer
+				log.Infof("Found peer:", pi, ", connecting")
+				if err = localNode.Connect(ctx, pi); err != nil {
+					log.Errorf("Connection failed: %s", err)
+					continue
+				}
+				localNode.ping(pi.ID)
+			}
+		}()
+
+		err = p2pDHT.Bootstrap(ctx)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	return node
+	return localNode
 }
 
 // Authenticate incoming p2p message

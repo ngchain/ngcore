@@ -17,14 +17,18 @@ type SheetManager struct {
 	currentSheet *sheetEntry
 }
 
+var sheetManager *SheetManager
+
 // NewSheetManager will create a Sheet manager
 func NewSheetManager() *SheetManager {
-	s := &SheetManager{
-		baseSheet:    nil,
-		currentSheet: nil,
+	if sheetManager == nil {
+		sheetManager = &SheetManager{
+			baseSheet:    nil,
+			currentSheet: nil,
+		}
 	}
 
-	return s
+	return sheetManager
 }
 
 // Init will initialize the Sheet manager with a specific vault and blocks on the vault

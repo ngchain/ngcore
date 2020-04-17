@@ -27,13 +27,17 @@ type Chain struct {
 	MinedBlockToTxPoolCh chan *ngtypes.Block
 }
 
-// NewChain will return a chain, but no initialization
-func NewChain(db *badger.DB) *Chain {
-	chain := &Chain{
-		db: db,
+var chain *Chain
 
-		MinedBlockToP2PCh:    make(chan *ngtypes.Block),
-		MinedBlockToTxPoolCh: make(chan *ngtypes.Block),
+// GetChain will return a chain, but no initialization
+func GetChain(db *badger.DB) *Chain {
+	if chain == nil {
+		chain = &Chain{
+			db: db,
+
+			MinedBlockToP2PCh:    make(chan *ngtypes.Block),
+			MinedBlockToTxPoolCh: make(chan *ngtypes.Block),
+		}
 	}
 
 	return chain
