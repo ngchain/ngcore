@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
 	github.com/cbergoon/merkletree v0.2.0
+	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgraph-io/badger/v2 v2.0.3
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/dop251/goja v0.0.0-20200414142002-77e84ffb8c65
@@ -16,13 +17,11 @@ require (
 	github.com/go-openapi/swag v0.19.9
 	github.com/go-openapi/validate v0.19.3
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
-	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/golang/protobuf v1.4.0
 	github.com/google/uuid v1.1.1
 	github.com/ipfs/go-log/v2 v2.0.4
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.9
-	github.com/karrick/godirwalk v1.15.6 // indirect
 	github.com/libp2p/go-libp2p v0.8.0
 	github.com/libp2p/go-libp2p-core v0.5.1
 	github.com/libp2p/go-libp2p-kad-dht v0.7.3
@@ -37,7 +36,6 @@ require (
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/rakyll/statik v0.1.7
-	github.com/sirupsen/logrus v1.5.0 // indirect
 	github.com/urfave/cli/v2 v2.2.0
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
