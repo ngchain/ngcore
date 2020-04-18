@@ -31,7 +31,7 @@ So It's safe and robust like bitcoin and ethereum but more scalable and powerful
 - Absolutely safety ensure with Sheet and Vault(Block) model
 - Powerful and scalable types of tx
 - Support multi-tx, sending coins to different places in the same time
-- Powerful and free javascript support on state(contract) vm
+- Powerful WASM VM support based on account state(contract).
 - Pure go, support all common platforms
 - Libp2p(ipfs) powered p2p networking
 - Safe Account ecosystem 

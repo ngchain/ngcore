@@ -46,7 +46,5 @@ and it can also have multi-participants.
 
 ## Sheet
 
-Sheet is the aggregation of all status, not only accounts, but anonymous addresses
-
-*/
+Sheet is the aggregation of all status, not only accounts, but anonymous addresses */
 package ngtypes

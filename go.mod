@@ -39,6 +39,7 @@ require (
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/rakyll/statik v0.1.7
 	github.com/urfave/cli/v2 v2.2.0
+	github.com/wasmerio/go-ext-wasm v0.3.1
 	go.mongodb.org/mongo-driver v1.3.2 // indirect
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904

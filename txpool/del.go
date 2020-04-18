@@ -4,6 +4,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
+// DelBlockTxs will popping txs from txpool
 func (p *TxPool) DelBlockTxs(txs ...*ngtypes.Tx) {
 	p.Lock()
 	defer p.Unlock()
