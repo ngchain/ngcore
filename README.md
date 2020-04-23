@@ -9,34 +9,35 @@
 
 NGIN is a radically updating **brand-new blockchain network**, which is not a fork of ethereum or any other chain.
 
-NGIN's **goal** is to build **a blockchain engine** which acts more **auditable, scalable, security-oriented** and supports more network tasks with vm.
+NGIN's **goal** is to build **a blockchain engine** which acts more **auditable, scalable, security-oriented** and 
+supports more network tasks with vm.
 
-NGIN uses modern models - Vault(Block), Account, Multi-type Tx, and the traditional Block model to build the blockchain ecosystem. 
-And NGIN strictly follow the idea of blockchain, locking items with hash to keep engine work safely.
-Not only blockchain, but Vault(Block) will also link up to be a chain for account security and powerful functions like fast ignition, free account state and so on.
-So It's safe and robust like bitcoin and ethereum but more scalable and powerful on the node's operational capacity and p2p network's speed and performance. 
+NGIN uses modern models - Vault(Block), Account, Multi-type Tx, and the traditional Block model to build the blockchain 
+ecosystem. And NGIN strictly follow the idea of blockchain, locking items with hash to keep engine work safely.
+Not only blockchain, but Vault(Block) will also link up to be a chain for account security and powerful functions like 
+fast ignition, free account state and so on. So It's safe and robust like bitcoin and ethereum but more scalable and
+ powerful on the node's operational capacity and p2p network's speed and performance. 
 
 ## Status
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](https://goreportcard.com/report/github.com/ngchain/ngcore)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](
+https://goreportcard.com/report/github.com/ngchain/ngcore)
 [![CircleCI](https://circleci.com/gh/ngchain/ngcore.svg?style=svg)](https://circleci.com/gh/ngchain/ngcore)
 ![GitHub](https://img.shields.io/github/license/ngchain/ngcore)
 ![GitHub last commit](https://img.shields.io/github/last-commit/ngchain/ngcore)
 
 ## Features
 
-- Fast ignition
-- Almost no storage cost, or no cost(mem only)
-- With Humanizing account model, users can send tx with memorable short number
-- Absolutely safety ensure with Sheet and Vault(Block) model
+- **Fast ignition**
+- Less, or **no storage cost**(mem only)
+- With **humanizing** account model, users can send tx with **memorable short number**
+- **High security** with Sheet and Vault(Block) model
 - Powerful and scalable types of tx
-- Support multi-tx, sending coins to different places in the same time
-- Powerful WASM VM support based on account state(contract).
-- Pure go, support all common platforms
-- Libp2p(ipfs) powered p2p networking
-- Safe Account ecosystem 
-- Available anonymous address for saving balance
-- Using the schnorr signature, allowing Multi-Sig when sending and receiving
+- Support **Multi-Tx**, sending coins to different places in the same time
+- Powerful **WASM** VM support based on account state(contract).
+- **Libp2p(ipfs)** powered p2p networking 
+- Available **anonymous** address for saving balance
+- Using the **schnorr signature**, allowing Multi-Sig when sending and receiving
 - ...
 
 ## Requirements
@@ -44,6 +45,8 @@ So It's safe and robust like bitcoin and ethereum but more scalable and powerful
 go version >= 1.14
 
 Or using bazel build tool if you want
+
+Linux or WSL on Windows
 
 ## Build
 
@@ -56,7 +59,8 @@ go build ./cmd/ngcore
 
 ### Tip
 
-Run `set CGO_ENABLED=0` or `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine when your environment don't have gcc.
+Run `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine 
+when your environment don't have gcc.
 
 ### Bazel
 

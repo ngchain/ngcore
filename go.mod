@@ -4,11 +4,10 @@ go 1.13
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
+	github.com/bytecodealliance/wasmtime-go v0.15.0
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgraph-io/badger/v2 v2.0.3
-	github.com/dlclark/regexp2 v1.2.0 // indirect
-	github.com/dop251/goja v0.0.0-20200414142002-77e84ffb8c65
 	github.com/go-openapi/errors v0.19.4
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.15
@@ -16,7 +15,6 @@ require (
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.9
 	github.com/go-openapi/validate v0.19.8
-	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/golang/protobuf v1.4.0
 	github.com/google/uuid v1.1.1
 	github.com/ipfs/go-log/v2 v2.0.4
@@ -39,7 +37,6 @@ require (
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/rakyll/statik v0.1.7
 	github.com/urfave/cli/v2 v2.2.0
-	github.com/wasmerio/go-ext-wasm v0.3.1
 	go.mongodb.org/mongo-driver v1.3.2 // indirect
 	go.uber.org/atomic v1.6.0
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904

@@ -1,26 +1,34 @@
 package vm
 
 import (
-	"github.com/wasmerio/go-ext-wasm/wasmer"
+	"github.com/bytecodealliance/wasmtime-go"
 )
+
+var engine = wasmtime.NewEngine()
 
 // WasmVM is a vm based on wasmer, exec wasm commands
 type WasmVM struct {
-	*wasmer.Instance
+	*wasmtime.Instance
 }
 
 // NewWasmVM creates a new Wasm
-func NewWasmVM(raw []byte) (*WasmVM, error) {
-	instance, err := wasmer.NewInstance(raw)
+func NewWasmVM(rawContract []byte) (*WasmVM, error) {
+	store := wasmtime.NewStore(engine)
+	module, err := wasmtime.NewModule(store, rawContract)
+	if err != nil {
+		return nil, err
+	}
+
+	instance, err := wasmtime.NewInstance(module, getExterns())
 	if err != nil {
 		return nil, err
 	}
 	return &WasmVM{
-		Instance: &instance,
+		Instance: instance,
 	}, nil
 }
 
 // RunDeploy will run the main function of wasm. usually used for testing
-func (vm *WasmVM) RunDeploy(ifaces ...interface{}) (wasmer.Value, error) {
-	return vm.Exports["deploy"](ifaces...)
+func (vm *WasmVM) RunDeploy(ifaces ...interface{}) (interface{}, error) {
+	return vm.GetExport("deploy").Func().Call(ifaces...)
 }

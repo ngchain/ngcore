@@ -13,7 +13,7 @@ go_library(
     deps = [
         "//ngsheet:go_default_library",
         "//ngtypes:go_default_library",
-        "@com_github_whyrusleeping_go_logging//:go_default_library",
+        "@com_github_ipfs_go_log_v2//:go_default_library",
         "@org_golang_google_protobuf//proto:go_default_library",
     ],
 )

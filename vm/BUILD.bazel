@@ -4,21 +4,20 @@ go_library(
     name = "go_default_library",
     srcs = [
         "event.go",
+        "externs.go",
         "manager.go",
-        "vm.go",
+        "wasm.go",
     ],
     importpath = "github.com/ngchain/ngcore/vm",
     visibility = ["//visibility:public"],
     deps = [
         "//ngtypes:go_default_library",
-        "@com_github_dop251_goja//:go_default_library",
-        "@com_github_mr_tron_base58//:go_default_library",
+        "@com_github_bytecodealliance_wasmtime_go//:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = ["vm_test.go"],
+    srcs = ["wasm_test.go"],
     embed = [":go_default_library"],
-    deps = ["//ngtypes:go_default_library"],
 )

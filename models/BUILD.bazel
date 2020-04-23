@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "account.go",
+        "block.go",
+        "block_header.go",
+        "convert.go",
+        "network.go",
+        "new.go",
+        "sheet.go",
+        "tx.go",
+        "tx_header.go",
+    ],
+    importpath = "github.com/ngchain/ngcore/models",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ngtypes:go_default_library",
+        "@com_github_go_openapi_errors//:go_default_library",
+        "@com_github_go_openapi_strfmt//:go_default_library",
+        "@com_github_go_openapi_swag//:go_default_library",
+        "@com_github_go_openapi_validate//:go_default_library",
+        "@com_github_mr_tron_base58//:go_default_library",
+    ],
+)
