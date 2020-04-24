@@ -18,19 +18,19 @@ const (
 
 // FIXME: before init network should manually init PK & Sign
 var (
-	GenesisPublicKeyBase58 = "v9fATcLJhipGXGGeyKixVrdRpFYuvHAonA2EjDfEni1g"
+	GenesisPublicKeyBase58 = "ruBBKVQgTKDaB8dFbSZqQeJkgnZxzL26s8gwatw8M1F5"
 	GenesisPublicKey, _    = base58.FastBase58Decoding(GenesisPublicKeyBase58)
 
-	GenesisGenerateTxSignBase58 = "5kVQcqFLNiqQxC7UL8E9wwX9csbD5MGJ2vSuvPZWU8BxfZtDLz7HaUhwaCFwsbFd4GTKC4AEbbChJp18VZa82uTE"
+	GenesisGenerateTxSignBase58 = "2gBAc9wGQs9Mndj51A86TmHdYnxtFvn76gTjgzDvCTBkG9Tmc8Nwbpjxkwx2eqWMbKkA9hN3mZHPYyjwkhNqEu2i"
 	GenesisGenerateTxSign, _    = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
 
-	genesisBlockNonceBytes, _ = hex.DecodeString("8149d830a04b01d3")
+	genesisBlockNonceBytes, _ = hex.DecodeString("9c68cd9a366e1efc")
 	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)
 )
 
 var (
 	// MinimumDifficulty is the minimum of pow difficulty because my laptop has 50 h/s, I believe you can either
-	minimumDifficulty = big.NewInt(50 * 10)
+	minimumDifficulty = big.NewInt(50 * 60 * 20)
 	maxTarget         = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}) // new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0)) // Target = MaxTarget / diff
 	genesisTarget     = new(big.Int).Div(maxTarget, minimumDifficulty)
 
@@ -44,7 +44,7 @@ var (
 
 // PoW
 const (
-	TargetTime      = 30 * time.Second
+	TargetTime      = 1 * time.Minute
 	BlockCheckRound = 10
 )
 

@@ -19,15 +19,15 @@ func (c *Consensus) InitWithChain(chain ...*ngtypes.Block) error {
 	return c.Chain.InitWithChain(chain...)
 }
 
-func (c *Consensus) ForkToNewChain(chain ...*ngtypes.Block) error {
-	chainMu.Lock()
-	defer chainMu.Unlock()
-
-	if err := c.checkChain(chain...); err != nil {
-		return fmt.Errorf("chain invalid: %s", err)
-	}
-	return c.Chain.ForkToNewChain(chain...)
-}
+// func (c *Consensus) ForkToNewChain(chain ...*ngtypes.Block) error {
+// 	chainMu.Lock()
+// 	defer chainMu.Unlock()
+//
+// 	if err := c.checkChain(chain...); err != nil {
+// 		return fmt.Errorf("chain invalid: %s", err)
+// 	}
+// 	return c.Chain.ForkToNewChain(chain...)
+// }
 
 func (c *Consensus) PutNewChain(chain ...*ngtypes.Block) error {
 	chainMu.Lock()

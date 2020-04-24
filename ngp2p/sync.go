@@ -107,19 +107,19 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 			}
 
 			// got i
-			if s.w.node.isStrictMode {
-				err = s.w.node.consensus.PutNewChain(chain.Blocks[i:]...)
-				if err != nil {
-					log.Errorf("failed to putting chain: %s", err)
-					return
-				}
-			} else {
-				err = s.w.node.consensus.ForkToNewChain(chain.Blocks...)
-				if err != nil {
-					log.Errorf("failed to putting chain: %s", err)
-					return
-				}
+			// if s.w.node.isStrictMode {
+			err = s.w.node.consensus.PutNewChain(chain.Blocks[i:]...)
+			if err != nil {
+				log.Errorf("failed to putting chain: %s", err)
+				return
 			}
+			// } else {
+			// 	err = s.w.node.consensus.ForkToNewChain(chain.Blocks...)
+			// 	if err != nil {
+			// 		log.Errorf("failed to putting chain: %s", err)
+			// 		return
+			// 	}
+			// }
 
 			localBlockHeight := s.w.node.consensus.GetLatestBlockHeight()
 			if chain.LatestHeight > localBlockHeight {

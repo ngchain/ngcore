@@ -137,7 +137,7 @@ func GetGenesisBlock() *Block {
 
 	header := &BlockHeader{
 		Height:        0,
-		Timestamp:     1500000000,
+		Timestamp:     genesisTimestamp,
 		PrevBlockHash: nil,
 		SheetHash:     GetGenesisSheetHash(),
 		TrieHash:      NewTxTrie(txs).TrieRoot(),

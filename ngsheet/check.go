@@ -22,6 +22,10 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
 			return ngtypes.ErrTxIsNotSigned
 		}
 
+		if utils.Proto.Size(tx) > ngtypes.TxMaxExtraSize {
+			return fmt.Errorf("tx is too large")
+		}
+
 		switch tx.GetType() {
 		case ngtypes.TxType_GENERATE: // generate
 			if err := m.CheckGenerate(tx); err != nil {
