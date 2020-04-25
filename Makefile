@@ -8,3 +8,8 @@ gen:
 	go run ./cmd/ngcore gen
 clean:
 	rm .ngdb
+swagger-server:
+	swagger generate server -f swagger-ui/swagger.json
+gazelle:
+	bazel run //:gazelle -- -go_prefix github.com/ngchain/ngcore
+	bazel run //:gazelle -- update-repos -from_file=go.mod

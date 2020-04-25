@@ -11,7 +11,6 @@ import (
 
 	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
@@ -19,6 +18,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+// Errors for Tx
 var (
 	ErrTxIsNotSigned = errors.New("the transaction is not signed")
 	ErrTxWrongSign   = errors.New("the signer of transaction is not the own of the account")
@@ -144,11 +144,6 @@ func TxsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
 	}
 
 	return mtc
-}
-
-func (x *Tx) Copy() *Tx {
-	tx := proto.Clone(x).(*Tx)
-	return tx
 }
 
 // BigIntsToBytesList is a helper converts bigInts to raw bytes slice

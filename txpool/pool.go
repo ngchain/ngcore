@@ -26,6 +26,7 @@ type TxPool struct {
 
 var txpool *TxPool
 
+// NewTxPool will create a new global txpool
 func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	if txpool == nil {
 		txpool = &TxPool{
@@ -40,6 +41,7 @@ func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	return txpool
 }
 
+// GetTxPool will return the registered global txpool
 func GetTxPool() *TxPool {
 	if txpool == nil {
 		panic("txpool is closed")

@@ -54,13 +54,9 @@ Linux or WSL on Windows
 
 ```bash
 # go will automatically sync the dependencies
+# GCC is required because of high performance db & vm
 go build ./cmd/ngcore
 ```
-
-### Tip
-
-Run `go env -w CGO_ENABLED=0`(requires go>=1.13) before go build and then the build command will work fine 
-when your environment don't have gcc.
 
 ### Bazel
 
@@ -110,3 +106,15 @@ sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpin
 # Run as a mining node, 0 means using all cpu cores, --in-mem will disable writing into disk and make the miner lighter
 sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0 --in-mem
 ```
+
+## Run a NGIN Forknet
+
+1. Modify the Version & NetworkID in `./ngtypes/defaults.go` and `./ngp2p/methods.go`
+
+2. Generate a new genesis key, a sign for genesis generate tx, and genesis block nonce (with `ngcore gen` tool)
+
+3. Run a bootstrap node with `--bootstrap` flag (without mining)
+
+4. Write the bootstrap node to bootstrapNodes in `./ngp2p/bootstraps.go`
+
+5. Run a mining node with `--mining 0` flag
