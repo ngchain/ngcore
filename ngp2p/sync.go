@@ -73,7 +73,7 @@ func (w *wired) syncLoop() {
 
 func (s *forkManager) handlePong(remotePeerID peer.ID, pong *pb.PingPongPayload) {
 	// ignite sync/fork
-	if !s.enabled.Load() {
+	if s.enabled.Load() {
 		s.enabled.Store(true)
 	}
 

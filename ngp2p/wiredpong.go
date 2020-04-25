@@ -116,7 +116,7 @@ func (w *wired) onPong(s network.Stream) {
 	// trigger
 	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
 	localBlockHash := w.node.consensus.GetLatestBlockHash()
-	if localBlockHeight < payload.LatestHeight-ngtypes.BlockCheckRound ||
+	if localBlockHeight+ngtypes.BlockCheckRound < payload.LatestHeight ||
 		!utils.InBytesList(payload.LatestHashes, localBlockHash) {
 
 		w.forkManager.handlePong(remotePeerID, payload)
