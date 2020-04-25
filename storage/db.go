@@ -14,7 +14,7 @@ var db *badger.DB
 // InitStorage inits a new DB in data folder
 func InitStorage() *badger.DB {
 	if db == nil {
-		options := badger.DefaultOptions("data")
+		options := badger.DefaultOptions(".ngdb")
 		if runtime.GOOS == "windows" {
 			options.Truncate = true
 		}

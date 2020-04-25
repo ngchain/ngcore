@@ -21,10 +21,10 @@ var (
 	GenesisPublicKeyBase58 = "ruBBKVQgTKDaB8dFbSZqQeJkgnZxzL26s8gwatw8M1F5"
 	GenesisPublicKey, _    = base58.FastBase58Decoding(GenesisPublicKeyBase58)
 
-	GenesisGenerateTxSignBase58 = "2gBAc9wGQs9Mndj51A86TmHdYnxtFvn76gTjgzDvCTBkG9Tmc8Nwbpjxkwx2eqWMbKkA9hN3mZHPYyjwkhNqEu2i"
+	GenesisGenerateTxSignBase58 = "3kCnakJZV9yYiFXc4dgDFBTp7KgZPdDLvsjqSux75FvsaroyTa7Xx4ksWk3gk2QS1zZELD15omcfrrQDVUuu6BmZ"
 	GenesisGenerateTxSign, _    = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
 
-	genesisBlockNonceBytes, _ = hex.DecodeString("9c68cd9a366e1efc")
+	genesisBlockNonceBytes, _ = hex.DecodeString("f8ed39a3a407bc4d")
 	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)
 )
 
