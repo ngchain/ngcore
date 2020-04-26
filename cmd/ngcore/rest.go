@@ -22,7 +22,13 @@ func runSwaggerServer(port int) {
 
 	api := operations.NewEmptyAPI(swaggerSpec)
 	server := restapi.NewServer(api)
-	defer server.Shutdown()
+
+	defer func() {
+		err = server.Shutdown()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	server.ConfigureFlags()
 	server.ConfigureAPI()
@@ -31,7 +37,6 @@ func runSwaggerServer(port int) {
 	if err := server.Serve(); err != nil {
 		panic(err)
 	}
-
 }
 
 func runSwaggerUI(host string, port int) {
@@ -42,6 +47,7 @@ func runSwaggerUI(host string, port int) {
 
 	fileServer := http.FileServer(swaggerFs)
 	http.Handle("/", fileServer)
+
 	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), nil); err != nil {
 		panic(err)
 	}

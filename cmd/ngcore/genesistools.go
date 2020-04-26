@@ -62,17 +62,18 @@ func genBlockNonce(b *ngtypes.Block) {
 
 	answer := <-nCh
 	stopCh <- struct{}{}
+
 	log.Warnf("Genesis Block Nonce Hex: %x", answer)
 }
 
-// calcHash get the hash of block
 func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {
+	// calcHash get the hash of block
 	for {
 		select {
 		case <-stopCh:
 			return
 		default:
-			random := fastrand.Bytes(8)
+			random := fastrand.Bytes(ngtypes.NonceSize)
 			blob := b.GetPoWBlob(random)
 
 			hash := cryptonight.Sum(blob, 0)

@@ -1,1 +1,0 @@
-golangci-lint --enable-all --disable=lll,gomnd,gochecknoglobals run

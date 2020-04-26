@@ -11,16 +11,18 @@ var log = logging.Logger("storage")
 
 var db *badger.DB
 
-// InitStorage inits a new DB in data folder
+// InitStorage inits a new DB in data folder.
 func InitStorage() *badger.DB {
 	if db == nil {
 		options := badger.DefaultOptions(".ngdb")
 		if runtime.GOOS == "windows" {
 			options.Truncate = true
 		}
+
 		options.Logger = log
 
 		var err error
+
 		db, err = badger.Open(options)
 		if err != nil {
 			log.Panic("failed to open storage:", err)
@@ -30,7 +32,7 @@ func InitStorage() *badger.DB {
 	return db
 }
 
-// InitMemStorage inits a new DB in mem
+// InitMemStorage inits a new DB in mem.
 func InitMemStorage() *badger.DB {
 	if db == nil {
 		options := badger.DefaultOptions("").WithInMemory(true)
@@ -40,6 +42,7 @@ func InitMemStorage() *badger.DB {
 		options.Logger = log
 
 		var err error
+
 		db, err = badger.Open(options)
 		if err != nil {
 			log.Panic("failed to open storage:", err)

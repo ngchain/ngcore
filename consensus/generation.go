@@ -16,7 +16,7 @@ func (c *Consensus) createGenerateTx(privateKey *secp256k1.PrivateKey, extraData
 		ngtypes.TxType_GENERATE,
 		0,
 		[][]byte{publicKeyBytes},
-		[]*big.Int{ngtypes.OneBlockReward},
+		[]*big.Int{ngtypes.OneBlockBigReward},
 		ngtypes.GetBig0(),
 		c.GetNextNonce(0),
 		extraData)

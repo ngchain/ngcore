@@ -11,6 +11,7 @@ func Bytes2Hex(b []byte) string {
 	for i := 0; i < len(b); i++ {
 		s += fmt.Sprintf("%02X", b[i])
 	}
+
 	return s
 }
 
@@ -20,5 +21,6 @@ func Hex2Bytes(s string) []byte {
 	if err != nil {
 		panic(err)
 	}
+
 	return b
 }

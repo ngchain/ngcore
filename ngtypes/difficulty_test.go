@@ -1,1 +1,1 @@
-package ngtypes
+package ngtypes_test

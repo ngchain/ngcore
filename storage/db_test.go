@@ -1,7 +1,11 @@
-package storage
+package storage_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/ngchain/ngcore/storage"
+)
 
 func TestInitStorage(t *testing.T) {
-	InitStorage()
+	storage.InitStorage()
 }

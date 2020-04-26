@@ -1,1 +1,1 @@
-package miner
+package miner_test

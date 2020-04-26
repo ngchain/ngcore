@@ -14,6 +14,7 @@ func CombineBytes(b ...[]byte) []byte {
 func PackUint64LE(n uint64) []byte {
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, n)
+
 	return b
 }
 
@@ -21,6 +22,7 @@ func PackUint64LE(n uint64) []byte {
 func PackUint64BE(n uint64) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, n)
+
 	return b
 }
 
@@ -28,6 +30,7 @@ func PackUint64BE(n uint64) []byte {
 func PackUint32LE(n uint32) []byte {
 	b := make([]byte, 4)
 	binary.LittleEndian.PutUint32(b, n)
+
 	return b
 }
 
@@ -35,6 +38,7 @@ func PackUint32LE(n uint32) []byte {
 func PackUint32BE(n uint32) []byte {
 	b := make([]byte, 4)
 	binary.BigEndian.PutUint32(b, n)
+
 	return b
 }
 

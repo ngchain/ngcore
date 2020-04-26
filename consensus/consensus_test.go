@@ -1,11 +1,10 @@
-package consensus
+package consensus_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/dgraph-io/badger/v2"
-
+	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngsheet"
@@ -17,8 +16,7 @@ func TestNewConsensusManager(t *testing.T) {
 	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(""))
 	keytools.PrintPublicKey(key)
 
-	var db *badger.DB
-	db = storage.InitMemStorage()
+	db := storage.InitMemStorage()
 
 	defer func() {
 		err := db.Close()
@@ -32,6 +30,6 @@ func TestNewConsensusManager(t *testing.T) {
 	sheetManager := ngsheet.GetSheetManager()
 	txPool := txpool.NewTxPool(sheetManager)
 
-	consensus := GetConsensus()
-	consensus.Init(true, chain, sheetManager, key, txPool)
+	c := consensus.GetConsensus()
+	c.Init(true, chain, sheetManager, key, txPool)
 }

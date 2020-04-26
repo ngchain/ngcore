@@ -24,10 +24,9 @@ var (
 	ErrTxWrongSign   = errors.New("the signer of transaction is not the own of the account")
 )
 
-// NewUnsignedTx will return an unsigned tx, must using Signature()
+// NewUnsignedTx will return an unsigned tx, must using Signature().
 func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int,
 	nonce uint64, extraData []byte) *Tx {
-
 	header := &TxHeader{
 		Type:         txType,
 		Convener:     convener,
@@ -45,12 +44,12 @@ func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values
 	}
 }
 
-// IsSigned will return whether the op has been signed
+// IsSigned will return whether the op has been signed.
 func (x *Tx) IsSigned() bool {
 	return x.Sign != nil
 }
 
-// Verify helps verify the transaction whether signed by the public key owner
+// Verify helps verify the transaction whether signed by the public key owner.
 func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	if x.Network != Network {
 		return fmt.Errorf("tx's network id is incorrect")
@@ -70,40 +69,45 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	}
 
 	var signature [64]byte
+
 	copy(signature[:], x.Sign)
 
 	var key [33]byte
+
 	copy(key[:], publicKey.SerializeCompressed())
+
 	if ok, err := schnorr.Verify(key, sha3.Sum256(b), signature); !ok {
 		if err != nil {
 			return err
 		}
+
 		return ErrTxWrongSign
 	}
 
 	return nil
 }
 
-// BS58 is a tx's Readable Raw in string
+// BS58 is a tx's Readable Raw in string.
 func (x *Tx) BS58() string {
 	b, err := utils.Proto.Marshal(x)
 	if err != nil {
 		log.Error(err)
 	}
+
 	return base58.FastBase58Encoding(b)
 }
 
-// ID is a tx's Readable ID in string
+// ID is a tx's Readable ID(hash) in string.
 func (x *Tx) ID() string {
-	b, err := utils.Proto.Marshal(x)
+	hash, err := x.CalculateHash()
 	if err != nil {
 		log.Error(err)
 	}
-	sha3.Sum256(b)
-	return hex.EncodeToString(b)
+
+	return hex.EncodeToString(hash)
 }
 
-// CalculateHash mainly for calculating the tire root of txs and sign tx
+// CalculateHash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) CalculateHash() ([]byte, error) {
 	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
@@ -111,10 +115,11 @@ func (x *Tx) CalculateHash() ([]byte, error) {
 	}
 
 	hash := sha3.Sum256(raw)
+
 	return hash[:], nil
 }
 
-// Equals mainly for calculating the tire root of txs
+// Equals mainly for calculating the tire root of txs.
 func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 	tx, ok := other.(*Tx)
 	if !ok {
@@ -125,18 +130,20 @@ func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	otherHash := sha3.Sum256(otherRawHeader)
 
 	selfRawHeader, err := utils.Proto.Marshal(x.Header)
 	if err != nil {
 		return false, err
 	}
+
 	selfHash := sha3.Sum256(selfRawHeader)
 
 	return bytes.Equal(selfHash[:], otherHash[:]), nil
 }
 
-// TxsToMerkleTreeContents make a []merkletree.Content whose values is from txs
+// TxsToMerkleTreeContents make a []merkletree.Content whose values is from txs.
 func TxsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
 	mtc := make([]merkletree.Content, len(txs))
 	for i := range txs {
@@ -146,12 +153,13 @@ func TxsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
 	return mtc
 }
 
-// BigIntsToBytesList is a helper converts bigInts to raw bytes slice
+// BigIntsToBytesList is a helper converts bigInts to raw bytes slice.
 func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	bytesList := make([][]byte, len(bigInts))
 	for i := 0; i < len(bigInts); i++ {
 		bytesList[i] = bigInts[i].Bytes()
 	}
+
 	return bytesList
 }
 
@@ -168,7 +176,7 @@ func (x *Tx) CheckGenerate() error {
 		return fmt.Errorf("generate should have same len with participants")
 	}
 
-	if !bytes.Equal(x.TotalExpenditure().Bytes(), OneBlockReward.Bytes()) {
+	if !bytes.Equal(x.TotalExpenditure().Bytes(), OneBlockBigReward.Bytes()) {
 		return fmt.Errorf("wrong block reward")
 	}
 
@@ -317,7 +325,7 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	return nil
 }
 
-// Signature will re-sign the Tx with private key
+// Signature will re-sign the Tx with private key.
 func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	b, err := utils.Proto.Marshal(x.Header)
 	if err != nil {
@@ -328,6 +336,7 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	for i := range privateKeys {
 		ds[i] = privateKeys[i].D
 	}
+
 	sign, err := schnorr.AggregateSignatures(ds, sha3.Sum256(b))
 	if err != nil {
 		log.Panic(err)
@@ -368,6 +377,7 @@ func (x *Tx) GetExtra() []byte {
 
 func (x *Tx) TotalExpenditure() *big.Int {
 	total := GetBig0()
+
 	for i := range x.Header.Values {
 		total.Add(total, new(big.Int).SetBytes(x.Header.Values[i]))
 	}
@@ -375,13 +385,13 @@ func (x *Tx) TotalExpenditure() *big.Int {
 	return new(big.Int).Add(new(big.Int).SetBytes(x.Header.Fee), total)
 }
 
-// GetGenesisGenerateTx is a constructed function
+// GetGenesisGenerateTx is a constructed function.
 func GetGenesisGenerateTx() *Tx {
 	gen := NewUnsignedTx(
 		TxType_GENERATE,
 		0,
 		[][]byte{GenesisPublicKey},
-		[]*big.Int{OneBlockReward},
+		[]*big.Int{OneBlockBigReward},
 		GetBig0(),
 		1,
 		nil,

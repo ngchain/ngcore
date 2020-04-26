@@ -11,6 +11,7 @@ import (
 // AES256GCMEncrypt is used for file encrypt
 func AES256GCMEncrypt(raw []byte, password []byte) (encrypted []byte) {
 	hashPassword := sha3.Sum256(password)
+
 	c, err := aes.NewCipher(hashPassword[:])
 	if err != nil {
 		panic(err)
@@ -41,6 +42,7 @@ func AES256GCMDecrypt(raw []byte, password []byte) (decrypted []byte) {
 	}
 
 	nonce, encrypted := raw[:gcm.NonceSize()], raw[gcm.NonceSize():]
+
 	decrypted, err = gcm.Open(nil, nonce, encrypted, nil)
 	if err != nil {
 		panic(err)

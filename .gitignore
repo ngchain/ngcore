@@ -48,7 +48,8 @@ vendor/
 
 #Debug
 env/*
-storage/data
+storage/.ngdb
+./.ngdb
 
 #Binary
 ./ngcore

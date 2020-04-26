@@ -2,6 +2,8 @@ docker-build:
 	docker build . -t ngcore
 docker-mining: docker-build
 	docker run ngcore --mining 0 --in-mem
+docker-bootstrap: docker-build
+	docker run ngcore --bootstrap --in-mem
 build:
 	go build ./cmd/ngcore
 gen:

@@ -4,7 +4,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// NewAccount receive parameters and return a new Account(class constructor
+// NewAccount receive parameters and return a new Account(class constructor.
 func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Account {
 	return &Account{
 		Num:      num,
@@ -15,8 +15,8 @@ func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Acco
 	}
 }
 
-// GetGenesisAccount will return the genesis account (id=1)
-func GetGenesisAccount(num uint64) *Account {
+// GetGenesisStyleAccount will return the genesis style account.
+func GetGenesisStyleAccount(num uint64) *Account {
 	return &Account{
 		Num: num,
 		// Balance:  big.NewInt(math.MaxInt64).Bytes(), // Init balance

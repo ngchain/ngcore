@@ -43,10 +43,13 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 			}
 		case float64:
 			accountID := uint64(p)
-			account, err := s.sheetManager.GetAccountByNum(accountID)
+
+			var account *ngtypes.Account
+			account, err = s.sheetManager.GetAccountByNum(accountID)
 			if err != nil {
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
+
 			participants[i] = account.Owner
 		default:
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("unknown participant type: %s", reflect.TypeOf(p))))

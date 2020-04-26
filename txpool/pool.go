@@ -59,11 +59,10 @@ func (p *TxPool) Init(newBlockCh chan *ngtypes.Block) {
 func (p *TxPool) Run() {
 	go func() {
 		for {
-			select {
-			case block := <-p.newBlockCh:
-				log.Infof("start popping txs in block@%d", block.GetHeight())
-				p.DelBlockTxs(block.Txs...)
-			}
+			block := <-p.newBlockCh
+			log.Infof("start popping txs in block@%d", block.GetHeight())
+			p.DelBlockTxs(block.Txs...)
+
 		}
 	}()
 }

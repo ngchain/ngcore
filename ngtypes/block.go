@@ -17,29 +17,33 @@ import (
 
 var log = logging.Logger("types")
 
+// IsUnsealing checks whether the block is unsealing.
 func (x *Block) IsUnsealing() bool {
 	return x.GetHeader().GetTrieHash() != nil
 }
 
+// IsSealed checks whether the block is sealed.
 func (x *Block) IsSealed() bool {
 	return x.GetHeader().GetNonce() != nil
 }
 
-// IsHead will check whether the Block is the checkpoint
+// IsHead will check whether the Block is the head(checkpoint).
 func (x *Block) IsHead() bool {
 	return x.GetHeight()%BlockCheckRound == 0
 }
 
+// IsTail will check whether the Block is the tail(the one before head).
 func (x *Block) IsTail() bool {
 	return (x.GetHeight()+1)%BlockCheckRound == 0
 }
 
+// IsGenesis will check whether the Block is the genesis block.
 func (x *Block) IsGenesis() bool {
 	hash, _ := x.CalculateHash()
 	return bytes.Equal(hash, GetGenesisBlockHash())
 }
 
-// GetPoWBlob will return a complete blob for block hash
+// GetPoWBlob will return a complete blob for block hash.
 func (x *Block) GetPoWBlob(nonce []byte) []byte {
 	raw := make([]byte, 144)
 
@@ -59,13 +63,13 @@ func (x *Block) GetPoWBlob(nonce []byte) []byte {
 	return raw
 }
 
-// CalculateHeaderHash will help you get the hash of block
+// CalculateHeaderHash will help you get the hash of block.
 func (x *Block) CalculateHeaderHash() []byte {
 	blob := x.GetPoWBlob(nil)
 	return cryptonight.Sum(blob, 0)
 }
 
-// ToUnsealing converts a bare block to an unsealing block
+// ToUnsealing converts a bare block to an unsealing block.
 func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	if x.GetHeader() == nil {
 		return nil, fmt.Errorf("missing header")
@@ -87,7 +91,7 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	return x, nil
 }
 
-// ToSealed converts an unsealing block to a sealed block
+// ToSealed converts an unsealing block to a sealed block.
 func (x *Block) ToSealed(nonce []byte) (*Block, error) {
 	if x.GetHeader() == nil {
 		return nil, fmt.Errorf("missing header")
@@ -102,9 +106,9 @@ func (x *Block) ToSealed(nonce []byte) (*Block, error) {
 	return x, nil
 }
 
-// verifyNonce will verify whether the nonce meets the target
+// verifyNonce will verify whether the nonce meets the target.
 func (x *Block) verifyNonce() error {
-	if new(big.Int).SetBytes(cryptonight.Sum(x.GetPoWBlob(nil), 0)).Cmp(new(big.Int).SetBytes(x.GetHeader().GetTarget())) < 0 {
+	if new(big.Int).SetBytes(x.CalculateHeaderHash()).Cmp(new(big.Int).SetBytes(x.GetHeader().GetTarget())) < 0 {
 		return nil
 	}
 
@@ -112,7 +116,7 @@ func (x *Block) verifyNonce() error {
 }
 
 // NewBareBlock will return an unsealing block and
-// then you need to add txs and seal with the correct N
+// then you need to add txs and seal with the correct N.
 func NewBareBlock(height uint64, prevBlockHash []byte, target *big.Int) *Block {
 	return &Block{
 		Network: Network,
@@ -129,7 +133,7 @@ func NewBareBlock(height uint64, prevBlockHash []byte, target *big.Int) *Block {
 	}
 }
 
-// GetGenesisBlock will return a complete sealed GenesisBlock
+// GetGenesisBlock will return a complete sealed GenesisBlock.
 func GetGenesisBlock() *Block {
 	txs := []*Tx{
 		GetGenesisGenerateTx(),
@@ -153,7 +157,7 @@ func GetGenesisBlock() *Block {
 	}
 }
 
-// CheckError will check the errors in block inner fields
+// CheckError will check the errors in block inner fields.
 func (x *Block) CheckError() error {
 	if x.Network != Network {
 		return fmt.Errorf("block's network id is incorrect")
@@ -178,29 +182,31 @@ func (x *Block) CheckError() error {
 	return nil
 }
 
-// CalculateHash will help you get the hash of block
+// CalculateHash will help you get the hash of block.
 func (x *Block) CalculateHash() ([]byte, error) {
 	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
 		return nil, err
 	}
+
 	hash := sha3.Sum256(raw)
+
 	return hash[:], nil
 }
 
-// GetHeight is a helper to get the height from block header
+// GetHeight is a helper to get the height from block header.
 func (x *Block) GetHeight() uint64 {
 	return x.GetHeader().GetHeight()
 }
 
-// GetPrevHash is a helper to get the prev block hash from block header
+// GetPrevHash is a helper to get the prev block hash from block header.
 func (x *Block) GetPrevHash() []byte {
 	return x.GetHeader().GetPrevBlockHash()
 }
 
 var genesisBlockHash []byte
 
-// GetGenesisBlockHash is a helper to get the genesis block's hash
+// GetGenesisBlockHash is a helper to get the genesis block's hash.
 func GetGenesisBlockHash() []byte {
 	if len(genesisBlockHash) != 32 {
 		genesisBlockHash, _ = GetGenesisBlock().CalculateHash()

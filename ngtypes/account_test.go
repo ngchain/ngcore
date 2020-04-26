@@ -1,4 +1,4 @@
-package ngtypes
+package ngtypes_test
 
 import (
 	"fmt"
@@ -6,12 +6,16 @@ import (
 	"testing"
 
 	"github.com/NebulousLabs/fastrand"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/secp256k1"
 
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-// TestNewAccount is testing func NewAccount
+var log = logging.Logger("ngtypes_test")
+
+// TestNewAccount is testing func NewAccount.
 func TestNewAccount(t *testing.T) {
 	privateKey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
@@ -19,7 +23,7 @@ func TestNewAccount(t *testing.T) {
 	}
 
 	randUint64 := fastrand.Uint64n(math.MaxUint64)
-	acc := NewAccount(
+	acc := ngtypes.NewAccount(
 		randUint64,
 		utils.PublicKey2Bytes(*privateKey.PubKey()),
 		// big.NewInt(0),
