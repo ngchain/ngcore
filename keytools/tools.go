@@ -1,3 +1,4 @@
+// Package keytools is the module to reuse the key pair
 package keytools
 
 import (
@@ -5,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"path/filepath"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
@@ -16,7 +18,7 @@ import (
 
 var log = logging.Logger("key")
 
-// ReadLocalKey will read the local x509 key file to load an ecdsa private key
+// ReadLocalKey will read the local x509 key file to load an ecdsa private key.
 func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	var key *secp256k1.PrivateKey
 
@@ -25,10 +27,11 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	} else {
 		var raw []byte
 
-		raw, err = ioutil.ReadFile(filename)
+		raw, err = ioutil.ReadFile(filepath.Clean(filename))
 		if err != nil {
 			log.Panic(err)
 		}
+
 		rawPK := utils.AES256GCMDecrypt(raw, []byte(password))
 		key = secp256k1.NewPrivateKey(new(big.Int).SetBytes(rawPK))
 	}
@@ -36,7 +39,7 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	return key
 }
 
-// CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm
+// CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm.
 func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	key, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
@@ -50,6 +53,7 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	}
 
 	encrypted := utils.AES256GCMEncrypt(key.D.Bytes(), []byte(password))
+
 	_, err = file.Write(encrypted)
 	if err != nil {
 		log.Panic(err)
@@ -60,16 +64,17 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	return key
 }
 
-// PrintPublicKey will print the privateKey's **publicKey** to the console
+// PrintPublicKey will print the privateKey's **publicKey** to the console.
 func PrintPublicKey(privateKey *secp256k1.PrivateKey) {
 	publicKey := utils.PublicKey2Bytes(*privateKey.PubKey())
 	log.Warnf("PublicKey is bs58: %s\n", base58.FastBase58Encoding(publicKey))
 }
 
-// PrintKeyPair will print the **privateKey and its publicKey** to the console
+// PrintKeyPair will print the **privateKey and its publicKey** to the console.
 func PrintKeyPair(privateKey *secp256k1.PrivateKey) {
 	rawPrivateKey := privateKey.Serialize() // its D
 	fmt.Println("Private Key: ", base58.FastBase58Encoding(rawPrivateKey))
+
 	bPubKey := utils.PublicKey2Bytes(*privateKey.PubKey())
 	fmt.Println("Public Key: ", base58.FastBase58Encoding(bPubKey))
 }

@@ -1,3 +1,4 @@
+// Package models is generated for swagger
 package models
 
 import (

@@ -45,7 +45,9 @@ func (w *wired) syncLoop() {
 				if p == w.node.ID() {
 					continue
 				}
+
 				log.Debugf("pinging to %s", p)
+
 				go w.ping(p)
 			}
 
@@ -54,6 +56,7 @@ func (w *wired) syncLoop() {
 		case isSynced := <-w.node.isSyncedCh:
 			if isSynced && !lastTimeIsSynced {
 				log.Info("localnode is synced with network")
+
 				if w.node.OnSynced != nil {
 					w.node.OnSynced()
 				}
@@ -61,6 +64,7 @@ func (w *wired) syncLoop() {
 
 			if !isSynced && lastTimeIsSynced {
 				log.Info("localnode is not synced with network, syncing...")
+
 				if w.node.OnNotSynced != nil {
 					w.node.OnNotSynced()
 				}
@@ -83,8 +87,9 @@ func (s *forkManager) handlePong(remotePeerID peer.ID, pong *pb.PingPongPayload)
 		log.Infof("start syncing with %s, forcing local chain switching", remotePeerID)
 	}
 
-	var from uint64
+	from := uint64(0)
 	to := pong.LatestHeight
+
 	if to > ngtypes.BlockCheckRound {
 		from = to - ngtypes.BlockCheckRound
 	}
@@ -100,6 +105,7 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 			if err != nil {
 				log.Errorf("failed to hash block: %v: %s", chain.Blocks[i], err)
 			}
+
 			_, err = s.w.node.consensus.GetBlockByHash(hash)
 			if err != nil {
 				// not in local, continue searching
@@ -128,17 +134,20 @@ func (s *forkManager) handleChain(remotePeerID peer.ID, chain *pb.ChainPayload) 
 				} else {
 					go s.w.getChain(remotePeerID, localBlockHeight, chain.LatestHeight)
 				}
+
 				return
 			}
 
 			// finally done
 			s.enabled.Store(false)
+
 			return
 		}
 
 		// not found
-		var from uint64
+		from := uint64(0)
 		to := chain.Blocks[0].GetHeight() - 1
+
 		if to > ngtypes.BlockCheckRound {
 			from = to - ngtypes.BlockCheckRound
 		}

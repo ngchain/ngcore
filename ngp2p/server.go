@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -18,13 +19,13 @@ type mdnsNotifee struct {
 	PeerInfoCh chan peer.AddrInfo
 }
 
-// HandlePeerFound is required for mdnsNotifee to be a Notifee
+// HandlePeerFound is required for mdnsNotifee to be a Notifee.
 func (m *mdnsNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	_ = m.h.Connect(context.Background(), pi)
 }
 
 func readKeyFromFile(filename string) crypto.PrivKey {
-	keyFile, err := os.Open(filename)
+	keyFile, err := os.Open(filepath.Clean(filename))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -33,6 +34,7 @@ func readKeyFromFile(filename string) crypto.PrivKey {
 	if err != nil {
 		log.Panic(err)
 	}
+
 	_ = keyFile.Close()
 
 	priv, err := crypto.UnmarshalPrivateKey(raw)
@@ -57,6 +59,7 @@ func getP2PKey() crypto.PrivKey {
 		}
 
 		log.Info("creating bootstrap key")
+
 		f, err := os.Create("p2p.key")
 		if err != nil {
 			log.Panic(err)

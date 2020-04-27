@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/txpool"
 )
 
-// Init will assemble the submodules into consensus
+// Init will assemble the submodules into consensus.
 func (c *Consensus) Init(isMining bool, chain *ngchain.Chain, sheetMgr *ngsheet.SheetManager,
 	privateKey *secp256k1.PrivateKey, txPool *txpool.TxPool) {
 	c.isMining = isMining

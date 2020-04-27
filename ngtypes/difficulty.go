@@ -25,8 +25,8 @@ func GetNextTarget(tailBlock *Block) *big.Int {
 		diff = new(big.Int).Sub(diff, new(big.Int).Div(diff, big.NewInt(10)))
 	}
 
-	if diff.Cmp(minimumDifficulty) < 0 {
-		diff = minimumDifficulty
+	if diff.Cmp(minimumBigDifficulty) < 0 {
+		diff = minimumBigDifficulty
 	}
 
 	log.Debugf("New Block Diff: %d", diff)

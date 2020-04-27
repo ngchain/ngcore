@@ -10,9 +10,10 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
-// reject will reply reject message to remote node
+// reject will reply reject message to remote node.
 func (w *wired) reject(peerID peer.ID, uuid string) {
 	log.Debugf("Sending reject to %s. Message id: %s...", peerID, uuid)
+
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
 		Payload: nil,
@@ -34,12 +35,14 @@ func (w *wired) reject(peerID peer.ID, uuid string) {
 	}
 }
 
-// remote reject handler
+// remote reject handler.
 func (w *wired) onReject(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		_ = s.Reset()
 		log.Error(err)
+
+		_ = s.Reset()
+
 		return
 	}
 
@@ -48,19 +51,23 @@ func (w *wired) onReject(s network.Stream) {
 
 	// unmarshal it
 	var data = &pb.Message{}
+
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
+
 		return
 	}
 
 	if !w.node.verifyResponse(data) {
 		log.Errorf("Failed to verify response")
+
 		return
 	}
 
 	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
+
 		return
 	}
 

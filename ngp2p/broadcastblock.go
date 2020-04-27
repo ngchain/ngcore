@@ -29,6 +29,7 @@ func (b *broadcaster) broadcastBlock(block *ngtypes.Block) bool {
 
 func (b *broadcaster) onBroadcastBlock(msg *pubsub.Message) {
 	var broadcastBlockPayload = new(ngtypes.Block)
+
 	err := utils.Proto.Unmarshal(msg.Data, broadcastBlockPayload)
 	if err != nil {
 		log.Error(err)
@@ -36,10 +37,10 @@ func (b *broadcaster) onBroadcastBlock(msg *pubsub.Message) {
 	}
 
 	log.Debugf("received a new block broadcast@%d", broadcastBlockPayload.GetHeight())
+
 	err = b.node.consensus.PutNewBlock(broadcastBlockPayload)
 	if err != nil {
 		log.Error(err)
 		return
 	}
-
 }

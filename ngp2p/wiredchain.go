@@ -17,6 +17,7 @@ func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) boo
 	if len(blocks) == 0 {
 		return false
 	}
+
 	log.Debugf("Sending chain to %s. Message id: %s, chain from block@%d ...",
 		peerID, uuid, blocks[0].GetHeight())
 
@@ -53,15 +54,18 @@ func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) boo
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
+
 	log.Debugf("chain to: %s was sent. Message Id: %s", peerID, req.Header.Uuid)
+
 	return true
 }
 
 func (w *wired) onChain(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		_ = s.Reset()
 		log.Error(err)
+
+		_ = s.Reset()
 
 		return
 	}
@@ -69,25 +73,31 @@ func (w *wired) onChain(s network.Stream) {
 	// unmarshal it
 	var data = &pb.Message{}
 	err = proto.Unmarshal(buf, data)
+
 	if err != nil {
 		log.Error(err)
+
 		return
 	}
 
 	if !w.node.verifyResponse(data) {
 		log.Errorf("Failed to verify response")
+
 		return
 	}
 
 	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
+
 		return
 	}
 
 	var payload = &pb.ChainPayload{}
+
 	err = proto.Unmarshal(data.Payload, payload)
 	if err != nil {
 		log.Error(err)
+
 		return
 	}
 

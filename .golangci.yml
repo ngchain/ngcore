@@ -134,6 +134,9 @@ linters-settings:
     # report any comments starting with keywords, this is useful for TODO or FIXME comments that
     # might be left in the code accidentally and should be resolved before merging
     keywords: # default keywords are TODO, BUG, and FIXME, these can be overwritten by this setting
+      - TODO
+      - BUG
+      - FIXME
       - NOTE
       - OPTIMIZE # marks code that should be optimized before merging
       - HACK # marks hack-arounds that should be removed before merging
@@ -195,7 +198,7 @@ linters-settings:
   lll:
     # max line length, lines longer will be reported. Default is 120.
     # '\t' is counted as 1 character by default, and can be changed with the tab-width option
-    line-length: 120
+    line-length: 200
     # tab width in spaces. Default to 1.
     tab-width: 2
   maligned:

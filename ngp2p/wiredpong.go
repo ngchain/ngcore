@@ -18,6 +18,7 @@ func (w *wired) pong(peerID peer.ID, uuid string) bool {
 
 	hashes := make([][]byte, 0)
 	latestHeight := w.node.consensus.GetLatestBlockHeight()
+
 	for i := uint64(0); i < ngtypes.BlockCheckRound; i++ {
 		if latestHeight < i {
 			break
@@ -28,6 +29,7 @@ func (w *wired) pong(peerID peer.ID, uuid string) bool {
 			log.Error(err)
 			return false
 		}
+
 		hash, _ := block.CalculateHash()
 		hashes = append(hashes, hash)
 	}
@@ -60,15 +62,18 @@ func (w *wired) pong(peerID peer.ID, uuid string) bool {
 	if ok := w.node.sendProtoMessage(peerID, pongMethod, resp); ok {
 		log.Debugf("pong to %s sent.", peerID.String())
 	}
+
 	return true
 }
 
-// remote ping response handler
+// remote Pong response handler.
 func (w *wired) onPong(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		_ = s.Reset()
 		log.Error(err)
+
+		_ = s.Reset()
+
 		return
 	}
 
@@ -77,6 +82,7 @@ func (w *wired) onPong(s network.Stream) {
 
 	// unmarshal it
 	var data = &pb.Message{}
+
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
@@ -94,6 +100,7 @@ func (w *wired) onPong(s network.Stream) {
 	}
 
 	var payload = &pb.PingPongPayload{}
+
 	err = proto.Unmarshal(data.Payload, payload)
 	if err != nil {
 		log.Error(err)
@@ -116,9 +123,8 @@ func (w *wired) onPong(s network.Stream) {
 	// trigger
 	localBlockHeight := w.node.consensus.GetLatestBlockHeight()
 	localBlockHash := w.node.consensus.GetLatestBlockHash()
-	if localBlockHeight+ngtypes.BlockCheckRound < payload.LatestHeight ||
-		!utils.InBytesList(payload.LatestHashes, localBlockHash) {
 
+	if localBlockHeight+ngtypes.BlockCheckRound < payload.LatestHeight || !utils.InBytesList(payload.LatestHashes, localBlockHash) {
 		w.forkManager.handlePong(remotePeerID, payload)
 	}
 }

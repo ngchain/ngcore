@@ -45,9 +45,12 @@ func (x *Block) IsGenesis() bool {
 
 // GetPoWBlob will return a complete blob for block hash.
 func (x *Block) GetPoWBlob(nonce []byte) []byte {
-	raw := make([]byte, 144)
-
 	h := x.GetHeader()
+
+	lenWithoutNonce := len(h.GetPrevBlockHash()) + len(h.GetSheetHash()) +
+		len(h.GetTrieHash()) + 2<<3 + len(h.GetTarget())
+	raw := make([]byte, lenWithoutNonce+NonceSize)
+
 	copy(raw[0:32], h.GetPrevBlockHash())
 	copy(raw[32:64], h.GetSheetHash())
 	copy(raw[64:96], h.GetTrieHash())
@@ -55,9 +58,9 @@ func (x *Block) GetPoWBlob(nonce []byte) []byte {
 	copy(raw[104:136], h.GetTarget()) // uint256
 
 	if nonce == nil {
-		copy(raw[136:144], h.GetNonce()) // 8
+		copy(raw[lenWithoutNonce:], h.GetNonce())
 	} else {
-		copy(raw[136:144], nonce) // 8
+		copy(raw[lenWithoutNonce:], nonce)
 	}
 
 	return raw
@@ -75,12 +78,12 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 		return nil, fmt.Errorf("missing header")
 	}
 
-	for i := 0; i < len(txsWithGen); i++ {
-		if i == 0 && txsWithGen[i].GetType() != TxType_GENERATE {
-			return nil, fmt.Errorf("first tx shall be a generate")
-		}
+	if txsWithGen[0].GetType() != TxType_GENERATE {
+		return nil, fmt.Errorf("first tx shall be a generate")
+	}
 
-		if i != 0 && txsWithGen[i].GetType() == TxType_GENERATE {
+	for i := 1; i < len(txsWithGen); i++ {
+		if txsWithGen[i].GetType() == TxType_GENERATE {
 			return nil, fmt.Errorf("except first, other tx shall not be a generate")
 		}
 	}
@@ -208,7 +211,7 @@ var genesisBlockHash []byte
 
 // GetGenesisBlockHash is a helper to get the genesis block's hash.
 func GetGenesisBlockHash() []byte {
-	if len(genesisBlockHash) != 32 {
+	if genesisBlockHash == nil {
 		genesisBlockHash, _ = GetGenesisBlock().CalculateHash()
 	}
 

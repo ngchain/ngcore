@@ -11,7 +11,7 @@ import (
 
 var log = logging.Logger("consensus")
 
-// InitPoW inits the main of consensus, shouldn't be shut down
+// InitPoW inits the main of consensus, shouldn't be shut down.
 func (c *Consensus) InitPoW(workerNum int) {
 	log.Info("Initializing PoW consensus")
 
@@ -36,7 +36,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 	}
 }
 
-// Stop the consensus
+// Stop the pow consensus.
 func (c *Consensus) Stop() {
 	if c.isMining {
 		log.Info("mining stopping")
@@ -44,7 +44,7 @@ func (c *Consensus) Stop() {
 	}
 }
 
-// Resume the consensus
+// Resume the pow consensus.
 func (c *Consensus) Resume() {
 	if c.isMining {
 		log.Info("mining resuming")
@@ -52,12 +52,13 @@ func (c *Consensus) Resume() {
 	}
 }
 
-// getBlockTemplate is a generator of new block. But the generated block has no nonce
+// getBlockTemplate is a generator of new block. But the generated block has no nonce.
 func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 	c.RLock()
 	defer c.RUnlock()
 
 	currentBlock := c.Chain.GetLatestBlock()
+
 	currentBlockHash, err := currentBlock.CalculateHash()
 	if err != nil {
 		log.Error(err)
@@ -77,6 +78,7 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 
 	Gen := c.createGenerateTx(c.PrivateKey, extraData)
 	txsWithGen := append([]*ngtypes.Tx{Gen}, c.TxPool.GetPackTxs()...)
+
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
 		log.Error(err)
@@ -85,7 +87,7 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 	return newUnsealingBlock
 }
 
-// MinedNewBlock means the consensus mined new block and need to add it into the chain
+// MinedNewBlock means the consensus mined new block and need to add it into the chain.
 func (c *Consensus) minedNewBlock(block *ngtypes.Block) {
 	c.Lock()
 	defer c.Unlock()

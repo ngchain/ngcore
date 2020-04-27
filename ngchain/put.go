@@ -10,7 +10,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// PutNewBlock puts a new block into db
+// PutNewBlock puts a new block into db.
 func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
@@ -24,6 +24,7 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 				if hashInDB, _ := b.CalculateHash(); bytes.Equal(hash, hashInDB) {
 					return nil
 				}
+
 				return fmt.Errorf("has block in same height: %s", b)
 			}
 		}
@@ -64,12 +65,14 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		}
 		return nil
 	})
+
 	return err
 }
 
 func putTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := range txs {
 		hash, _ := txs[i].CalculateHash()
+
 		raw, err := utils.Proto.Marshal(txs[i])
 		if err != nil {
 			return err
@@ -84,7 +87,7 @@ func putTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	return nil
 }
 
-// PutNewChain puts a new chain(vault + block) into db
+// PutNewChain puts a new chain(vault + block) into db.
 func (c *Chain) PutNewChain(chain ...*ngtypes.Block) error {
 	log.Info("putting new chain")
 	/* Check Start */
@@ -138,11 +141,12 @@ func (c *Chain) PutNewChain(chain ...*ngtypes.Block) error {
 		}
 		return nil
 	})
+
 	return err
 }
 
 // ForkToNewChain changes the items in db, requiring the first one of chain is an vault.
-// ForkToNewChain will override the origin data, using carefully
+// ForkToNewChain will override the origin data, using carefully.
 func (c *Chain) ForkToNewChain(chain ...*ngtypes.Block) error {
 	log.Info("forking to new chain")
 	/* Check Start */
@@ -185,5 +189,6 @@ func (c *Chain) ForkToNewChain(chain ...*ngtypes.Block) error {
 		}
 		return nil
 	})
+
 	return err
 }

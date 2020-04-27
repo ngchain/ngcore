@@ -48,7 +48,7 @@ type LocalNode struct {
 
 var localNode *LocalNode
 
-// NewLocalNode creates a new node with its implemented protocols
+// NewLocalNode creates a new node with its implemented protocols.
 func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
 	if localNode == nil {
 		ctx := context.Background()
@@ -70,9 +70,11 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 		)
 
 		var p2pDHT *dht.IpfsDHT
+
 		newDHT := func(h host.Host) (routing.PeerRouting, error) {
 			var err error
 			p2pDHT, err = dht.New(ctx, h)
+
 			return p2pDHT, err
 		}
 
@@ -99,7 +101,9 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 		if err != nil {
 			panic(err)
 		}
+
 		peerInfoCh := make(chan peer.AddrInfo)
+
 		mdns.RegisterNotifee(
 			&mdnsNotifee{
 				h:          localHost,
@@ -133,10 +137,12 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 			for {
 				pi := <-peerInfoCh // will block until we discover a peer
 				log.Infof("Found peer:", pi, ", connecting")
+
 				if err = localNode.Connect(ctx, pi); err != nil {
 					log.Errorf("Connection failed: %s", err)
 					continue
 				}
+
 				localNode.ping(pi.ID)
 			}
 		}()
@@ -158,15 +164,16 @@ func GetLocalNode() *LocalNode {
 	return localNode
 }
 
-// Authenticate incoming p2p message
-// message: a protobufs go data object
-// data: common p2p message data
+// Authenticate incoming p2p message.
+// message: a protobufs go data object.
+// data: common p2p message data.
 func (n *LocalNode) verifyResponse(message *pb.Message) bool {
 	if _, exists := n.requests.Load(message.Header.Uuid); !exists {
 		return false
 	}
 
 	n.requests.Delete(message.Header.Uuid)
+
 	return true
 }
 
@@ -185,28 +192,31 @@ func (n *LocalNode) authenticateMessage(remotePeerID peer.ID, message *pb.Messag
 	return n.verifyData(raw, sign, remotePeerID, message.Header.PeerKey)
 }
 
-// sign an outgoing p2p message payload
+// sign an outgoing p2p message payload.
 func (n *LocalNode) signMessage(message *pb.Message) ([]byte, error) {
 	message.Header.Sign = nil
+
 	data, err := utils.Proto.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
+
 	return n.signData(data)
 }
 
-// sign binary data using the local node's private key
+// sign binary data using the local node's private key.
 func (n *LocalNode) signData(data []byte) ([]byte, error) {
 	key := n.Peerstore().PrivKey(n.ID())
 	res, err := key.Sign(data)
+
 	return res, err
 }
 
-// Verify incoming p2p message data integrity
-// data: data to verify
-// signature: author signature provided in the message payload
-// peerId: author peer id from the message payload
-// pubKeyData: author public key from the message payload
+// verifyData verifies incoming p2p message data integrity.
+// data: data to verify.
+// signature: author signature provided in the message payload.
+// peerId: author peer id from the message payload.
+// pubKeyData: author public key from the message payload.
 func (n *LocalNode) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
@@ -238,7 +248,7 @@ func (n *LocalNode) verifyData(data []byte, signature []byte, peerID peer.ID, pu
 }
 
 // NewHeader is a helper method: generate message data shared between all node's p2p protocols
-// messageId: unique for requests, copied from request for responses
+// messageId: unique for requests, copied from request for responses.
 func (n *LocalNode) NewHeader(uuid string) *pb.Header {
 	// Add protobufs bin data for message author public key
 	// this is useful for authenticating  messages forwarded by a node authored by another node
@@ -257,13 +267,14 @@ func (n *LocalNode) NewHeader(uuid string) *pb.Header {
 	}
 }
 
-// helper method - writes a protobuf go data object to a network stream
-// data: reference of protobuf go data object to send (not the object itself)
-// s: network stream to write the data to
+// helper method - writes a protobuf go data object to a network stream.
+// data: reference of protobuf go data object to send (not the object itself).
+// s: network stream to write the data to.
 func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data proto.Message) bool {
 	raw, err := utils.Proto.Marshal(data)
 	if err != nil {
 		log.Error(err)
+
 		return false
 	}
 
@@ -272,18 +283,20 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, method protocol.ID, data pr
 		log.Error(err)
 		return false
 	}
-	_, err = s.Write(raw)
-	if err != nil {
+
+	if _, err = s.Write(raw); err != nil {
 		log.Error(err)
+
 		_ = s.Reset()
+
 		return false
 	}
 
-	// FullClose closes the stream and waits for the other side to close their half.
-	err = helpers.FullClose(s)
-	if err != nil {
+	if err = helpers.FullClose(s); err != nil {
 		log.Error(err)
+
 		_ = s.Reset()
+
 		return false
 	}
 

@@ -12,9 +12,10 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// GetLatestBlock will return the latest Block in DB
+// GetLatestBlock will return the latest Block in DB.
 func (c *Chain) GetLatestBlock() *ngtypes.Block {
 	height := c.GetLatestBlockHeight()
+
 	block, err := c.GetBlockByHeight(height)
 	if err != nil {
 		log.Error(err)
@@ -35,7 +36,8 @@ func (c *Chain) GetLatestBlockHash() []byte {
 
 func (c *Chain) GetLatestBlockHeight() uint64 {
 	var latestHeight uint64
-	err := c.db.View(func(txn *badger.Txn) error {
+
+	if err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, latestHeightTag...))
 		if err != nil {
 			return err
@@ -49,8 +51,7 @@ func (c *Chain) GetLatestBlockHeight() uint64 {
 		}
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return 0
 	}
 
@@ -63,7 +64,8 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	}
 
 	var block = &ngtypes.Block{}
-	err := c.db.View(func(txn *badger.Txn) error {
+
+	if err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(height)...))
 		if err != nil {
 			return err
@@ -93,8 +95,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 		}
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -107,7 +108,8 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	}
 
 	var block = &ngtypes.Block{}
-	err := c.db.View(func(txn *badger.Txn) error {
+
+	if err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, hash...))
 		if err != nil {
 			return err
@@ -126,8 +128,7 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 		}
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -136,7 +137,8 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 
 func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
 	table := make(map[uint64]*ngtypes.Block)
-	err := c.db.View(func(txn *badger.Txn) error {
+
+	if err := c.db.View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		for it.Seek(blockPrefix); it.ValidForPrefix(blockPrefix) && len(it.Item().Key()) == 11; it.Next() {
@@ -162,8 +164,7 @@ func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
 		}
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil
 	}
 
@@ -172,7 +173,8 @@ func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
 
 func (c *Chain) DumpAllBlocksByHash() map[string]*ngtypes.Block {
 	table := make(map[string]*ngtypes.Block)
-	err := c.db.View(func(txn *badger.Txn) error {
+
+	if err := c.db.View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		for it.Seek(blockPrefix); it.ValidForPrefix(blockPrefix) && len(it.Item().Key()) == 35; it.Next() {
@@ -194,8 +196,7 @@ func (c *Chain) DumpAllBlocksByHash() map[string]*ngtypes.Block {
 		}
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil
 	}
 

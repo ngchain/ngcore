@@ -10,9 +10,10 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
-// notFound will reply notFound message to remote node
+// notFound will reply notFound message to remote node.
 func (w *wired) notFound(peerID peer.ID, uuid string) {
 	log.Debugf("Sending notfound to %s. Message id: %s...", peerID, uuid)
+
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
 		Payload: nil,
@@ -34,31 +35,38 @@ func (w *wired) notFound(peerID peer.ID, uuid string) {
 	}
 }
 
-// onNotFound is a remote notfound handler
+// onNotFound is a remote notfound handler.
 func (w *wired) onNotFound(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		_ = s.Reset()
 		log.Error(err)
+
+		_ = s.Reset()
+
 		return
 	}
+
 	_ = s.Close()
 
 	// unmarshal it
 	var data = &pb.Message{}
+
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
+
 		return
 	}
 
 	if !w.node.verifyResponse(data) {
 		log.Errorf("Failed to verify response")
+
 		return
 	}
 
 	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
+
 		return
 	}
 

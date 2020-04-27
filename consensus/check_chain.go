@@ -18,6 +18,7 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 	}
 
 	var curBlock, prevBlock *ngtypes.Block
+
 	var prevBlockHash, curBlockHash []byte
 
 	var err error
@@ -29,26 +30,28 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 		if err != nil {
 			return fmt.Errorf("failed to init prevBlock %x from db: %s", firstBlock.GetPrevHash(), err)
 		}
+
 		prevBlockHash, _ = prevBlock.CalculateHash()
 	}
 
 	for i := 0; i < len(blocks); i++ {
 		curBlock = blocks[i]
-		if err = curBlock.CheckError(); err != nil {
+		if err := curBlock.CheckError(); err != nil {
 			return err
 		}
 
 		if prevBlock != nil {
-			if err = c.checkBlockTarget(curBlock, prevBlock); err != nil {
+			if err := c.checkBlockTarget(curBlock, prevBlock); err != nil {
 				return err
 			}
 		}
 
-		if err = c.SheetManager.CheckTxs(curBlock.Txs...); err != nil {
+		if err := c.SheetManager.CheckTxs(curBlock.Txs...); err != nil {
 			return err
 		}
 
 		curBlockHash, _ = curBlock.CalculateHash()
+
 		if !bytes.Equal(prevBlockHash, curBlock.GetPrevHash()) {
 			return fmt.Errorf("block@%d:%x 's prevBlockHash: %x is not matching block@%d:%x 's hash",
 				curBlock.GetHeight(), curBlockHash, curBlock.GetPrevHash(), prevBlock.GetHeight(), prevBlockHash)

@@ -8,9 +8,3 @@ const notfoundMethod = "/ngp2p/wired/notfound/0.0.1"
 
 const getChainMethod = "/ngp2p/wired/getblocks/0.0.1"
 const chainMethod = "/ngp2p/wired/blocks/0.0.1"
-
-const getpoolMethod = "/ngp2p/getpool/0.0.1"
-
-//const bcastblockMethod = ""
-//
-//

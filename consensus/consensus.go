@@ -27,7 +27,7 @@ type Consensus struct {
 
 var consensus *Consensus
 
-// GetConsensus creates a new proof of work consensus manager
+// GetConsensus creates a new proof of work consensus manager.
 func GetConsensus() *Consensus {
 	if consensus == nil {
 		consensus = &Consensus{}

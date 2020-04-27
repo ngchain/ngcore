@@ -59,7 +59,9 @@ func (w *wired) getChain(peerID peer.ID, from uint64, to uint64) bool {
 
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
+
 	log.Debugf("getchain to: %s was sent. Message Id: %s, request height: %d to %d", peerID, req.Header.Uuid, from, to)
+
 	return true
 }
 
@@ -67,13 +69,16 @@ func (w *wired) onGetChain(s network.Stream) {
 	// get request data
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		_ = s.Reset()
 		log.Error(err)
+
+		_ = s.Reset()
+
 		return
 	}
 
 	// unmarshal it
 	var data = &pb.Message{}
+
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
@@ -86,6 +91,7 @@ func (w *wired) onGetChain(s network.Stream) {
 	}
 
 	var payload = &pb.GetChainPayload{}
+
 	err = proto.Unmarshal(data.Payload, payload)
 	if err != nil {
 		log.Error(err)
@@ -102,6 +108,7 @@ func (w *wired) onGetChain(s network.Stream) {
 	}
 
 	var blocks = make([]*ngtypes.Block, 0, ngtypes.BlockCheckRound)
+
 	for i := payload.From; i <= payload.To; i++ {
 		b, err := w.node.consensus.GetBlockByHeight(i)
 		if err != nil {

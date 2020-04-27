@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// checkBlock checks block before putting into chain
+// checkBlock checks block before putting into chain.
 func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 	if block.IsGenesis() {
 		return nil
@@ -24,7 +24,8 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 		if err != nil {
 			return err
 		}
-		if err = c.checkBlockTarget(block, prevBlock); err != nil {
+
+		if err := c.checkBlockTarget(block, prevBlock); err != nil {
 			return err
 		}
 	}
@@ -39,8 +40,11 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 func (c *Consensus) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
 	correctTarget := ngtypes.GetNextTarget(prevBlock)
 	blockTarget := new(big.Int).SetBytes(block.Header.Target)
+
 	if correctTarget.Cmp(blockTarget) != 0 {
-		return fmt.Errorf("wrong block target for block@%d, target in block: %x shall be %x", block.GetHeight(), blockTarget, correctTarget)
+		return fmt.Errorf("wrong block target for block@%d, target in block: %x shall be %x",
+			block.GetHeight(), blockTarget, correctTarget,
+		)
 	}
 
 	return nil

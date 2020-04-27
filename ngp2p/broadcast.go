@@ -75,6 +75,7 @@ func (b *broadcaster) blockListener(sub *pubsub.Subscription) {
 		if msg.GetFrom() == b.node.ID() {
 			continue
 		}
+
 		if err != nil {
 			log.Error(err)
 			continue
@@ -87,11 +88,12 @@ func (b *broadcaster) blockListener(sub *pubsub.Subscription) {
 func (b *broadcaster) txListener(sub *pubsub.Subscription) {
 	for {
 		msg, err := sub.Next(context.Background())
-		if msg.GetFrom() == b.node.ID() {
-			continue
-		}
 		if err != nil {
 			log.Error(err)
+			continue
+		}
+
+		if msg.GetFrom() == b.node.ID() {
 			continue
 		}
 

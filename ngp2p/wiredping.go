@@ -18,6 +18,7 @@ func (w *wired) ping(remotePeerID peer.ID) bool {
 
 	hashes := make([][]byte, 0)
 	latestHeight := w.node.consensus.GetLatestBlockHeight()
+
 	for i := uint64(0); i < ngtypes.BlockCheckRound; i++ {
 		if latestHeight < i {
 			break
@@ -28,6 +29,7 @@ func (w *wired) ping(remotePeerID peer.ID) bool {
 			log.Error(err)
 			return false
 		}
+
 		hash, _ := block.CalculateHash()
 		hashes = append(hashes, hash)
 	}
@@ -66,6 +68,7 @@ func (w *wired) ping(remotePeerID peer.ID) bool {
 	// store ref request so response handler has access to it
 	w.requests.Store(req.Header.Uuid, req)
 	log.Debugf("Sent ping to: %s was sent. Message Id: %s.", remotePeerID, req.Header.Uuid)
+
 	return true
 }
 
@@ -74,8 +77,10 @@ func (w *wired) onPing(s network.Stream) {
 	// get request data
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		_ = s.Reset()
 		log.Error(err)
+
+		_ = s.Reset()
+
 		return
 	}
 
@@ -84,9 +89,11 @@ func (w *wired) onPing(s network.Stream) {
 
 	// unmarshal it
 	var data = &pb.Message{}
+
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
 		log.Error(err)
+
 		go w.reject(remotePeerID, data.Header.Uuid)
 
 		return
@@ -98,9 +105,11 @@ func (w *wired) onPing(s network.Stream) {
 	}
 
 	var ping = &pb.PingPongPayload{}
+
 	err = proto.Unmarshal(data.Payload, ping)
 	if err != nil {
 		log.Error(err)
+
 		go w.reject(remotePeerID, data.Header.Uuid)
 
 		return

@@ -19,7 +19,7 @@ var (
 	txPrefix    = []byte("t")
 )
 
-// Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing
+// Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing.
 type Chain struct {
 	db *badger.DB
 
@@ -29,7 +29,7 @@ type Chain struct {
 
 var chain *Chain
 
-// NewChain will return a chain, but no initialization
+// NewChain will return a chain, but no initialization.
 func NewChain(db *badger.DB) *Chain {
 	if chain == nil {
 		chain = &Chain{

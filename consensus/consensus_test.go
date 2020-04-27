@@ -27,6 +27,7 @@ func TestNewConsensusManager(t *testing.T) {
 
 	chain := ngchain.NewChain(db)
 	chain.InitWithGenesis()
+
 	sheetManager := ngsheet.GetSheetManager()
 	txPool := txpool.NewTxPool(sheetManager)
 

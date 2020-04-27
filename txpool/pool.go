@@ -11,7 +11,7 @@ import (
 
 var log = logging.Logger("txpool")
 
-// TxPool is a little mem db which stores **signed** tx
+// TxPool is a little mem db which stores **signed** tx.
 type TxPool struct {
 	sync.RWMutex
 
@@ -26,7 +26,7 @@ type TxPool struct {
 
 var txpool *TxPool
 
-// NewTxPool will create a new global txpool
+// NewTxPool will create a new global txpool.
 func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	if txpool == nil {
 		txpool = &TxPool{
@@ -41,7 +41,7 @@ func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
 	return txpool
 }
 
-// GetTxPool will return the registered global txpool
+// GetTxPool will return the registered global txpool.
 func GetTxPool() *TxPool {
 	if txpool == nil {
 		panic("txpool is closed")
@@ -50,25 +50,23 @@ func GetTxPool() *TxPool {
 	return txpool
 }
 
-// Init inits the txPool with submodules
+// Init inits the txPool with submodules.
 func (p *TxPool) Init(newBlockCh chan *ngtypes.Block) {
 	p.newBlockCh = newBlockCh
 }
 
-// Run starts listening to the new block & vault
+// Run starts listening to the new block & vault.
 func (p *TxPool) Run() {
 	go func() {
 		for {
 			block := <-p.newBlockCh
 			log.Infof("start popping txs in block@%d", block.GetHeight())
 			p.DelBlockTxs(block.Txs...)
-
 		}
 	}()
 }
 
-// IsInPool checks one tx is in pool or not
-// TODO: export it into rpc
+// IsInPool checks one tx is in pool or not. TODO: export it into rpc.
 func (p *TxPool) IsInPool(tx *ngtypes.Tx) (exists bool) {
 	_, exists = p.Queuing[tx.GetConvener()]
 	if !exists {

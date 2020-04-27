@@ -16,6 +16,7 @@ func (c *Consensus) InitWithChain(chain ...*ngtypes.Block) error {
 	if err := c.checkChain(chain...); err != nil {
 		return fmt.Errorf("chain invalid: %s", err)
 	}
+
 	return c.Chain.InitWithChain(chain...)
 }
 
@@ -36,6 +37,7 @@ func (c *Consensus) PutNewChain(chain ...*ngtypes.Block) error {
 	if err := c.checkChain(chain...); err != nil {
 		return fmt.Errorf("chain invalid: %s", err)
 	}
+
 	return c.Chain.PutNewChain(chain...)
 }
 
@@ -46,5 +48,6 @@ func (c *Consensus) PutNewBlock(block *ngtypes.Block) error {
 	if err := c.checkBlock(block); err != nil {
 		return err
 	}
+
 	return c.Chain.PutNewBlock(block)
 }

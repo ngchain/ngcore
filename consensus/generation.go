@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// createGenerateTx will create a generate Tx for new Block
+// createGenerateTx will create a generate Tx for new Block.
 func (c *Consensus) createGenerateTx(privateKey *secp256k1.PrivateKey, extraData []byte) *ngtypes.Tx {
 	publicKeyBytes := utils.PublicKey2Bytes(*privateKey.PubKey())
 	gen := ngtypes.NewUnsignedTx(
@@ -20,6 +20,7 @@ func (c *Consensus) createGenerateTx(privateKey *secp256k1.PrivateKey, extraData
 		ngtypes.GetBig0(),
 		c.GetNextNonce(0),
 		extraData)
+
 	err := gen.Signature(privateKey)
 	if err != nil {
 		log.Error(err)

@@ -8,12 +8,11 @@ import (
 	"github.com/mr-tron/base58"
 )
 
+// network configure
 const (
-	Network = testnetNetworkID // for hard fork
-
-	mainnetNetworkID = 1
-
-	testnetNetworkID = -1
+	Network        = testnetNetwork  // for hard fork
+	mainnetNetwork = 1               // mainnet shall be positive
+	testnetNetwork = -mainnetNetwork // testnet shall be neg
 )
 
 // FIXME: before init network should manually init PK & Sign
@@ -33,19 +32,19 @@ var (
 
 // PoW const
 const (
-	TargetTime      = 1 * time.Minute
+	// MinimumDifficulty is the minimum of pow difficulty because my laptop has 50 h/s, I believe you can either
+	difficulty      = 50 * 60 * 20
+	TargetTime      = 1 * time.Minute // Target = MaxTarget / diff
 	BlockCheckRound = 10
 )
 
 // PoW variables
 var (
-	// MinimumDifficulty is the minimum of pow difficulty because my laptop has 50 h/s, I believe you can either
-	minimumDifficulty = big.NewInt(50 * 60 * 20)
-	// Target = MaxTarget / diff
-	maxTarget = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	minimumBigDifficulty = big.NewInt(difficulty)
+	maxTarget            = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
-	genesisTarget = new(big.Int).Div(maxTarget, minimumDifficulty)
 
+	genesisTarget    = new(big.Int).Div(maxTarget, minimumBigDifficulty)
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()
 )
 
@@ -73,18 +72,3 @@ var (
 	MicroNGSymbol     = "μNG"
 	OneBlockBigReward = new(big.Int).Mul(NG, big.NewInt(OneBlockNG)) // 10NG
 )
-
-// GetBig0 returns a new big 0.
-func GetBig0() *big.Int {
-	return big.NewInt(0)
-}
-
-// GetBig0Bytes returns a new big 0's bytes.
-func GetBig0Bytes() []byte {
-	return big.NewInt(0).Bytes()
-}
-
-// GetBig1 returns a new big 1.
-func GetBig1() *big.Int {
-	return big.NewInt(1)
-}

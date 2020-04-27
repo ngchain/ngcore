@@ -9,10 +9,11 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// GetTxByHash gets the tx with hash from db, so the tx must be applied
+// GetTxByHash gets the tx with hash from db, so the tx must be applied.
 func (c *Chain) GetTxByHash(hash []byte) (*ngtypes.Tx, error) {
 	var tx = &ngtypes.Tx{}
-	err := c.db.View(func(txn *badger.Txn) error {
+
+	if err := c.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(txPrefix, hash...))
 		if err != nil {
 			return err
@@ -31,8 +32,7 @@ func (c *Chain) GetTxByHash(hash []byte) (*ngtypes.Tx, error) {
 		}
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 

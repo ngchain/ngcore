@@ -213,11 +213,11 @@ func (x *Tx) CheckRegister() error {
 		return fmt.Errorf("register should have only one 0 value")
 	}
 
-	if new(big.Int).SetBytes(x.GetFee()).Cmp(new(big.Int).Mul(NG, big.NewInt(10))) < 0 {
-		return fmt.Errorf("register should have at least 10NG fee")
+	if new(big.Int).SetBytes(x.GetFee()).Cmp(OneBlockBigReward) < 0 {
+		return fmt.Errorf("register should have at least 10NG(one block reward) fee")
 	}
 
-	if len(x.GetExtra()) != 8 {
+	if len(x.GetExtra()) != 2<<3 {
 		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
 	}
 
