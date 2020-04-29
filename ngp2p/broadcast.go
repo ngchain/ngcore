@@ -9,7 +9,7 @@ import (
 const broadcastBlockTopic = "/ngp2p/broadcast/block/0.0.1"
 const broadcastTxTopic = "/ngp2p/broadcast/tx/0.0.1"
 
-type broadcaster struct {
+type broadcastProtocol struct {
 	PubSub *pubsub.PubSub
 	node   *LocalNode
 
@@ -17,10 +17,10 @@ type broadcaster struct {
 	subscriptions map[string]*pubsub.Subscription
 }
 
-func registerBroadcaster(node *LocalNode) *broadcaster {
+func registerBroadcaster(node *LocalNode) *broadcastProtocol {
 	var err error
 
-	b := &broadcaster{
+	b := &broadcastProtocol{
 		PubSub:        nil,
 		node:          node,
 		topics:        make(map[string]*pubsub.Topic),
@@ -54,28 +54,13 @@ func registerBroadcaster(node *LocalNode) *broadcaster {
 
 	go b.blockListener(b.subscriptions[broadcastBlockTopic])
 	go b.txListener(b.subscriptions[broadcastTxTopic])
-	go func() {
-		for {
-			select {
-			case block := <-b.node.consensus.MinedBlockToP2PCh:
-				b.broadcastBlock(block)
-
-			case tx := <-b.node.consensus.NewCreatedTxEvent:
-				b.broadcastTx(tx)
-			}
-		}
-	}()
 
 	return b
 }
 
-func (b *broadcaster) blockListener(sub *pubsub.Subscription) {
+func (b *broadcastProtocol) blockListener(sub *pubsub.Subscription) {
 	for {
 		msg, err := sub.Next(context.Background())
-		if msg.GetFrom() == b.node.ID() {
-			continue
-		}
-
 		if err != nil {
 			log.Error(err)
 			continue
@@ -85,15 +70,11 @@ func (b *broadcaster) blockListener(sub *pubsub.Subscription) {
 	}
 }
 
-func (b *broadcaster) txListener(sub *pubsub.Subscription) {
+func (b *broadcastProtocol) txListener(sub *pubsub.Subscription) {
 	for {
 		msg, err := sub.Next(context.Background())
 		if err != nil {
 			log.Error(err)
-			continue
-		}
-
-		if msg.GetFrom() == b.node.ID() {
 			continue
 		}
 

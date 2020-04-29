@@ -33,18 +33,17 @@ var (
 // PoW const
 const (
 	// MinimumDifficulty is the minimum of pow difficulty because my laptop has 50 h/s, I believe you can either
-	difficulty      = 50 * 60 * 20
-	TargetTime      = 1 * time.Minute // Target = MaxTarget / diff
+	difficulty      = 50 * 60 * 20 // Target = MaxTarget / diff
+	TargetTime      = 10 * time.Second
 	BlockCheckRound = 10
 )
 
 // PoW variables
 var (
 	minimumBigDifficulty = big.NewInt(difficulty)
-	maxTarget            = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	MaxTarget            = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
 
-	genesisTarget    = new(big.Int).Div(maxTarget, minimumBigDifficulty)
 	genesisTimestamp = time.Date(2020, time.February, 2, 2, 2, 2, 2, time.UTC).Unix()
 )
 
@@ -52,7 +51,10 @@ var (
 var (
 	BlockMaxTxsSize = 1 << 25 // 32M
 	TxMaxExtraSize  = 1 << 20 // if more than 1m, extra should be separated ot multi append
-	NonceSize       = 8       // nonce uses 8 bytes
+
+	TimestampSize = 8
+	HashSize      = 32
+	NonceSize     = 8 // nonce uses 8 bytes
 )
 
 // Unit consts

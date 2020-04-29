@@ -4,67 +4,67 @@ package ngtypes;
 option go_package = "github.com/ngchain/ngcore/ngtypes";
 
 message Account {
-    uint64 num = 1;
-    bytes owner = 2; // pk -> balance in anonymous fields
-    uint64 nonce = 4;
+  uint64 num = 1;
+  bytes owner = 2; // pk -> balance in anonymous fields
+  uint64 nonce = 4;
 
-    bytes contract = 5; // separate the code and state
-    bytes state = 6;
+  bytes contract = 5; // separate the code and state
+  bytes state = 6;
 }
 
 message BlockHeader {
-    uint64 height = 1;
-    int64 timestamp = 2;
+  uint64 height = 1;
+  int64 timestamp = 2;
 
-    bytes prev_block_hash = 3;
-    bytes sheet_hash = 4; // assemble vault into block
-    bytes trie_hash = 5;
+  bytes prev_block_hash = 3;
+  bytes sheet_hash = 4; // assemble vault into block
+  bytes trie_hash = 5;
 
-    bytes target = 6;
-    bytes nonce = 7;
+  bytes difficulty = 6; // diff = maxTarget / Big(header_hash)
+  bytes nonce = 7;
 }
 
 message Block {
-    int32 network = 1;
-    BlockHeader header = 2;
-    Sheet sheet = 3;
-    repeated Tx txs = 4; // miner should build the generate tx by themselves
+  int32 network = 1;
+  BlockHeader header = 2;
+  Sheet sheet = 3;
+  repeated Tx txs = 4; // miner should build the generate tx by themselves
 }
 
 enum TxType {
-    INVALID = 0;
-    GENERATE = 1;
-    REGISTER = 2;
-    LOGOUT = 3;
+  INVALID = 0;
+  GENERATE = 1;
+  REGISTER = 2;
+  LOGOUT = 3;
 
-    TRANSACTION = 10;
+  TRANSACTION = 10;
 
-    ASSIGN = 20;
-    APPEND = 21;
+  ASSIGN = 20;
+  APPEND = 21;
 }
 
 message TxHeader {
-    TxType type = 1;
+  TxType type = 1;
 
-    uint64 convener = 2; // account num required
-    repeated bytes participants = 3;
-    bytes fee = 4;
-    repeated bytes values = 5;
+  uint64 convener = 2; // account num required
+  repeated bytes participants = 3;
+  bytes fee = 4;
+  repeated bytes values = 5;
 
-    uint64 nonce = 6;
+  uint64 nonce = 6;
 
-    // extension
-    bytes extra = 7;
+  // extension
+  bytes extra = 7;
 }
 
 message Tx {
-    int32 network = 1;
-    TxHeader header = 2;
-    bytes sign = 3;
+  int32 network = 1;
+  TxHeader header = 2;
+  bytes sign = 3;
 }
 
 message Sheet {
-    map<uint64, Account> accounts = 2;
-    map<string, bytes> anonymous = 3; // map[hex(publicKey)]balance
+  map<uint64, Account> accounts = 2;
+  map<string, bytes> anonymous = 3; // map[hex(publicKey)]balance
 }
 

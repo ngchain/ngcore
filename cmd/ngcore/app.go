@@ -13,6 +13,8 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/dgraph-io/badger/v2"
+	"github.com/urfave/cli/v2"
+
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngchain"
@@ -20,7 +22,6 @@ import (
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/txpool"
-	"github.com/urfave/cli/v2"
 )
 
 var strictModeFlag = &cli.BoolFlag{

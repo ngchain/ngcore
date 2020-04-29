@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -38,13 +37,12 @@ func (c *Consensus) checkBlock(block *ngtypes.Block) error {
 }
 
 func (c *Consensus) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
-	correctTarget := ngtypes.GetNextTarget(prevBlock)
-	blockTarget := new(big.Int).SetBytes(block.Header.Target)
+	correctDiff := ngtypes.GetNextDiff(prevBlock)
+	actualDiff := block.GetActualDiff()
 
-	if correctTarget.Cmp(blockTarget) != 0 {
-		return fmt.Errorf("wrong block target for block@%d, target in block: %x shall be %x",
-			block.GetHeight(), blockTarget, correctTarget,
-		)
+	if actualDiff.Cmp(correctDiff) < 0 {
+		return fmt.Errorf("wrong block diff for block@%d, diff in block: %x shall be %x",
+			block.GetHeight(), actualDiff, correctDiff)
 	}
 
 	return nil

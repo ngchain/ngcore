@@ -1,6 +1,7 @@
 package ngp2p
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/libp2p/go-libp2p-core/network"
@@ -13,7 +14,7 @@ import (
 )
 
 // chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) bool {
+func (w *wiredProtocol) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) bool {
 	if len(blocks) == 0 {
 		return false
 	}
@@ -22,8 +23,7 @@ func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) boo
 		peerID, uuid, blocks[0].GetHeight())
 
 	payload, err := utils.Proto.Marshal(&pb.ChainPayload{
-		Blocks:       blocks,
-		LatestHeight: w.node.consensus.GetLatestBlockHeight(),
+		Blocks: blocks,
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -60,14 +60,10 @@ func (w *wired) chain(peerID peer.ID, uuid string, blocks ...*ngtypes.Block) boo
 	return true
 }
 
-func (w *wired) onChain(s network.Stream) {
+func (w *wiredProtocol) onChain(s network.Stream) (*pb.ChainPayload, error) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
-		log.Error(err)
-
-		_ = s.Reset()
-
-		return
+		return nil, err
 	}
 
 	// unmarshal it
@@ -75,52 +71,36 @@ func (w *wired) onChain(s network.Stream) {
 	err = proto.Unmarshal(buf, data)
 
 	if err != nil {
-		log.Error(err)
-
-		return
+		return nil, err
 	}
 
 	if !w.node.verifyResponse(data) {
-		log.Errorf("Failed to verify response")
-
-		return
+		return nil, fmt.Errorf("failed to verify response")
 	}
 
-	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
-		log.Errorf("Failed to authenticate message")
-
-		return
+	if !w.node.verifyMessage(s.Conn().RemotePeer(), data) {
+		return nil, fmt.Errorf("failed to verify message")
 	}
 
 	var payload = &pb.ChainPayload{}
 
 	err = proto.Unmarshal(data.Payload, payload)
 	if err != nil {
-		log.Error(err)
-
-		return
+		return nil, err
 	}
 
 	remotePeerID := s.Conn().RemotePeer()
 	_ = s.Close()
 
 	if len(payload.Blocks) == 0 {
-		return
+		return nil, fmt.Errorf("blocks filed is empty")
 	}
 
-	log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d LatestHeight: %d.",
+	log.Debugf("Received chain from %s. Message id:%s. From: %d To: %d.",
 		remotePeerID, data.Header.Uuid,
 		payload.Blocks[0].GetHeight(),
 		payload.Blocks[len(payload.Blocks)-1].GetHeight(),
-		payload.LatestHeight,
 	)
 
-	w.node.RemoteHeights.Store(remotePeerID, payload.LatestHeight)
-
-	if w.forkManager.enabled.Load() {
-		localBlockHeight := w.node.consensus.GetLatestBlockHeight()
-		if localBlockHeight+ngtypes.BlockCheckRound < payload.LatestHeight {
-			go w.node.forkManager.handleChain(remotePeerID, payload)
-		}
-	}
+	return payload, nil
 }

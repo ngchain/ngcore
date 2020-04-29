@@ -3,8 +3,9 @@ package main
 import (
 	"strings"
 
-	"github.com/ngchain/ngcore/keytools"
 	"github.com/urfave/cli/v2"
+
+	"github.com/ngchain/ngcore/keytools"
 )
 
 func getKeyToolsCommand() *cli.Command {

@@ -10,9 +10,9 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
-// notFound will reply notFound message to remote node.
-func (w *wired) notFound(peerID peer.ID, uuid string) {
-	log.Debugf("Sending notfound to %s. Message id: %s...", peerID, uuid)
+// reject will reply reject message to remote node.
+func (w *wiredProtocol) reject(peerID peer.ID, uuid string) {
+	log.Debugf("Sending reject to %s. Message id: %s...", peerID, uuid)
 
 	resp := &pb.Message{
 		Header:  w.node.NewHeader(uuid),
@@ -30,13 +30,13 @@ func (w *wired) notFound(peerID peer.ID, uuid string) {
 	resp.Header.Sign = signature
 
 	// send the response
-	if ok := w.node.sendProtoMessage(peerID, notfoundMethod, resp); ok {
-		log.Debugf("notfound to %s sent.", peerID)
+	if ok := w.node.sendProtoMessage(peerID, rejectMethod, resp); ok {
+		log.Debugf("reject to %s sent.", peerID)
 	}
 }
 
-// onNotFound is a remote notfound handler.
-func (w *wired) onNotFound(s network.Stream) {
+// remote reject handler.
+func (w *wiredProtocol) onReject(s network.Stream) {
 	buf, err := ioutil.ReadAll(s)
 	if err != nil {
 		log.Error(err)
@@ -46,6 +46,7 @@ func (w *wired) onNotFound(s network.Stream) {
 		return
 	}
 
+	remotePeerID := s.Conn().RemotePeer()
 	_ = s.Close()
 
 	// unmarshal it
@@ -64,14 +65,11 @@ func (w *wired) onNotFound(s network.Stream) {
 		return
 	}
 
-	if !w.node.authenticateMessage(s.Conn().RemotePeer(), data) {
+	if !w.node.verifyMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 
 		return
 	}
 
-	remoteID := s.Conn().RemotePeer()
-	_ = s.Close()
-
-	log.Debugf("Received notfound from %s. Message id:%s. Message: %s.", remoteID, data.Header.Uuid, data.Payload)
+	log.Debugf("Received reject from %s. Message id:%s. Message: %s.", remotePeerID, data.Header.Uuid, data.Payload)
 }

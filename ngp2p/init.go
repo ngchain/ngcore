@@ -25,8 +25,6 @@ func (n *LocalNode) connectBootstrapNodes() {
 		if err != nil {
 			panic(err)
 		}
-
-		n.ping(targetInfo.ID)
 	}
 }
 

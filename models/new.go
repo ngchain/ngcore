@@ -81,7 +81,7 @@ func NewBlock(block *ngtypes.Block) *Block {
 			Nonce:         hex.EncodeToString(block.Header.Nonce),
 			PrevBlockHash: hex.EncodeToString(block.Header.PrevBlockHash),
 			SheetHash:     hex.EncodeToString(block.Header.SheetHash),
-			Target:        hex.EncodeToString(block.Header.Target),
+			Difficulty:    hex.EncodeToString(block.Header.Difficulty),
 			TrieHash:      hex.EncodeToString(block.Header.TrieHash),
 			Timestamp:     block.Header.Timestamp,
 		},

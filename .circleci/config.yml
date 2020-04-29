@@ -7,10 +7,10 @@ jobs:
     steps:
       - checkout
       - restore_cache: # restores saved cache if no changes are detected since last run
-          keys: 
+          keys:
             - go-mod-{{ arch }}-{{ checksum "go.sum" }}
             - go-mod-
-            
+
       - run:
           name: test
           command: go vet ./... && go test ./...

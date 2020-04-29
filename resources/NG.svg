@@ -1,21 +1,21 @@
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 64 64">
     <style>
         .st0 {
-            fill: #353535;
+        fill: #353535;
         }
         .st1 {
-            fill: #464646
+        fill: #464646
         }
         .st2 {
-            fill: #242424
+        fill: #242424
         }
         .st3 {
-            fill: #222222
+        fill: #222222
         }
     </style>
 
-    <path class="st3" d="M 8 12 L 8 60 L 16 52 L 16 4" />
+    <path class="st3" d="M 8 12 L 8 60 L 16 52 L 16 4"/>
     <path class="st1" d="M 32 32  L 16 4 L  8 12  "/>
     <path class="st2" d="M 32 32 L 48 60 L 56 52"/>
-    <path class="st0" d="M 48 12 L 48 60 L 56 52 L 56 4 " />
+    <path class="st0" d="M 48 12 L 48 60 L 56 52 L 56 4 "/>
 </svg>

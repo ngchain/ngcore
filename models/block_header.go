@@ -15,6 +15,9 @@ import (
 // swagger:model blockHeader
 type BlockHeader struct {
 
+	// difficulty
+	Difficulty string `json:"difficulty,omitempty"`
+
 	// height
 	Height int64 `json:"height,omitempty"`
 
@@ -26,9 +29,6 @@ type BlockHeader struct {
 
 	// sheet hash
 	SheetHash string `json:"sheet_hash,omitempty"`
-
-	// target
-	Target string `json:"target,omitempty"`
 
 	// timestamp
 	Timestamp int64 `json:"timestamp,omitempty"`

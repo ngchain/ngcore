@@ -361,6 +361,9 @@ func init() {
     },
     "blockHeader": {
       "properties": {
+        "difficulty": {
+          "type": "string"
+        },
         "height": {
           "type": "integer"
         },
@@ -371,9 +374,6 @@ func init() {
           "type": "string"
         },
         "sheet_hash": {
-          "type": "string"
-        },
-        "target": {
           "type": "string"
         },
         "timestamp": {
@@ -793,6 +793,9 @@ func init() {
     },
     "blockHeader": {
       "properties": {
+        "difficulty": {
+          "type": "string"
+        },
         "height": {
           "type": "integer"
         },
@@ -803,9 +806,6 @@ func init() {
           "type": "string"
         },
         "sheet_hash": {
-          "type": "string"
-        },
-        "target": {
           "type": "string"
         },
         "timestamp": {

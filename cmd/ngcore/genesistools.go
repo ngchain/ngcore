@@ -50,7 +50,8 @@ var genesistoolsCommand = &cli.Command{
 }
 
 func genBlockNonce(b *ngtypes.Block) {
-	genesisTarget := new(big.Int).SetBytes(b.Header.Target)
+	diff := new(big.Int).SetBytes(b.Header.GetDifficulty())
+	genesisTarget := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
 	nCh := make(chan []byte, 1)
 	stopCh := make(chan struct{}, 1)

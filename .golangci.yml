@@ -158,15 +158,15 @@ linters-settings:
   gomodguard:
     allowed:
       modules:                                                        # List of allowed modules
-        # - gopkg.in/yaml.v2
+      # - gopkg.in/yaml.v2
       domains:                                                        # List of allowed module domains
-        # - golang.org
+      # - golang.org
     blocked:
       modules:                                                        # List of blocked modules
-        # - github.com/uudashr/go-module:                             # Blocked module
-        #     recommendations:                                        # Recommended modules that should be used instead (Optional)
-        #       - golang.org/x/mod                           
-        #     reason: "`mod` is the official go.mod parser library."  # Reason why the recommended module should be used (Optional)    
+      # - github.com/uudashr/go-module:                             # Blocked module
+      #     recommendations:                                        # Recommended modules that should be used instead (Optional)
+      #       - golang.org/x/mod
+      #     reason: "`mod` is the official go.mod parser library."  # Reason why the recommended module should be used (Optional)
   govet:
     # report about shadowed variables
     check-shadowing: true
@@ -266,21 +266,21 @@ linters-settings:
     # Allow leading comments to be separated with empty liens
     allow-separated-leading-comment: false
 
-  # The custom section can be used to define linter plugins to be loaded at runtime. See README doc
-  #  for more info.
-  # custom:
-    # Each custom linter should have a unique name.
-    #  example:
+      # The custom section can be used to define linter plugins to be loaded at runtime. See README doc
+      #  for more info.
+      # custom:
+      # Each custom linter should have a unique name.
+      #  example:
       # The path to the plugin *.so. Can be absolute or local. Required for each custom linter
       # path: /path/to/example.so
       # The description of the linter. Optional, just for documentation purposes.
-      # description: This is an example usage of a plugin linter.
-      # Intended to point to the repo location of the linter. Optional, just for documentation purposes.
-      # original-url: github.com/golangci/example-linter
+    # description: This is an example usage of a plugin linter.
+    # Intended to point to the repo location of the linter. Optional, just for documentation purposes.
+    # original-url: github.com/golangci/example-linter
 
 linters:
   enable-all: true
-  disable:  
+  disable:
     - gochecknoglobals
   fast: false
 
@@ -317,7 +317,7 @@ issues:
 
     # Exclude lll issues for long lines with go:generate
     - linters:
-      - lll
+        - lll
       source: "^//go:generate "
 
   # Independently from option `exclude` we use default exclude patterns,

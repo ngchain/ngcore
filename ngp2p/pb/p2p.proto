@@ -7,43 +7,49 @@ import "ngtypes/types.proto";
 
 /* common */
 message Header {
-    int32 network_id = 1;
+  int32 network_id = 1;
 
-    string uuid = 2;
-    int64 timestamp = 3;
+  string uuid = 2;
+  int64 timestamp = 3;
 
-    bytes peer_key = 5; // act as the node ID
-    bytes sign = 6;
+  bytes peer_key = 5; // act as the node ID
+  bytes sign = 6;
 }
 
 // a protocol define a set of requests and responses
 message Message {
-    Header header = 1;
-    bytes payload = 2;
+  Header header = 1;
+  bytes payload = 2;
 }
 
 /* wired */
-message PingPongPayload {
-    uint64 latest_height = 1;
-    repeated bytes latest_hashes = 2;
+message PingPayload {
+  uint64 from = 1;
+  uint64 latest = 2;
+  bytes checkpoint_hash = 3;
+}
+
+message PongPayload {
+  uint64 from = 1;
+  uint64 latest = 2;
+  bytes checkpoint_hash = 3;
+}
+
+enum ChainType {
+  Invalid = 0;
+  Blocks = 1;
+  Headers = 2;
+  Hashes = 3;
 }
 
 message GetChainPayload {
-    uint64 from = 1;
-    uint64 to = 2;
+  ChainType type = 1;
+  repeated bytes from = 2; // beginning hashes
+  bytes to = 3; // ending hash
 }
 
 message ChainPayload {
-    uint64 latest_height = 1;
-    repeated ngtypes.Block blocks = 2;
+  repeated bytes hashes = 2;
+  repeated ngtypes.BlockHeader headers = 3;
+  repeated ngtypes.Block blocks = 4;
 }
-
-message GetPoolPayload {
-}
-
-message PoolPayload {
-    repeated ngtypes.Tx txs = 1;
-}
-
-/* broadcast(pub-sub) */
-

@@ -26,6 +26,58 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+type ChainType int32
+
+const (
+	ChainType_Invalid ChainType = 0
+	ChainType_Blocks  ChainType = 1
+	ChainType_Headers ChainType = 2
+	ChainType_Hashes  ChainType = 3
+)
+
+// Enum value maps for ChainType.
+var (
+	ChainType_name = map[int32]string{
+		0: "Invalid",
+		1: "Blocks",
+		2: "Headers",
+		3: "Hashes",
+	}
+	ChainType_value = map[string]int32{
+		"Invalid": 0,
+		"Blocks":  1,
+		"Headers": 2,
+		"Hashes":  3,
+	}
+)
+
+func (x ChainType) Enum() *ChainType {
+	p := new(ChainType)
+	*p = x
+	return p
+}
+
+func (x ChainType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChainType) Descriptor() protoreflect.EnumDescriptor {
+	return file_p2p_proto_enumTypes[0].Descriptor()
+}
+
+func (ChainType) Type() protoreflect.EnumType {
+	return &file_p2p_proto_enumTypes[0]
+}
+
+func (x ChainType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChainType.Descriptor instead.
+func (ChainType) EnumDescriptor() ([]byte, []int) {
+	return file_p2p_proto_rawDescGZIP(), []int{0}
+}
+
 // common
 type Header struct {
 	state         protoimpl.MessageState
@@ -163,17 +215,18 @@ func (x *Message) GetPayload() []byte {
 }
 
 // wired
-type PingPongPayload struct {
+type PingPayload struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	LatestHeight uint64   `protobuf:"varint,1,opt,name=latest_height,json=latestHeight,proto3" json:"latest_height,omitempty"`
-	LatestHashes [][]byte `protobuf:"bytes,2,rep,name=latest_hashes,json=latestHashes,proto3" json:"latest_hashes,omitempty"`
+	From           uint64 `protobuf:"varint,1,opt,name=from,proto3" json:"from,omitempty"`
+	Latest         uint64 `protobuf:"varint,2,opt,name=latest,proto3" json:"latest,omitempty"`
+	CheckpointHash []byte `protobuf:"bytes,3,opt,name=checkpoint_hash,json=checkpointHash,proto3" json:"checkpoint_hash,omitempty"`
 }
 
-func (x *PingPongPayload) Reset() {
-	*x = PingPongPayload{}
+func (x *PingPayload) Reset() {
+	*x = PingPayload{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_p2p_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -181,13 +234,13 @@ func (x *PingPongPayload) Reset() {
 	}
 }
 
-func (x *PingPongPayload) String() string {
+func (x *PingPayload) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PingPongPayload) ProtoMessage() {}
+func (*PingPayload) ProtoMessage() {}
 
-func (x *PingPongPayload) ProtoReflect() protoreflect.Message {
+func (x *PingPayload) ProtoReflect() protoreflect.Message {
 	mi := &file_p2p_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -199,21 +252,91 @@ func (x *PingPongPayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PingPongPayload.ProtoReflect.Descriptor instead.
-func (*PingPongPayload) Descriptor() ([]byte, []int) {
+// Deprecated: Use PingPayload.ProtoReflect.Descriptor instead.
+func (*PingPayload) Descriptor() ([]byte, []int) {
 	return file_p2p_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *PingPongPayload) GetLatestHeight() uint64 {
+func (x *PingPayload) GetFrom() uint64 {
 	if x != nil {
-		return x.LatestHeight
+		return x.From
 	}
 	return 0
 }
 
-func (x *PingPongPayload) GetLatestHashes() [][]byte {
+func (x *PingPayload) GetLatest() uint64 {
 	if x != nil {
-		return x.LatestHashes
+		return x.Latest
+	}
+	return 0
+}
+
+func (x *PingPayload) GetCheckpointHash() []byte {
+	if x != nil {
+		return x.CheckpointHash
+	}
+	return nil
+}
+
+type PongPayload struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	From           uint64 `protobuf:"varint,1,opt,name=from,proto3" json:"from,omitempty"`
+	Latest         uint64 `protobuf:"varint,2,opt,name=latest,proto3" json:"latest,omitempty"`
+	CheckpointHash []byte `protobuf:"bytes,3,opt,name=checkpoint_hash,json=checkpointHash,proto3" json:"checkpoint_hash,omitempty"`
+}
+
+func (x *PongPayload) Reset() {
+	*x = PongPayload{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_p2p_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PongPayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PongPayload) ProtoMessage() {}
+
+func (x *PongPayload) ProtoReflect() protoreflect.Message {
+	mi := &file_p2p_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PongPayload.ProtoReflect.Descriptor instead.
+func (*PongPayload) Descriptor() ([]byte, []int) {
+	return file_p2p_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PongPayload) GetFrom() uint64 {
+	if x != nil {
+		return x.From
+	}
+	return 0
+}
+
+func (x *PongPayload) GetLatest() uint64 {
+	if x != nil {
+		return x.Latest
+	}
+	return 0
+}
+
+func (x *PongPayload) GetCheckpointHash() []byte {
+	if x != nil {
+		return x.CheckpointHash
 	}
 	return nil
 }
@@ -223,14 +346,15 @@ type GetChainPayload struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	From uint64 `protobuf:"varint,1,opt,name=from,proto3" json:"from,omitempty"`
-	To   uint64 `protobuf:"varint,2,opt,name=to,proto3" json:"to,omitempty"`
+	Type ChainType `protobuf:"varint,1,opt,name=type,proto3,enum=pb.ChainType" json:"type,omitempty"`
+	From [][]byte  `protobuf:"bytes,2,rep,name=from,proto3" json:"from,omitempty"` // beginning hashes
+	To   []byte    `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`     // ending hash
 }
 
 func (x *GetChainPayload) Reset() {
 	*x = GetChainPayload{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_proto_msgTypes[3]
+		mi := &file_p2p_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -243,7 +367,7 @@ func (x *GetChainPayload) String() string {
 func (*GetChainPayload) ProtoMessage() {}
 
 func (x *GetChainPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_proto_msgTypes[3]
+	mi := &file_p2p_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -256,21 +380,28 @@ func (x *GetChainPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChainPayload.ProtoReflect.Descriptor instead.
 func (*GetChainPayload) Descriptor() ([]byte, []int) {
-	return file_p2p_proto_rawDescGZIP(), []int{3}
+	return file_p2p_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetChainPayload) GetFrom() uint64 {
+func (x *GetChainPayload) GetType() ChainType {
+	if x != nil {
+		return x.Type
+	}
+	return ChainType_Invalid
+}
+
+func (x *GetChainPayload) GetFrom() [][]byte {
 	if x != nil {
 		return x.From
 	}
-	return 0
+	return nil
 }
 
-func (x *GetChainPayload) GetTo() uint64 {
+func (x *GetChainPayload) GetTo() []byte {
 	if x != nil {
 		return x.To
 	}
-	return 0
+	return nil
 }
 
 type ChainPayload struct {
@@ -278,14 +409,15 @@ type ChainPayload struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Blocks       []*ngtypes.Block `protobuf:"bytes,2,rep,name=blocks,proto3" json:"blocks,omitempty"`
-	LatestHeight uint64           `protobuf:"varint,3,opt,name=latest_height,json=latestHeight,proto3" json:"latest_height,omitempty"`
+	Hashes  [][]byte               `protobuf:"bytes,2,rep,name=hashes,proto3" json:"hashes,omitempty"`
+	Headers []*ngtypes.BlockHeader `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty"`
+	Blocks  []*ngtypes.Block       `protobuf:"bytes,4,rep,name=blocks,proto3" json:"blocks,omitempty"`
 }
 
 func (x *ChainPayload) Reset() {
 	*x = ChainPayload{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_proto_msgTypes[4]
+		mi := &file_p2p_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -298,7 +430,7 @@ func (x *ChainPayload) String() string {
 func (*ChainPayload) ProtoMessage() {}
 
 func (x *ChainPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_proto_msgTypes[4]
+	mi := &file_p2p_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -311,104 +443,26 @@ func (x *ChainPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChainPayload.ProtoReflect.Descriptor instead.
 func (*ChainPayload) Descriptor() ([]byte, []int) {
-	return file_p2p_proto_rawDescGZIP(), []int{4}
+	return file_p2p_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ChainPayload) GetHashes() [][]byte {
+	if x != nil {
+		return x.Hashes
+	}
+	return nil
+}
+
+func (x *ChainPayload) GetHeaders() []*ngtypes.BlockHeader {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
 }
 
 func (x *ChainPayload) GetBlocks() []*ngtypes.Block {
 	if x != nil {
 		return x.Blocks
-	}
-	return nil
-}
-
-func (x *ChainPayload) GetLatestHeight() uint64 {
-	if x != nil {
-		return x.LatestHeight
-	}
-	return 0
-}
-
-type GetPoolPayload struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *GetPoolPayload) Reset() {
-	*x = GetPoolPayload{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *GetPoolPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPoolPayload) ProtoMessage() {}
-
-func (x *GetPoolPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPoolPayload.ProtoReflect.Descriptor instead.
-func (*GetPoolPayload) Descriptor() ([]byte, []int) {
-	return file_p2p_proto_rawDescGZIP(), []int{5}
-}
-
-type PoolPayload struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Txs []*ngtypes.Tx `protobuf:"bytes,1,rep,name=txs,proto3" json:"txs,omitempty"`
-}
-
-func (x *PoolPayload) Reset() {
-	*x = PoolPayload{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_p2p_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *PoolPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PoolPayload) ProtoMessage() {}
-
-func (x *PoolPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_p2p_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PoolPayload.ProtoReflect.Descriptor instead.
-func (*PoolPayload) Descriptor() ([]byte, []int) {
-	return file_p2p_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *PoolPayload) GetTxs() []*ngtypes.Tx {
-	if x != nil {
-		return x.Txs
 	}
 	return nil
 }
@@ -431,26 +485,37 @@ var file_p2p_proto_rawDesc = []byte{
 	0x61, 0x64, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x70, 0x62, 0x2e,
 	0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x52, 0x06, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x12, 0x18,
 	0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52,
-	0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x5b, 0x0a, 0x0f, 0x50, 0x69, 0x6e, 0x67,
-	0x50, 0x6f, 0x6e, 0x67, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x23, 0x0a, 0x0d, 0x6c,
-	0x61, 0x74, 0x65, 0x73, 0x74, 0x5f, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x04, 0x52, 0x0c, 0x6c, 0x61, 0x74, 0x65, 0x73, 0x74, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74,
-	0x12, 0x23, 0x0a, 0x0d, 0x6c, 0x61, 0x74, 0x65, 0x73, 0x74, 0x5f, 0x68, 0x61, 0x73, 0x68, 0x65,
-	0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x0c, 0x6c, 0x61, 0x74, 0x65, 0x73, 0x74, 0x48,
-	0x61, 0x73, 0x68, 0x65, 0x73, 0x22, 0x35, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x43, 0x68, 0x61, 0x69,
-	0x6e, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12, 0x0e, 0x0a, 0x02,
-	0x74, 0x6f, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x02, 0x74, 0x6f, 0x22, 0x5b, 0x0a, 0x0c,
-	0x43, 0x68, 0x61, 0x69, 0x6e, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x26, 0x0a, 0x06,
-	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x6e,
-	0x67, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x06, 0x62, 0x6c,
-	0x6f, 0x63, 0x6b, 0x73, 0x12, 0x23, 0x0a, 0x0d, 0x6c, 0x61, 0x74, 0x65, 0x73, 0x74, 0x5f, 0x68,
-	0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0c, 0x6c, 0x61, 0x74,
-	0x65, 0x73, 0x74, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74, 0x22, 0x10, 0x0a, 0x0e, 0x47, 0x65, 0x74,
-	0x50, 0x6f, 0x6f, 0x6c, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x2c, 0x0a, 0x0b, 0x50,
-	0x6f, 0x6f, 0x6c, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x1d, 0x0a, 0x03, 0x74, 0x78,
-	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x6e, 0x67, 0x74, 0x79, 0x70, 0x65,
-	0x73, 0x2e, 0x54, 0x78, 0x52, 0x03, 0x74, 0x78, 0x73, 0x42, 0x24, 0x5a, 0x22, 0x67, 0x69, 0x74,
+	0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x62, 0x0a, 0x0b, 0x50, 0x69, 0x6e, 0x67,
+	0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12, 0x16, 0x0a, 0x06, 0x6c,
+	0x61, 0x74, 0x65, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x6c, 0x61, 0x74,
+	0x65, 0x73, 0x74, 0x12, 0x27, 0x0a, 0x0f, 0x63, 0x68, 0x65, 0x63, 0x6b, 0x70, 0x6f, 0x69, 0x6e,
+	0x74, 0x5f, 0x68, 0x61, 0x73, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0e, 0x63, 0x68,
+	0x65, 0x63, 0x6b, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x48, 0x61, 0x73, 0x68, 0x22, 0x62, 0x0a, 0x0b,
+	0x50, 0x6f, 0x6e, 0x67, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x66,
+	0x72, 0x6f, 0x6d, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12,
+	0x16, 0x0a, 0x06, 0x6c, 0x61, 0x74, 0x65, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52,
+	0x06, 0x6c, 0x61, 0x74, 0x65, 0x73, 0x74, 0x12, 0x27, 0x0a, 0x0f, 0x63, 0x68, 0x65, 0x63, 0x6b,
+	0x70, 0x6f, 0x69, 0x6e, 0x74, 0x5f, 0x68, 0x61, 0x73, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c,
+	0x52, 0x0e, 0x63, 0x68, 0x65, 0x63, 0x6b, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x48, 0x61, 0x73, 0x68,
+	0x22, 0x58, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x43, 0x68, 0x61, 0x69, 0x6e, 0x50, 0x61, 0x79, 0x6c,
+	0x6f, 0x61, 0x64, 0x12, 0x21, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0e, 0x32, 0x0d, 0x2e, 0x70, 0x62, 0x2e, 0x43, 0x68, 0x61, 0x69, 0x6e, 0x54, 0x79, 0x70, 0x65,
+	0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x18, 0x02,
+	0x20, 0x03, 0x28, 0x0c, 0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12, 0x0e, 0x0a, 0x02, 0x74, 0x6f,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x02, 0x74, 0x6f, 0x22, 0x7e, 0x0a, 0x0c, 0x43, 0x68,
+	0x61, 0x69, 0x6e, 0x50, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x61,
+	0x73, 0x68, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x06, 0x68, 0x61, 0x73, 0x68,
+	0x65, 0x73, 0x12, 0x2e, 0x0a, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18, 0x03, 0x20,
+	0x03, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x6e, 0x67, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x42, 0x6c,
+	0x6f, 0x63, 0x6b, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x52, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65,
+	0x72, 0x73, 0x12, 0x26, 0x0a, 0x06, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x18, 0x04, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x6e, 0x67, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x42, 0x6c, 0x6f,
+	0x63, 0x6b, 0x52, 0x06, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x2a, 0x3d, 0x0a, 0x09, 0x43, 0x68,
+	0x61, 0x69, 0x6e, 0x54, 0x79, 0x70, 0x65, 0x12, 0x0b, 0x0a, 0x07, 0x49, 0x6e, 0x76, 0x61, 0x6c,
+	0x69, 0x64, 0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x10, 0x01,
+	0x12, 0x0b, 0x0a, 0x07, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x10, 0x02, 0x12, 0x0a, 0x0a,
+	0x06, 0x48, 0x61, 0x73, 0x68, 0x65, 0x73, 0x10, 0x03, 0x42, 0x24, 0x5a, 0x22, 0x67, 0x69, 0x74,
 	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6e, 0x67, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x2f,
 	0x6e, 0x67, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x6e, 0x67, 0x70, 0x32, 0x70, 0x2f, 0x70, 0x62, 0x62,
 	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
@@ -468,27 +533,29 @@ func file_p2p_proto_rawDescGZIP() []byte {
 	return file_p2p_proto_rawDescData
 }
 
-var file_p2p_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_p2p_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_p2p_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_p2p_proto_goTypes = []interface{}{
-	(*Header)(nil),          // 0: pb.Header
-	(*Message)(nil),         // 1: pb.Message
-	(*PingPongPayload)(nil), // 2: pb.PingPongPayload
-	(*GetChainPayload)(nil), // 3: pb.GetChainPayload
-	(*ChainPayload)(nil),    // 4: pb.ChainPayload
-	(*GetPoolPayload)(nil),  // 5: pb.GetPoolPayload
-	(*PoolPayload)(nil),     // 6: pb.PoolPayload
-	(*ngtypes.Block)(nil),   // 7: ngtypes.Block
-	(*ngtypes.Tx)(nil),      // 8: ngtypes.Tx
+	(ChainType)(0),              // 0: pb.ChainType
+	(*Header)(nil),              // 1: pb.Header
+	(*Message)(nil),             // 2: pb.Message
+	(*PingPayload)(nil),         // 3: pb.PingPayload
+	(*PongPayload)(nil),         // 4: pb.PongPayload
+	(*GetChainPayload)(nil),     // 5: pb.GetChainPayload
+	(*ChainPayload)(nil),        // 6: pb.ChainPayload
+	(*ngtypes.BlockHeader)(nil), // 7: ngtypes.BlockHeader
+	(*ngtypes.Block)(nil),       // 8: ngtypes.Block
 }
 var file_p2p_proto_depIdxs = []int32{
-	0, // 0: pb.Message.header:type_name -> pb.Header
-	7, // 1: pb.ChainPayload.blocks:type_name -> ngtypes.Block
-	8, // 2: pb.PoolPayload.txs:type_name -> ngtypes.Tx
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 0: pb.Message.header:type_name -> pb.Header
+	0, // 1: pb.GetChainPayload.type:type_name -> pb.ChainType
+	7, // 2: pb.ChainPayload.headers:type_name -> ngtypes.BlockHeader
+	8, // 3: pb.ChainPayload.blocks:type_name -> ngtypes.Block
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_p2p_proto_init() }
@@ -522,7 +589,7 @@ func file_p2p_proto_init() {
 			}
 		}
 		file_p2p_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PingPongPayload); i {
+			switch v := v.(*PingPayload); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -534,7 +601,7 @@ func file_p2p_proto_init() {
 			}
 		}
 		file_p2p_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetChainPayload); i {
+			switch v := v.(*PongPayload); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -546,7 +613,7 @@ func file_p2p_proto_init() {
 			}
 		}
 		file_p2p_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ChainPayload); i {
+			switch v := v.(*GetChainPayload); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -558,19 +625,7 @@ func file_p2p_proto_init() {
 			}
 		}
 		file_p2p_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPoolPayload); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_p2p_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PoolPayload); i {
+			switch v := v.(*ChainPayload); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -587,13 +642,14 @@ func file_p2p_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_p2p_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   7,
+			NumEnums:      1,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_p2p_proto_goTypes,
 		DependencyIndexes: file_p2p_proto_depIdxs,
+		EnumInfos:         file_p2p_proto_enumTypes,
 		MessageInfos:      file_p2p_proto_msgTypes,
 	}.Build()
 	File_p2p_proto = out.File

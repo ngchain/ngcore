@@ -47,20 +47,33 @@ func (x *Block) IsGenesis() bool {
 func (x *Block) GetPoWBlob(nonce []byte) []byte {
 	h := x.GetHeader()
 
-	lenWithoutNonce := len(h.GetPrevBlockHash()) + len(h.GetSheetHash()) +
-		len(h.GetTrieHash()) + 2<<3 + len(h.GetTarget())
-	raw := make([]byte, lenWithoutNonce+NonceSize)
+	lenRaw := HashSize + HashSize + HashSize +
+		TimestampSize + // timestamp
+		len(h.GetDifficulty()) + // unknown length
+		NonceSize
+	raw := make([]byte, lenRaw)
 
-	copy(raw[0:32], h.GetPrevBlockHash())
-	copy(raw[32:64], h.GetSheetHash())
-	copy(raw[64:96], h.GetTrieHash())
-	binary.LittleEndian.PutUint64(raw[96:104], uint64(h.GetTimestamp()))
-	copy(raw[104:136], h.GetTarget()) // uint256
+	l := 0
+
+	copy(raw[l:l+HashSize], h.GetPrevBlockHash())
+	l += HashSize
+
+	copy(raw[l:l+HashSize], h.GetSheetHash())
+	l += HashSize
+
+	copy(raw[l:l+HashSize], h.GetTrieHash())
+	l += HashSize
+
+	binary.LittleEndian.PutUint64(raw[l:l+TimestampSize], uint64(h.GetTimestamp()))
+	l += TimestampSize
+
+	copy(raw[l:l+HashSize], h.GetDifficulty()) // uint256
+	l += HashSize
 
 	if nonce == nil {
-		copy(raw[lenWithoutNonce:], h.GetNonce())
+		copy(raw[l:l+NonceSize], h.GetNonce())
 	} else {
-		copy(raw[lenWithoutNonce:], nonce)
+		copy(raw[l:l+NonceSize], nonce)
 	}
 
 	return raw
@@ -111,16 +124,24 @@ func (x *Block) ToSealed(nonce []byte) (*Block, error) {
 
 // verifyNonce will verify whether the nonce meets the target.
 func (x *Block) verifyNonce() error {
-	if new(big.Int).SetBytes(x.CalculateHeaderHash()).Cmp(new(big.Int).SetBytes(x.GetHeader().GetTarget())) < 0 {
+	diff := new(big.Int).SetBytes(x.GetHeader().GetDifficulty())
+	target := new(big.Int).Div(MaxTarget, diff)
+
+	if new(big.Int).SetBytes(x.CalculateHeaderHash()).Cmp(target) < 0 {
 		return nil
 	}
 
 	return fmt.Errorf("block@%d's nonce %x is invalid", x.GetHeight(), x.Header.GetNonce())
 }
 
+// GetActualDiff returns the diff decided by nonce.
+func (x *Block) GetActualDiff() *big.Int {
+	return new(big.Int).Div(MaxTarget, new(big.Int).SetBytes(x.CalculateHeaderHash()))
+}
+
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(height uint64, prevBlockHash []byte, target *big.Int) *Block {
+func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
 	return &Block{
 		Network: Network,
 		Header: &BlockHeader{
@@ -129,7 +150,7 @@ func NewBareBlock(height uint64, prevBlockHash []byte, target *big.Int) *Block {
 			PrevBlockHash: prevBlockHash,
 			SheetHash:     nil,
 			TrieHash:      nil,
-			Target:        target.Bytes(),
+			Difficulty:    diff.Bytes(),
 			Nonce:         nil,
 		},
 		Txs: make([]*Tx, 0),
@@ -148,7 +169,7 @@ func GetGenesisBlock() *Block {
 		PrevBlockHash: nil,
 		SheetHash:     GetGenesisSheetHash(),
 		TrieHash:      NewTxTrie(txs).TrieRoot(),
-		Target:        genesisTarget.Bytes(),
+		Difficulty:    minimumBigDifficulty.Bytes(),
 		Nonce:         genesisBlockNonce.Bytes(),
 	}
 

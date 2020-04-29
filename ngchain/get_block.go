@@ -3,7 +3,6 @@ package ngchain
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
@@ -56,6 +55,53 @@ func (c *Chain) GetLatestBlockHeight() uint64 {
 	}
 
 	return latestHeight
+}
+
+func (c *Chain) GetLatestCheckpointHash() []byte {
+	cp, err := c.GetLatestCheckpoint()
+	if err != nil {
+		log.Errorf("failed GetLatestCheckpointHash:", err)
+
+		return nil
+	}
+
+	hash, _ := cp.CalculateHash()
+	return hash
+}
+
+func (c *Chain) GetLatestCheckpoint() (*ngtypes.Block, error) {
+	b := c.GetLatestBlock()
+	if b.IsGenesis() {
+		return b, nil
+	}
+
+	if err := c.db.View(func(txn *badger.Txn) error {
+		var raw []byte
+		for {
+			item, err := txn.Get(append(blockPrefix, b.GetPrevHash()...))
+			if err != nil {
+				return err
+			}
+
+			raw, err = item.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+
+			err = utils.Proto.Unmarshal(raw, b)
+			if err != nil {
+				return err
+			}
+
+			if b.IsHead() {
+				return nil
+			}
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }
 
 func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
@@ -133,72 +179,4 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	}
 
 	return block, nil
-}
-
-func (c *Chain) DumpAllBlocksByHeight() map[uint64]*ngtypes.Block {
-	table := make(map[uint64]*ngtypes.Block)
-
-	if err := c.db.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(blockPrefix); it.ValidForPrefix(blockPrefix) && len(it.Item().Key()) == 11; it.Next() {
-			height := binary.LittleEndian.Uint64(it.Item().Key()[3:11])
-			hash, err := it.Item().ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			i, err := txn.Get(append(blockPrefix, hash...))
-			if err != nil {
-				return err
-			}
-			raw, err := i.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			var block = &ngtypes.Block{}
-			err = utils.Proto.Unmarshal(raw, block)
-			if err != nil {
-				return err
-			}
-			table[height] = block
-		}
-
-		return nil
-	}); err != nil {
-		return nil
-	}
-
-	return table
-}
-
-func (c *Chain) DumpAllBlocksByHash() map[string]*ngtypes.Block {
-	table := make(map[string]*ngtypes.Block)
-
-	if err := c.db.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(blockPrefix); it.ValidForPrefix(blockPrefix) && len(it.Item().Key()) == 35; it.Next() {
-			hash := it.Item().Key()[3:35]
-			i, err := txn.Get(append(blockPrefix, hash...))
-			if err != nil {
-				return err
-			}
-			raw, err := i.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-			var block = &ngtypes.Block{}
-			err = utils.Proto.Unmarshal(raw, block)
-			if err != nil {
-				return err
-			}
-			table[hex.EncodeToString(hash)] = block
-		}
-
-		return nil
-	}); err != nil {
-		return nil
-	}
-
-	return table
 }

@@ -49,7 +49,7 @@
         "trie_hash": {
           "type": "string"
         },
-        "target": {
+        "difficulty": {
           "type": "string"
         },
         "nonce": {
@@ -153,7 +153,6 @@
         }
       }
     },
-
     "/block/{hash}": {
       "get": {
         "description": "get the block by hash",
@@ -172,7 +171,6 @@
             "schema": {
               "type": "object",
               "properties": {
-
               }
             }
           },
@@ -186,7 +184,6 @@
         }
       }
     },
-
     "/block@{height}": {
       "get": {
         "description": "get the block by height",
@@ -216,7 +213,6 @@
         }
       }
     },
-
     "/tx/{hash}": {
       "get": {
         "description": "get the tx by hash",
@@ -246,7 +242,6 @@
         }
       }
     },
-
     "/account/my": {
       "get": {
         "description": "get the available accounts",
@@ -265,7 +260,6 @@
         }
       }
     },
-
     "/account/all": {
       "get": {
         "description": "dump all accounts in network",
@@ -290,7 +284,6 @@
         }
       }
     },
-
     "/account@{num}": {
       "get": {
         "description": "get the detail of one account",
@@ -317,7 +310,6 @@
         }
       }
     },
-
     "/account@{num}/balance": {
       "get": {
         "description": "get the balance of one account",
@@ -344,7 +336,6 @@
         }
       }
     },
-
     "/balance/my": {
       "get": {
         "description": "get all my accounts",
@@ -363,7 +354,6 @@
         }
       }
     },
-
     "/txpool/check/{hash}": {
       "get": {
         "description": "check the tx in hash",
@@ -418,7 +408,6 @@
         }
       }
     },
-
     "/node/{addr}": {
       "post": {
         "description": "add remote node",

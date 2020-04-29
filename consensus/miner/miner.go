@@ -86,7 +86,7 @@ func (m *Miner) Stop() {
 }
 
 func (m *Miner) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
-	var target = new(big.Int).SetBytes(job.Header.Target)
+	target := new(big.Int).Div(ngtypes.MaxTarget, new(big.Int).SetBytes(job.GetHeader().GetDifficulty()))
 
 	for {
 		select {

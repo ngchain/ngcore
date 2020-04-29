@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (b *broadcaster) broadcastBlock(block *ngtypes.Block) bool {
+func (b *broadcastProtocol) broadcastBlock(block *ngtypes.Block) bool {
 	broadcastBlockPayload := block
 
 	raw, err := utils.Proto.Marshal(broadcastBlockPayload)
@@ -27,7 +27,7 @@ func (b *broadcaster) broadcastBlock(block *ngtypes.Block) bool {
 	return true
 }
 
-func (b *broadcaster) onBroadcastBlock(msg *pubsub.Message) {
+func (b *broadcastProtocol) onBroadcastBlock(msg *pubsub.Message) {
 	var broadcastBlockPayload = new(ngtypes.Block)
 
 	err := utils.Proto.Unmarshal(msg.Data, broadcastBlockPayload)
@@ -37,10 +37,5 @@ func (b *broadcaster) onBroadcastBlock(msg *pubsub.Message) {
 	}
 
 	log.Debugf("received a new block broadcast@%d", broadcastBlockPayload.GetHeight())
-
-	err = b.node.consensus.PutNewBlock(broadcastBlockPayload)
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	// TODO
 }

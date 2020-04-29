@@ -64,14 +64,13 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 		log.Error(err)
 	}
 
-	newTarget := ngtypes.GetNextTarget(currentBlock)
-
-	newBlockHeight := currentBlock.Header.Height + 1
+	newDiff := ngtypes.GetNextDiff(currentBlock)
+	newHeight := currentBlock.Header.Height + 1
 
 	newBareBlock := ngtypes.NewBareBlock(
-		newBlockHeight,
+		newHeight,
 		currentBlockHash,
-		newTarget,
+		newDiff,
 	)
 
 	extraData := []byte("ngCore")
