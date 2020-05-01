@@ -6,7 +6,7 @@ option go_package = "github.com/ngchain/ngcore/ngtypes";
 message Account {
   uint64 num = 1;
   bytes owner = 2; // pk -> balance in anonymous fields
-  uint64 nonce = 4;
+  uint64 txn = 4;
 
   bytes contract = 5; // separate the code and state
   bytes state = 6;
@@ -17,17 +17,16 @@ message BlockHeader {
   int64 timestamp = 2;
 
   bytes prev_block_hash = 3;
-  bytes sheet_hash = 4; // assemble vault into block
-  bytes trie_hash = 5;
+  bytes trie_hash = 4;
 
-  bytes difficulty = 6; // diff = maxTarget / Big(header_hash)
-  bytes nonce = 7;
+  bytes difficulty = 5; // diff = maxTarget / Big(header_hash)
+  bytes nonce = 6;
 }
 
 message Block {
   int32 network = 1;
   BlockHeader header = 2;
-  Sheet sheet = 3;
+
   repeated Tx txs = 4; // miner should build the generate tx by themselves
 }
 
@@ -51,20 +50,21 @@ message TxHeader {
   bytes fee = 4;
   repeated bytes values = 5;
 
-  uint64 nonce = 6;
+  uint64 n = 6;
 
   // extension
   bytes extra = 7;
 }
 
+// Or you can call it Op
 message Tx {
   int32 network = 1;
   TxHeader header = 2;
   bytes sign = 3;
 }
 
+// Sheet is a simplified States
 message Sheet {
-  map<uint64, Account> accounts = 2;
-  map<string, bytes> anonymous = 3; // map[hex(publicKey)]balance
+  map<string, bytes> anonymous = 1; // hex_publicKey(aka anonymous recipient) -> balance
+  map<uint64, ngtypes.Account> accounts = 2;
 }
-

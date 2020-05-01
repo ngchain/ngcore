@@ -10,19 +10,19 @@ import (
 
 var log = logging.Logger("sheet")
 
-// SheetManager is a SheetManager manager module
-type SheetManager struct {
+// StatusManager is a manager module
+type StatusManager struct {
 	// currentVault *ngtypes.Vault
-	baseSheet    *sheetEntry // the sheet from Vault, acts as the recovery
-	currentSheet *sheetEntry
+	baseSheet    *state // the sheet from Vault, acts as the recovery
+	currentSheet *state
 }
 
-var sheetManager *SheetManager
+var sheetManager *StatusManager
 
 // GetSheetManager will create a Sheet manager
-func GetSheetManager() *SheetManager {
+func GetSheetManager() *StatusManager {
 	if sheetManager == nil {
-		sheetManager = &SheetManager{
+		sheetManager = &StatusManager{
 			baseSheet:    nil,
 			currentSheet: nil,
 		}
@@ -32,50 +32,41 @@ func GetSheetManager() *SheetManager {
 }
 
 // Init will initialize the Sheet manager with a specific vault and blocks on the vault
-func (m *SheetManager) Init(latestBlocks *ngtypes.Block) {
-	var err error
-
-	m.baseSheet, err = newSheetEntry(latestBlocks.Sheet)
-	if err != nil {
-		panic(err)
-	}
-	m.currentSheet, err = newSheetEntry(latestBlocks.Sheet)
-	if err != nil {
-		panic(err)
-	}
+func (m *StatusManager) Init(latestBlocks *ngtypes.Block) {
+	// TODO
 }
 
 // GetBalanceByNum is a helper to call GetBalanceByNum from currentSheet
-func (m *SheetManager) GetBalanceByNum(id uint64) (*big.Int, error) {
+func (m *StatusManager) GetBalanceByNum(id uint64) (*big.Int, error) {
 	return m.currentSheet.GetBalanceByNum(id)
 }
 
 // CheckTxs is a helper to call CheckTxs from currentSheet
-func (m *SheetManager) CheckTxs(txs ...*ngtypes.Tx) error {
+func (m *StatusManager) CheckTxs(txs ...*ngtypes.Tx) error {
 	return m.currentSheet.CheckTxs()
 }
 
-func (m *SheetManager) HandleTxs(txs ...*ngtypes.Tx) error {
+func (m *StatusManager) HandleTxs(txs ...*ngtypes.Tx) error {
 	log.Debugf("handling %d txs", len(txs))
 	return m.currentSheet.handleTxs(txs...)
 }
 
-func (m *SheetManager) GenerateNewSheet() (*ngtypes.Sheet, error) {
+func (m *StatusManager) GenerateNewSheet() (*ngtypes.Sheet, error) {
 	return m.currentSheet.ToSheet()
 }
 
-func (m *SheetManager) GetAccountsByPublicKey(key []byte) ([]*ngtypes.Account, error) {
-	return m.currentSheet.GetAccountsByPublicKey(key)
+func (m *StatusManager) GetAccountsByPublicKey(key []byte) ([]*ngtypes.Account, error) {
+	return m.currentSheet.getAccountsByPublicKey(key)
 }
 
-func (m *SheetManager) GetAccountByNum(id uint64) (*ngtypes.Account, error) {
-	return m.currentSheet.GetAccountByNum(id)
+func (m *StatusManager) GetAccountByNum(id uint64) (*ngtypes.Account, error) {
+	return m.currentSheet.getAccountByNum(id)
 }
 
-func (m *SheetManager) GetBalanceByPublicKey(pk []byte) (*big.Int, error) {
-	return m.currentSheet.GetBalanceByPublicKey(pk)
+func (m *StatusManager) GetBalanceByPublicKey(pk []byte) (*big.Int, error) {
+	return m.currentSheet.getBalanceByPublicKey(pk)
 }
 
-func (m *SheetManager) GetNextNonce(convener uint64) uint64 {
+func (m *StatusManager) GetNextNonce(convener uint64) uint64 {
 	return m.currentSheet.GetNextNonce(convener)
 }

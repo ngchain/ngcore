@@ -2,6 +2,7 @@ package ngsheet
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-type sheetEntry struct {
+type state struct {
 	sync.RWMutex
 
 	// using bytes to keep data safe
@@ -19,9 +20,9 @@ type sheetEntry struct {
 	anonymous map[string][]byte
 }
 
-// newSheetEntry will create a new sheetEntry which is a wrapper of *ngtypes.sheet
-func newSheetEntry(sheet *ngtypes.Sheet) (*sheetEntry, error) {
-	entry := &sheetEntry{
+// newStateFromSheet will create a new state which is a wrapper of *ngtypes.sheet
+func newStateFromSheet(sheet *ngtypes.Sheet) (*state, error) {
+	entry := &state{
 		accounts:  make(map[uint64][]byte),
 		anonymous: make(map[string][]byte),
 	}
@@ -42,7 +43,7 @@ func newSheetEntry(sheet *ngtypes.Sheet) (*sheetEntry, error) {
 }
 
 // ToSheet will conclude a sheet which has all status of all accounts & keys(if balance not nil)
-func (m *sheetEntry) ToSheet() (*ngtypes.Sheet, error) {
+func (m *state) ToSheet() (*ngtypes.Sheet, error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -66,13 +67,13 @@ func (m *sheetEntry) ToSheet() (*ngtypes.Sheet, error) {
 	return ngtypes.NewSheet(accounts, anonymous), nil
 }
 
-func (m *sheetEntry) GetBalanceByNum(id uint64) (*big.Int, error) {
+func (m *state) GetBalanceByNum(id uint64) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
 
 	rawAccount, exists := m.accounts[id]
 	if !exists {
-		return nil, ngtypes.ErrAccountNotExists
+		return nil, fmt.Errorf("account does not exists")
 	}
 
 	account := new(ngtypes.Account)
@@ -85,39 +86,39 @@ func (m *sheetEntry) GetBalanceByNum(id uint64) (*big.Int, error) {
 
 	rawBalance, exists := m.anonymous[publicKey]
 	if !exists {
-		return nil, ngtypes.ErrAccountBalanceNotExists
+		return nil, fmt.Errorf("account balance does not exists")
 	}
 
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
-func (m *sheetEntry) GetBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
+func (m *state) getBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
 
 	rawBalance, exists := m.anonymous[base58.FastBase58Encoding(publicKey)]
 	if !exists {
-		return nil, ngtypes.ErrAccountBalanceNotExists
+		return nil, fmt.Errorf("account balance does not exist")
 	}
 
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
-func (m *sheetEntry) AccountIsRegistered(accountID uint64) bool {
+func (m *state) accountIsRegistered(num uint64) bool {
 	m.RLock()
 	defer m.RUnlock()
 
-	_, exists := m.accounts[accountID]
+	_, exists := m.accounts[num]
 	return exists
 }
 
-func (m *sheetEntry) GetAccountByNum(id uint64) (account *ngtypes.Account, err error) {
+func (m *state) getAccountByNum(num uint64) (account *ngtypes.Account, err error) {
 	m.RLock()
 	defer m.RUnlock()
 
-	rawAccount, exists := m.accounts[id]
+	rawAccount, exists := m.accounts[num]
 	if !exists {
-		return nil, ngtypes.ErrAccountNotExists
+		return nil, fmt.Errorf("account does not exist")
 	}
 
 	account = new(ngtypes.Account)
@@ -129,7 +130,7 @@ func (m *sheetEntry) GetAccountByNum(id uint64) (account *ngtypes.Account, err e
 	return account, nil
 }
 
-func (m *sheetEntry) GetAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Account, error) {
+func (m *state) getAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Account, error) {
 	m.RLock()
 	defer m.RUnlock()
 

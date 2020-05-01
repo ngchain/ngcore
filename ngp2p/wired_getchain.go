@@ -8,53 +8,52 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) getChain(peerID peer.ID, from [][]byte, to []byte) bool {
+func (w *wiredProtocol) getChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream) {
 	if len(from) == 0 {
 		log.Errorf("failed to send getChain: from is nil")
 
-		return false
+		return nil, nil
 	}
 
-	payload, err := utils.Proto.Marshal(&pb.GetChainPayload{
+	payload, err := utils.Proto.Marshal(&GetChainPayload{
 		From: from,
 		To:   to,
 	})
 	if err != nil {
 		log.Error("failed to sign pb data")
-		return false
+		return nil, nil
 	}
 
+	id, _ = uuid.New().MarshalBinary()
+
 	// create message data
-	req := &pb.Message{
-		Header:  w.node.NewHeader(uuid.New().String()),
+	req := &Message{
+		Header:  w.node.NewHeader(id, MessageType_GETCHAIN),
 		Payload: payload,
 	}
 
 	// sign the data
-	signature, err := w.node.signMessage(req)
+	signature, err := signMessage(w.node.PrivKey(), req)
 	if err != nil {
 		log.Error("failed to sign pb data")
-		return false
+		return nil, nil
 	}
 
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	ok := w.node.sendProtoMessage(peerID, getChainMethod, req)
-	if !ok {
-		return false
+	stream, err = w.node.sendProtoMessage(peerID, req)
+	if err != nil {
+		log.Error(err)
+		return nil, nil
 	}
 
-	// store ref request so response handler has access to it
-	w.requests.Store(req.Header.Uuid, req)
+	log.Debugf("getchain to: %s was sent. Message Id: %s, request height: %d to %d", peerID, req.Header.MessageId, from, to)
 
-	log.Debugf("getchain to: %s was sent. Message Id: %s, request height: %d to %d", peerID, req.Header.Uuid, from, to)
-
-	return true
+	return req.Header.MessageId, stream
 }
 
 func (w *wiredProtocol) onGetChain(s network.Stream) {
@@ -69,7 +68,7 @@ func (w *wiredProtocol) onGetChain(s network.Stream) {
 	}
 
 	// unmarshal it
-	var data = &pb.Message{}
+	var data = &Message{}
 
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
@@ -77,12 +76,12 @@ func (w *wiredProtocol) onGetChain(s network.Stream) {
 		return
 	}
 
-	if !w.node.verifyMessage(s.Conn().RemotePeer(), data) {
+	if !verifyMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 		return
 	}
 
-	var payload = &pb.GetChainPayload{}
+	var payload = &GetChainPayload{}
 
 	err = proto.Unmarshal(data.Payload, payload)
 	if err != nil {

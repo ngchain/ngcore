@@ -9,8 +9,6 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-
-	"github.com/ngchain/ngcore/models"
 )
 
 // GetAccountAllOKCode is the HTTP code returned for type GetAccountAllOK
@@ -25,7 +23,7 @@ type GetAccountAllOK struct {
 	/*
 	  In: Body
 	*/
-	Payload []*models.Account `json:"body,omitempty"`
+	Payload []interface{} `json:"body,omitempty"`
 }
 
 // NewGetAccountAllOK creates GetAccountAllOK with default headers values
@@ -35,13 +33,13 @@ func NewGetAccountAllOK() *GetAccountAllOK {
 }
 
 // WithPayload adds the payload to the get account all o k response
-func (o *GetAccountAllOK) WithPayload(payload []*models.Account) *GetAccountAllOK {
+func (o *GetAccountAllOK) WithPayload(payload []interface{}) *GetAccountAllOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get account all o k response
-func (o *GetAccountAllOK) SetPayload(payload []*models.Account) {
+func (o *GetAccountAllOK) SetPayload(payload []interface{}) {
 	o.Payload = payload
 }
 
@@ -52,7 +50,7 @@ func (o *GetAccountAllOK) WriteResponse(rw http.ResponseWriter, producer runtime
 	payload := o.Payload
 	if payload == nil {
 		// return empty array
-		payload = make([]*models.Account, 0, 50)
+		payload = make([]interface{}, 0, 50)
 	}
 
 	if err := producer.Produce(rw, payload); err != nil {

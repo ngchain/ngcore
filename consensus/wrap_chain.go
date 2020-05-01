@@ -9,7 +9,7 @@ import (
 
 var chainMu sync.Mutex
 
-func (c *Consensus) InitWithChain(chain ...*ngtypes.Block) error {
+func (c *PoWork) InitWithChain(chain ...*ngtypes.Block) error {
 	chainMu.Lock()
 	defer chainMu.Unlock()
 
@@ -17,10 +17,10 @@ func (c *Consensus) InitWithChain(chain ...*ngtypes.Block) error {
 		return fmt.Errorf("chain invalid: %s", err)
 	}
 
-	return c.Chain.InitWithChain(chain...)
+	return c.chain.InitWithChain(chain...)
 }
 
-// func (c *Consensus) ForkToNewChain(chain ...*ngtypes.Block) error {
+// func (c *PoWork) ForkToNewChain(chain ...*ngtypes.Block) error {
 // 	chainMu.Lock()
 // 	defer chainMu.Unlock()
 //
@@ -30,7 +30,7 @@ func (c *Consensus) InitWithChain(chain ...*ngtypes.Block) error {
 // 	return c.Chain.ForkToNewChain(chain...)
 // }
 
-func (c *Consensus) PutNewChain(chain ...*ngtypes.Block) error {
+func (c *PoWork) PutNewChain(chain ...*ngtypes.Block) error {
 	chainMu.Lock()
 	defer chainMu.Unlock()
 
@@ -38,10 +38,10 @@ func (c *Consensus) PutNewChain(chain ...*ngtypes.Block) error {
 		return fmt.Errorf("chain invalid: %s", err)
 	}
 
-	return c.Chain.PutNewChain(chain...)
+	return c.chain.PutNewChain(chain...)
 }
 
-func (c *Consensus) PutNewBlock(block *ngtypes.Block) error {
+func (c *PoWork) PutNewBlock(block *ngtypes.Block) error {
 	chainMu.Lock()
 	defer chainMu.Unlock()
 
@@ -49,5 +49,5 @@ func (c *Consensus) PutNewBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	return c.Chain.PutNewBlock(block)
+	return c.chain.PutNewBlock(block)
 }

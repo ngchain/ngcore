@@ -11,7 +11,7 @@ func (p *TxPool) DelBlockTxs(txs ...*ngtypes.Tx) {
 
 	for i := range txs {
 		if p.Queuing[txs[i].GetConvener()] != nil {
-			delete(p.Queuing[txs[i].GetConvener()], txs[i].GetNonce())
+			delete(p.Queuing[txs[i].GetConvener()], txs[i].GetN())
 		}
 	}
 }

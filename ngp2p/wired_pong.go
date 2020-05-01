@@ -1,27 +1,21 @@
 package ngp2p
 
 import (
-	"io/ioutil"
-
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"google.golang.org/protobuf/proto"
 
-	"github.com/ngchain/ngcore/ngp2p/pb"
-	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) pong(peerID peer.ID, uuid string) bool {
-	log.Debugf("Sending pong to %s. Message id: %s...", peerID, uuid)
+func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
+	log.Debugf("Sending pong to %s. Message id: %s...", stream.Conn().RemotePeer(), uuid)
 
-	resp := &pb.Message{
-		Header:  w.node.NewHeader(uuid),
+	resp := &Message{
+		Header:  w.node.NewHeader(uuid, MessageType_PONG),
 		Payload: nil,
 	}
 
 	// sign the data
-	signature, err := w.node.signMessage(resp)
+	signature, err := signMessage(w.node.PrivKey(), resp)
 	if err != nil {
 		log.Error("failed to sign response")
 		return false
@@ -31,54 +25,24 @@ func (w *wiredProtocol) pong(peerID peer.ID, uuid string) bool {
 	resp.Header.Sign = signature
 
 	// send the response
-	if ok := w.node.sendProtoMessage(peerID, pongMethod, resp); ok {
-		log.Debugf("pong to %s sent.", peerID.String())
+	err = w.node.replyToStream(stream, resp)
+	if err != nil {
+		log.Debugf("pong to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		return false
 	}
+
+	log.Debugf("pong to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }
 
-// remote Pong response handler.
-func (w *wiredProtocol) onPong(s network.Stream) {
-	buf, err := ioutil.ReadAll(s)
+// GetPongPayload unmarshal the raw and return the *pb.PongPayload.
+func GetPongPayload(rawPayload []byte) (*PongPayload, error) {
+	pongPayload := &PongPayload{}
+	err := utils.Proto.Unmarshal(rawPayload, pongPayload)
 	if err != nil {
-		log.Error(err)
-
-		_ = s.Reset()
-
-		return
+		return nil, err
 	}
 
-	remotePeerID := s.Conn().RemotePeer()
-	_ = s.Close()
-
-	// unmarshal it
-	var data = &pb.Message{}
-
-	err = proto.Unmarshal(buf, data)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	if !w.node.verifyResponse(data) {
-		log.Errorf("Failed to verify response")
-		return
-	}
-
-	if !w.node.verifyMessage(s.Conn().RemotePeer(), data) {
-		log.Errorf("Failed to authenticate message")
-		return
-	}
-
-	log.Debugf("Received pong from %s. Message id:%s.",
-		remotePeerID,
-		data.Header.Uuid,
-	)
-
-	w.node.Peerstore().AddAddrs(
-		remotePeerID,
-		[]core.Multiaddr{s.Conn().RemoteMultiaddr()},
-		ngtypes.TargetTime*ngtypes.BlockCheckRound, // add live time
-	)
+	return pongPayload, nil
 }

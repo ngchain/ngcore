@@ -4,22 +4,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 
-	"github.com/ngchain/ngcore/ngp2p/pb"
 	"github.com/ngchain/ngcore/utils"
 )
 
-// Authenticate incoming p2p message.
-func (n *LocalNode) verifyResponse(message *pb.Message) bool {
-	if _, exists := n.requests.Load(message.Header.Uuid); !exists {
-		return false
-	}
-
-	n.requests.Delete(message.Header.Uuid)
-
-	return true
-}
-
-func (n *LocalNode) verifyMessage(remotePeerID peer.ID, message *pb.Message) bool {
+func verifyMessage(peerID peer.ID, message *Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
 
@@ -31,11 +19,11 @@ func (n *LocalNode) verifyMessage(remotePeerID peer.ID, message *pb.Message) boo
 
 	message.Header.Sign = sign
 
-	return n.verifyData(raw, sign, remotePeerID, message.Header.PeerKey)
+	return verifyData(raw, sign, peerID, message.Header.PeerKey)
 }
 
 // sign an outgoing p2p message payload.
-func (n *LocalNode) signMessage(message *pb.Message) ([]byte, error) {
+func signMessage(key crypto.PrivKey, message *Message) ([]byte, error) {
 	message.Header.Sign = nil
 
 	data, err := utils.Proto.Marshal(message)
@@ -43,19 +31,13 @@ func (n *LocalNode) signMessage(message *pb.Message) ([]byte, error) {
 		return nil, err
 	}
 
-	return n.signData(data)
-}
-
-// sign binary data using the local node's private key.
-func (n *LocalNode) signData(data []byte) ([]byte, error) {
-	key := n.Peerstore().PrivKey(n.ID())
 	res, err := key.Sign(data)
 
 	return res, err
 }
 
 // verifyData verifies incoming p2p message data integrity.
-func (n *LocalNode) verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
+func verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
 		log.Error(err, "Failed to extract key from message key data")

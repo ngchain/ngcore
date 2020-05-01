@@ -9,7 +9,7 @@ func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Acco
 	return &Account{
 		Num:      num,
 		Owner:    ownerPublicKey,
-		Nonce:    0,
+		Txn:      0,
 		Contract: contract,
 		State:    state,
 	}
@@ -21,7 +21,7 @@ func GetGenesisStyleAccount(num uint64) *Account {
 		Num: num,
 		// Balance:  big.NewInt(math.MaxInt64).Bytes(), // Init balance
 		Owner: GenesisPublicKey,
-		Nonce: 0,
+		Txn:   0,
 		State: genesisState,
 	}
 }

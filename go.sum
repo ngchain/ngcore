@@ -38,8 +38,8 @@ github.com/btcsuite/goleveldb v0.0.0-20160330041536-7834afc9e8cd/go.mod h1:F+uVa
 github.com/btcsuite/snappy-go v0.0.0-20151229074030-0bdef8d06723/go.mod h1:8woku9dyThutzjeg+3xrA5iCpBRH8XEEg3lh6TiUghc=
 github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
-github.com/bytecodealliance/wasmtime-go v0.15.0 h1:dNqJrdqAwlNUG+z9RNHLZxUH4MN+Fguz9wsJ3mcVOGc=
-github.com/bytecodealliance/wasmtime-go v0.15.0/go.mod h1:q320gUxqyI8yB+ZqRuaJOEnGkAnHh6WtJjMaT2CW4wI=
+github.com/bytecodealliance/wasmtime-go v0.16.0 h1:PESrBFLVcK7n3b6+FwFgwfYHC3G4uxSdN1MpArnxa1E=
+github.com/bytecodealliance/wasmtime-go v0.16.0/go.mod h1:q320gUxqyI8yB+ZqRuaJOEnGkAnHh6WtJjMaT2CW4wI=
 github.com/cbergoon/merkletree v0.2.0 h1:Bttqr3OuoiZEo4ed1L7fTasHka9II+BF9fhBfbNEEoQ=
 github.com/cbergoon/merkletree v0.2.0/go.mod h1:5c15eckUgiucMGDOCanvalj/yJnD+KAZj1qyJtRW5aM=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
@@ -465,8 +465,6 @@ github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.7.0/go.mod h1:KAzv3t3aY1NaHWoQz1+4F1ccyAH66Jk7yos7ldAVICs=
 github.com/mailru/easyjson v0.7.1 h1:mdxE1MF9o53iCb2Ghj1VfWvh7ZOwHpnVG/xwXrV90U8=
 github.com/mailru/easyjson v0.7.1/go.mod h1:KAzv3t3aY1NaHWoQz1+4F1ccyAH66Jk7yos7ldAVICs=
-github.com/maoxs2/go-jsonrpc2 v0.0.0-20200326130745-a6a35812420f h1:iO8GM9xWv3iRzA1sBVhyhEJAbjGR9gJo/2K8TYufPfY=
-github.com/maoxs2/go-jsonrpc2 v0.0.0-20200326130745-a6a35812420f/go.mod h1:Uv4PD4dRyNph7dYWTBr9VCVI3CcOPXjP3xGDhlj/V40=
 github.com/maoxs2/go-log/v2 v2.0.5-0.20200415042640-243636cd7aed h1:liAtVeB32Yfnpr48IQ9DZ0MeGlAoI3B0CuxODXp4duY=
 github.com/maoxs2/go-log/v2 v2.0.5-0.20200415042640-243636cd7aed/go.mod h1:eZs4Xt4ZUJQFM3DlanGhy7TkwwawCZcSByscwkWG+dw=
 github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2/go.mod h1:Ld9puTsIW75CHf65OeIOkyKbteujpZVXDpWK6YGZbxE=

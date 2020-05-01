@@ -1,2 +1,2 @@
-// Package consensus implements the PoW consensus
+// Package consensus implements the PoWork consensus
 package consensus

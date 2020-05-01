@@ -11,21 +11,20 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/consensus"
-	"github.com/ngchain/ngcore/models"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngsheet"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/restapi/operations"
 	"github.com/ngchain/ngcore/txpool"
 	"github.com/ngchain/ngcore/utils"
 )
 
-//go:generate swagger generate server --target ../../ngcore --name  --spec ../swagger.json
+//go:generate swagger generate server --target ../../ngcore --name  --spec ../swagger-ui/swagger.json
 
 func configureFlags(api *operations.EmptyAPI) {
 	// api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{ ... }
@@ -39,12 +38,12 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 	// Expected interface func(string, ...interface{})
 	//
 	// Example:
-	log := logging.Logger("rest")
-	api.Logger = log.Debugf
+	// api.Logger = log.Printf
 
 	api.JSONConsumer = runtime.JSONConsumer()
 
 	api.JSONProducer = runtime.JSONProducer()
+
 	api.GetHandler = operations.GetHandlerFunc(func(params operations.GetParams) middleware.Responder {
 		return operations.NewGetOK().WithPayload("hello world")
 	})
@@ -68,9 +67,9 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 		if err != nil {
 			return operations.NewGetAccountAllBadRequest().WithPayload(err.Error())
 		}
-		result := make([]*models.Account, len(accounts))
+		result := make([]interface{}, len(accounts))
 		for i := range accounts {
-			result[i] = models.NewAccount(accounts[i])
+			result[i] = accounts[i]
 		}
 
 		return operations.NewGetAccountAllOK().WithPayload(result)
@@ -87,7 +86,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 			return operations.NewGetBlockAtHeightBadRequest().WithPayload(err.Error())
 		}
 
-		return operations.NewGetBlockAtHeightOK().WithPayload(models.NewBlock(block))
+		return operations.NewGetBlockAtHeightOK().WithPayload(block)
 	})
 
 	api.GetBlockHashHandler = operations.GetBlockHashHandlerFunc(func(params operations.GetBlockHashParams) middleware.Responder {
@@ -102,7 +101,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 			return operations.NewGetBlockHashBadRequest().WithPayload(err.Error())
 		}
 
-		return operations.NewGetBlockHashOK().WithPayload(models.NewBlock(block))
+		return operations.NewGetBlockHashOK().WithPayload(block)
 	})
 
 	api.GetTxHashHandler = operations.GetTxHashHandlerFunc(func(params operations.GetTxHashParams) middleware.Responder {
@@ -117,7 +116,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 			return operations.NewGetTxHashBadRequest().WithPayload(err.Error())
 		}
 
-		return operations.NewGetTxHashOK().WithPayload(models.NewTx(tx))
+		return operations.NewGetTxHashOK().WithPayload(tx)
 	})
 
 	api.GetTxpoolCheckHashHandler = operations.GetTxpoolCheckHashHandlerFunc(func(params operations.GetTxpoolCheckHashParams) middleware.Responder {
@@ -144,11 +143,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 	})
 
 	api.PostTxpoolSendHandler = operations.PostTxpoolSendHandlerFunc(func(params operations.PostTxpoolSendParams) middleware.Responder {
-		tx, err := params.Tx.T()
-		if err != nil {
-			return operations.NewPostTxpoolSendBadRequest().WithPayload(err.Error())
-		}
-		err = txpool.GetTxPool().PutTxs(tx)
+		err := txpool.GetTxPool().PutTxs(params.Tx.(*ngtypes.Tx))
 		if err != nil {
 			return operations.NewPostTxpoolSendBadRequest().WithPayload(err.Error())
 		}
@@ -183,8 +178,5 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		handler.ServeHTTP(w, r)
-	})
+	return handler
 }

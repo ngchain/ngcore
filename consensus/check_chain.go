@@ -8,7 +8,7 @@ import (
 )
 
 // checkChain is a helper to check whether the items are aligned as a chain.
-func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
+func (c *PoWork) checkChain(blocks ...*ngtypes.Block) error {
 	if len(blocks) == 0 {
 		return fmt.Errorf("empty chain")
 	}
@@ -26,7 +26,7 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 	firstBlock := blocks[0]
 
 	if !firstBlock.IsGenesis() {
-		prevBlock, err = c.GetBlockByHash(firstBlock.GetPrevHash())
+		prevBlock, err = c.chain.GetBlockByHash(firstBlock.GetPrevHash())
 		if err != nil {
 			return fmt.Errorf("failed to init prevBlock %x from db: %s", firstBlock.GetPrevHash(), err)
 		}
@@ -46,7 +46,7 @@ func (c *Consensus) checkChain(blocks ...*ngtypes.Block) error {
 			}
 		}
 
-		if err := c.SheetManager.CheckTxs(curBlock.Txs...); err != nil {
+		if err := c.sheetManager.CheckTxs(curBlock.Txs...); err != nil {
 			return err
 		}
 

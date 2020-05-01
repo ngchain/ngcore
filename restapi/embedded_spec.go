@@ -52,7 +52,7 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/account"
+                "type": "object"
               }
             }
           },
@@ -197,7 +197,7 @@ func init() {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/block"
+              "type": "object"
             }
           },
           "400": {
@@ -252,7 +252,7 @@ func init() {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/tx"
+              "type": "object"
             }
           },
           "400": {
@@ -301,7 +301,7 @@ func init() {
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/tx"
+              "type": "object"
             }
           }
         ],
@@ -315,134 +315,6 @@ func init() {
               "description": "error text",
               "type": "string"
             }
-          }
-        }
-      }
-    }
-  },
-  "definitions": {
-    "account": {
-      "properties": {
-        "contract": {
-          "type": "string"
-        },
-        "nonce": {
-          "type": "integer"
-        },
-        "num": {
-          "type": "integer"
-        },
-        "owner": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "block": {
-      "properties": {
-        "header": {
-          "$ref": "#/definitions/blockHeader"
-        },
-        "network": {
-          "$ref": "#/definitions/network"
-        },
-        "sheet": {
-          "$ref": "#/definitions/sheet"
-        },
-        "txs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/tx"
-          }
-        }
-      }
-    },
-    "blockHeader": {
-      "properties": {
-        "difficulty": {
-          "type": "string"
-        },
-        "height": {
-          "type": "integer"
-        },
-        "nonce": {
-          "type": "string"
-        },
-        "prevBlockHash": {
-          "type": "string"
-        },
-        "sheet_hash": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "integer"
-        },
-        "trie_hash": {
-          "type": "string"
-        }
-      }
-    },
-    "network": {
-      "type": "integer"
-    },
-    "sheet": {
-      "properties": {
-        "accounts": {
-          "type": "object",
-          "default": {
-            "$ref": "#/definitions/account"
-          },
-          "additionalProperties": {
-            "$ref": "#/definitions/account"
-          }
-        },
-        "anonymous": {
-          "type": "object"
-        }
-      }
-    },
-    "tx": {
-      "properties": {
-        "header": {
-          "$ref": "#/definitions/txHeader"
-        },
-        "network": {
-          "$ref": "#/definitions/network"
-        },
-        "sign": {
-          "type": "string"
-        }
-      }
-    },
-    "txHeader": {
-      "properties": {
-        "convener": {
-          "type": "integer"
-        },
-        "extra": {
-          "type": "string"
-        },
-        "fee": {
-          "type": "number"
-        },
-        "nonce": {
-          "type": "integer"
-        },
-        "participants": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "type": {
-          "type": "integer"
-        },
-        "values": {
-          "type": "array",
-          "items": {
-            "type": "number"
           }
         }
       }
@@ -484,7 +356,7 @@ func init() {
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/account"
+                "type": "object"
               }
             }
           },
@@ -629,7 +501,7 @@ func init() {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/block"
+              "type": "object"
             }
           },
           "400": {
@@ -684,7 +556,7 @@ func init() {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/tx"
+              "type": "object"
             }
           },
           "400": {
@@ -733,7 +605,7 @@ func init() {
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/tx"
+              "type": "object"
             }
           }
         ],
@@ -747,134 +619,6 @@ func init() {
               "description": "error text",
               "type": "string"
             }
-          }
-        }
-      }
-    }
-  },
-  "definitions": {
-    "account": {
-      "properties": {
-        "contract": {
-          "type": "string"
-        },
-        "nonce": {
-          "type": "integer"
-        },
-        "num": {
-          "type": "integer"
-        },
-        "owner": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "block": {
-      "properties": {
-        "header": {
-          "$ref": "#/definitions/blockHeader"
-        },
-        "network": {
-          "$ref": "#/definitions/network"
-        },
-        "sheet": {
-          "$ref": "#/definitions/sheet"
-        },
-        "txs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/tx"
-          }
-        }
-      }
-    },
-    "blockHeader": {
-      "properties": {
-        "difficulty": {
-          "type": "string"
-        },
-        "height": {
-          "type": "integer"
-        },
-        "nonce": {
-          "type": "string"
-        },
-        "prevBlockHash": {
-          "type": "string"
-        },
-        "sheet_hash": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "integer"
-        },
-        "trie_hash": {
-          "type": "string"
-        }
-      }
-    },
-    "network": {
-      "type": "integer"
-    },
-    "sheet": {
-      "properties": {
-        "accounts": {
-          "type": "object",
-          "default": {
-            "$ref": "#/definitions/account"
-          },
-          "additionalProperties": {
-            "$ref": "#/definitions/account"
-          }
-        },
-        "anonymous": {
-          "type": "object"
-        }
-      }
-    },
-    "tx": {
-      "properties": {
-        "header": {
-          "$ref": "#/definitions/txHeader"
-        },
-        "network": {
-          "$ref": "#/definitions/network"
-        },
-        "sign": {
-          "type": "string"
-        }
-      }
-    },
-    "txHeader": {
-      "properties": {
-        "convener": {
-          "type": "integer"
-        },
-        "extra": {
-          "type": "string"
-        },
-        "fee": {
-          "type": "number"
-        },
-        "nonce": {
-          "type": "integer"
-        },
-        "participants": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "type": {
-          "type": "integer"
-        },
-        "values": {
-          "type": "array",
-          "items": {
-            "type": "number"
           }
         }
       }

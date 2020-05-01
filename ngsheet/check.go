@@ -11,7 +11,7 @@ import (
 )
 
 // CheckTxs will check the influenced accounts which mentioned in op, and verify their balance and nonce
-func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
+func (m *state) CheckTxs(txs ...*ngtypes.Tx) error {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -19,7 +19,7 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
 		tx := txs[i]
 		// check tx is signed
 		if !tx.IsSigned() {
-			return ngtypes.ErrTxIsNotSigned
+			return fmt.Errorf("tx is not signed")
 		}
 
 		if utils.Proto.Size(tx) > ngtypes.TxMaxExtraSize {
@@ -62,10 +62,10 @@ func (m *sheetEntry) CheckTxs(txs ...*ngtypes.Tx) error {
 	return nil
 }
 
-func (m *sheetEntry) CheckGenerate(generateTx *ngtypes.Tx) error {
+func (m *state) CheckGenerate(generateTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[generateTx.GetConvener()]
 	if !exists {
-		return ngtypes.ErrAccountNotExists
+		return fmt.Errorf("account does not exist")
 	}
 
 	convener := new(ngtypes.Account)
@@ -82,14 +82,14 @@ func (m *sheetEntry) CheckGenerate(generateTx *ngtypes.Tx) error {
 	// DO NOT CHECK BALANCE
 
 	// check nonce
-	if generateTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong generate nonce: %d, should be %d", generateTx.GetNonce(), convener.Nonce+1)
+	if generateTx.GetN() != convener.Txn+1 {
+		return fmt.Errorf("wrong generate nonce: %d, should be %d", generateTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
 }
 
-func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
+func (m *state) CheckRegister(registerTx *ngtypes.Tx) error {
 	// check structure and key
 	if err := registerTx.CheckRegister(); err != nil {
 		return err
@@ -99,7 +99,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	payer := registerTx.GetParticipants()[0]
 	rawPayerBalance, exists := m.anonymous[base58.FastBase58Encoding(payer)]
 	if !exists {
-		return ngtypes.ErrAccountNotExists
+		return fmt.Errorf("account does not exist")
 	}
 	payerBalance := new(big.Int).SetBytes(rawPayerBalance)
 
@@ -111,7 +111,7 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	// check nonce
 	rawConvener, exists := m.accounts[registerTx.GetConvener()]
 	if !exists {
-		return ngtypes.ErrAccountNotExists
+		return fmt.Errorf("account does not exist")
 	}
 
 	convener := new(ngtypes.Account)
@@ -119,17 +119,17 @@ func (m *sheetEntry) CheckRegister(registerTx *ngtypes.Tx) error {
 	if err != nil {
 		return err
 	}
-	if registerTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong register nonce: %d, should be %d", registerTx.GetNonce(), convener.Nonce+1)
+	if registerTx.GetN() != convener.Txn+1 {
+		return fmt.Errorf("wrong register nonce: %d, should be %d", registerTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
 }
 
-func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
+func (m *state) CheckLogout(logoutTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[logoutTx.GetConvener()]
 	if !exists {
-		return ngtypes.ErrAccountNotExists
+		return fmt.Errorf("account does not exist")
 	}
 
 	convener := new(ngtypes.Account)
@@ -155,17 +155,17 @@ func (m *sheetEntry) CheckLogout(logoutTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	if logoutTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong logout nonce: %d, should be %d", logoutTx.GetNonce(), convener.Nonce+1)
+	if logoutTx.GetN() != convener.Txn+1 {
+		return fmt.Errorf("wrong logout nonce: %d, should be %d", logoutTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
 }
 
-func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
+func (m *state) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[transactionTx.GetConvener()]
 	if !exists {
-		return ngtypes.ErrAccountNotExists
+		return fmt.Errorf("account does not exist")
 	}
 
 	convener := new(ngtypes.Account)
@@ -191,17 +191,17 @@ func (m *sheetEntry) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	if transactionTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong transaction nonce: %d, should be %d", transactionTx.GetNonce(), convener.Nonce+1)
+	if transactionTx.GetN() != convener.Txn+1 {
+		return fmt.Errorf("wrong transaction nonce: %d, should be %d", transactionTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
 }
 
-func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
+func (m *state) CheckAssign(assignTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[assignTx.GetConvener()]
 	if !exists {
-		return ngtypes.ErrAccountNotExists
+		return fmt.Errorf("account does not exist")
 	}
 
 	convener := new(ngtypes.Account)
@@ -227,17 +227,17 @@ func (m *sheetEntry) CheckAssign(assignTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	if assignTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong assign nonce: %d, should be %d", assignTx.GetNonce(), convener.Nonce+1)
+	if assignTx.GetN() != convener.Txn+1 {
+		return fmt.Errorf("wrong assign nonce: %d, should be %d", assignTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
 }
 
-func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
+func (m *state) CheckAppend(appendTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[appendTx.GetConvener()]
 	if !exists {
-		return ngtypes.ErrAccountNotExists
+		return fmt.Errorf("account does not exist")
 	}
 
 	convener := new(ngtypes.Account)
@@ -263,8 +263,8 @@ func (m *sheetEntry) CheckAppend(appendTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	if appendTx.GetNonce() != convener.Nonce+1 {
-		return fmt.Errorf("wrong append nonce: %d, should be %d", appendTx.GetNonce(), convener.Nonce+1)
+	if appendTx.GetN() != convener.Txn+1 {
+		return fmt.Errorf("wrong append nonce: %d, should be %d", appendTx.GetN(), convener.Txn+1)
 	}
 
 	return nil

@@ -12,8 +12,8 @@ import (
 var log = logging.Logger("consensus")
 
 // InitPoW inits the main of consensus, shouldn't be shut down.
-func (c *Consensus) InitPoW(workerNum int) {
-	log.Info("Initializing PoW consensus")
+func (c *PoWork) InitPoW(workerNum int) {
+	log.Info("Initializing PoWork consensus")
 
 	if workerNum == 0 {
 		workerNum = runtime.NumCPU()
@@ -37,7 +37,7 @@ func (c *Consensus) InitPoW(workerNum int) {
 }
 
 // Stop the pow consensus.
-func (c *Consensus) Stop() {
+func (c *PoWork) Stop() {
 	if c.isMining {
 		log.Info("mining stopping")
 		c.miner.Stop()
@@ -45,7 +45,7 @@ func (c *Consensus) Stop() {
 }
 
 // Resume the pow consensus.
-func (c *Consensus) Resume() {
+func (c *PoWork) Resume() {
 	if c.isMining {
 		log.Info("mining resuming")
 		c.miner.Start(c.getBlockTemplate())
@@ -53,11 +53,11 @@ func (c *Consensus) Resume() {
 }
 
 // getBlockTemplate is a generator of new block. But the generated block has no nonce.
-func (c *Consensus) getBlockTemplate() *ngtypes.Block {
+func (c *PoWork) getBlockTemplate() *ngtypes.Block {
 	c.RLock()
 	defer c.RUnlock()
 
-	currentBlock := c.Chain.GetLatestBlock()
+	currentBlock := c.chain.GetLatestBlock()
 
 	currentBlockHash, err := currentBlock.CalculateHash()
 	if err != nil {
@@ -76,7 +76,7 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 	extraData := []byte("ngCore")
 
 	Gen := c.createGenerateTx(c.PrivateKey, extraData)
-	txsWithGen := append([]*ngtypes.Tx{Gen}, c.TxPool.GetPackTxs()...)
+	txsWithGen := append([]*ngtypes.Tx{Gen}, c.txpool.GetPackTxs()...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
@@ -87,7 +87,7 @@ func (c *Consensus) getBlockTemplate() *ngtypes.Block {
 }
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
-func (c *Consensus) minedNewBlock(block *ngtypes.Block) {
+func (c *PoWork) minedNewBlock(block *ngtypes.Block) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -96,7 +96,7 @@ func (c *Consensus) minedNewBlock(block *ngtypes.Block) {
 		return
 	}
 
-	prevBlock, err := c.Chain.GetBlockByHash(block.Header.PrevBlockHash)
+	prevBlock, err := c.chain.GetBlockByHash(block.Header.PrevBlockHash)
 	if err != nil {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
@@ -110,13 +110,13 @@ func (c *Consensus) minedNewBlock(block *ngtypes.Block) {
 	hash, _ := block.CalculateHash()
 	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
 
-	err = c.Chain.MinedNewBlock(block)
+	err = c.chain.MinedNewBlock(block)
 	if err != nil {
 		log.Warn(err)
 		return
 	}
 
-	err = c.HandleTxs(block.Txs...)
+	err = c.sheetManager.HandleTxs(block.Txs...)
 	if err != nil {
 		log.Warn(err)
 		return

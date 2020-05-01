@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
@@ -15,8 +16,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
 	"go.uber.org/atomic"
-
-	"github.com/ngchain/ngcore/consensus"
 )
 
 // LocalNode is the local host on p2p network
@@ -38,7 +37,7 @@ type LocalNode struct {
 var localNode *LocalNode
 
 // NewLocalNode creates a new node with its implemented protocols.
-func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBootstrapNode bool) *LocalNode {
+func NewLocalNode(port int, isBootstrapNode bool) *LocalNode {
 	if localNode == nil {
 		ctx := context.Background()
 		priv := getP2PKey()
@@ -105,12 +104,7 @@ func NewLocalNode(consensus *consensus.Consensus, port int, isStrictMode, isBoot
 			wiredProtocol:     nil,
 			broadcastProtocol: nil,
 
-			isInitialized:   atomic.NewBool(false),
 			isBootstrapNode: isBootstrapNode,
-			isSyncedCh:      make(chan bool),
-			OnNotSynced:     nil,
-
-			isStrictMode: isStrictMode,
 		}
 
 		localNode.broadcastProtocol = registerBroadcaster(localNode)
@@ -145,4 +139,8 @@ func GetLocalNode() *LocalNode {
 	}
 
 	return localNode
+}
+
+func (n *LocalNode) PrivKey() crypto.PrivKey {
+	return n.Peerstore().PrivKey(n.ID())
 }

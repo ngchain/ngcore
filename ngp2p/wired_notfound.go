@@ -4,35 +4,38 @@ import (
 	"io/ioutil"
 
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/ngchain/ngcore/ngp2p/pb"
 )
 
 // notFound will reply notFound message to remote node.
-func (w *wiredProtocol) notFound(peerID peer.ID, uuid string, blockHash []byte) {
-	log.Debugf("Sending notfound to %s. Message id: %s...", peerID, uuid)
+func (w *wiredProtocol) notFound(uuid []byte, stream network.Stream, blockHash []byte) bool {
+	log.Debugf("Sending notfound to %s. Message id: %s...", stream.Conn().RemotePeer(), uuid)
 
-	resp := &pb.Message{
-		Header:  w.node.NewHeader(uuid),
+	resp := &Message{
+		Header:  w.node.NewHeader(uuid, MessageType_NOTFOUND),
 		Payload: blockHash,
 	}
 
 	// sign the data
-	signature, err := w.node.signMessage(resp)
+	signature, err := signMessage(w.node.PrivKey(), resp)
 	if err != nil {
 		log.Errorf("failed to sign response")
-		return
+		return false
 	}
 
 	// add the signature to the message
 	resp.Header.Sign = signature
 
 	// send the response
-	if ok := w.node.sendProtoMessage(peerID, notFoundMethod, resp); ok {
-		log.Debugf("notfound to %s sent.", peerID)
+	err = w.node.replyToStream(stream, resp)
+	if err != nil {
+		log.Debugf("notfound to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		return false
 	}
+
+	log.Debugf("notfound to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+
+	return true
 }
 
 // onNotFound is a remote notfound handler. When received a notfound, local node is running on a wrong chain
@@ -49,7 +52,7 @@ func (w *wiredProtocol) onNotFound(s network.Stream) {
 	_ = s.Close()
 
 	// unmarshal it
-	var data = &pb.Message{}
+	var data = &Message{}
 
 	err = proto.Unmarshal(buf, data)
 	if err != nil {
@@ -58,13 +61,7 @@ func (w *wiredProtocol) onNotFound(s network.Stream) {
 		return
 	}
 
-	if !w.node.verifyResponse(data) {
-		log.Errorf("Failed to verify response")
-
-		return
-	}
-
-	if !w.node.verifyMessage(s.Conn().RemotePeer(), data) {
+	if !verifyMessage(s.Conn().RemotePeer(), data) {
 		log.Errorf("Failed to authenticate message")
 
 		return
@@ -73,5 +70,5 @@ func (w *wiredProtocol) onNotFound(s network.Stream) {
 	remoteID := s.Conn().RemotePeer()
 	_ = s.Close()
 
-	log.Debugf("Received notfound from %s. Message id:%s. Message: %s.", remoteID, data.Header.Uuid, data.Payload)
+	log.Debugf("Received notfound from %s. Message id:%s. Message: %s.", remoteID, data.Header.MessageId, data.Payload)
 }

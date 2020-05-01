@@ -47,18 +47,16 @@ func (x *Block) IsGenesis() bool {
 func (x *Block) GetPoWBlob(nonce []byte) []byte {
 	h := x.GetHeader()
 
-	lenRaw := HashSize + HashSize + HashSize +
+	lenRaw := HashSize + HashSize +
 		TimestampSize + // timestamp
-		len(h.GetDifficulty()) + // unknown length
+		HashSize + // unknown length
+		HashSize +
 		NonceSize
 	raw := make([]byte, lenRaw)
 
 	l := 0
 
 	copy(raw[l:l+HashSize], h.GetPrevBlockHash())
-	l += HashSize
-
-	copy(raw[l:l+HashSize], h.GetSheetHash())
 	l += HashSize
 
 	copy(raw[l:l+HashSize], h.GetTrieHash())
@@ -148,7 +146,6 @@ func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
 			Height:        height,
 			Timestamp:     time.Now().Unix(),
 			PrevBlockHash: prevBlockHash,
-			SheetHash:     nil,
 			TrieHash:      nil,
 			Difficulty:    diff.Bytes(),
 			Nonce:         nil,
@@ -167,7 +164,6 @@ func GetGenesisBlock() *Block {
 		Height:        0,
 		Timestamp:     genesisTimestamp,
 		PrevBlockHash: nil,
-		SheetHash:     GetGenesisSheetHash(),
 		TrieHash:      NewTxTrie(txs).TrieRoot(),
 		Difficulty:    minimumBigDifficulty.Bytes(),
 		Nonce:         genesisBlockNonce.Bytes(),
@@ -176,7 +172,6 @@ func GetGenesisBlock() *Block {
 	return &Block{
 		Network: Network,
 		Header:  header,
-		Sheet:   GetGenesisSheet(),
 		Txs:     txs,
 	}
 }

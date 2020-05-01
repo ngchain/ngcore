@@ -34,7 +34,7 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
 			p.Queuing[txs[i].GetConvener()] = make(map[uint64]*ngtypes.Tx)
 		}
 
-		p.Queuing[txs[i].GetConvener()][txs[i].GetNonce()] = txs[i]
+		p.Queuing[txs[i].GetConvener()][txs[i].GetN()] = txs[i]
 	}
 
 	return nil

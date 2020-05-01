@@ -15,7 +15,7 @@ var log = logging.Logger("txpool")
 type TxPool struct {
 	sync.RWMutex
 
-	sheetManager *ngsheet.SheetManager
+	sheetManager *ngsheet.StatusManager
 
 	Queuing map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
 
@@ -27,7 +27,7 @@ type TxPool struct {
 var txpool *TxPool
 
 // NewTxPool will create a new global txpool.
-func NewTxPool(sheetManager *ngsheet.SheetManager) *TxPool {
+func NewTxPool(sheetManager *ngsheet.StatusManager) *TxPool {
 	if txpool == nil {
 		txpool = &TxPool{
 			sheetManager: sheetManager,
@@ -73,7 +73,7 @@ func (p *TxPool) IsInPool(tx *ngtypes.Tx) (exists bool) {
 		return
 	}
 
-	exists = p.Queuing[tx.GetConvener()][tx.GetNonce()] != nil
+	exists = p.Queuing[tx.GetConvener()][tx.GetN()] != nil
 
 	return
 }

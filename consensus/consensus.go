@@ -7,17 +7,19 @@ import (
 
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/txpool"
 )
 
-// Consensus is a prtoof on work consensus manager
-type Consensus struct {
+// PoWork is a proof on work consensus manager
+type PoWork struct {
 	sync.RWMutex
 
-	*ngsheet.SheetManager
-	*ngchain.Chain
-	*txpool.TxPool
+	sheetManager *ngsheet.StatusManager
+	chain        *ngchain.Chain
+	txpool       *txpool.TxPool
+	localNode    *ngp2p.LocalNode
 
 	isMining bool
 
@@ -25,12 +27,27 @@ type Consensus struct {
 	miner      *miner.Miner
 }
 
-var consensus *Consensus
+var consensus *PoWork
+
+func NewConsensus(isMining bool, chain *ngchain.Chain, sheetMgr *ngsheet.StatusManager,
+	privateKey *secp256k1.PrivateKey, txpool *txpool.TxPool, localNode *ngp2p.LocalNode) *PoWork {
+	consensus = &PoWork{
+		sheetManager: sheetMgr,
+		chain:        chain,
+		txpool:       txpool,
+		localNode:    localNode,
+		isMining:     isMining,
+		PrivateKey:   privateKey,
+		miner:        nil,
+	}
+
+	return consensus
+}
 
 // GetConsensus creates a new proof of work consensus manager.
-func GetConsensus() *Consensus {
+func GetConsensus() *PoWork {
 	if consensus == nil {
-		consensus = &Consensus{}
+		consensus = &PoWork{}
 	}
 
 	return consensus

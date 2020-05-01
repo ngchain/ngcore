@@ -20,20 +20,19 @@ import (
 
 // Errors for Tx
 var (
-	ErrTxIsNotSigned = errors.New("the transaction is not signed")
-	ErrTxWrongSign   = errors.New("the signer of transaction is not the own of the account")
+	ErrTxWrongSign = errors.New("the signer of transaction is not the own of the account")
 )
 
 // NewUnsignedTx will return an unsigned tx, must using Signature().
 func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int,
-	nonce uint64, extraData []byte) *Tx {
+	n uint64, extraData []byte) *Tx {
 	header := &TxHeader{
 		Type:         txType,
 		Convener:     convener,
 		Participants: participants,
 		Fee:          fee.Bytes(),
 		Values:       BigIntsToBytesList(values),
-		Nonce:        nonce,
+		N:            n,
 		Extra:        extraData,
 	}
 
@@ -367,8 +366,8 @@ func (x *Tx) GetFee() []byte {
 	return x.Header.GetFee()
 }
 
-func (x *Tx) GetNonce() uint64 {
-	return x.Header.GetNonce()
+func (x *Tx) GetN() uint64 {
+	return x.Header.GetN()
 }
 
 func (x *Tx) GetExtra() []byte {

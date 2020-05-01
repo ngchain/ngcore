@@ -10,8 +10,8 @@ import (
 func (n *LocalNode) connectBootstrapNodes() {
 	ctx := context.Background()
 
-	for i := range bootstrapNodes {
-		targetAddr, err := multiaddr.NewMultiaddr(bootstrapNodes[i])
+	for i := range BootstrapNodes {
+		targetAddr, err := multiaddr.NewMultiaddr(BootstrapNodes[i])
 		if err != nil {
 			panic(err)
 		}

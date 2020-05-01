@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
-	github.com/bytecodealliance/wasmtime-go v0.15.0
+	github.com/bytecodealliance/wasmtime-go v0.16.0
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgraph-io/badger/v2 v2.0.3
@@ -14,7 +14,7 @@ require (
 	github.com/go-openapi/spec v0.19.7
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.9
-	github.com/go-openapi/validate v0.19.8
+	github.com/go-openapi/validate v0.19.8 // indirect
 	github.com/golang/protobuf v1.4.0
 	github.com/google/uuid v1.1.1
 	github.com/ipfs/go-log/v2 v2.0.4
@@ -27,7 +27,6 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.2.7
 	github.com/libp2p/go-libp2p-yamux v0.2.7
 	github.com/libp2p/go-tcp-transport v0.2.0
-	github.com/maoxs2/go-jsonrpc2 v0.0.0-20200326130745-a6a35812420f
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.2.1
@@ -35,6 +34,7 @@ require (
 	github.com/ngchain/cryptonight-go v0.0.0-20200408114201-bdcadf0ac3e1
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/rakyll/statik v0.1.7
 	github.com/urfave/cli/v2 v2.2.0
 	go.mongodb.org/mongo-driver v1.3.2 // indirect

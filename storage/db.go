@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/dgraph-io/badger/v2"
@@ -14,14 +16,16 @@ var db *badger.DB
 // InitStorage inits a new DB in data folder.
 func InitStorage() *badger.DB {
 	if db == nil {
-		options := badger.DefaultOptions(".ngdb")
+		home, err := os.UserHomeDir()
+		if err != nil {
+			panic("failed to get home folder")
+		}
+		options := badger.DefaultOptions(filepath.Join(home, ".ngdb"))
 		if runtime.GOOS == "windows" {
 			options.Truncate = true
 		}
 
 		options.Logger = log
-
-		var err error
 
 		db, err = badger.Open(options)
 		if err != nil {

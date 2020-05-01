@@ -180,3 +180,7 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 
 	return block, nil
 }
+
+func (c *Chain) GetOriginBlock() *ngtypes.Block {
+	return ngtypes.GetGenesisBlock() // TODO
+}

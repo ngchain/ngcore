@@ -5,7 +5,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (m *sheetEntry) GetNextNonce(accountID uint64) uint64 {
+func (m *state) GetNextNonce(accountID uint64) uint64 {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -17,5 +17,5 @@ func (m *sheetEntry) GetNextNonce(accountID uint64) uint64 {
 	account := new(ngtypes.Account)
 	_ = utils.Proto.Unmarshal(rawAccount, account)
 
-	return account.GetNonce() + 1
+	return account.GetTxn() + 1
 }

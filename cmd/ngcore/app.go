@@ -139,11 +139,8 @@ var action = func(c *cli.Context) error {
 	}
 	sheetManager := ngsheet.GetSheetManager()
 	txPool := txpool.NewTxPool(sheetManager)
-
-	consensus := consensus.GetConsensus()
-	consensus.Init(isMining, chain, sheetManager, key, txPool)
-
-	localNode := ngp2p.NewLocalNode(consensus, p2pTCPPort, isStrictMode, isBootstrapNode)
+	localNode := ngp2p.NewLocalNode(p2pTCPPort, isBootstrapNode)
+	consensus := consensus.NewConsensus(isMining, chain, sheetManager, key, txPool, localNode)
 
 	// rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
 	// go rpc.Run()

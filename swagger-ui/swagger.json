@@ -9,134 +9,6 @@
   "schemes": [
     "http"
   ],
-  "definitions": {
-    "network": {
-      "type": "integer"
-    },
-    "account": {
-      "properties": {
-        "num": {
-          "type": "integer"
-        },
-        "owner": {
-          "type": "string"
-        },
-        "nonce": {
-          "type": "integer"
-        },
-        "contract": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "blockHeader": {
-      "properties": {
-        "height": {
-          "type": "integer"
-        },
-        "timestamp": {
-          "type": "integer"
-        },
-        "prevBlockHash": {
-          "type": "string"
-        },
-        "sheet_hash": {
-          "type": "string"
-        },
-        "trie_hash": {
-          "type": "string"
-        },
-        "difficulty": {
-          "type": "string"
-        },
-        "nonce": {
-          "type": "string"
-        }
-      }
-    },
-    "block": {
-      "properties": {
-        "network": {
-          "$ref": "#/definitions/network"
-        },
-        "header": {
-          "$ref": "#/definitions/blockHeader"
-        },
-        "sheet": {
-          "$ref": "#/definitions/sheet"
-        },
-        "txs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/tx"
-          }
-        }
-      }
-    },
-    "sheet": {
-      "properties": {
-        "accounts": {
-          "type": "object",
-          "default": {
-            "$ref": "#/definitions/account"
-          },
-          "additionalProperties": {
-            "$ref": "#/definitions/account"
-          }
-        },
-        "anonymous": {
-          "type": "object"
-        }
-      }
-    },
-    "txHeader": {
-      "properties": {
-        "type": {
-          "type": "integer"
-        },
-        "convener": {
-          "type": "integer"
-        },
-        "participants": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "fee": {
-          "type": "number"
-        },
-        "values": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "nonce": {
-          "type": "integer"
-        },
-        "extra": {
-          "type": "string"
-        }
-      }
-    },
-    "tx": {
-      "properties": {
-        "network": {
-          "$ref": "#/definitions/network"
-        },
-        "header": {
-          "$ref": "#/definitions/txHeader"
-        },
-        "sign": {
-          "type": "string"
-        }
-      }
-    }
-  },
   "paths": {
     "/": {
       "get": {
@@ -199,8 +71,8 @@
         "responses": {
           "200": {
             "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/block"
+            "schema":{
+              "type": "object"
             }
           },
           "400": {
@@ -229,7 +101,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/tx"
+              "type": "object"
             }
           },
           "400": {
@@ -270,7 +142,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/account"
+                "type": "object"
               }
             }
           },
@@ -390,7 +262,7 @@
             "required": true,
             "description": "send the tx",
             "schema": {
-              "$ref": "#/definitions/tx"
+              "type": "object"
             }
           }
         ],

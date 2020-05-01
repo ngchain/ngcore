@@ -9,8 +9,6 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-
-	"github.com/ngchain/ngcore/models"
 )
 
 // GetBlockAtHeightOKCode is the HTTP code returned for type GetBlockAtHeightOK
@@ -25,7 +23,7 @@ type GetBlockAtHeightOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.Block `json:"body,omitempty"`
+	Payload interface{} `json:"body,omitempty"`
 }
 
 // NewGetBlockAtHeightOK creates GetBlockAtHeightOK with default headers values
@@ -35,13 +33,13 @@ func NewGetBlockAtHeightOK() *GetBlockAtHeightOK {
 }
 
 // WithPayload adds the payload to the get block at height o k response
-func (o *GetBlockAtHeightOK) WithPayload(payload *models.Block) *GetBlockAtHeightOK {
+func (o *GetBlockAtHeightOK) WithPayload(payload interface{}) *GetBlockAtHeightOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get block at height o k response
-func (o *GetBlockAtHeightOK) SetPayload(payload *models.Block) {
+func (o *GetBlockAtHeightOK) SetPayload(payload interface{}) {
 	o.Payload = payload
 }
 
@@ -49,11 +47,9 @@ func (o *GetBlockAtHeightOK) SetPayload(payload *models.Block) {
 func (o *GetBlockAtHeightOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }
 
