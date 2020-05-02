@@ -10,6 +10,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+// ReceiveReply will receive the correct reply message from the stream
 func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 	raw, err := ioutil.ReadAll(stream)
 	if err != nil {

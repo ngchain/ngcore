@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"runtime/pprof"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -140,7 +139,8 @@ var action = func(c *cli.Context) error {
 	sheetManager := ngsheet.GetSheetManager()
 	txPool := txpool.NewTxPool(sheetManager)
 	localNode := ngp2p.NewLocalNode(p2pTCPPort, isBootstrapNode)
-	consensus := consensus.NewConsensus(isMining, chain, sheetManager, key, txPool, localNode)
+	_ = consensus.NewConsensus(isMining, chain, sheetManager, key, txPool, localNode)
+	
 
 	// rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
 	// go rpc.Run()
@@ -152,20 +152,6 @@ var action = func(c *cli.Context) error {
 	sheetManager.Init(latestBlock)
 	txPool.Init(chain.MinedBlockToTxPoolCh)
 	txPool.Run()
-
-	initOnce := &sync.Once{}
-	localNode.OnSynced = func() {
-		initOnce.Do(func() {
-			consensus.InitPoW(c.Int("mining"))
-		})
-
-		consensus.Resume()
-	}
-
-	localNode.OnNotSynced = func() {
-		consensus.Stop()
-	}
-
 	localNode.Init()
 
 	// notify the exit events

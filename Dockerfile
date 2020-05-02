@@ -1,13 +1,20 @@
 # BUILDER
 FROM golang:alpine as builder
 
-ENV GOPROXY https://goproxy.io
+ARG goproxy=https://goproxy.io
+ARG in_china=0
+ENV GOPROXY ${goproxy}
+ENV CHINA ${in_china}
 
 COPY . /ngchain
 WORKDIR /ngchain
 
 # RUN apk add build-base
-RUN GOPROXY=$GOPROXY CGO_ENABLED=0 go build ./cmd/ngcore
+RUN if [ $CHINA == 1 ]; \
+    then sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+    fi
+RUN apk add --no-cache make gcc musl-dev linux-headers git
+RUN GOPROXY=$GOPROXY go build ./cmd/ngcore
 
 # MAIN
 FROM alpine:latest

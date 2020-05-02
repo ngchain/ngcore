@@ -1,6 +1,8 @@
 package ngp2p
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -54,8 +56,14 @@ func (w *wiredProtocol) onPing(stream network.Stream, msg *Message) {
 	ping := &PingPayload{}
 	err := utils.Proto.Unmarshal(msg.Payload, ping)
 	if err != nil {
-		w.reject(stream, msg.Header.MessageId, err)
+		w.reject(msg.Header.MessageId, stream, err)
 		return
 	}
 
+	if !verifyMessage(stream.Conn().RemotePeer(), msg) {
+		w.reject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
+		return
+	}
+
+	w.pong(msg.Header.MessageId, stream)
 }

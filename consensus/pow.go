@@ -5,31 +5,30 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 
-	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var log = logging.Logger("consensus")
 
 // InitPoW inits the main of consensus, shouldn't be shut down.
-func (c *PoWork) InitPoW(workerNum int) {
+func (pow *PoWork) InitPoW(workerNum int) {
 	log.Info("Initializing PoWork consensus")
 
 	if workerNum == 0 {
 		workerNum = runtime.NumCPU()
 	}
 
-	if c.isMining {
-		c.miner = miner.NewMiner(workerNum)
-		c.miner.Start(c.getBlockTemplate())
+	if pow.isMining {
+		pow.minerModule = newMiner(workerNum)
+		pow.minerModule.start(pow.getBlockTemplate())
 
 		go func() {
 			for {
-				b := <-c.miner.FoundBlockCh
-				c.minedNewBlock(b)
+				b := <-pow.minerModule.FoundBlockCh
+				pow.minedNewBlock(b)
 
-				if c.isMining {
-					c.miner.Start(c.getBlockTemplate())
+				if pow.isMining {
+					pow.minerModule.start(pow.getBlockTemplate())
 				}
 			}
 		}()
@@ -37,27 +36,27 @@ func (c *PoWork) InitPoW(workerNum int) {
 }
 
 // Stop the pow consensus.
-func (c *PoWork) Stop() {
-	if c.isMining {
+func (pow *PoWork) Stop() {
+	if pow.isMining {
 		log.Info("mining stopping")
-		c.miner.Stop()
+		pow.minerModule.Stop()
 	}
 }
 
 // Resume the pow consensus.
-func (c *PoWork) Resume() {
-	if c.isMining {
+func (pow *PoWork) Resume() {
+	if pow.isMining {
 		log.Info("mining resuming")
-		c.miner.Start(c.getBlockTemplate())
+		pow.minerModule.start(pow.getBlockTemplate())
 	}
 }
 
 // getBlockTemplate is a generator of new block. But the generated block has no nonce.
-func (c *PoWork) getBlockTemplate() *ngtypes.Block {
-	c.RLock()
-	defer c.RUnlock()
+func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
+	pow.RLock()
+	defer pow.RUnlock()
 
-	currentBlock := c.chain.GetLatestBlock()
+	currentBlock := pow.chain.GetLatestBlock()
 
 	currentBlockHash, err := currentBlock.CalculateHash()
 	if err != nil {
@@ -75,8 +74,8 @@ func (c *PoWork) getBlockTemplate() *ngtypes.Block {
 
 	extraData := []byte("ngCore")
 
-	Gen := c.createGenerateTx(c.PrivateKey, extraData)
-	txsWithGen := append([]*ngtypes.Tx{Gen}, c.txpool.GetPackTxs()...)
+	Gen := pow.createGenerateTx(pow.PrivateKey, extraData)
+	txsWithGen := append([]*ngtypes.Tx{Gen}, pow.txpool.GetPackTxs()...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
@@ -87,16 +86,16 @@ func (c *PoWork) getBlockTemplate() *ngtypes.Block {
 }
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
-func (c *PoWork) minedNewBlock(block *ngtypes.Block) {
-	c.Lock()
-	defer c.Unlock()
+func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
+	pow.Lock()
+	defer pow.Unlock()
 
-	if err := c.checkBlock(block); err != nil {
+	if err := pow.checkBlock(block); err != nil {
 		log.Warn("Malformed block mined:", err)
 		return
 	}
 
-	prevBlock, err := c.chain.GetBlockByHash(block.Header.PrevBlockHash)
+	prevBlock, err := pow.chain.GetBlockByHash(block.Header.PrevBlockHash)
 	if err != nil {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
@@ -110,13 +109,13 @@ func (c *PoWork) minedNewBlock(block *ngtypes.Block) {
 	hash, _ := block.CalculateHash()
 	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
 
-	err = c.chain.MinedNewBlock(block)
+	err = pow.chain.MinedNewBlock(block)
 	if err != nil {
 		log.Warn(err)
 		return
 	}
 
-	err = c.sheetManager.HandleTxs(block.Txs...)
+	err = pow.sheetManager.HandleTxs(block.Txs...)
 	if err != nil {
 		log.Warn(err)
 		return

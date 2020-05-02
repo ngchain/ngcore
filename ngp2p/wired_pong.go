@@ -9,9 +9,20 @@ import (
 func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
 	log.Debugf("Sending pong to %s. Message id: %s...", stream.Conn().RemotePeer(), uuid)
 
+	pongPayload := &PongPayload{
+		Origin:         0,
+		Latest:         0,
+		CheckpointHash: nil,
+	}
+
+	rawPayload, err := utils.Proto.Marshal(pongPayload)
+	if err != nil {
+		return false
+	}
+
 	resp := &Message{
 		Header:  w.node.NewHeader(uuid, MessageType_PONG),
-		Payload: nil,
+		Payload: rawPayload,
 	}
 
 	// sign the data

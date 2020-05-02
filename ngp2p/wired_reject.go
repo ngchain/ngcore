@@ -8,7 +8,7 @@ import (
 )
 
 // reject will reply reject message to remote node.
-func (w *wiredProtocol) reject(stream network.Stream, uuid []byte, err error) bool {
+func (w *wiredProtocol) reject(uuid []byte, stream network.Stream, err error) bool {
 	log.Debugf("Sending reject to %s. Message id: %s...", stream.Conn().RemotePeer(), uuid)
 
 	resp := &Message{

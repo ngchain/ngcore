@@ -7,6 +7,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+// verifyMessage verifies the data and sign in message
 func verifyMessage(peerID peer.ID, message *Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
@@ -19,7 +20,7 @@ func verifyMessage(peerID peer.ID, message *Message) bool {
 
 	message.Header.Sign = sign
 
-	return verifyData(raw, sign, peerID, message.Header.PeerKey)
+	return verifyMessageData(raw, sign, peerID, message.Header.PeerKey)
 }
 
 // sign an outgoing p2p message payload.
@@ -36,8 +37,9 @@ func signMessage(key crypto.PrivKey, message *Message) ([]byte, error) {
 	return res, err
 }
 
-// verifyData verifies incoming p2p message data integrity.
-func verifyData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
+// verifyMessageData verifies incoming p2p message data integrity.
+// it is included in verifyMessage so plz using verifyMessage.
+func verifyMessageData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
 		log.Error(err, "Failed to extract key from message key data")

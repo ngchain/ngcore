@@ -8,7 +8,7 @@ import (
 )
 
 // checkBlock checks block before putting into chain.
-func (c *PoWork) checkBlock(block *ngtypes.Block) error {
+func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 	if block.IsGenesis() {
 		return nil
 	}
@@ -19,24 +19,24 @@ func (c *PoWork) checkBlock(block *ngtypes.Block) error {
 
 	prevHash := block.GetPrevHash()
 	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash()) {
-		prevBlock, err := c.chain.GetBlockByHash(prevHash)
+		prevBlock, err := pow.chain.GetBlockByHash(prevHash)
 		if err != nil {
 			return err
 		}
 
-		if err := c.checkBlockTarget(block, prevBlock); err != nil {
+		if err := pow.checkBlockTarget(block, prevBlock); err != nil {
 			return err
 		}
 	}
 
-	if err := c.sheetManager.CheckTxs(block.Txs...); err != nil {
+	if err := pow.sheetManager.CheckTxs(block.Txs...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *PoWork) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
+func (pow *PoWork) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
 	correctDiff := ngtypes.GetNextDiff(prevBlock)
 	actualDiff := block.GetActualDiff()
 

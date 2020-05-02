@@ -7,8 +7,8 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *wiredProtocol) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
+// Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
+func (w *wiredProtocol) Chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
 	if len(blocks) == 0 {
 		return false
 	}
@@ -55,7 +55,7 @@ func (w *wiredProtocol) onChain(stream network.Stream, msg *Message) {
 	chain := &ChainPayload{}
 	err := utils.Proto.Unmarshal(msg.Payload, chain)
 	if err != nil {
-		w.reject(stream, msg.Header.MessageId, err)
+		w.reject(msg.Header.MessageId, stream, err)
 		return
 	}
 

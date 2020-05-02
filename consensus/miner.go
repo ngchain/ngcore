@@ -1,5 +1,4 @@
-// Package miner implements a internal PoW miner with multi threads(goroutines) support
-package miner
+package consensus
 
 import (
 	"math/big"
@@ -8,17 +7,15 @@ import (
 	"time"
 
 	"github.com/NebulousLabs/fastrand"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/cryptonight-go"
 	"go.uber.org/atomic"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var log = logging.Logger("miner")
-
-// Miner is an inner miner for proof of work
-type Miner struct {
+// minerModule is an inner miner for proof of work
+// miner implements a internal PoW miner with multi threads(goroutines) support
+type minerModule struct {
 	threadNum int
 	hashes    atomic.Int64
 
@@ -27,11 +24,11 @@ type Miner struct {
 	FoundBlockCh chan *ngtypes.Block
 }
 
-// NewMiner will create a local miner which works in *threadNum* threads.
-func NewMiner(threadNum int) *Miner {
+// newMiner will create a local miner which works in *threadNum* threads.
+func newMiner(threadNum int) *minerModule {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	m := &Miner{
+	m := &minerModule{
 		isRunning:    atomic.NewBool(false),
 		threadNum:    threadNum,
 		abortCh:      make(chan struct{}),
@@ -59,7 +56,7 @@ func NewMiner(threadNum int) *Miner {
 }
 
 // Start will ignite the engine of Miner and all threads start working.
-func (m *Miner) Start(initJob *ngtypes.Block) {
+func (m *minerModule) start(initJob *ngtypes.Block) {
 	if m.isRunning.Load() {
 		return
 	}
@@ -75,7 +72,7 @@ func (m *Miner) Start(initJob *ngtypes.Block) {
 }
 
 // Stop will stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
-func (m *Miner) Stop() {
+func (m *minerModule) Stop() {
 	if !m.isRunning.Load() {
 		return
 	}
@@ -85,7 +82,7 @@ func (m *Miner) Stop() {
 	<-m.abortCh // wait
 }
 
-func (m *Miner) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
+func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 	target := new(big.Int).Div(ngtypes.MaxTarget, new(big.Int).SetBytes(job.GetHeader().GetDifficulty()))
 
 	for {
@@ -117,7 +114,7 @@ func (m *Miner) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 	}
 }
 
-func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
+func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
 	// Correct nonce found
 	m.Stop()
 

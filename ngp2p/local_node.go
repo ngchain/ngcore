@@ -15,7 +15,8 @@ import (
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
-	"go.uber.org/atomic"
+
+	"github.com/ngchain/ngcore/ngchain"
 )
 
 // LocalNode is the local host on p2p network
@@ -24,13 +25,8 @@ type LocalNode struct {
 	*wiredProtocol
 	*broadcastProtocol
 
-	isInitialized *atomic.Bool
+	chain *ngchain.Chain
 
-	isSyncedCh  chan bool
-	OnSynced    func()
-	OnNotSynced func()
-
-	isStrictMode    bool
 	isBootstrapNode bool
 }
 
@@ -141,6 +137,7 @@ func GetLocalNode() *LocalNode {
 	return localNode
 }
 
+// PrivKey is a helper func for getting private key from local peer id
 func (n *LocalNode) PrivKey() crypto.PrivKey {
 	return n.Peerstore().PrivKey(n.ID())
 }

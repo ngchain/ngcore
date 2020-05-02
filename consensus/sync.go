@@ -1,50 +1,38 @@
 package consensus
 
 import (
-	"fmt"
+	"sync"
 
-	core "github.com/libp2p/go-libp2p-core"
-
-	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (c *PoWork) Init() {
-	// init with a config, replacing main
+type syncModule struct {
+	sync.RWMutex
+	store *sync.Map
 }
 
-func (c *PoWork) bootstrap() {
-	for _, remotePeerID := range c.localNode.Peerstore().Peers() {
-		go c.GetRemoteStatus(remotePeerID)
+type remoteRecord struct {
+	id peer.ID
+	origin uint64
+	latest uint64
+	checkpointHash []byte
+}
+
+func newSyncModule() *syncModule {
+	return &syncModule{
+		store: &sync.Map{},
 	}
 }
 
-func (c *PoWork) GetRemoteStatus(peerID core.PeerID) error {
-	origin := c.chain.GetOriginBlock()
-	latest := c.chain.GetLatestBlock()
-	checkpointHash := c.chain.GetLatestCheckpointHash()
+func (sync *syncModule) PutRemote(id peer.ID, remote *remoteRecord) {
+	sync.store.Store(id, remote)
+}
 
-	id, s := c.localNode.Ping(peerID, origin.GetHeight(), latest.GetHeight(), checkpointHash)
-	if s == nil {
-		return fmt.Errorf("failed to send ping")
+func (sync *syncModule) GetRemote(id peer.ID)  *remoteRecord {
+	i, exists := sync.store.Load(id)
+	if !exists {
+		return nil
 	}
 
-	reply, err := ngp2p.ReceiveReply(id, s)
-	if err != nil {
-		return err
-	}
-
-	switch reply.Header.MessageType {
-	case ngp2p.MessageType_PONG:
-		pongPayload, err := ngp2p.GetPongPayload(reply.Payload)
-		if err != nil {
-			return err
-		}
-
-	case ngp2p.MessageType_REJECT:
-		return fmt.Errorf("ping is rejected by remote")
-	default:
-		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
-	}
-
-	return nil
+	return i.(*remoteRecord)
 }
