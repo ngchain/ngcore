@@ -8,13 +8,14 @@ import (
 	"github.com/ngchain/ngcore/ngp2p"
 )
 
-func (pow *PoWork) bootstrap() {
+func (sync *syncModule) bootstrap() {
 	for _, remotePeerID := range pow.localNode.Peerstore().Peers() {
 		go pow.getRemoteStatus(remotePeerID)
 	}
 }
 
-func (pow *PoWork) getRemoteStatus(peerID core.PeerID) error {
+// getRemoteStatus just get the remote status from remote
+func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	origin := pow.chain.GetOriginBlock()
 	latest := pow.chain.GetLatestBlock()
 	checkpointHash := pow.chain.GetLatestCheckpointHash()
@@ -31,7 +32,7 @@ func (pow *PoWork) getRemoteStatus(peerID core.PeerID) error {
 
 	switch reply.Header.MessageType {
 	case ngp2p.MessageType_PONG:
-		pongPayload, err := ngp2p.GetPongPayload(reply.Payload)
+		pongPayload, err := ngp2p.DecodePongPayload(reply.Payload)
 		if err != nil {
 			return err
 		}

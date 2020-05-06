@@ -11,7 +11,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) getChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream) {
+func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream) {
 	if len(from) == 0 {
 		log.Errorf("failed to send getChain: from is nil")
 

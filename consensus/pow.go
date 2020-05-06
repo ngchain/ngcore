@@ -8,11 +8,11 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var log = logging.Logger("consensus")
+var log = logging.Logger("pow")
 
 // InitPoW inits the main of consensus, shouldn't be shut down.
 func (pow *PoWork) InitPoW(workerNum int) {
-	log.Info("Initializing PoWork consensus")
+	log.Info("Initializing PoWork pow")
 
 	if workerNum == 0 {
 		workerNum = runtime.NumCPU()

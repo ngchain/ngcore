@@ -1,13 +1,10 @@
-package ngchain
+package storage
 
 import (
 	"github.com/dgraph-io/badger/v2"
-	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
-
-var log = logging.Logger("ngchain")
 
 const (
 	latestHeightTag = "height"

@@ -47,8 +47,8 @@ func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
 	return true
 }
 
-// GetPongPayload unmarshal the raw and return the *pb.PongPayload.
-func GetPongPayload(rawPayload []byte) (*PongPayload, error) {
+// DecodePongPayload unmarshal the raw and return the *pb.PongPayload.
+func DecodePongPayload(rawPayload []byte) (*PongPayload, error) {
 	pongPayload := &PongPayload{}
 	err := utils.Proto.Unmarshal(rawPayload, pongPayload)
 	if err != nil {

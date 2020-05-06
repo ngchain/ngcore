@@ -15,11 +15,11 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/consensus"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/restapi/operations"
+	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/txpool"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -80,7 +80,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 	})
 
 	api.GetBlockAtHeightHandler = operations.GetBlockAtHeightHandlerFunc(func(params operations.GetBlockAtHeightParams) middleware.Responder {
-		chain := ngchain.GetChain()
+		chain := storage.GetChain()
 		block, err := chain.GetBlockByHeight(uint64(params.Height))
 		if err != nil {
 			return operations.NewGetBlockAtHeightBadRequest().WithPayload(err.Error())
@@ -90,7 +90,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 	})
 
 	api.GetBlockHashHandler = operations.GetBlockHashHandlerFunc(func(params operations.GetBlockHashParams) middleware.Responder {
-		chain := ngchain.GetChain()
+		chain := storage.GetChain()
 		hash, err := hex.DecodeString(params.Hash)
 		if err != nil {
 			return operations.NewGetBlockHashBadRequest().WithPayload(err.Error())
@@ -105,7 +105,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 	})
 
 	api.GetTxHashHandler = operations.GetTxHashHandlerFunc(func(params operations.GetTxHashParams) middleware.Responder {
-		chain := ngchain.GetChain()
+		chain := storage.GetChain()
 		hash, err := hex.DecodeString(params.Hash)
 		if err != nil {
 			return operations.NewGetTxHashBadRequest().WithPayload(err.Error())

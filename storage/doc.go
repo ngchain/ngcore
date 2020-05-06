@@ -1,2 +1,2 @@
-// Package storage exports the badger storage to the other module
+// Package storage is a chain for blocks which contains txs
 package storage

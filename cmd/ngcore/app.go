@@ -16,7 +16,6 @@ import (
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/storage"
@@ -131,7 +130,7 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	chain := ngchain.NewChain(db)
+	chain := storage.NewChain(db)
 	if isStrictMode && chain.GetLatestBlockHeight() == 0 {
 		chain.InitWithGenesis()
 		// then sync
@@ -140,7 +139,6 @@ var action = func(c *cli.Context) error {
 	txPool := txpool.NewTxPool(sheetManager)
 	localNode := ngp2p.NewLocalNode(p2pTCPPort, isBootstrapNode)
 	_ = consensus.NewConsensus(isMining, chain, sheetManager, key, txPool, localNode)
-	
 
 	// rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
 	// go rpc.Run()

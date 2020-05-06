@@ -1,4 +1,4 @@
-package ngchain
+package storage
 
 import "github.com/ngchain/ngcore/ngtypes"
 

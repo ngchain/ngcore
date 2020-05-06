@@ -18,7 +18,7 @@ require (
 	github.com/go-openapi/validate v0.19.8 // indirect
 	github.com/golang/protobuf v1.4.0
 	github.com/google/uuid v1.1.1
-	github.com/ipfs/go-log/v2 v2.0.5
+	github.com/ipfs/go-log/v2 v2.0.7
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.9
@@ -53,5 +53,3 @@ require (
 	golang.org/x/tools v0.0.0-20200501205727-542909fd9944 // indirect
 	google.golang.org/protobuf v1.21.0
 )
-
-replace github.com/ipfs/go-log/v2 v2.0.5 => github.com/maoxs2/go-log/v2 v2.0.5-0.20200415042640-243636cd7aed

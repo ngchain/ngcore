@@ -7,7 +7,6 @@ import (
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/storage"
@@ -27,7 +26,7 @@ func TestNewConsensusManager(t *testing.T) {
 		}
 	}()
 
-	chain := ngchain.NewChain(db)
+	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
 	sheetManager := ngsheet.GetSheetManager()

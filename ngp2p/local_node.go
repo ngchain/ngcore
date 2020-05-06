@@ -16,7 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
 
-	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // LocalNode is the local host on p2p network
@@ -25,7 +25,7 @@ type LocalNode struct {
 	*wiredProtocol
 	*broadcastProtocol
 
-	chain *ngchain.Chain
+	chain *storage.Chain
 
 	isBootstrapNode bool
 }

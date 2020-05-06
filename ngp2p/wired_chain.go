@@ -51,6 +51,17 @@ func (w *wiredProtocol) Chain(uuid []byte, stream network.Stream, blocks ...*ngt
 	return true
 }
 
+// DecodeChainPayload unmarshal the raw and return the *pb.ChainPayload.
+func DecodeChainPayload(rawPayload []byte) (*ChainPayload, error) {
+	payload := &ChainPayload{}
+	err := utils.Proto.Unmarshal(rawPayload, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
 func (w *wiredProtocol) onChain(stream network.Stream, msg *Message) {
 	chain := &ChainPayload{}
 	err := utils.Proto.Unmarshal(msg.Payload, chain)
@@ -58,5 +69,4 @@ func (w *wiredProtocol) onChain(stream network.Stream, msg *Message) {
 		w.reject(msg.Header.MessageId, stream, err)
 		return
 	}
-
 }

@@ -1,8 +1,9 @@
 package ngtypes
 
 import (
-	"github.com/ngchain/ngcore/utils"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 // NewSheet gets the rows from db and return the sheet for transport/saving.
