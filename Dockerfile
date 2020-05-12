@@ -6,8 +6,8 @@ ARG in_china=0
 ENV GOPROXY ${goproxy}
 ENV CHINA ${in_china}
 
-COPY . /ngchain
-WORKDIR /ngchain
+COPY . /ngcore
+WORKDIR /ngcore
 
 # RUN apk add build-base
 RUN if [ $CHINA == 1 ]; \
@@ -21,7 +21,7 @@ FROM alpine:latest
 
 COPY --from=builder /ngchain/ngcore /usr/local/bin/
 
-WORKDIR /workdir
+WORKDIR /.ngdb
 
 EXPOSE 52520 52521
 ENTRYPOINT ["ngcore"]
