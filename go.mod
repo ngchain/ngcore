@@ -1,10 +1,10 @@
 module github.com/ngchain/ngcore
 
-go 1.13
+go 1.14
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
-	github.com/bytecodealliance/wasmtime-go v0.16.0
+	github.com/bytecodealliance/wasmtime-go v0.16.1
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
@@ -16,9 +16,9 @@ require (
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.9
 	github.com/go-openapi/validate v0.19.8 // indirect
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.1
 	github.com/google/uuid v1.1.1
-	github.com/ipfs/go-log/v2 v2.0.7
+	github.com/ipfs/go-log/v2 v2.0.8
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/json-iterator/go v1.1.9
@@ -43,13 +43,12 @@ require (
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/rakyll/statik v0.1.7
 	github.com/urfave/cli/v2 v2.2.0
-	go.mongodb.org/mongo-driver v1.3.2 // indirect
 	go.uber.org/atomic v1.6.0
 	go.uber.org/zap v1.15.0 // indirect
-	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
-	golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
-	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3 // indirect
-	golang.org/x/tools v0.0.0-20200501205727-542909fd9944 // indirect
-	google.golang.org/protobuf v1.21.0
+	golang.org/x/sys v0.0.0-20200511232937-7e40ca221e25 // indirect
+	golang.org/x/tools v0.0.0-20200513022744-65e69ff2d148 // indirect
+	google.golang.org/protobuf v1.22.0
 )
