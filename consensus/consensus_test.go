@@ -8,9 +8,7 @@ import (
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/txpool"
 )
 
 func TestNewConsensusManager(t *testing.T) {
@@ -29,9 +27,7 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	sheetManager := ngsheet.GetSheetManager()
-	txPool := txpool.NewTxPool(sheetManager)
 	localNode := ngp2p.NewLocalNode(rand.Int(), false)
 
-	consensus.NewConsensus(true, chain, sheetManager, key, txPool, localNode)
+	consensus.NewPoWConsensus(1, chain, key, localNode)
 }

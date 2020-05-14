@@ -5,7 +5,7 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 
-	"github.com/ngchain/ngcore/ngsheet"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -15,7 +15,7 @@ var log = logging.Logger("txpool")
 type TxPool struct {
 	sync.RWMutex
 
-	sheetManager *ngsheet.StatusManager
+	status *ngstate.State
 
 	Queuing map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
 
@@ -27,10 +27,10 @@ type TxPool struct {
 var txpool *TxPool
 
 // NewTxPool will create a new global txpool.
-func NewTxPool(sheetManager *ngsheet.StatusManager) *TxPool {
+func NewTxPool(status *ngstate.State) *TxPool {
 	if txpool == nil {
 		txpool = &TxPool{
-			sheetManager: sheetManager,
+			status: status,
 
 			Queuing: make(map[uint64]map[uint64]*ngtypes.Tx),
 

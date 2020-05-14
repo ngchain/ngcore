@@ -1,4 +1,4 @@
-package ngsheet
+package ngstate
 
 import (
 	"encoding/binary"
@@ -12,7 +12,7 @@ import (
 )
 
 // HandleTxs will apply the tx into the sheet if tx is VALID
-func (m *state) handleTxs(txs ...*ngtypes.Tx) (err error) {
+func (m *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
 	err = m.CheckTxs(txs...)
 	if err != nil {
 		return err

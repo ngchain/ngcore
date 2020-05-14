@@ -16,7 +16,7 @@ import (
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/ngsheet"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/restapi/operations"
 	"github.com/ngchain/ngcore/storage"
@@ -62,8 +62,8 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 	})
 
 	api.GetAccountMyHandler = operations.GetAccountMyHandlerFunc(func(params operations.GetAccountMyParams) middleware.Responder {
-		key := utils.PublicKey2Bytes(*consensus.GetConsensus().PrivateKey.PubKey())
-		accounts, err := ngsheet.GetSheetManager().GetAccountsByPublicKey(key)
+		key := utils.PublicKey2Bytes(*consensus.GetPoWConsensus().PrivateKey.PubKey())
+		accounts, err := ngstate.GetCurrentState().GetAccountsByPublicKey(key)
 		if err != nil {
 			return operations.NewGetAccountAllBadRequest().WithPayload(err.Error())
 		}

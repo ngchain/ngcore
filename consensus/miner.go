@@ -24,9 +24,17 @@ type minerModule struct {
 	FoundBlockCh chan *ngtypes.Block
 }
 
-// newMiner will create a local miner which works in *threadNum* threads.
-func newMiner(threadNum int) *minerModule {
+// newMinerModule will create a local miner which works in *threadNum* threads.
+func newMinerModule(threadNum int) *minerModule {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	if threadNum < 0 {
+		return nil
+	}
+
+	if threadNum == 0 {
+		threadNum = runtime.NumCPU()
+	}
 
 	m := &minerModule{
 		isRunning:    atomic.NewBool(false),

@@ -1,11 +1,11 @@
-package ngsheet
+package ngstate
 
 import (
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (m *state) GetNextNonce(accountID uint64) uint64 {
+func (m *State) GetNextNonce(accountID uint64) uint64 {
 	m.RLock()
 	defer m.RUnlock()
 

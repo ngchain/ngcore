@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"sort"
 
 	core "github.com/libp2p/go-libp2p-core"
 
@@ -9,13 +10,33 @@ import (
 )
 
 func (sync *syncModule) bootstrap() {
+	sync.RLock()
+	// 
 	for _, remotePeerID := range pow.localNode.Peerstore().Peers() {
-		go pow.getRemoteStatus(remotePeerID)
+		go pow.syncMod.GetRemoteStatus(remotePeerID)
 	}
+
+	slice := make([]*remoteRecord, len(sync.store))
+	i := 0
+	for _, v := range sync.store {
+		slice[i] = v
+		i++
+	}
+	sort.SliceStable(slice, func(i, j int) bool {
+		return slice[i].lastChatTime > slice[j].lastChatTime
+	})
+
+	// initial sync
+	for _, r := range slice {
+		if r.shouldSync() {
+			sync.doSync(r)
+		}
+	}
+	sync.RUnlock()
 }
 
-// getRemoteStatus just get the remote status from remote
-func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
+// GetRemoteStatus just get the remote status from remote
+func (sync *syncModule) GetRemoteStatus(peerID core.PeerID) error {
 	origin := pow.chain.GetOriginBlock()
 	latest := pow.chain.GetLatestBlock()
 	checkpointHash := pow.chain.GetLatestCheckpointHash()
@@ -36,7 +57,7 @@ func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
 		if err != nil {
 			return err
 		}
-		pow.PutRemote(peerID, &remoteRecord{
+		pow.syncMod.PutRemote(peerID, &remoteRecord{
 			id:     peerID,
 			origin: pongPayload.Origin,
 			latest: pongPayload.Latest,

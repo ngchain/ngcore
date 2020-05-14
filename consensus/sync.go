@@ -64,6 +64,7 @@ func (sync *syncModule) loop() {
 	for {
 		<-ticker.C
 		go func() {
+			log.Infof("checking sync status")
 			slice := make([]*remoteRecord, len(sync.store))
 			i := 0
 			for _, v := range sync.store {
@@ -76,11 +77,12 @@ func (sync *syncModule) loop() {
 			})
 			for _, r := range slice {
 				if r.shouldSync() {
-					sync.doSync(r)
+					sync.doInit(r)
 				}
 			}
 			sync.RUnlock()
-
+			// after sync
+			sync.PoWork.MiningOn()
 		}()
 	}
 }
@@ -90,15 +92,37 @@ func (sync *syncModule) doSync(record *remoteRecord) {
 	defer sync.Unlock()
 
 	// get chain
-	chain, err := sync.getRemoteChain(record.id)
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	for sync.chain.GetLatestBlockHeight() < record.latest {
+		chain, err := sync.getRemoteChain(record.id)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 
-	err = sync.PoWork.PutNewChain(chain...)
-	if err != nil {
-		log.Error(err)
-		return
+		err = sync.PoWork.PutNewChain(chain...)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+	}
+}
+
+func (sync *syncModule) doInit(record *remoteRecord) {
+	sync.Lock()
+	defer sync.Unlock()
+
+	// get chain
+	for sync.chain.GetLatestBlockHeight() < record.latest {
+		chain, err := sync.getRemoteChain(record.id)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		err = sync.PoWork.PutNewChain(chain...)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 	}
 }

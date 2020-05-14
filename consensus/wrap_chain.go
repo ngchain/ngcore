@@ -20,16 +20,6 @@ func (pow *PoWork) initWithChain(chain ...*ngtypes.Block) error {
 	return pow.chain.InitWithChain(chain...)
 }
 
-// func (c *PoWork) ForkToNewChain(chain ...*ngtypes.Block) error {
-// 	chainMu.Lock()
-// 	defer chainMu.Unlock()
-//
-// 	if err := c.checkChain(chain...); err != nil {
-// 		return fmt.Errorf("chain invalid: %s", err)
-// 	}
-// 	return c.Chain.ForkToNewChain(chain...)
-// }
-
 // PutNewChain calls ngchain's PutNewChain
 func (pow *PoWork) PutNewChain(chain ...*ngtypes.Block) error {
 	chainMu.Lock()

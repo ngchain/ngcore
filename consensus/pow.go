@@ -10,44 +10,28 @@ import (
 
 var log = logging.Logger("pow")
 
-// InitPoW inits the main of consensus, shouldn't be shut down.
-func (pow *PoWork) InitPoW(workerNum int) {
+// initPoW inits the main of consensus, shouldn't be shut down.
+func (pow *PoWork) initPoW(workerNum int) {
 	log.Info("Initializing PoWork pow")
 
 	if workerNum == 0 {
 		workerNum = runtime.NumCPU()
 	}
-
-	if pow.isMining {
-		pow.minerModule = newMiner(workerNum)
-		pow.minerModule.start(pow.getBlockTemplate())
-
-		go func() {
-			for {
-				b := <-pow.minerModule.FoundBlockCh
-				pow.minedNewBlock(b)
-
-				if pow.isMining {
-					pow.minerModule.start(pow.getBlockTemplate())
-				}
-			}
-		}()
-	}
 }
 
 // Stop the pow consensus.
-func (pow *PoWork) Stop() {
-	if pow.isMining {
-		log.Info("mining stopping")
-		pow.minerModule.Stop()
+func (pow *PoWork) MiningOff() {
+	if pow.minerMod != nil && pow.minerMod.isRunning.Load() {
+		log.Info("mining mode off")
+		pow.minerMod.Stop()
 	}
 }
 
 // Resume the pow consensus.
-func (pow *PoWork) Resume() {
-	if pow.isMining {
-		log.Info("mining resuming")
-		pow.minerModule.start(pow.getBlockTemplate())
+func (pow *PoWork) MiningOn() {
+	if pow.minerMod != nil && !pow.minerMod.isRunning.Load() {
+		log.Info("mining mode on")
+		pow.minerMod.start(pow.getBlockTemplate())
 	}
 }
 
@@ -115,7 +99,7 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 		return
 	}
 
-	err = pow.sheetManager.HandleTxs(block.Txs...)
+	err = pow.state.HandleTxs(block.Txs...)
 	if err != nil {
 		log.Warn(err)
 		return

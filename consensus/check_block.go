@@ -29,7 +29,7 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 		}
 	}
 
-	if err := pow.sheetManager.CheckTxs(block.Txs...); err != nil {
+	if err := pow.state.CheckTxs(block.Txs...); err != nil {
 		return err
 	}
 

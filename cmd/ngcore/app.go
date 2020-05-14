@@ -17,9 +17,7 @@ import (
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/ngsheet"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/txpool"
 )
 
 var strictModeFlag = &cli.BoolFlag{
@@ -90,7 +88,7 @@ var action = func(c *cli.Context) error {
 	logging.SetAllLoggers(logLevel)
 
 	isBootstrapNode := c.Bool("bootstrap")
-	isMining := c.Int("mining") >= 0
+	mining := c.Int("mining")
 	isStrictMode := isBootstrapNode || c.Bool("strict")
 	p2pTCPPort := c.Int("p2p-port")
 	apiPort := c.Int("api-port")
@@ -135,21 +133,15 @@ var action = func(c *cli.Context) error {
 		chain.InitWithGenesis()
 		// then sync
 	}
-	sheetManager := ngsheet.GetSheetManager()
-	txPool := txpool.NewTxPool(sheetManager)
-	localNode := ngp2p.NewLocalNode(p2pTCPPort, isBootstrapNode)
-	_ = consensus.NewConsensus(isMining, chain, sheetManager, key, txPool, localNode)
 
-	// rpc := rpc.NewServer("127.0.0.1", rpcPort, consensus, localNode, sheetManager, txPool)
-	// go rpc.Run()
+	localNode := ngp2p.NewLocalNode(p2pTCPPort, isBootstrapNode)
+
+	pow := consensus.NewPoWConsensus(mining, chain, key, localNode)
+	go pow.Loop()
 
 	go runSwaggerServer(apiPort)
 	go runSwaggerUI("127.0.0.1", apiPort+1)
 
-	latestBlock := chain.GetLatestBlock()
-	sheetManager.Init(latestBlock)
-	txPool.Init(chain.MinedBlockToTxPoolCh)
-	txPool.Run()
 	localNode.Init()
 
 	// notify the exit events

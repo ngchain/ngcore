@@ -1,4 +1,4 @@
-package ngsheet
+package ngstate
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 )
 
 // CheckTxs will check the influenced accounts which mentioned in op, and verify their balance and nonce
-func (m *state) CheckTxs(txs ...*ngtypes.Tx) error {
+func (m *State) CheckTxs(txs ...*ngtypes.Tx) error {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -62,7 +62,7 @@ func (m *state) CheckTxs(txs ...*ngtypes.Tx) error {
 	return nil
 }
 
-func (m *state) CheckGenerate(generateTx *ngtypes.Tx) error {
+func (m *State) CheckGenerate(generateTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[generateTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
@@ -89,7 +89,7 @@ func (m *state) CheckGenerate(generateTx *ngtypes.Tx) error {
 	return nil
 }
 
-func (m *state) CheckRegister(registerTx *ngtypes.Tx) error {
+func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	// check structure and key
 	if err := registerTx.CheckRegister(); err != nil {
 		return err
@@ -126,7 +126,7 @@ func (m *state) CheckRegister(registerTx *ngtypes.Tx) error {
 	return nil
 }
 
-func (m *state) CheckLogout(logoutTx *ngtypes.Tx) error {
+func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[logoutTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
@@ -162,7 +162,7 @@ func (m *state) CheckLogout(logoutTx *ngtypes.Tx) error {
 	return nil
 }
 
-func (m *state) CheckTransaction(transactionTx *ngtypes.Tx) error {
+func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[transactionTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
@@ -198,7 +198,7 @@ func (m *state) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	return nil
 }
 
-func (m *state) CheckAssign(assignTx *ngtypes.Tx) error {
+func (m *State) CheckAssign(assignTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[assignTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
@@ -234,7 +234,7 @@ func (m *state) CheckAssign(assignTx *ngtypes.Tx) error {
 	return nil
 }
 
-func (m *state) CheckAppend(appendTx *ngtypes.Tx) error {
+func (m *State) CheckAppend(appendTx *ngtypes.Tx) error {
 	rawConvener, exists := m.accounts[appendTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")

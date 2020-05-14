@@ -18,8 +18,9 @@ func (pow *PoWork) createGenerateTx(privateKey *secp256k1.PrivateKey, extraData 
 		[][]byte{publicKeyBytes},
 		[]*big.Int{ngtypes.OneBlockBigReward},
 		ngtypes.GetBig0(),
-		pow.sheetManager.GetNextNonce(0),
-		extraData)
+		pow.state.GetNextNonce(0),
+		extraData,
+	)
 
 	err := gen.Signature(privateKey)
 	if err != nil {

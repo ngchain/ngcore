@@ -1,4 +1,4 @@
-package ngsheet
+package ngstate
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-type state struct {
+type State struct {
 	sync.RWMutex
 
 	// using bytes to keep data safe
@@ -20,9 +20,9 @@ type state struct {
 	anonymous map[string][]byte
 }
 
-// newStateFromSheet will create a new state which is a wrapper of *ngtypes.sheet
-func newStateFromSheet(sheet *ngtypes.Sheet) (*state, error) {
-	entry := &state{
+// NewStateFromSheet will create a new state which is a wrapper of *ngtypes.sheet
+func NewStateFromSheet(sheet *ngtypes.Sheet) (*State, error) {
+	entry := &State{
 		accounts:  make(map[uint64][]byte),
 		anonymous: make(map[string][]byte),
 	}
@@ -43,7 +43,7 @@ func newStateFromSheet(sheet *ngtypes.Sheet) (*state, error) {
 }
 
 // ToSheet will conclude a sheet which has all status of all accounts & keys(if balance not nil)
-func (m *state) ToSheet() (*ngtypes.Sheet, error) {
+func (m *State) ToSheet() (*ngtypes.Sheet, error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -67,7 +67,7 @@ func (m *state) ToSheet() (*ngtypes.Sheet, error) {
 	return ngtypes.NewSheet(accounts, anonymous), nil
 }
 
-func (m *state) GetBalanceByNum(id uint64) (*big.Int, error) {
+func (m *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -92,7 +92,7 @@ func (m *state) GetBalanceByNum(id uint64) (*big.Int, error) {
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
-func (m *state) getBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
+func (m *State) GetBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -104,7 +104,7 @@ func (m *state) getBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
-func (m *state) accountIsRegistered(num uint64) bool {
+func (m *State) AccountIsRegistered(num uint64) bool {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -112,7 +112,7 @@ func (m *state) accountIsRegistered(num uint64) bool {
 	return exists
 }
 
-func (m *state) getAccountByNum(num uint64) (account *ngtypes.Account, err error) {
+func (m *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -130,7 +130,7 @@ func (m *state) getAccountByNum(num uint64) (account *ngtypes.Account, err error
 	return account, nil
 }
 
-func (m *state) getAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Account, error) {
+func (m *State) GetAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Account, error) {
 	m.RLock()
 	defer m.RUnlock()
 

@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// getRemoteStatus just get the remote status from remote
+// getRemoteChain just get the remote status from remote
 func (sync *syncModule) getRemoteChain(peerID core.PeerID) (chain []*ngtypes.Block, err error) {
 	latestHash := pow.chain.GetLatestBlockHash()
 

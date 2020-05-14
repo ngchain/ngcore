@@ -46,7 +46,7 @@ func (pow *PoWork) checkChain(blocks ...*ngtypes.Block) error {
 			}
 		}
 
-		if err := pow.sheetManager.CheckTxs(curBlock.Txs...); err != nil {
+		if err := pow.state.CheckTxs(curBlock.Txs...); err != nil {
 			return err
 		}
 

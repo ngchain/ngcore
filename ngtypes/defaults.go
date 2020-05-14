@@ -19,7 +19,7 @@ const (
 const (
 	GenesisPublicKeyBase58      = "ruBBKVQgTKDaB8dFbSZqQeJkgnZxzL26s8gwatw8M1F5"
 	GenesisGenerateTxSignBase58 = "3kCnakJZV9yYiFXc4dgDFBTp7KgZPdDLvsjqSux75FvsaroyTa7Xx4ksWk3gk2QS1zZELD15omcfrrQDVUuu6BmZ"
-	GenesisBlockNonceHex        = "f8ed39a3a407bc4d"
+	GenesisBlockNonceHex        = "ffb4e186e415927b"
 )
 
 // decoded genesis variables
@@ -33,7 +33,7 @@ var (
 // PoW const
 const (
 	// MinimumDifficulty is the minimum of pow difficulty because my laptop has 50 h/s, I believe you can either
-	difficulty      = 50 * 60 * 20 // Target = MaxTarget / diff
+	difficulty      = 50 * 10 // Target = MaxTarget / diff
 	TargetTime      = 10 * time.Second
 	BlockCheckRound = 10
 )

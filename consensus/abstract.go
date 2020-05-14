@@ -7,6 +7,7 @@ type State interface {
 
 // Consensus is an abstract consensus interface
 type Consensus interface {
+	Loop()
 	GetCurrentState() (State, error)
 	CommitState(State) (State, error)
 }
