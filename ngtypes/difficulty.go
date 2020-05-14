@@ -14,14 +14,15 @@ func GetNextTarget(tailBlock *Block) *big.Int {
 
 // GetNextDiff is a helper to get next pow block Diff field.
 func GetNextDiff(tailBlock *Block) *big.Int {
-	target := new(big.Int).Div(MaxTarget, tailBlock.GetActualDiff())
-
+	diff := tailBlock.GetActualDiff()
 	if !tailBlock.IsTail() {
-		return target
+		return diff
 	}
 
+	target := new(big.Int).Div(MaxTarget, diff)
+
 	// when next block is head(checkpoint)
-	diff := new(big.Int).Div(MaxTarget, target)
+	diff = new(big.Int).Div(MaxTarget, target)
 	elapsed := int64(uint64(tailBlock.Header.Timestamp) - tailBlock.GetHeight()*uint64(TargetTime/time.Second))
 
 	if elapsed < int64(TargetTime/time.Second)*(BlockCheckRound-2) {

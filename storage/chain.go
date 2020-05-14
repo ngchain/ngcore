@@ -2,8 +2,6 @@ package storage
 
 import (
 	"github.com/dgraph-io/badger/v2"
-
-	"github.com/ngchain/ngcore/ngtypes"
 )
 
 const (
@@ -19,9 +17,6 @@ var (
 // Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing.
 type Chain struct {
 	db *badger.DB
-
-	MinedBlockToP2PCh    chan *ngtypes.Block
-	MinedBlockToTxPoolCh chan *ngtypes.Block
 }
 
 var chain *Chain
@@ -31,9 +26,6 @@ func NewChain(db *badger.DB) *Chain {
 	if chain == nil {
 		chain = &Chain{
 			db: db,
-
-			MinedBlockToP2PCh:    make(chan *ngtypes.Block),
-			MinedBlockToTxPoolCh: make(chan *ngtypes.Block),
 		}
 	}
 

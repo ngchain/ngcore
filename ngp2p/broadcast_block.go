@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (b *broadcastProtocol) broadcastBlock(block *ngtypes.Block) bool {
+func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) bool {
 	broadcastBlockPayload := block
 
 	raw, err := utils.Proto.Marshal(broadcastBlockPayload)

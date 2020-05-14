@@ -46,7 +46,7 @@ func NewPoWConsensus(miningThread int, chain *storage.Chain, privateKey *secp256
 		minerMod: nil,
 	}
 
-	pow.minerMod = newMinerModule(miningThread)
+	pow.minerMod = newMinerModule(pow, miningThread)
 	pow.syncMod = newSyncModule(pow)
 
 	return pow
@@ -63,23 +63,4 @@ func GetPoWConsensus() *PoWork {
 
 func (c *PoWork) Loop() {
 	c.syncMod.loop()
-
-	if pow.minerMod != nil {
-		pow.minerMod.start(pow.getBlockTemplate())
-
-		go func() {
-			for {
-				b := <-pow.minerMod.FoundBlockCh
-				pow.minedNewBlock(b)
-				// assign new job
-				pow.minerMod.start(pow.getBlockTemplate())
-			}
-		}()
-	}
-}
-
-func (c *PoWork) initTxPool(state *ngstate.State) {
-	txpool := txpool.NewTxPool(state)
-	txpool.Init(c.chain.MinedBlockToTxPoolCh)
-	txpool.Run()
 }

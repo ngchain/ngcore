@@ -23,7 +23,7 @@ func (pow *PoWork) initPoW(workerNum int) {
 func (pow *PoWork) MiningOff() {
 	if pow.minerMod != nil && pow.minerMod.isRunning.Load() {
 		log.Info("mining mode off")
-		pow.minerMod.Stop()
+		pow.minerMod.stop()
 	}
 }
 
@@ -93,11 +93,13 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 	hash, _ := block.CalculateHash()
 	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
 
-	err = pow.chain.MinedNewBlock(block)
+	err = pow.PutNewBlock(block) // chain will verify the block
 	if err != nil {
 		log.Warn(err)
-		return
 	}
+
+	pow.localNode.BroadcastBlock(block)
+	pow.txpool.HandleNewBlock(block)
 
 	err = pow.state.HandleTxs(block.Txs...)
 	if err != nil {

@@ -19,8 +19,6 @@ type TxPool struct {
 
 	Queuing map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
 
-	newBlockCh chan *ngtypes.Block
-
 	NewCreatedTxEvent chan *ngtypes.Tx
 }
 
@@ -50,20 +48,9 @@ func GetTxPool() *TxPool {
 	return txpool
 }
 
-// Init inits the txPool with submodules.
-func (p *TxPool) Init(newBlockCh chan *ngtypes.Block) {
-	p.newBlockCh = newBlockCh
-}
-
-// Run starts listening to the new block & vault.
-func (p *TxPool) Run() {
-	go func() {
-		for {
-			block := <-p.newBlockCh
-			log.Infof("start popping txs in block@%d", block.GetHeight())
-			p.DelBlockTxs(block.Txs...)
-		}
-	}()
+func (p *TxPool) HandleNewBlock(block *ngtypes.Block) {
+	log.Infof("start popping txs in block@%d", block.GetHeight())
+	p.DelBlockTxs(block.Txs...)
 }
 
 // IsInPool checks one tx is in pool or not. TODO: export it into rpc.

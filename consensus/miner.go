@@ -16,6 +16,8 @@ import (
 // minerModule is an inner miner for proof of work
 // miner implements a internal PoW miner with multi threads(goroutines) support
 type minerModule struct {
+	pow *PoWork
+
 	threadNum int
 	hashes    atomic.Int64
 
@@ -25,7 +27,7 @@ type minerModule struct {
 }
 
 // newMinerModule will create a local miner which works in *threadNum* threads.
-func newMinerModule(threadNum int) *minerModule {
+func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if threadNum < 0 {
@@ -37,6 +39,7 @@ func newMinerModule(threadNum int) *minerModule {
 	}
 
 	m := &minerModule{
+		pow:          pow,
 		isRunning:    atomic.NewBool(false),
 		threadNum:    threadNum,
 		abortCh:      make(chan struct{}),
@@ -65,10 +68,6 @@ func newMinerModule(threadNum int) *minerModule {
 
 // Start will ignite the engine of Miner and all threads start working.
 func (m *minerModule) start(initJob *ngtypes.Block) {
-	if m.isRunning.Load() {
-		return
-	}
-
 	m.isRunning.Store(true)
 	m.abortCh = make(chan struct{})
 
@@ -79,8 +78,8 @@ func (m *minerModule) start(initJob *ngtypes.Block) {
 	}
 }
 
-// Stop will stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
-func (m *minerModule) Stop() {
+// stop will stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
+func (m *minerModule) stop() {
 	if !m.isRunning.Load() {
 		return
 	}
@@ -91,7 +90,8 @@ func (m *minerModule) Stop() {
 }
 
 func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
-	target := new(big.Int).Div(ngtypes.MaxTarget, new(big.Int).SetBytes(job.GetHeader().GetDifficulty()))
+	diff := new(big.Int).SetBytes(job.GetHeader().GetDifficulty())
+	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
 	for {
 		select {
@@ -124,7 +124,7 @@ func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 
 func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
 	// Correct nonce found
-	m.Stop()
+	m.stop()
 
 	log.Debugf("Thread %d found nonce %x", t, nonce)
 
@@ -133,5 +133,7 @@ func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
 		log.Panic(err)
 	}
 
-	m.FoundBlockCh <- block
+	pow.minedNewBlock(block)
+	// assign new job
+	pow.minerMod.start(pow.getBlockTemplate())
 }
