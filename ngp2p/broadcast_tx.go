@@ -24,6 +24,7 @@ func (b *broadcastProtocol) broadcastTx(tx *ngtypes.Tx) bool {
 		return false
 	}
 
+	log.Debugf("broadcasted Tx:%s", tx.ID())
 	return true
 }
 
