@@ -20,8 +20,8 @@ type minerModule struct {
 
 	threadNum int
 	hashes    atomic.Int64
+	job       *atomic.Value
 
-	isRunning    *atomic.Bool // bool
 	abortCh      chan struct{}
 	FoundBlockCh chan *ngtypes.Block
 }
@@ -40,7 +40,7 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 
 	m := &minerModule{
 		pow:          pow,
-		isRunning:    atomic.NewBool(false),
+		job:          new(atomic.Value),
 		threadNum:    threadNum,
 		abortCh:      make(chan struct{}),
 		FoundBlockCh: make(chan *ngtypes.Block),
@@ -57,7 +57,8 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 
 			go func() {
 				hashes := m.hashes.Load()
-				log.Infof("Total Hashrate: %d h/s", hashes/elapsed)
+				current := m.job.Load().(*ngtypes.Block)
+				log.Infof("Total Hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), current.Header.GetDifficulty())
 				m.hashes.Add(-hashes)
 			}()
 		}
@@ -67,26 +68,34 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 }
 
 // Start will ignite the engine of Miner and all threads start working.
-func (m *minerModule) start(initJob *ngtypes.Block) {
-	m.isRunning.Store(true)
-	m.abortCh = make(chan struct{})
+// and can also be used as update job
+func (m *minerModule) start(job *ngtypes.Block) {
+	if m.job.Load() != nil {
+		log.Info("mining job updeting")
+	} else {
+		log.Info("mining mod on")
+	}
 
+	m.job.Store(job)
+
+	m.abortCh = make(chan struct{})
 	once := new(sync.Once)
 
 	for threadID := 0; threadID < m.threadNum; threadID++ {
-		go m.mine(threadID, initJob, once)
+		go m.mine(threadID, job, once)
 	}
 }
 
 // stop will stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
 func (m *minerModule) stop() {
-	if !m.isRunning.Load() {
+	if m.job.Load() == nil {
 		return
 	}
 
-	m.isRunning.Store(false)
+	m.job.Store(nil)
 	close(m.abortCh)
 	<-m.abortCh // wait
+	log.Info("mining mode off")
 }
 
 func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {

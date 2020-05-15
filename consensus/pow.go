@@ -21,16 +21,14 @@ func (pow *PoWork) initPoW(workerNum int) {
 
 // Stop the pow consensus.
 func (pow *PoWork) MiningOff() {
-	if pow.minerMod != nil && pow.minerMod.isRunning.Load() {
-		log.Info("mining mode off")
+	if pow.minerMod != nil {
 		pow.minerMod.stop()
 	}
 }
 
 // Resume the pow consensus.
 func (pow *PoWork) MiningOn() {
-	if pow.minerMod != nil && !pow.minerMod.isRunning.Load() {
-		log.Info("mining mode on")
+	if pow.minerMod != nil {
 		pow.minerMod.start(pow.getBlockTemplate())
 	}
 }
