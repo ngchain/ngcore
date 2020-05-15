@@ -142,8 +142,6 @@ var action = func(c *cli.Context) error {
 	go runSwaggerServer(apiPort)
 	go runSwaggerUI("127.0.0.1", apiPort+1)
 
-	localNode.Init()
-
 	// notify the exit events
 	var stopSignal = make(chan os.Signal, 1)
 	signal.Notify(stopSignal, syscall.SIGTERM)
