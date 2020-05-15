@@ -38,6 +38,12 @@ func (b *broadcastProtocol) onBroadcastBlock(msg *pubsub.Message) {
 		return
 	}
 
-	log.Debugf("received a new block broadcast@%d", broadcastBlockPayload.GetHeight())
-	// TODO
+	newBlock := broadcastBlockPayload
+	log.Debugf("received a new block broadcast@%d", newBlock.GetHeight())
+
+	err = b.node.chain.PutNewBlock(newBlock)
+	if err != nil {
+		log.Error(err)
+	}
+	// TODO: !important
 }
