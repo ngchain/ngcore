@@ -14,7 +14,7 @@ func GetNextTarget(tailBlock *Block) *big.Int {
 
 // GetNextDiff is a helper to get next pow block Diff field.
 func GetNextDiff(tailBlock *Block) *big.Int {
-	diff := tailBlock.GetActualDiff()
+	diff := new(big.Int).SetBytes(tailBlock.GetHeader().GetDifficulty())
 	if !tailBlock.IsTail() {
 		return diff
 	}

@@ -94,14 +94,8 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 	err = pow.PutNewBlock(block) // chain will verify the block
 	if err != nil {
 		log.Warn(err)
+		return
 	}
 
 	pow.localNode.BroadcastBlock(block)
-	pow.txpool.HandleNewBlock(block)
-
-	err = pow.state.HandleTxs(block.Txs...)
-	if err != nil {
-		log.Warn(err)
-		return
-	}
 }

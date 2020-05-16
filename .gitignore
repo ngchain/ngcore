@@ -15,6 +15,20 @@
 ##go module
 vendor/
 
+#VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
+
+# debug binary
+__debug_bin
+
 #IDEA
 ##Editor-based Rest Client
 .idea/httpRequests

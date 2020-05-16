@@ -12,11 +12,11 @@ require (
 	github.com/go-openapi/errors v0.19.4
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.15
-	github.com/go-openapi/spec v0.19.7
+	github.com/go-openapi/spec v0.19.8
 	github.com/go-openapi/strfmt v0.19.5
 	github.com/go-openapi/swag v0.19.9
 	github.com/go-openapi/validate v0.19.8 // indirect
-	github.com/golang/protobuf v1.4.1
+	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/ipfs/go-log/v2 v2.0.8
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
@@ -35,7 +35,7 @@ require (
 	github.com/libp2p/go-yamux v1.3.6 // indirect
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/mr-tron/base58 v1.1.3
-	github.com/multiformats/go-multiaddr v0.2.1
+	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/multiformats/go-multiaddr-net v0.1.5 // indirect
 	github.com/multiformats/go-multibase v0.0.2 // indirect
 	github.com/ngchain/cryptonight-go v0.0.0-20200408114201-bdcadf0ac3e1
@@ -46,9 +46,9 @@ require (
 	go.uber.org/atomic v1.6.0
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
+	golang.org/x/net v0.0.0-20200513185701-a91f0712d120
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
-	golang.org/x/sys v0.0.0-20200511232937-7e40ca221e25 // indirect
-	golang.org/x/tools v0.0.0-20200513022744-65e69ff2d148 // indirect
-	google.golang.org/protobuf v1.22.0
+	golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9 // indirect
+	golang.org/x/tools v0.0.0-20200515010526-7d3b6ebf133d // indirect
+	google.golang.org/protobuf v1.23.0
 )

@@ -59,7 +59,7 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 				hashes := m.hashes.Load()
 				if m.job.Load() != nil {
 					current := m.job.Load().(*ngtypes.Block)
-					log.Infof("Total Hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), current.Header.GetDifficulty())
+					log.Infof("Total Hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.Header.GetDifficulty()))
 				}
 				m.hashes.Sub(hashes)
 			}()
