@@ -20,18 +20,6 @@ func (pow *PoWork) initWithChain(chain ...*ngtypes.Block) error {
 	return pow.chain.InitWithChain(chain...)
 }
 
-// PutNewChain calls ngchain's PutNewChain
-func (pow *PoWork) PutNewChain(chain ...*ngtypes.Block) error {
-	chainMu.Lock()
-	defer chainMu.Unlock()
-
-	if err := pow.checkChain(chain...); err != nil {
-		return fmt.Errorf("chain invalid: %s", err)
-	}
-
-	return pow.chain.PutNewChain(chain...)
-}
-
 // PutNewBlock calls ngchain's PutNewBlock
 func (pow *PoWork) PutNewBlock(block *ngtypes.Block) error {
 	chainMu.Lock()
@@ -41,5 +29,16 @@ func (pow *PoWork) PutNewBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	return pow.chain.PutNewBlock(block)
+	err := pow.chain.PutNewBlock(block)
+	if err != nil {
+		return err
+	}
+
+	pow.txpool.HandleNewBlock(block)
+	err = pow.state.HandleTxs(block.Txs...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

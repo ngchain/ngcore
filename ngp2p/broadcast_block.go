@@ -25,7 +25,7 @@ func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) bool {
 	}
 
 	hash, _ := block.CalculateHash()
-	log.Debugf("broadcasted block@%d:%s", block.GetHeight(), hash)
+	log.Debugf("broadcasted block@%d:%x", block.GetHeight(), hash)
 	return true
 }
 
@@ -41,9 +41,6 @@ func (b *broadcastProtocol) onBroadcastBlock(msg *pubsub.Message) {
 	newBlock := broadcastBlockPayload
 	log.Debugf("received a new block broadcast@%d", newBlock.GetHeight())
 
-	err = b.node.chain.PutNewBlock(newBlock)
-	if err != nil {
-		log.Error(err)
-	}
+	b.node.OnBlock <- newBlock
 	// TODO: !important
 }

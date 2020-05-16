@@ -57,9 +57,11 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 
 			go func() {
 				hashes := m.hashes.Load()
-				current := m.job.Load().(*ngtypes.Block)
-				log.Infof("Total Hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), current.Header.GetDifficulty())
-				m.hashes.Add(-hashes)
+				if m.job.Load() != nil {
+					current := m.job.Load().(*ngtypes.Block)
+					log.Infof("Total Hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), current.Header.GetDifficulty())
+				}
+				m.hashes.Sub(hashes)
 			}()
 		}
 	}()
@@ -92,7 +94,7 @@ func (m *minerModule) stop() {
 		return
 	}
 
-	m.job.Store(nil)
+	m.job = new(atomic.Value) // nil value
 	close(m.abortCh)
 	<-m.abortCh // wait
 	log.Info("mining mode off")

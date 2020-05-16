@@ -15,8 +15,7 @@ import (
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
-
-	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // LocalNode is the local host on p2p network
@@ -25,9 +24,10 @@ type LocalNode struct {
 	*wiredProtocol
 	*broadcastProtocol
 
-	chain *storage.Chain
-
 	isBootstrapNode bool
+
+	OnBlock chan *ngtypes.Block
+	OnTx    chan *ngtypes.Tx
 }
 
 var localNode *LocalNode

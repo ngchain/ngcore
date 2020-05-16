@@ -99,10 +99,12 @@ func (sync *syncModule) doSync(record *remoteRecord) {
 			return
 		}
 
-		err = sync.PoWork.PutNewChain(chain...)
-		if err != nil {
-			log.Error(err)
-			return
+		for i := 0; i < len(chain); i++ {
+			err = sync.PoWork.PutNewBlock(chain[i])
+			if err != nil {
+				log.Error(err)
+				return
+			}
 		}
 	}
 }
@@ -119,10 +121,12 @@ func (sync *syncModule) doInit(record *remoteRecord) {
 			return
 		}
 
-		err = sync.PoWork.PutNewChain(chain...)
-		if err != nil {
-			log.Error(err)
-			return
+		for i := 0; i < len(chain); i++ {
+			err = sync.PoWork.PutNewBlock(chain[i])
+			if err != nil {
+				log.Error(err)
+				return
+			}
 		}
 	}
 }

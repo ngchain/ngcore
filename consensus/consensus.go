@@ -61,6 +61,8 @@ func GetPoWConsensus() *PoWork {
 	return pow
 }
 
-func (c *PoWork) Loop() {
-	c.syncMod.loop()
+// GoLoop ignites all loops
+func (c *PoWork) GoLoop() {
+	go c.loop()
+	go c.syncMod.loop()
 }
