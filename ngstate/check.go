@@ -82,8 +82,8 @@ func (m *State) CheckGenerate(generateTx *ngtypes.Tx) error {
 	// DO NOT CHECK BALANCE
 
 	// check nonce
-	if generateTx.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong generate nonce: %d, should be %d", generateTx.GetN(), convener.Txn+1)
+	if generateTx.GetN() != convener.Txn {
+		return fmt.Errorf("wrong N: %d, should be %d", generateTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
@@ -119,8 +119,8 @@ func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	if err != nil {
 		return err
 	}
-	if registerTx.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong register nonce: %d, should be %d", registerTx.GetN(), convener.Txn+1)
+	if registerTx.GetN() != convener.Txn {
+		return fmt.Errorf("wrong N: %d, should be %d", registerTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
@@ -155,8 +155,8 @@ func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	if logoutTx.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong logout nonce: %d, should be %d", logoutTx.GetN(), convener.Txn+1)
+	if logoutTx.GetN() != convener.Txn {
+		return fmt.Errorf("wrong N: %d, should be %d", logoutTx.GetN(), convener.Txn+1)
 	}
 
 	return nil
@@ -191,8 +191,8 @@ func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	if transactionTx.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong transaction nonce: %d, should be %d", transactionTx.GetN(), convener.Txn+1)
+	if transactionTx.GetN() != convener.Txn {
+		return fmt.Errorf("wrong N: %d, should be %d", transactionTx.GetN(), convener.Txn+1)
 	}
 
 	return nil

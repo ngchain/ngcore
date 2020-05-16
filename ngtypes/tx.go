@@ -392,7 +392,7 @@ func GetGenesisGenerateTx() *Tx {
 		[][]byte{GenesisPublicKey},
 		[]*big.Int{OneBlockBigReward},
 		GetBig0(),
-		1,
+		0,
 		nil,
 	)
 
