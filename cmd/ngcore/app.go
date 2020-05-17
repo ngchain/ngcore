@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/pprof"
 	"strings"
 	"syscall"
@@ -89,6 +90,10 @@ var action = func(c *cli.Context) error {
 
 	isBootstrapNode := c.Bool("bootstrap")
 	mining := c.Int("mining")
+	if mining == 0 {
+		mining = runtime.NumCPU()
+	}
+
 	isStrictMode := isBootstrapNode || c.Bool("strict")
 	p2pTCPPort := c.Int("p2p-port")
 	apiPort := c.Int("api-port")

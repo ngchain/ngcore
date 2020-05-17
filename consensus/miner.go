@@ -30,12 +30,8 @@ type minerModule struct {
 func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	if threadNum < 0 {
+	if threadNum <= 0 {
 		return nil
-	}
-
-	if threadNum == 0 {
-		threadNum = runtime.NumCPU()
 	}
 
 	m := &minerModule{

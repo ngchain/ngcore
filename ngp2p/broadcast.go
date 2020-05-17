@@ -6,8 +6,8 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
-const broadcastBlockTopic = "/ngp2p/broadcast/block/0.0.1"
-const broadcastTxTopic = "/ngp2p/broadcast/tx/0.0.1"
+const broadcastBlockTopic = "/ngp2p/broadcast/block/0.0.2"
+const broadcastTxTopic = "/ngp2p/broadcast/tx/0.0.2"
 
 type broadcastProtocol struct {
 	PubSub *pubsub.PubSub
@@ -27,7 +27,7 @@ func registerBroadcaster(node *LocalNode) *broadcastProtocol {
 		subscriptions: make(map[string]*pubsub.Subscription),
 	}
 
-	b.PubSub, err = pubsub.NewGossipSub(context.Background(), node)
+	b.PubSub, err = pubsub.NewFloodSub(context.Background(), node)
 	if err != nil {
 		panic(err)
 	}
