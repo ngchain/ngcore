@@ -24,8 +24,6 @@ type LocalNode struct {
 	*wiredProtocol
 	*broadcastProtocol
 
-	isBootstrapNode bool
-
 	OnBlock chan *ngtypes.Block
 	OnTx    chan *ngtypes.Tx
 }
@@ -33,7 +31,7 @@ type LocalNode struct {
 var localNode *LocalNode
 
 // NewLocalNode creates a new node with its implemented protocols.
-func NewLocalNode(port int, isBootstrapNode bool) *LocalNode {
+func NewLocalNode(port int) *LocalNode {
 	if localNode == nil {
 		ctx := context.Background()
 		priv := getP2PKey()
@@ -99,8 +97,6 @@ func NewLocalNode(port int, isBootstrapNode bool) *LocalNode {
 			Host:              localHost,
 			wiredProtocol:     nil,
 			broadcastProtocol: nil,
-
-			isBootstrapNode: isBootstrapNode,
 		}
 
 		localNode.broadcastProtocol = registerBroadcaster(localNode)

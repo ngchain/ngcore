@@ -30,7 +30,7 @@ type PoWork struct {
 var pow *PoWork
 
 // NewPoWConsensus creates and initializes the PoW consensus
-func NewPoWConsensus(miningThread int, chain *storage.Chain, privateKey *secp256k1.PrivateKey, localNode *ngp2p.LocalNode) *PoWork {
+func NewPoWConsensus(miningThread int, chain *storage.Chain, privateKey *secp256k1.PrivateKey, localNode *ngp2p.LocalNode, isBootstrapNode bool) *PoWork {
 	state, _ := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
 	txpool := txpool.NewTxPool(state)
 
@@ -47,7 +47,7 @@ func NewPoWConsensus(miningThread int, chain *storage.Chain, privateKey *secp256
 	}
 
 	pow.minerMod = newMinerModule(pow, miningThread)
-	pow.syncMod = newSyncModule(pow)
+	pow.syncMod = newSyncModule(pow, isBootstrapNode)
 
 	return pow
 }

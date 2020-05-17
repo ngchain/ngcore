@@ -139,9 +139,9 @@ var action = func(c *cli.Context) error {
 		// then sync
 	}
 
-	localNode := ngp2p.NewLocalNode(p2pTCPPort, isBootstrapNode)
+	localNode := ngp2p.NewLocalNode(p2pTCPPort)
 
-	pow := consensus.NewPoWConsensus(mining, chain, key, localNode)
+	pow := consensus.NewPoWConsensus(mining, chain, key, localNode, isBootstrapNode)
 	pow.GoLoop()
 
 	go runSwaggerServer(apiPort)

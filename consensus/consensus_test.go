@@ -27,7 +27,7 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	localNode := ngp2p.NewLocalNode(rand.Int(), false)
+	localNode := ngp2p.NewLocalNode(rand.Int())
 
-	consensus.NewPoWConsensus(1, chain, key, localNode)
+	consensus.NewPoWConsensus(1, chain, key, localNode, false)
 }

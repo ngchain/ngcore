@@ -36,12 +36,18 @@ func (r *remoteRecord) shouldSync() bool {
 	return false
 }
 
-func newSyncModule(pow *PoWork) *syncModule {
-	return &syncModule{
+func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
+	sync := &syncModule{
 		RWMutex: sync.RWMutex{},
 		PoWork:  pow,
 		store:   make(map[peer.ID]*remoteRecord),
 	}
+
+	if !isBootstrapNode {
+		sync.bootstrap()
+	}
+
+	return sync
 }
 
 func (sync *syncModule) PutRemote(id peer.ID, remote *remoteRecord) {
@@ -85,7 +91,7 @@ func (sync *syncModule) loop() {
 			})
 			for _, r := range slice {
 				if r.shouldSync() {
-					sync.doInit(r)
+					sync.doSync(r)
 				}
 			}
 			sync.RUnlock()

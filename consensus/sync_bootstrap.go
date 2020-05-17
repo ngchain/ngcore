@@ -4,14 +4,36 @@ import (
 	"fmt"
 	"sort"
 
+	"context"
+
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/ngp2p"
 )
 
 func (sync *syncModule) bootstrap() {
 	sync.RLock()
-	// 
+	//
+	c := context.Background()
+	for i := range ngp2p.BootstrapNodes {
+		targetAddr, err := multiaddr.NewMultiaddr(ngp2p.BootstrapNodes[i])
+		if err != nil {
+			log.Error(err)
+		}
+
+		p, err := peer.AddrInfoFromP2pAddr(targetAddr)
+		if err != nil {
+			log.Error(err)
+		}
+
+		err = sync.localNode.Connect(c, *p)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+
 	for _, remotePeerID := range pow.localNode.Peerstore().Peers() {
 		go sync.getRemoteStatus(remotePeerID)
 	}
@@ -29,7 +51,7 @@ func (sync *syncModule) bootstrap() {
 	// initial sync
 	for _, r := range slice {
 		if r.shouldSync() {
-			sync.doSync(r)
+			sync.doInit(r)
 		}
 	}
 	sync.RUnlock()
