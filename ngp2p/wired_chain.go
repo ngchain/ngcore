@@ -13,7 +13,7 @@ func (w *wiredProtocol) Chain(uuid []byte, stream network.Stream, blocks ...*ngt
 		return false
 	}
 
-	log.Debugf("replying chain to %s. Message id: %s, chain from block@%d ...",
+	log.Debugf("replying chain to %s. Message id: %x, chain from block@%d ...",
 		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight())
 
 	payload, err := utils.Proto.Marshal(&ChainPayload{
@@ -42,11 +42,11 @@ func (w *wiredProtocol) Chain(uuid []byte, stream network.Stream, blocks ...*ngt
 
 	err = w.node.replyToStream(stream, resp)
 	if err != nil {
-		log.Debugf("chain to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false
 	}
 
-	log.Debugf("chain to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }

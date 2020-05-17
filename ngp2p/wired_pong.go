@@ -7,7 +7,7 @@ import (
 )
 
 func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
-	log.Debugf("Sending pong to %s. Message id: %s...", stream.Conn().RemotePeer(), uuid)
+	log.Debugf("Sending pong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &PongPayload{
 		Origin:         0,
@@ -38,11 +38,11 @@ func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
 	// send the response
 	err = w.node.replyToStream(stream, resp)
 	if err != nil {
-		log.Debugf("pong to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("pong to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false
 	}
 
-	log.Debugf("pong to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("pong to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }

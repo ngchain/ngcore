@@ -40,7 +40,7 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	log.Debugf("Sent ping to: %s was sent. Message Id: %s.", peerID, req.Header.MessageId)
+	log.Debugf("Sent ping to: %s was sent. Message Id: %x", peerID, req.Header.MessageId)
 
 	stream, err = w.node.sendProtoMessage(peerID, req)
 	if err != nil {

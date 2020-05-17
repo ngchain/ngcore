@@ -9,7 +9,7 @@ import (
 
 // reject will reply reject message to remote node.
 func (w *wiredProtocol) reject(uuid []byte, stream network.Stream, err error) bool {
-	log.Debugf("Sending reject to %s. Message id: %s...", stream.Conn().RemotePeer(), uuid)
+	log.Debugf("Sending reject to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	resp := &Message{
 		Header:  w.node.NewHeader(uuid, MessageType_REJECT),
@@ -29,11 +29,11 @@ func (w *wiredProtocol) reject(uuid []byte, stream network.Stream, err error) bo
 	// send the response
 	err = w.node.replyToStream(stream, resp)
 	if err != nil {
-		log.Debugf("chain to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false
 	}
 
-	log.Debugf("chain to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }

@@ -9,7 +9,7 @@ import (
 
 // notFound will reply notFound message to remote node.
 func (w *wiredProtocol) notFound(uuid []byte, stream network.Stream, blockHash []byte) bool {
-	log.Debugf("Sending notfound to %s. Message id: %s...", stream.Conn().RemotePeer(), uuid)
+	log.Debugf("Sending notfound to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	resp := &Message{
 		Header:  w.node.NewHeader(uuid, MessageType_NOTFOUND),
@@ -29,11 +29,11 @@ func (w *wiredProtocol) notFound(uuid []byte, stream network.Stream, blockHash [
 	// send the response
 	err = w.node.replyToStream(stream, resp)
 	if err != nil {
-		log.Debugf("notfound to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("notfound to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false
 	}
 
-	log.Debugf("notfound to: %s was sent. Message Id: %s", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("notfound to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }
