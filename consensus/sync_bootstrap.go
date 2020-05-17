@@ -13,7 +13,7 @@ func (sync *syncModule) bootstrap() {
 	sync.RLock()
 	// 
 	for _, remotePeerID := range pow.localNode.Peerstore().Peers() {
-		go pow.syncMod.GetRemoteStatus(remotePeerID)
+		go sync.getRemoteStatus(remotePeerID)
 	}
 
 	slice := make([]*remoteRecord, len(sync.store))
@@ -36,7 +36,7 @@ func (sync *syncModule) bootstrap() {
 }
 
 // GetRemoteStatus just get the remote status from remote
-func (sync *syncModule) GetRemoteStatus(peerID core.PeerID) error {
+func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	origin := pow.chain.GetOriginBlock()
 	latest := pow.chain.GetLatestBlock()
 	checkpointHash := pow.chain.GetLatestCheckpointHash()
