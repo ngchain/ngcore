@@ -94,9 +94,14 @@ func NewLocalNode(port int) *LocalNode {
 		)
 
 		localNode = &LocalNode{
+			// sub modules
 			Host:              localHost,
 			wiredProtocol:     nil,
 			broadcastProtocol: nil,
+
+			// events
+			OnBlock: make(chan *ngtypes.Block, 1),
+			OnTx:    make(chan *ngtypes.Tx, 1),
 		}
 
 		localNode.broadcastProtocol = registerBroadcaster(localNode)
