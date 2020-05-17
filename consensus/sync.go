@@ -65,6 +65,14 @@ func (sync *syncModule) loop() {
 		<-ticker.C
 		go func() {
 			log.Infof("checking sync status")
+
+			// do get status
+			for _, remotePeerID := range pow.localNode.Peerstore().Peers() {
+				go sync.getRemoteStatus(remotePeerID)
+			}
+
+			// do sync check
+			// convert map to slice first
 			slice := make([]*remoteRecord, len(sync.store))
 			i := 0
 			for _, v := range sync.store {
@@ -81,6 +89,7 @@ func (sync *syncModule) loop() {
 				}
 			}
 			sync.RUnlock()
+
 			// after sync
 			sync.PoWork.MiningOn()
 		}()
