@@ -7,13 +7,14 @@ import (
 
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // getRemoteChain just get the remote status from remote
 func (sync *syncModule) getRemoteChain(peerID core.PeerID) (chain []*ngtypes.Block, err error) {
-	latestHash := pow.chain.GetLatestBlockHash()
+	latestHash := storage.GetChain().GetLatestBlockHash()
 
-	id, s := pow.localNode.GetChain(peerID, [][]byte{latestHash}, nil)
+	id, s := ngp2p.GetLocalNode().GetChain(peerID, [][]byte{latestHash}, nil)
 	if s == nil {
 		return nil, fmt.Errorf("failed to send getchain")
 	}

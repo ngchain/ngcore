@@ -3,7 +3,10 @@ package consensus
 import (
 	"sync"
 
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/txpool"
 )
 
 var chainMu sync.Mutex
@@ -17,13 +20,13 @@ func (pow *PoWork) PutNewBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	err := pow.chain.PutNewBlock(block)
+	err := storage.GetChain().PutNewBlock(block)
 	if err != nil {
 		return err
 	}
 
-	pow.txpool.HandleNewBlock(block)
-	err = pow.state.HandleTxs(block.Txs...)
+	txpool.GetTxPool().HandleNewBlock(block)
+	err = ngstate.GetCurrentState().HandleTxs(block.Txs...)
 	if err != nil {
 		return err
 	}

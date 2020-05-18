@@ -5,7 +5,10 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/txpool"
 )
 
 var log = logging.Logger("pow")
@@ -38,7 +41,7 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 	pow.RLock()
 	defer pow.RUnlock()
 
-	currentBlock := pow.chain.GetLatestBlock()
+	currentBlock := storage.GetChain().GetLatestBlock()
 
 	currentBlockHash, err := currentBlock.CalculateHash()
 	if err != nil {
@@ -57,7 +60,7 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 	extraData := []byte("ngCore")
 
 	Gen := pow.createGenerateTx(pow.PrivateKey, extraData)
-	txsWithGen := append([]*ngtypes.Tx{Gen}, pow.txpool.GetPackTxs()...)
+	txsWithGen := append([]*ngtypes.Tx{Gen}, txpool.GetTxPool().GetPackTxs()...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
@@ -77,7 +80,7 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 		return
 	}
 
-	prevBlock, err := pow.chain.GetBlockByHash(block.Header.PrevBlockHash)
+	prevBlock, err := storage.GetChain().GetBlockByHash(block.Header.PrevBlockHash)
 	if err != nil {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
@@ -91,11 +94,11 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 	hash, _ := block.CalculateHash()
 	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
 
-	err = pow.PutNewBlock(block) // chain will verify the block
+	err = storage.GetChain().PutNewBlock(block) // chain will verify the block
 	if err != nil {
 		log.Warn(err)
 		return
 	}
 
-	pow.localNode.BroadcastBlock(block)
+	ngp2p.GetLocalNode().BroadcastBlock(block)
 }

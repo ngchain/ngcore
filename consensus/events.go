@@ -1,16 +1,22 @@
 package consensus
 
+import (
+	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/txpool"
+)
+
 func (pow *PoWork) loop() {
 	for {
-		if pow.localNode.OnBlock == nil || pow.localNode.OnTx == nil {
+		if ngp2p.GetLocalNode().OnBlock == nil || ngp2p.GetLocalNode().OnTx == nil {
 			panic("event chan is nil")
 		}
 
 		select {
-		case block := <-pow.localNode.OnBlock:
-			pow.PutNewBlock(block)
-		case tx := <-pow.localNode.OnTx:
-			pow.txpool.PutTxs(tx)
+		case block := <-ngp2p.GetLocalNode().OnBlock:
+			storage.GetChain().PutNewBlock(block)
+		case tx := <-ngp2p.GetLocalNode().OnTx:
+			txpool.GetTxPool().PutTxs(tx)
 		}
 	}
 }

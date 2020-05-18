@@ -8,7 +8,10 @@ import (
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/txpool"
 )
 
 func TestNewConsensusManager(t *testing.T) {
@@ -27,7 +30,14 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	localNode := ngp2p.NewLocalNode(rand.Int())
+	_ = ngp2p.NewLocalNode(rand.Int())
 
-	consensus.NewPoWConsensus(1, chain, key, localNode, false)
+	s, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
+	if err != nil {
+		panic(err)
+	}
+
+	_ = txpool.NewTxPool(s)
+
+	consensus.NewPoWConsensus(1, key, false)
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ngchain/secp256k1"
 
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -18,7 +19,7 @@ func (pow *PoWork) createGenerateTx(privateKey *secp256k1.PrivateKey, extraData 
 		[][]byte{publicKeyBytes},
 		[]*big.Int{ngtypes.OneBlockBigReward},
 		ngtypes.GetBig0(),
-		pow.state.GetNextNonce(0),
+		ngstate.GetCurrentState().GetNextNonce(0),
 		extraData,
 	)
 

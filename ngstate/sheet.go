@@ -4,43 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"sync"
 
 	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
-
-type State struct {
-	sync.RWMutex
-
-	// using bytes to keep data safe
-	accounts  map[uint64][]byte
-	anonymous map[string][]byte
-}
-
-// NewStateFromSheet will create a new state which is a wrapper of *ngtypes.sheet
-func NewStateFromSheet(sheet *ngtypes.Sheet) (*State, error) {
-	entry := &State{
-		accounts:  make(map[uint64][]byte),
-		anonymous: make(map[string][]byte),
-	}
-
-	var err error
-	for id, account := range sheet.Accounts {
-		entry.accounts[id], err = utils.Proto.Marshal(account)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	for bs58PK, balance := range sheet.Anonymous {
-		entry.anonymous[bs58PK] = balance
-	}
-
-	return entry, nil
-}
 
 // ToSheet will conclude a sheet which has all status of all accounts & keys(if balance not nil)
 func (m *State) ToSheet() (*ngtypes.Sheet, error) {

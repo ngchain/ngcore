@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // checkBlock checks block before putting into chain.
@@ -19,7 +21,7 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 
 	prevHash := block.GetPrevHash()
 	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash()) {
-		prevBlock, err := pow.chain.GetBlockByHash(prevHash)
+		prevBlock, err := storage.GetChain().GetBlockByHash(prevHash)
 		if err != nil {
 			return err
 		}
@@ -29,7 +31,7 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 		}
 	}
 
-	if err := pow.state.CheckTxs(block.Txs...); err != nil {
+	if err := ngstate.GetCurrentState().CheckTxs(block.Txs...); err != nil {
 		return err
 	}
 

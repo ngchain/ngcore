@@ -8,6 +8,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/storage"
 )
 
@@ -73,7 +74,7 @@ func (sync *syncModule) loop() {
 			log.Infof("checking sync status")
 
 			// do get status
-			for _, remotePeerID := range pow.localNode.Peerstore().Peers() {
+			for _, remotePeerID := range ngp2p.GetLocalNode().Peerstore().Peers() {
 				go sync.getRemoteStatus(remotePeerID)
 			}
 
@@ -107,7 +108,7 @@ func (sync *syncModule) doSync(record *remoteRecord) {
 	defer sync.Unlock()
 
 	// get chain
-	for sync.chain.GetLatestBlockHeight() < record.latest {
+	for storage.GetChain().GetLatestBlockHeight() < record.latest {
 		chain, err := sync.getRemoteChain(record.id)
 		if err != nil {
 			log.Error(err)
@@ -115,7 +116,7 @@ func (sync *syncModule) doSync(record *remoteRecord) {
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = sync.PoWork.PutNewBlock(chain[i])
+			err = storage.GetChain().PutNewBlock(chain[i])
 			if err != nil {
 				log.Error(err)
 				return
@@ -129,7 +130,7 @@ func (sync *syncModule) doInit(record *remoteRecord) {
 	defer sync.Unlock()
 
 	// get chain
-	for sync.chain.GetLatestBlockHeight() < record.latest {
+	for storage.GetChain().GetLatestBlockHeight() < record.latest {
 		chain, err := sync.getRemoteChain(record.id)
 		if err != nil {
 			log.Error(err)
@@ -137,7 +138,7 @@ func (sync *syncModule) doInit(record *remoteRecord) {
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = sync.PoWork.PutNewBlock(chain[i])
+			err = storage.GetChain().PutNewBlock(chain[i])
 			if err != nil {
 				log.Error(err)
 				return

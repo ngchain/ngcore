@@ -18,7 +18,10 @@ import (
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/txpool"
 )
 
 var strictModeFlag = &cli.BoolFlag{
@@ -139,9 +142,15 @@ var action = func(c *cli.Context) error {
 		// then sync
 	}
 
-	localNode := ngp2p.NewLocalNode(p2pTCPPort)
+	_ = ngp2p.NewLocalNode(p2pTCPPort)
+	s, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
+	if err != nil {
+		panic(err)
+	}
 
-	pow := consensus.NewPoWConsensus(mining, chain, key, localNode, isBootstrapNode)
+	_ = txpool.NewTxPool(s)
+
+	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
 	pow.GoLoop()
 
 	go runSwaggerServer(apiPort)

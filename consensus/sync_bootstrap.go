@@ -11,6 +11,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/storage"
 )
 
 func (sync *syncModule) bootstrap() {
@@ -28,13 +29,13 @@ func (sync *syncModule) bootstrap() {
 			log.Error(err)
 		}
 
-		err = sync.localNode.Connect(c, *p)
+		err = ngp2p.GetLocalNode().Connect(c, *p)
 		if err != nil {
 			log.Error(err)
 		}
 	}
 
-	for _, remotePeerID := range pow.localNode.Peerstore().Peers() {
+	for _, remotePeerID := range ngp2p.GetLocalNode().Peerstore().Peers() {
 		go sync.getRemoteStatus(remotePeerID)
 	}
 
@@ -59,11 +60,11 @@ func (sync *syncModule) bootstrap() {
 
 // GetRemoteStatus just get the remote status from remote
 func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
-	origin := pow.chain.GetOriginBlock()
-	latest := pow.chain.GetLatestBlock()
-	checkpointHash := pow.chain.GetLatestCheckpointHash()
+	origin := storage.GetChain().GetOriginBlock()
+	latest := storage.GetChain().GetLatestBlock()
+	checkpointHash := storage.GetChain().GetLatestCheckpointHash()
 
-	id, s := pow.localNode.Ping(peerID, origin.GetHeight(), latest.GetHeight(), checkpointHash)
+	id, s := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), checkpointHash)
 	if s == nil {
 		return fmt.Errorf("failed to send ping")
 	}
