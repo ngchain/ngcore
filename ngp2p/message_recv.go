@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/ngchain/ngcore/utils"
@@ -17,12 +18,20 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 		return nil, err
 	}
 
-	_ = stream.Close()
+	err = helpers.FullClose(stream)
+	if err != nil {
+		return nil, err
+	}
 
 	msg := &Message{}
+
 	err = utils.Proto.Unmarshal(raw, msg)
 	if err != nil {
 		return nil, err
+	}
+
+	if msg.Header == nil {
+		return nil, fmt.Errorf("malformed response")
 	}
 
 	if msg.Header.MessageType == MessageType_INVALID {

@@ -32,6 +32,7 @@ func NewChain(db *badger.DB) *Chain {
 	return chain
 }
 
+// GetChain returns an unique chain storage
 func GetChain() *Chain {
 	if chain == nil {
 		panic("chain is closed")

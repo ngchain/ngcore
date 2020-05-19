@@ -10,8 +10,8 @@ func (p *TxPool) DelBlockTxs(txs ...*ngtypes.Tx) {
 	defer p.Unlock()
 
 	for i := range txs {
-		if p.Queuing[txs[i].GetConvener()] != nil {
-			delete(p.Queuing[txs[i].GetConvener()], txs[i].GetN())
+		if p.Queuing[txs[i].Header.GetConvener()] != nil {
+			delete(p.Queuing[txs[i].Header.GetConvener()], txs[i].Header.GetN())
 		}
 	}
 }

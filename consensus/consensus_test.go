@@ -1,7 +1,6 @@
 package consensus_test
 
 import (
-	"math/rand"
 	"strings"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/txpool"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func TestNewConsensusManager(t *testing.T) {
@@ -30,7 +30,7 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	_ = ngp2p.NewLocalNode(rand.Int())
+	_ = ngp2p.NewLocalNode(utils.RandInt())
 
 	s, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
 	if err != nil {

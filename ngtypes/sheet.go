@@ -26,6 +26,7 @@ func (x *Sheet) CalculateHash() ([]byte, error) {
 	return hash[:], nil
 }
 
+// GetGenesisSheet returns a genesis sheet
 func GetGenesisSheet() *Sheet {
 	// reserve 1-100 to provide official functions
 	accounts := make(map[uint64]*Account)
@@ -44,6 +45,7 @@ func GetGenesisSheet() *Sheet {
 
 var genesisSheetHash []byte
 
+// GetGenesisSheetHash returns a genesis sheet's hash
 func GetGenesisSheetHash() []byte {
 	if genesisBlockHash == nil {
 		genesisSheetHash, _ = GetGenesisSheet().CalculateHash()

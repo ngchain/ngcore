@@ -41,7 +41,3 @@ func GetNextDiff(tailBlock *Block) *big.Int {
 
 	return diff
 }
-
-func GetBlockTarget(blockHeight uint64, blockTD *big.Int) {
-
-}

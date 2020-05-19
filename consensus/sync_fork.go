@@ -23,9 +23,11 @@ func (sync *syncModule) shouldFork() bool {
 			return true
 		}
 	}
+
 	return false
 }
 
 func (sync *syncModule) doFork() error {
+	// TODO: implement me
 	return nil
 }

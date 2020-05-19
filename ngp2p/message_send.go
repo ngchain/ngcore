@@ -3,7 +3,6 @@ package ngp2p
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"google.golang.org/protobuf/proto"
@@ -19,16 +18,21 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, data proto.Message) (networ
 		return nil, err
 	}
 
-	s, err := n.NewStream(context.Background(), peerID, channal)
+	stream, err := n.NewStream(context.Background(), peerID, channal)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err = s.Write(raw); err != nil {
+	if _, err = stream.Write(raw); err != nil {
 		return nil, err
 	}
 
-	return s, nil
+	// Close stream for writing.
+	// if err := stream.Close(); err != nil {
+	// 	return nil, err
+	// }
+
+	return stream, nil
 }
 
 func (n *LocalNode) replyToStream(stream network.Stream, data proto.Message) error {
@@ -42,9 +46,10 @@ func (n *LocalNode) replyToStream(stream network.Stream, data proto.Message) err
 	}
 
 	// close the stream and waits to read an EOF from the other side.
-	if err = helpers.FullClose(stream); err != nil {
-		return err
-	}
+	// err = helpers.FullClose(stream)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

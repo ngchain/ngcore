@@ -31,7 +31,7 @@ func TestDeserialize(t *testing.T) {
 	t.Log(result)
 
 	var otherTx ngtypes.Tx
-	_ = proto.Unmarshal(raw, &otherTx)
+	_ = utils.Proto.Unmarshal(raw, &otherTx)
 	t.Log(otherTx.String())
 }
 
@@ -62,7 +62,7 @@ func TestTransaction_Signature(t *testing.T) {
 
 func TestGetGenesisGenerate(t *testing.T) {
 	gg := ngtypes.GetGenesisGenerateTx()
-	if err := gg.Verify(utils.Bytes2PublicKey(gg.GetParticipants()[0])); err != nil {
+	if err := gg.Verify(utils.Bytes2PublicKey(gg.Header.GetParticipants()[0])); err != nil {
 		t.Log(err)
 		t.Fail()
 	}

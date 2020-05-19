@@ -30,11 +30,11 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
 	defer p.Unlock()
 
 	for i := range txs {
-		if p.Queuing[txs[i].GetConvener()] == nil {
-			p.Queuing[txs[i].GetConvener()] = make(map[uint64]*ngtypes.Tx)
+		if p.Queuing[txs[i].Header.GetConvener()] == nil {
+			p.Queuing[txs[i].Header.GetConvener()] = make(map[uint64]*ngtypes.Tx)
 		}
 
-		p.Queuing[txs[i].GetConvener()][txs[i].GetN()] = txs[i]
+		p.Queuing[txs[i].Header.GetConvener()][txs[i].Header.GetN()] = txs[i]
 	}
 
 	return nil

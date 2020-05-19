@@ -6,13 +6,13 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
+func (w *wiredProtocol) pong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash []byte) bool {
 	log.Debugf("Sending pong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &PongPayload{
-		Origin:         0,
-		Latest:         0,
-		CheckpointHash: nil,
+		Origin:         origin,
+		Latest:         latest,
+		CheckpointHash: checkpointHash, //TODO
 	}
 
 	rawPayload, err := utils.Proto.Marshal(pongPayload)
@@ -38,11 +38,11 @@ func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
 	// send the response
 	err = w.node.replyToStream(stream, resp)
 	if err != nil {
-		log.Debugf("pong to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("Failed sending pong to: %s: %s", stream.Conn().RemotePeer(), err)
 		return false
 	}
 
-	log.Debugf("pong to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("Pong to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }
@@ -50,6 +50,7 @@ func (w *wiredProtocol) pong(uuid []byte, stream network.Stream) bool {
 // DecodePongPayload unmarshal the raw and return the *pb.PongPayload.
 func DecodePongPayload(rawPayload []byte) (*PongPayload, error) {
 	pongPayload := &PongPayload{}
+
 	err := utils.Proto.Unmarshal(rawPayload, pongPayload)
 	if err != nil {
 		return nil, err

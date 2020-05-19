@@ -1,10 +1,7 @@
 package ngp2p
 
 import (
-	"io/ioutil"
-
 	"github.com/libp2p/go-libp2p-core/network"
-	"google.golang.org/protobuf/proto"
 )
 
 // reject will reply reject message to remote node.
@@ -13,7 +10,7 @@ func (w *wiredProtocol) reject(uuid []byte, stream network.Stream, err error) bo
 
 	resp := &Message{
 		Header:  w.node.NewHeader(uuid, MessageType_REJECT),
-		Payload: nil,
+		Payload: []byte(err.Error()),
 	}
 
 	// sign the data
@@ -36,37 +33,4 @@ func (w *wiredProtocol) reject(uuid []byte, stream network.Stream, err error) bo
 	log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
-}
-
-// remote reject handler.
-func (w *wiredProtocol) onReject(s network.Stream) {
-	buf, err := ioutil.ReadAll(s)
-	if err != nil {
-		log.Error(err)
-
-		_ = s.Reset()
-
-		return
-	}
-
-	remotePeerID := s.Conn().RemotePeer()
-	_ = s.Close()
-
-	// unmarshal it
-	var data = &Message{}
-
-	err = proto.Unmarshal(buf, data)
-	if err != nil {
-		log.Error(err)
-
-		return
-	}
-
-	if !verifyMessage(s.Conn().RemotePeer(), data) {
-		log.Errorf("Failed to authenticate message")
-
-		return
-	}
-
-	log.Debugf("Received reject from %s. Message id:%s. Message: %s.", remotePeerID, data.Header.MessageId, data.Payload)
 }

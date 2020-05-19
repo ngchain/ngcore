@@ -42,31 +42,31 @@ func (m *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
 
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
-		switch tx.GetType() {
+		switch tx.Header.GetType() {
 		case ngtypes.TxType_INVALID:
 			return fmt.Errorf("invalid tx")
 		case ngtypes.TxType_GENERATE:
-			if err = handleGenerate(newAccounts, newAnonymous, tx); err != nil {
+			if err := handleGenerate(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_REGISTER:
-			if err = handleRegister(newAccounts, newAnonymous, tx); err != nil {
+			if err := handleRegister(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_LOGOUT:
-			if err = handleLogout(newAccounts, newAnonymous, tx); err != nil {
+			if err := handleLogout(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_TRANSACTION:
-			if err = handleTransaction(newAccounts, newAnonymous, tx); err != nil {
+			if err := handleTransaction(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_ASSIGN: // assign tx
-			if err = handleAssign(newAccounts, newAnonymous, tx); err != nil {
+			if err := handleAssign(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_APPEND: // append tx
-			if err = handleAppend(newAccounts, newAnonymous, tx); err != nil {
+			if err := handleAppend(newAccounts, newAnonymous, tx); err != nil {
 				return err
 			}
 		default:
@@ -78,24 +78,23 @@ func (m *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
 }
 
 func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+	rawConvener, exists := accounts[tx.Header.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
 
 	convener := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawConvener, convener)
-	if err != nil {
+	if err := utils.Proto.Unmarshal(rawConvener, convener); err != nil {
 		return err
 	}
 
-	raw := tx.GetParticipants()[0]
+	raw := tx.Header.GetParticipants()[0]
 	publicKey := utils.Bytes2PublicKey(raw)
 	if err := tx.Verify(publicKey); err != nil {
 		return err
 	}
 
-	participants := tx.GetParticipants()
+	participants := tx.Header.GetParticipants()
 	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
@@ -103,11 +102,11 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 
 	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Add(
 		new(big.Int).SetBytes(rawParticipantBalance),
-		new(big.Int).SetBytes(tx.GetValues()[0]),
+		new(big.Int).SetBytes(tx.Header.GetValues()[0]),
 	).Bytes()
 
 	convener.Txn++
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	accounts[tx.Header.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -117,7 +116,7 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 
 func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
-	rawConvener, exists := accounts[tx.GetConvener()]
+	rawConvener, exists := accounts[tx.Header.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -128,15 +127,15 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 		return err
 	}
 
-	raw := tx.GetParticipants()[0]
+	raw := tx.Header.GetParticipants()[0]
 	publicKey := utils.Bytes2PublicKey(raw)
 	if err = tx.Verify(publicKey); err != nil {
 		return err
 	}
 
-	totalExpense := new(big.Int).SetBytes(tx.GetFee())
+	totalExpense := new(big.Int).SetBytes(tx.Header.GetFee())
 
-	participants := tx.GetParticipants()
+	participants := tx.Header.GetParticipants()
 	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
@@ -150,7 +149,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 		totalExpense,
 	).Bytes()
 
-	newAccount := ngtypes.NewAccount(binary.LittleEndian.Uint64(tx.GetExtra()), tx.GetParticipants()[0], nil, nil)
+	newAccount := ngtypes.NewAccount(binary.LittleEndian.Uint64(tx.Header.GetExtra()), tx.Header.GetParticipants()[0], nil, nil)
 	if _, exists := accounts[newAccount.Num]; exists {
 		return fmt.Errorf("failed to register account@%d", newAccount.Num)
 	}
@@ -161,7 +160,8 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	convener.Txn++
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+
+	accounts[tx.Header.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -170,15 +170,15 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 }
 
 func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	raw := tx.GetParticipants()[0]
+	raw := tx.Header.GetParticipants()[0]
 	publicKey := utils.Bytes2PublicKey(raw)
 	if err = tx.Verify(publicKey); err != nil {
 		return err
 	}
 
-	totalExpense := new(big.Int).SetBytes(tx.GetFee())
+	totalExpense := new(big.Int).SetBytes(tx.Header.GetFee())
 
-	participants := tx.GetParticipants()
+	participants := tx.Header.GetParticipants()
 	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
@@ -192,7 +192,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		totalExpense,
 	).Bytes()
 
-	rawAccount, exists := accounts[binary.LittleEndian.Uint64(tx.GetExtra())]
+	rawAccount, exists := accounts[binary.LittleEndian.Uint64(tx.Header.GetExtra())]
 	if !exists {
 		return fmt.Errorf("trying to logout an unregistered account")
 	}
@@ -214,7 +214,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 }
 
 func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+	rawConvener, exists := accounts[tx.Header.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -232,11 +232,11 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	}
 
 	totalValue := ngtypes.GetBig0()
-	for i := range tx.GetValues() {
-		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+	for i := range tx.Header.GetValues() {
+		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.Header.GetValues()[i]))
 	}
 
-	fee := new(big.Int).SetBytes(tx.GetFee())
+	fee := new(big.Int).SetBytes(tx.Header.GetFee())
 	totalExpense := new(big.Int).Add(fee, totalValue)
 
 	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
@@ -251,7 +251,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense).Bytes()
 
-	participants := tx.GetParticipants()
+	participants := tx.Header.GetParticipants()
 	for i := range participants {
 		var rawParticipantBalance []byte
 		rawParticipantBalance, exists = anonymous[base58.FastBase58Encoding(participants[i])]
@@ -261,12 +261,12 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 
 		anonymous[base58.FastBase58Encoding(participants[i])] = new(big.Int).Add(
 			new(big.Int).SetBytes(rawParticipantBalance),
-			new(big.Int).SetBytes(tx.GetValues()[i]),
+			new(big.Int).SetBytes(tx.Header.GetValues()[i]),
 		).Bytes()
 	}
 
 	convener.Txn++
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	accounts[tx.Header.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 }
 
 func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+	rawConvener, exists := accounts[tx.Header.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -296,11 +296,11 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	}
 
 	totalValue := ngtypes.GetBig0()
-	for i := range tx.GetValues() {
-		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+	for i := range tx.Header.GetValues() {
+		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.Header.GetValues()[i]))
 	}
 
-	fee := new(big.Int).SetBytes(tx.GetFee())
+	fee := new(big.Int).SetBytes(tx.Header.GetFee())
 
 	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
@@ -315,10 +315,10 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
 	// assign the extra bytes
-	convener.Contract = tx.GetExtra()
+	convener.Contract = tx.Header.GetExtra()
 
 	convener.Txn++
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	accounts[tx.Header.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -327,7 +327,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 }
 
 func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+	rawConvener, exists := accounts[tx.Header.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -345,11 +345,11 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	}
 
 	totalValue := ngtypes.GetBig0()
-	for i := range tx.GetValues() {
-		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+	for i := range tx.Header.GetValues() {
+		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.Header.GetValues()[i]))
 	}
 
-	fee := new(big.Int).SetBytes(tx.GetFee())
+	fee := new(big.Int).SetBytes(tx.Header.GetFee())
 
 	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
@@ -364,14 +364,14 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
 	// append the extra bytes
-	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	convener.Contract = utils.CombineBytes(convener.Contract, tx.Header.GetExtra())
+	accounts[tx.Header.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
 
 	convener.Txn++
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	accounts[tx.Header.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}

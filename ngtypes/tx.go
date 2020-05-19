@@ -162,16 +162,17 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 	return bytesList
 }
 
+// CheckGenerate does a self check for generate tx
 func (x *Tx) CheckGenerate() error {
 	if x.Header == nil {
 		return errors.New("generate is missing header")
 	}
 
-	if x.GetConvener() != 0 {
+	if x.Header.GetConvener() != 0 {
 		return fmt.Errorf("generate's convener should be 0")
 	}
 
-	if len(x.GetValues()) != len(x.GetParticipants()) {
+	if len(x.Header.GetValues()) != len(x.Header.GetParticipants()) {
 		return fmt.Errorf("generate should have same len with participants")
 	}
 
@@ -179,145 +180,156 @@ func (x *Tx) CheckGenerate() error {
 		return fmt.Errorf("wrong block reward")
 	}
 
-	if !bytes.Equal(x.GetFee(), GetBig0Bytes()) {
+	if !bytes.Equal(x.Header.GetFee(), GetBig0Bytes()) {
 		return fmt.Errorf("generate's fee should be ZERO")
 	}
 
-	publicKey := utils.Bytes2PublicKey(x.GetParticipants()[0])
-	if err := x.Verify(publicKey); err != nil {
+	publicKey := utils.Bytes2PublicKey(x.Header.GetParticipants()[0])
+	err := x.Verify(publicKey)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// CheckRegister does a self check for register tx
 func (x *Tx) CheckRegister() error {
 	if x.Header == nil {
 		return errors.New("register is missing header")
 	}
 
-	if x.GetConvener() != 01 {
+	if x.Header.GetConvener() != 01 {
 		return fmt.Errorf("register's convener should be 1")
 	}
 
-	if len(x.GetParticipants()) != 1 {
+	if len(x.Header.GetParticipants()) != 1 {
 		return fmt.Errorf("register should have only one participant")
 	}
 
-	if len(x.GetValues()) != 1 {
+	if len(x.Header.GetValues()) != 1 {
 		return fmt.Errorf("register should have only one value")
 	}
 
-	if !bytes.Equal(x.GetValues()[0], GetBig0Bytes()) {
+	if !bytes.Equal(x.Header.GetValues()[0], GetBig0Bytes()) {
 		return fmt.Errorf("register should have only one 0 value")
 	}
 
-	if new(big.Int).SetBytes(x.GetFee()).Cmp(OneBlockBigReward) < 0 {
+	if new(big.Int).SetBytes(x.Header.GetFee()).Cmp(OneBlockBigReward) < 0 {
 		return fmt.Errorf("register should have at least 10NG(one block reward) fee")
 	}
 
-	if len(x.GetExtra()) != 2<<3 {
+	if len(x.Header.GetExtra()) != 2<<3 {
 		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
 	}
 
-	publicKey := utils.Bytes2PublicKey(x.GetParticipants()[0])
-	if err := x.Verify(publicKey); err != nil {
+	publicKey := utils.Bytes2PublicKey(x.Header.GetParticipants()[0])
+	err := x.Verify(publicKey)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// CheckLogout does a self check for logout tx
 func (x *Tx) CheckLogout(key secp256k1.PublicKey) error {
 	if x.Header == nil {
 		return errors.New("logout is missing header")
 	}
 
-	if len(x.GetParticipants()) != 0 {
+	if len(x.Header.GetParticipants()) != 0 {
 		return fmt.Errorf("logout should have NO participant")
 	}
 
-	if x.GetConvener() == 0 {
+	if x.Header.GetConvener() == 0 {
 		return fmt.Errorf("logout's convener should NOT be 0")
 	}
 
-	if len(x.GetValues()) != 0 {
+	if len(x.Header.GetValues()) != 0 {
 		return fmt.Errorf("logout should have NO value")
 	}
 
-	if len(x.GetValues()) != len(x.GetParticipants()) {
+	if len(x.Header.GetValues()) != len(x.Header.GetParticipants()) {
 		return fmt.Errorf("logout should have same len with participants")
 	}
 
-	if err := x.Verify(key); err != nil {
+	err := x.Verify(key)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// CheckTransaction does a self check for normal transaction tx
 func (x *Tx) CheckTransaction(key secp256k1.PublicKey) error {
 	if x.Header == nil {
 		return errors.New("transaction is missing header")
 	}
 
-	if x.GetConvener() == 0 {
+	if x.Header.GetConvener() == 0 {
 		return fmt.Errorf("transaction's convener should NOT be 0")
 	}
 
-	if len(x.GetValues()) != len(x.GetParticipants()) {
+	if len(x.Header.GetValues()) != len(x.Header.GetParticipants()) {
 		return fmt.Errorf("transaction should have same len with participants")
 	}
 
-	if err := x.Verify(key); err != nil {
+	err := x.Verify(key)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// CheckAssign does a self check for assign tx
 func (x *Tx) CheckAssign(key secp256k1.PublicKey) error {
 	if x.Header == nil {
 		return errors.New("assign is missing header")
 	}
 
-	if x.GetConvener() == 0 {
+	if x.Header.GetConvener() == 0 {
 		return fmt.Errorf("assign's convener should NOT be 0")
 	}
 
-	if len(x.GetParticipants()) != 0 {
+	if len(x.Header.GetParticipants()) != 0 {
 		return fmt.Errorf("assign should have NO participant")
 	}
 
-	if len(x.GetValues()) != 0 {
+	if len(x.Header.GetValues()) != 0 {
 		return fmt.Errorf("assign should have NO value")
 	}
 
-	if err := x.Verify(key); err != nil {
+	err := x.Verify(key)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// CheckAppend does a self check for append tx
 func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	if x.Header == nil {
 		return errors.New("append is missing header")
 	}
 
-	if len(x.GetParticipants()) != 0 {
+	if len(x.Header.GetParticipants()) != 0 {
 		return fmt.Errorf("append should have NO participant")
 	}
 
-	if x.GetConvener() == 0 {
+	if x.Header.GetConvener() == 0 {
 		return fmt.Errorf("append's convener should NOT be 0")
 	}
 
-	if len(x.GetValues()) != 0 {
+	if len(x.Header.GetValues()) != 0 {
 		return fmt.Errorf("append should have NO value")
 	}
 
-	if err := x.Verify(key); err != nil {
+	err := x.Verify(key)
+	if err != nil {
 		return err
 	}
 
@@ -346,34 +358,7 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	return
 }
 
-func (x *Tx) GetType() TxType {
-	return x.Header.GetType()
-}
-
-func (x *Tx) GetConvener() uint64 {
-	return x.Header.GetConvener()
-}
-
-func (x *Tx) GetValues() [][]byte {
-	return x.Header.GetValues()
-}
-
-func (x *Tx) GetParticipants() [][]byte {
-	return x.Header.GetParticipants()
-}
-
-func (x *Tx) GetFee() []byte {
-	return x.Header.GetFee()
-}
-
-func (x *Tx) GetN() uint64 {
-	return x.Header.GetN()
-}
-
-func (x *Tx) GetExtra() []byte {
-	return x.Header.GetExtra()
-}
-
+// TotalExpenditure helps calculate the total expenditure which the tx caller should pay
 func (x *Tx) TotalExpenditure() *big.Int {
 	total := GetBig0()
 

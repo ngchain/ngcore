@@ -14,9 +14,15 @@ func (pow *PoWork) loop() {
 
 		select {
 		case block := <-ngp2p.GetLocalNode().OnBlock:
-			storage.GetChain().PutNewBlock(block)
+			err := storage.GetChain().PutNewBlock(block)
+			if err != nil {
+				log.Warnf("failed to put new block from p2p network: %s", err)
+			}
 		case tx := <-ngp2p.GetLocalNode().OnTx:
-			txpool.GetTxPool().PutTxs(tx)
+			err := txpool.GetTxPool().PutTxs(tx)
+			if err != nil {
+				log.Warnf("failed to put new tx from p2p network: %s", err)
+			}
 		}
 	}
 }

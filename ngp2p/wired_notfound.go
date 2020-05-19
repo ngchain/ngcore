@@ -1,10 +1,7 @@
 package ngp2p
 
 import (
-	"io/ioutil"
-
 	"github.com/libp2p/go-libp2p-core/network"
-	"google.golang.org/protobuf/proto"
 )
 
 // notFound will reply notFound message to remote node.
@@ -36,39 +33,4 @@ func (w *wiredProtocol) notFound(uuid []byte, stream network.Stream, blockHash [
 	log.Debugf("notfound to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
-}
-
-// onNotFound is a remote notfound handler. When received a notfound, local node is running on a wrong chain
-func (w *wiredProtocol) onNotFound(s network.Stream) {
-	buf, err := ioutil.ReadAll(s)
-	if err != nil {
-		log.Error(err)
-
-		_ = s.Reset()
-
-		return
-	}
-
-	_ = s.Close()
-
-	// unmarshal it
-	var data = &Message{}
-
-	err = proto.Unmarshal(buf, data)
-	if err != nil {
-		log.Error(err)
-
-		return
-	}
-
-	if !verifyMessage(s.Conn().RemotePeer(), data) {
-		log.Errorf("Failed to authenticate message")
-
-		return
-	}
-
-	remoteID := s.Conn().RemotePeer()
-	_ = s.Close()
-
-	log.Debugf("Received notfound from %s. Message id:%s. Message: %s.", remoteID, data.Header.MessageId, data.Payload)
 }

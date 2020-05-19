@@ -48,6 +48,7 @@ func GetTxPool() *TxPool {
 	return txpool
 }
 
+// HandleNewBlock will help txpool delete the txs in block
 func (p *TxPool) HandleNewBlock(block *ngtypes.Block) {
 	log.Infof("start popping txs in block@%d", block.GetHeight())
 	p.DelBlockTxs(block.Txs...)
@@ -55,12 +56,12 @@ func (p *TxPool) HandleNewBlock(block *ngtypes.Block) {
 
 // IsInPool checks one tx is in pool or not. TODO: export it into rpc.
 func (p *TxPool) IsInPool(tx *ngtypes.Tx) (exists bool) {
-	_, exists = p.Queuing[tx.GetConvener()]
+	_, exists = p.Queuing[tx.Header.GetConvener()]
 	if !exists {
 		return
 	}
 
-	exists = p.Queuing[tx.GetConvener()][tx.GetN()] != nil
+	exists = p.Queuing[tx.Header.GetConvener()][tx.Header.GetN()] != nil
 
 	return
 }

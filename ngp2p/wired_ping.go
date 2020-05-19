@@ -1,12 +1,11 @@
 package ngp2p
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
+	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -44,7 +43,7 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 
 	stream, err = w.node.sendProtoMessage(peerID, req)
 	if err != nil {
-		log.Errorf("failed sending ping to: %s.", peerID)
+		log.Errorf("failed sending ping to: %s: %s", peerID, err)
 		return nil, nil
 	}
 
@@ -54,16 +53,19 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 // remote peer requests handler
 func (w *wiredProtocol) onPing(stream network.Stream, msg *Message) {
 	ping := &PingPayload{}
+
 	err := utils.Proto.Unmarshal(msg.Payload, ping)
 	if err != nil {
 		w.reject(msg.Header.MessageId, stream, err)
 		return
 	}
 
-	if !verifyMessage(stream.Conn().RemotePeer(), msg) {
-		w.reject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
-		return
-	}
+	log.Debugf("Received ping request from %s.", stream.Conn().RemotePeer())
 
-	w.pong(msg.Header.MessageId, stream)
+	// send pong
+
+	origin := storage.GetChain().GetOriginBlock()
+	latest := storage.GetChain().GetLatestBlock()
+	checkpointHash := storage.GetChain().GetLatestCheckpointHash()
+	w.pong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), checkpointHash)
 }

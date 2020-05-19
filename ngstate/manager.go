@@ -10,6 +10,7 @@ import (
 
 var log = logging.Logger("sheet")
 
+// State is a global set of account & txs status
 type State struct {
 	sync.RWMutex
 
@@ -18,15 +19,15 @@ type State struct {
 	anonymous map[string][]byte
 }
 
-var state *State
+var currentState *State
 
 // GetCurrentState will create a Sheet manager
 func GetCurrentState() *State {
-	if state == nil {
+	if currentState == nil {
 		panic("failed to get current state from nil")
 	}
 
-	return state
+	return currentState
 }
 
 // NewStateFromSheet will create a new state which is a wrapper of *ngtypes.sheet
@@ -48,7 +49,7 @@ func NewStateFromSheet(sheet *ngtypes.Sheet) (*State, error) {
 		entry.anonymous[bs58PK] = balance
 	}
 
-	state = entry
+	currentState = entry
 
 	return entry, nil
 }

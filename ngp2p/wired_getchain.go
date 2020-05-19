@@ -1,13 +1,14 @@
 package ngp2p
 
 import (
-	"io/ioutil"
+	"bytes"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"google.golang.org/protobuf/proto"
 
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -56,41 +57,46 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 	return req.Header.MessageId, stream
 }
 
-func (w *wiredProtocol) onGetChain(s network.Stream) {
-	// get request data
-	buf, err := ioutil.ReadAll(s)
+func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
+	getChainPayload := &GetChainPayload{}
+
+	err := utils.Proto.Unmarshal(msg.Payload, getChainPayload)
 	if err != nil {
-		log.Error(err)
-
-		_ = s.Reset()
-
+		w.reject(msg.Header.MessageId, stream, err)
 		return
 	}
 
-	// unmarshal it
-	var data = &Message{}
+	lastFromHash := make([]byte, 32)
 
-	err = proto.Unmarshal(buf, data)
+	if len(getChainPayload.GetFrom()) == 0 {
+		copy(lastFromHash, ngtypes.GetGenesisBlockHash())
+	} else {
+		copy(lastFromHash, getChainPayload.GetFrom()[len(getChainPayload.GetFrom())-1])
+	}
+
+	log.Debugf("Received getchain request from %s. Requested %x to %x", stream.Conn().RemotePeer(), lastFromHash, getChainPayload.GetTo())
+
+	cur, err := storage.GetChain().GetBlockByHash(lastFromHash)
 	if err != nil {
-		log.Error(err)
+		w.reject(msg.Header.MessageId, stream, err)
 		return
 	}
 
-	if !verifyMessage(s.Conn().RemotePeer(), data) {
-		log.Errorf("Failed to authenticate message")
-		return
+	blocks := []*ngtypes.Block{cur}
+	for i := 0; i < 1000; i++ {
+		curHash, _ := cur.CalculateHash()
+		if bytes.Equal(curHash, getChainPayload.GetTo()) {
+			break
+		}
+
+		cur, err = storage.GetChain().GetBlockByHeight(cur.GetHeight() + 1)
+		if err != nil {
+			log.Errorf("local chain is missing block@%d: %s", cur.GetHeight()+1, err)
+			break
+		}
+
+		blocks = append(blocks, cur)
 	}
 
-	var payload = &GetChainPayload{}
-
-	err = proto.Unmarshal(data.Payload, payload)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	remoteID := s.Conn().RemotePeer()
-	_ = s.Close()
-
-	log.Debugf("Received getchain request from %s. Requested %d to %d", remoteID, payload.From, payload.To)
+	w.chain(msg.Header.MessageId, stream, blocks...)
 }

@@ -25,6 +25,7 @@ func (b *broadcastProtocol) broadcastTx(tx *ngtypes.Tx) bool {
 	}
 
 	log.Debugf("broadcasted Tx:%s", tx.ID())
+
 	return true
 }
 
@@ -36,5 +37,6 @@ func (b *broadcastProtocol) onBroadcastTx(msg *pubsub.Message) {
 		log.Error(err)
 		return
 	}
-	// TODO
+
+	b.node.OnTx <- tx
 }

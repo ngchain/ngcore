@@ -35,7 +35,7 @@ func (sync *syncModule) getRemoteChain(peerID core.PeerID) (chain []*ngtypes.Blo
 		return chainPayload.Blocks, err
 
 	case ngp2p.MessageType_REJECT:
-		return nil, fmt.Errorf("getchain is rejected by remote")
+		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
 
 	case ngp2p.MessageType_NOTFOUND:
 		return nil, fmt.Errorf("chain is not found in remote")

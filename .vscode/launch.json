@@ -21,7 +21,7 @@
             "mode": "debug",
             "program": "${workspaceFolder}/cmd/ngcore",
             "env": {},
-            "args": ["--mining", "0", "--log-level", "debug", "--in-mem"]
+            "args": ["--mining", "1", "--log-level", "debug", "--in-mem"]
         }
     ]
 }

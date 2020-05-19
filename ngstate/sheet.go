@@ -36,6 +36,7 @@ func (m *State) ToSheet() (*ngtypes.Sheet, error) {
 	return ngtypes.NewSheet(accounts, anonymous), nil
 }
 
+// GetBalanceByNum get the balance of account by the account's num
 func (m *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
@@ -61,6 +62,7 @@ func (m *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
+// GetBalanceByPublicKey get the balance of account by the account's publickey
 func (m *State) GetBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
 	m.RLock()
 	defer m.RUnlock()
@@ -73,6 +75,7 @@ func (m *State) GetBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
+// AccountIsRegistered checks whether the account is registered in state
 func (m *State) AccountIsRegistered(num uint64) bool {
 	m.RLock()
 	defer m.RUnlock()
@@ -81,6 +84,7 @@ func (m *State) AccountIsRegistered(num uint64) bool {
 	return exists
 }
 
+// GetAccountByNum returns an ngtypes.Account obj by the account's number
 func (m *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
 	m.RLock()
 	defer m.RUnlock()
@@ -91,6 +95,7 @@ func (m *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error
 	}
 
 	account = new(ngtypes.Account)
+
 	err = utils.Proto.Unmarshal(rawAccount, account)
 	if err != nil {
 		return nil, err
@@ -99,6 +104,7 @@ func (m *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error
 	return account, nil
 }
 
+// GetAccountsByPublicKey returns an ngtypes.Account obj by the account's publickey
 func (m *State) GetAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Account, error) {
 	m.RLock()
 	defer m.RUnlock()

@@ -8,6 +8,7 @@ import (
 
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/ngp2p"
@@ -15,36 +16,46 @@ import (
 )
 
 func (sync *syncModule) bootstrap() {
-	sync.RLock()
-	//
 	c := context.Background()
+
+	peerStore := ngp2p.GetLocalNode().Peerstore()
+
 	for i := range ngp2p.BootstrapNodes {
-		targetAddr, err := multiaddr.NewMultiaddr(ngp2p.BootstrapNodes[i])
+		addr, err := multiaddr.NewMultiaddr(ngp2p.BootstrapNodes[i])
 		if err != nil {
-			log.Error(err)
+			panic(err)
 		}
 
-		p, err := peer.AddrInfoFromP2pAddr(targetAddr)
+		p, err := peer.AddrInfoFromP2pAddr(addr)
 		if err != nil {
-			log.Error(err)
+			panic(err)
 		}
 
 		err = ngp2p.GetLocalNode().Connect(c, *p)
 		if err != nil {
-			log.Error(err)
+			panic(err)
 		}
+
+		peerStore.AddAddr(p.ID, addr, peerstore.PermanentAddrTTL)
 	}
 
-	for _, remotePeerID := range ngp2p.GetLocalNode().Peerstore().Peers() {
-		go sync.getRemoteStatus(remotePeerID)
+	for _, id := range peerStore.Peers() {
+		if id != ngp2p.GetLocalNode().ID() {
+			err := sync.getRemoteStatus(id)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 
 	slice := make([]*remoteRecord, len(sync.store))
 	i := 0
+
 	for _, v := range sync.store {
 		slice[i] = v
 		i++
 	}
+
 	sort.SliceStable(slice, func(i, j int) bool {
 		return slice[i].lastChatTime > slice[j].lastChatTime
 	})
@@ -52,24 +63,26 @@ func (sync *syncModule) bootstrap() {
 	// initial sync
 	for _, r := range slice {
 		if r.shouldSync() {
-			sync.doInit(r)
+			err := sync.doInit(r)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
-	sync.RUnlock()
 }
 
-// GetRemoteStatus just get the remote status from remote
+// GetRemoteStatus just get the remote status from remote, and then put it into sync.store
 func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	origin := storage.GetChain().GetOriginBlock()
 	latest := storage.GetChain().GetLatestBlock()
 	checkpointHash := storage.GetChain().GetLatestCheckpointHash()
 
-	id, s := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), checkpointHash)
-	if s == nil {
+	id, stream := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), checkpointHash)
+	if stream == nil {
 		return fmt.Errorf("failed to send ping")
 	}
 
-	reply, err := ngp2p.ReceiveReply(id, s)
+	reply, err := ngp2p.ReceiveReply(id, stream)
 	if err != nil {
 		return err
 	}
@@ -80,14 +93,15 @@ func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
 		if err != nil {
 			return err
 		}
-		pow.syncMod.PutRemote(peerID, &remoteRecord{
+
+		sync.PutRemote(peerID, &remoteRecord{
 			id:     peerID,
 			origin: pongPayload.Origin,
 			latest: pongPayload.Latest,
 		})
 
 	case ngp2p.MessageType_REJECT:
-		return fmt.Errorf("ping is rejected by remote")
+		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
 	default:
 		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
 	}

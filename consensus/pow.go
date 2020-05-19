@@ -1,8 +1,6 @@
 package consensus
 
 import (
-	"runtime"
-
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngp2p"
@@ -12,15 +10,6 @@ import (
 )
 
 var log = logging.Logger("pow")
-
-// initPoW inits the main of consensus, shouldn't be shut down.
-func (pow *PoWork) initPoW(workerNum int) {
-	log.Info("Initializing PoWork pow")
-
-	if workerNum == 0 {
-		workerNum = runtime.NumCPU()
-	}
-}
 
 // MiningOff stops the pow consensus.
 func (pow *PoWork) MiningOff() {

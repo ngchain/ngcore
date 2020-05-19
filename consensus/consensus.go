@@ -18,7 +18,7 @@ type PoWork struct {
 
 var pow *PoWork
 
-// NewPoWConsensus creates and initializes the PoW consensus
+// NewPoWConsensus creates and initializes the PoW consensus.
 func NewPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBootstrapNode bool) *PoWork {
 	pow = &PoWork{
 		RWMutex:    sync.RWMutex{},
@@ -44,7 +44,7 @@ func GetPoWConsensus() *PoWork {
 }
 
 // GoLoop ignites all loops
-func (c *PoWork) GoLoop() {
-	go c.loop()
-	go c.syncMod.loop()
+func (pow *PoWork) GoLoop() {
+	go pow.loop()
+	go pow.syncMod.loop()
 }

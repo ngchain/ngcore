@@ -26,6 +26,7 @@ func (pow *PoWork) PutNewBlock(block *ngtypes.Block) error {
 	}
 
 	txpool.GetTxPool().HandleNewBlock(block)
+
 	err = ngstate.GetCurrentState().HandleTxs(block.Txs...)
 	if err != nil {
 		return err

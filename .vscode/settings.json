@@ -1,0 +1,6 @@
+{
+    "go.useLanguageServer": true,
+    "go.autocompleteUnimportedPackages": true,
+    "go.lintTool": "revive",
+    "go.testEnvFile": ""
+}

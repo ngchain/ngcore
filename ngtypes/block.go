@@ -89,12 +89,12 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 		return nil, fmt.Errorf("missing header")
 	}
 
-	if txsWithGen[0].GetType() != TxType_GENERATE {
+	if txsWithGen[0].Header.GetType() != TxType_GENERATE {
 		return nil, fmt.Errorf("first tx shall be a generate")
 	}
 
 	for i := 1; i < len(txsWithGen); i++ {
-		if txsWithGen[i].GetType() == TxType_GENERATE {
+		if txsWithGen[i].Header.GetType() == TxType_GENERATE {
 			return nil, fmt.Errorf("except first, other tx shall not be a generate")
 		}
 	}
@@ -194,7 +194,8 @@ func (x *Block) CheckError() error {
 		return fmt.Errorf("the merkle tree in block@%d is invalid", x.GetHeight())
 	}
 
-	if err := x.verifyNonce(); err != nil {
+	err := x.verifyNonce()
+	if err != nil {
 		return err
 	}
 

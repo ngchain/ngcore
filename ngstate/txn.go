@@ -5,6 +5,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+// GetNextNonce gets the nonce for account's next tx
 func (m *State) GetNextNonce(accountID uint64) uint64 {
 	m.RLock()
 	defer m.RUnlock()

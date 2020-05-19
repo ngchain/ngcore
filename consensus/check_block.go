@@ -31,7 +31,8 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 		}
 	}
 
-	if err := ngstate.GetCurrentState().CheckTxs(block.Txs...); err != nil {
+	err := ngstate.GetCurrentState().CheckTxs(block.Txs...)
+	if err != nil {
 		return err
 	}
 

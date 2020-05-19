@@ -7,14 +7,15 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// Chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *wiredProtocol) Chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
+// chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
+func (w *wiredProtocol) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
 	if len(blocks) == 0 {
 		return false
 	}
 
-	log.Debugf("replying chain to %s. Message id: %x, chain from block@%d ...",
-		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight())
+	log.Debugf("replying chain to %s. Message id: %x, chain from block@%d to",
+		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight(), blocks[len(blocks)-1].GetHeight(),
+	)
 
 	payload, err := utils.Proto.Marshal(&ChainPayload{
 		Blocks: blocks,
@@ -54,19 +55,11 @@ func (w *wiredProtocol) Chain(uuid []byte, stream network.Stream, blocks ...*ngt
 // DecodeChainPayload unmarshal the raw and return the *pb.ChainPayload.
 func DecodeChainPayload(rawPayload []byte) (*ChainPayload, error) {
 	payload := &ChainPayload{}
+
 	err := utils.Proto.Unmarshal(rawPayload, payload)
 	if err != nil {
 		return nil, err
 	}
 
 	return payload, nil
-}
-
-func (w *wiredProtocol) onChain(stream network.Stream, msg *Message) {
-	chain := &ChainPayload{}
-	err := utils.Proto.Unmarshal(msg.Payload, chain)
-	if err != nil {
-		w.reject(msg.Header.MessageId, stream, err)
-		return
-	}
 }

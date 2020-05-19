@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/sha3"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -48,7 +47,7 @@ func TestBlock_Marshal(t *testing.T) {
 	block, _ := utils.Proto.Marshal(ngtypes.GetGenesisBlock())
 
 	var genesisBlock ngtypes.Block
-	_ = proto.Unmarshal(block, &genesisBlock)
+	_ = utils.Proto.Unmarshal(block, &genesisBlock)
 	_block, _ := utils.Proto.Marshal(&genesisBlock)
 
 	if !bytes.Equal(block, _block) {

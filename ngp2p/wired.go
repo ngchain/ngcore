@@ -1,10 +1,10 @@
 package ngp2p
 
 import (
-	"io/ioutil"
+	"fmt"
 
 	"github.com/libp2p/go-libp2p-core/network"
-	"google.golang.org/protobuf/proto"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // pattern: /ngp2p/protocol-name/version
@@ -24,35 +24,47 @@ func registerWired(node *LocalNode) *wiredProtocol {
 	}
 
 	w.node.SetStreamHandler(channal, func(stream network.Stream) {
-		buf, err := ioutil.ReadAll(stream)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-
-		// unmarshal it
-		var msg = &Message{}
-
-		err = proto.Unmarshal(buf, msg)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-
-		if !verifyMessage(stream.Conn().RemotePeer(), msg) {
-			log.Errorf("failed to authenticate message")
-			return
-		}
-
-		switch msg.Header.MessageType {
-		case MessageType_PING:
-			w.onPing(stream, msg)
-		case MessageType_CHAIN:
-			w.onChain(stream, msg)
-		}
-
-		_ = stream.Close()
+		log.Debugf("handling new stream from %s", stream.Conn().RemotePeer())
+		go w.handleStream(stream)
 	})
 
 	return w
+}
+
+func (w *wiredProtocol) handleStream(stream network.Stream) {
+	buf := make([]byte, 20480) // 20m
+	l, err := stream.Read(buf)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	buf = buf[:l]
+
+	if l == 0 {
+		return
+	}
+
+	// unmarshal it
+	var msg = &Message{}
+
+	err = utils.Proto.Unmarshal(buf, msg)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	if !verifyMessage(stream.Conn().RemotePeer(), msg) {
+		w.reject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
+		return
+	}
+
+	switch msg.Header.MessageType {
+	case MessageType_PING:
+		w.onPing(stream, msg)
+	case MessageType_GETCHAIN:
+		w.onGetChain(stream, msg)
+	}
+
+	stream.Close()
 }
