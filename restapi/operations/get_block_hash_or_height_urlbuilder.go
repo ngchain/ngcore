@@ -10,13 +10,11 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
-
-	"github.com/go-openapi/swag"
 )
 
-// GetAccountAtNumBalanceURL generates an URL for the get account at num balance operation
-type GetAccountAtNumBalanceURL struct {
-	Num int64
+// GetBlockHashOrHeightURL generates an URL for the get block hash or height operation
+type GetBlockHashOrHeightURL struct {
+	HashOrHeight string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -26,7 +24,7 @@ type GetAccountAtNumBalanceURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *GetAccountAtNumBalanceURL) WithBasePath(bp string) *GetAccountAtNumBalanceURL {
+func (o *GetBlockHashOrHeightURL) WithBasePath(bp string) *GetBlockHashOrHeightURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -34,21 +32,21 @@ func (o *GetAccountAtNumBalanceURL) WithBasePath(bp string) *GetAccountAtNumBala
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *GetAccountAtNumBalanceURL) SetBasePath(bp string) {
+func (o *GetBlockHashOrHeightURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *GetAccountAtNumBalanceURL) Build() (*url.URL, error) {
+func (o *GetBlockHashOrHeightURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/account@{num}/balance"
+	var _path = "/block/{hash_or_height}"
 
-	num := swag.FormatInt64(o.Num)
-	if num != "" {
-		_path = strings.Replace(_path, "{num}", num, -1)
+	hashOrHeight := o.HashOrHeight
+	if hashOrHeight != "" {
+		_path = strings.Replace(_path, "{hash_or_height}", hashOrHeight, -1)
 	} else {
-		return nil, errors.New("num is required on GetAccountAtNumBalanceURL")
+		return nil, errors.New("hashOrHeight is required on GetBlockHashOrHeightURL")
 	}
 
 	_basePath := o._basePath
@@ -61,7 +59,7 @@ func (o *GetAccountAtNumBalanceURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *GetAccountAtNumBalanceURL) Must(u *url.URL, err error) *url.URL {
+func (o *GetBlockHashOrHeightURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -72,17 +70,17 @@ func (o *GetAccountAtNumBalanceURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *GetAccountAtNumBalanceURL) String() string {
+func (o *GetBlockHashOrHeightURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *GetAccountAtNumBalanceURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *GetBlockHashOrHeightURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on GetAccountAtNumBalanceURL")
+		return nil, errors.New("scheme is required for a full url on GetBlockHashOrHeightURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on GetAccountAtNumBalanceURL")
+		return nil, errors.New("host is required for a full url on GetBlockHashOrHeightURL")
 	}
 
 	base, err := o.Build()
@@ -96,6 +94,6 @@ func (o *GetAccountAtNumBalanceURL) BuildFull(scheme, host string) (*url.URL, er
 }
 
 // StringFull returns the string representation of a complete url
-func (o *GetAccountAtNumBalanceURL) StringFull(scheme, host string) string {
+func (o *GetBlockHashOrHeightURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

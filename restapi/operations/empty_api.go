@@ -47,23 +47,20 @@ func NewEmptyAPI(spec *loads.Document) *EmptyAPI {
 		GetAccountAllHandler: GetAccountAllHandlerFunc(func(params GetAccountAllParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetAccountAll has not yet been implemented")
 		}),
-		GetAccountAtNumHandler: GetAccountAtNumHandlerFunc(func(params GetAccountAtNumParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetAccountAtNum has not yet been implemented")
-		}),
-		GetAccountAtNumBalanceHandler: GetAccountAtNumBalanceHandlerFunc(func(params GetAccountAtNumBalanceParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetAccountAtNumBalance has not yet been implemented")
-		}),
 		GetAccountMyHandler: GetAccountMyHandlerFunc(func(params GetAccountMyParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetAccountMy has not yet been implemented")
+		}),
+		GetAccountNumHandler: GetAccountNumHandlerFunc(func(params GetAccountNumParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetAccountNum has not yet been implemented")
+		}),
+		GetAccountNumBalanceHandler: GetAccountNumBalanceHandlerFunc(func(params GetAccountNumBalanceParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetAccountNumBalance has not yet been implemented")
 		}),
 		GetBalanceMyHandler: GetBalanceMyHandlerFunc(func(params GetBalanceMyParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetBalanceMy has not yet been implemented")
 		}),
-		GetBlockAtHeightHandler: GetBlockAtHeightHandlerFunc(func(params GetBlockAtHeightParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetBlockAtHeight has not yet been implemented")
-		}),
-		GetBlockHashHandler: GetBlockHashHandlerFunc(func(params GetBlockHashParams) middleware.Responder {
-			return middleware.NotImplemented("operation GetBlockHash has not yet been implemented")
+		GetBlockHashOrHeightHandler: GetBlockHashOrHeightHandlerFunc(func(params GetBlockHashOrHeightParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetBlockHashOrHeight has not yet been implemented")
 		}),
 		GetTxHashHandler: GetTxHashHandlerFunc(func(params GetTxHashParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetTxHash has not yet been implemented")
@@ -114,18 +111,16 @@ type EmptyAPI struct {
 	GetHandler GetHandler
 	// GetAccountAllHandler sets the operation handler for the get account all operation
 	GetAccountAllHandler GetAccountAllHandler
-	// GetAccountAtNumHandler sets the operation handler for the get account at num operation
-	GetAccountAtNumHandler GetAccountAtNumHandler
-	// GetAccountAtNumBalanceHandler sets the operation handler for the get account at num balance operation
-	GetAccountAtNumBalanceHandler GetAccountAtNumBalanceHandler
 	// GetAccountMyHandler sets the operation handler for the get account my operation
 	GetAccountMyHandler GetAccountMyHandler
+	// GetAccountNumHandler sets the operation handler for the get account num operation
+	GetAccountNumHandler GetAccountNumHandler
+	// GetAccountNumBalanceHandler sets the operation handler for the get account num balance operation
+	GetAccountNumBalanceHandler GetAccountNumBalanceHandler
 	// GetBalanceMyHandler sets the operation handler for the get balance my operation
 	GetBalanceMyHandler GetBalanceMyHandler
-	// GetBlockAtHeightHandler sets the operation handler for the get block at height operation
-	GetBlockAtHeightHandler GetBlockAtHeightHandler
-	// GetBlockHashHandler sets the operation handler for the get block hash operation
-	GetBlockHashHandler GetBlockHashHandler
+	// GetBlockHashOrHeightHandler sets the operation handler for the get block hash or height operation
+	GetBlockHashOrHeightHandler GetBlockHashOrHeightHandler
 	// GetTxHashHandler sets the operation handler for the get tx hash operation
 	GetTxHashHandler GetTxHashHandler
 	// GetTxpoolCheckHashHandler sets the operation handler for the get txpool check hash operation
@@ -206,23 +201,20 @@ func (o *EmptyAPI) Validate() error {
 	if o.GetAccountAllHandler == nil {
 		unregistered = append(unregistered, "GetAccountAllHandler")
 	}
-	if o.GetAccountAtNumHandler == nil {
-		unregistered = append(unregistered, "GetAccountAtNumHandler")
-	}
-	if o.GetAccountAtNumBalanceHandler == nil {
-		unregistered = append(unregistered, "GetAccountAtNumBalanceHandler")
-	}
 	if o.GetAccountMyHandler == nil {
 		unregistered = append(unregistered, "GetAccountMyHandler")
+	}
+	if o.GetAccountNumHandler == nil {
+		unregistered = append(unregistered, "GetAccountNumHandler")
+	}
+	if o.GetAccountNumBalanceHandler == nil {
+		unregistered = append(unregistered, "GetAccountNumBalanceHandler")
 	}
 	if o.GetBalanceMyHandler == nil {
 		unregistered = append(unregistered, "GetBalanceMyHandler")
 	}
-	if o.GetBlockAtHeightHandler == nil {
-		unregistered = append(unregistered, "GetBlockAtHeightHandler")
-	}
-	if o.GetBlockHashHandler == nil {
-		unregistered = append(unregistered, "GetBlockHashHandler")
+	if o.GetBlockHashOrHeightHandler == nil {
+		unregistered = append(unregistered, "GetBlockHashOrHeightHandler")
 	}
 	if o.GetTxHashHandler == nil {
 		unregistered = append(unregistered, "GetTxHashHandler")
@@ -335,15 +327,15 @@ func (o *EmptyAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/account@{num}"] = NewGetAccountAtNum(o.context, o.GetAccountAtNumHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/account@{num}/balance"] = NewGetAccountAtNumBalance(o.context, o.GetAccountAtNumBalanceHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
 	o.handlers["GET"]["/account/my"] = NewGetAccountMy(o.context, o.GetAccountMyHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/account/{num}"] = NewGetAccountNum(o.context, o.GetAccountNumHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/account/{num}/balance"] = NewGetAccountNumBalance(o.context, o.GetAccountNumBalanceHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -351,11 +343,7 @@ func (o *EmptyAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/block@{height}"] = NewGetBlockAtHeight(o.context, o.GetBlockAtHeightHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/block/{hash}"] = NewGetBlockHash(o.context, o.GetBlockHashHandler)
+	o.handlers["GET"]["/block/{hash_or_height}"] = NewGetBlockHashOrHeight(o.context, o.GetBlockHashOrHeightHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

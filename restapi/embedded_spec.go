@@ -83,7 +83,7 @@ func init() {
         }
       }
     },
-    "/account@{num}": {
+    "/account/{num}": {
       "get": {
         "description": "get the detail of one account",
         "parameters": [
@@ -109,7 +109,7 @@ func init() {
         }
       }
     },
-    "/account@{num}/balance": {
+    "/account/{num}/balance": {
       "get": {
         "description": "get the balance of one account",
         "parameters": [
@@ -152,14 +152,14 @@ func init() {
         }
       }
     },
-    "/block/{hash}": {
+    "/block/{hash_or_height}": {
       "get": {
         "description": "get the block by hash",
         "parameters": [
           {
             "type": "string",
-            "description": "hash of the block",
-            "name": "hash",
+            "description": "hash or height of the block",
+            "name": "hash_or_height",
             "in": "path",
             "required": true
           }
@@ -167,35 +167,6 @@ func init() {
         "responses": {
           "200": {
             "description": "got the block",
-            "schema": {
-              "type": "object"
-            }
-          },
-          "400": {
-            "description": "Error",
-            "schema": {
-              "description": "error text",
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "/block@{height}": {
-      "get": {
-        "description": "get the block by height",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "height of the block",
-            "name": "height",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
             "schema": {
               "type": "object"
             }
@@ -387,7 +358,7 @@ func init() {
         }
       }
     },
-    "/account@{num}": {
+    "/account/{num}": {
       "get": {
         "description": "get the detail of one account",
         "parameters": [
@@ -413,7 +384,7 @@ func init() {
         }
       }
     },
-    "/account@{num}/balance": {
+    "/account/{num}/balance": {
       "get": {
         "description": "get the balance of one account",
         "parameters": [
@@ -456,14 +427,14 @@ func init() {
         }
       }
     },
-    "/block/{hash}": {
+    "/block/{hash_or_height}": {
       "get": {
         "description": "get the block by hash",
         "parameters": [
           {
             "type": "string",
-            "description": "hash of the block",
-            "name": "hash",
+            "description": "hash or height of the block",
+            "name": "hash_or_height",
             "in": "path",
             "required": true
           }
@@ -471,35 +442,6 @@ func init() {
         "responses": {
           "200": {
             "description": "got the block",
-            "schema": {
-              "type": "object"
-            }
-          },
-          "400": {
-            "description": "Error",
-            "schema": {
-              "description": "error text",
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "/block@{height}": {
-      "get": {
-        "description": "get the block by height",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "height of the block",
-            "name": "height",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
             "schema": {
               "type": "object"
             }

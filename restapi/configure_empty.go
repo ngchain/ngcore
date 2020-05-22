@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"net/http"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -53,11 +54,11 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 		},
 	)
 
-	api.GetAccountAtNumHandler = operations.GetAccountAtNumHandlerFunc(func(params operations.GetAccountAtNumParams) middleware.Responder {
+	api.GetAccountNumHandler = operations.GetAccountNumHandlerFunc(func(params operations.GetAccountNumParams) middleware.Responder {
 		return middleware.NotImplemented("operation operations.GetAccountAtNum has not yet been implemented")
 	})
 
-	api.GetAccountAtNumBalanceHandler = operations.GetAccountAtNumBalanceHandlerFunc(func(params operations.GetAccountAtNumBalanceParams) middleware.Responder {
+	api.GetAccountNumBalanceHandler = operations.GetAccountNumBalanceHandlerFunc(func(params operations.GetAccountNumBalanceParams) middleware.Responder {
 		return middleware.NotImplemented("operation operations.GetAccountAtNumBalance has not yet been implemented")
 	})
 
@@ -79,29 +80,36 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 		return middleware.NotImplemented("operation operations.GetBalanceMy has not yet been implemented")
 	})
 
-	api.GetBlockAtHeightHandler = operations.GetBlockAtHeightHandlerFunc(func(params operations.GetBlockAtHeightParams) middleware.Responder {
+	api.GetBlockHashOrHeightHandler = operations.GetBlockHashOrHeightHandlerFunc(func(params operations.GetBlockHashOrHeightParams) middleware.Responder {
 		chain := storage.GetChain()
-		block, err := chain.GetBlockByHeight(uint64(params.Height))
+
+		height, err := strconv.ParseUint(params.HashOrHeight, 10, 64)
 		if err != nil {
-			return operations.NewGetBlockAtHeightBadRequest().WithPayload(err.Error())
+			// is hash
+			hashHex := params.HashOrHeight
+
+			hash, err := hex.DecodeString(hashHex)
+			if err != nil {
+				return operations.NewGetBlockHashOrHeightBadRequest().WithPayload(err.Error())
+			}
+
+			// is height
+			block, err := chain.GetBlockByHash(hash)
+			if err != nil {
+				return operations.NewGetBlockHashOrHeightBadRequest().WithPayload(err.Error())
+			}
+
+			return operations.NewGetBlockHashOrHeightOK().WithPayload(block)
 		}
 
-		return operations.NewGetBlockAtHeightOK().WithPayload(block)
-	})
-
-	api.GetBlockHashHandler = operations.GetBlockHashHandlerFunc(func(params operations.GetBlockHashParams) middleware.Responder {
-		chain := storage.GetChain()
-		hash, err := hex.DecodeString(params.Hash)
+		//
+		block, err := chain.GetBlockByHeight(height)
 		if err != nil {
-			return operations.NewGetBlockHashBadRequest().WithPayload(err.Error())
+			return operations.NewGetBlockHashOrHeightBadRequest().WithPayload(err.Error())
 		}
 
-		block, err := chain.GetBlockByHash(hash)
-		if err != nil {
-			return operations.NewGetBlockHashBadRequest().WithPayload(err.Error())
-		}
+		return operations.NewGetBlockHashOrHeightOK().WithPayload(block)
 
-		return operations.NewGetBlockHashOK().WithPayload(block)
 	})
 
 	api.GetTxHashHandler = operations.GetTxHashHandlerFunc(func(params operations.GetTxHashParams) middleware.Responder {
@@ -147,7 +155,7 @@ func configureAPI(api *operations.EmptyAPI) http.Handler {
 		if err != nil {
 			return operations.NewPostTxpoolSendBadRequest().WithPayload(err.Error())
 		}
-		return operations.NewPostTxpoolSendRawTxOK()
+		return operations.NewPostTxpoolSendOK()
 	})
 
 	api.PreServerShutdown = func() {}

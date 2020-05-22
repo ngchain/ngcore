@@ -14,18 +14,18 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewGetAccountAtNumBalanceParams creates a new GetAccountAtNumBalanceParams object
+// NewGetAccountNumBalanceParams creates a new GetAccountNumBalanceParams object
 // no default values defined in spec.
-func NewGetAccountAtNumBalanceParams() GetAccountAtNumBalanceParams {
+func NewGetAccountNumBalanceParams() GetAccountNumBalanceParams {
 
-	return GetAccountAtNumBalanceParams{}
+	return GetAccountNumBalanceParams{}
 }
 
-// GetAccountAtNumBalanceParams contains all the bound params for the get account at num balance operation
+// GetAccountNumBalanceParams contains all the bound params for the get account num balance operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters GetAccountAtNumBalance
-type GetAccountAtNumBalanceParams struct {
+// swagger:parameters GetAccountNumBalance
+type GetAccountNumBalanceParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -40,8 +40,8 @@ type GetAccountAtNumBalanceParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewGetAccountAtNumBalanceParams() beforehand.
-func (o *GetAccountAtNumBalanceParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewGetAccountNumBalanceParams() beforehand.
+func (o *GetAccountNumBalanceParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
@@ -58,7 +58,7 @@ func (o *GetAccountAtNumBalanceParams) BindRequest(r *http.Request, route *middl
 }
 
 // bindNum binds and validates parameter Num from path.
-func (o *GetAccountAtNumBalanceParams) bindNum(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *GetAccountNumBalanceParams) bindNum(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]

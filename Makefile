@@ -20,8 +20,8 @@ gen:
 	go run ./cmd/ngcore gen
 clean:
 	rm ~/.ngdb
-	rm ~/,.ngcore
 gen-swagger-server:
+	rm -r restapi/operations
 	swagger generate server -f swagger-ui/swagger.json
 gazelle:
 	bazel run //:gazelle -- -go_prefix github.com/ngchain/ngcore

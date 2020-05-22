@@ -13,40 +13,40 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetBlockHashParams creates a new GetBlockHashParams object
+// NewGetBlockHashOrHeightParams creates a new GetBlockHashOrHeightParams object
 // no default values defined in spec.
-func NewGetBlockHashParams() GetBlockHashParams {
+func NewGetBlockHashOrHeightParams() GetBlockHashOrHeightParams {
 
-	return GetBlockHashParams{}
+	return GetBlockHashOrHeightParams{}
 }
 
-// GetBlockHashParams contains all the bound params for the get block hash operation
+// GetBlockHashOrHeightParams contains all the bound params for the get block hash or height operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters GetBlockHash
-type GetBlockHashParams struct {
+// swagger:parameters GetBlockHashOrHeight
+type GetBlockHashOrHeightParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*hash of the block
+	/*hash or height of the block
 	  Required: true
 	  In: path
 	*/
-	Hash string
+	HashOrHeight string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewGetBlockHashParams() beforehand.
-func (o *GetBlockHashParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewGetBlockHashOrHeightParams() beforehand.
+func (o *GetBlockHashOrHeightParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
-	rHash, rhkHash, _ := route.Params.GetOK("hash")
-	if err := o.bindHash(rHash, rhkHash, route.Formats); err != nil {
+	rHashOrHeight, rhkHashOrHeight, _ := route.Params.GetOK("hash_or_height")
+	if err := o.bindHashOrHeight(rHashOrHeight, rhkHashOrHeight, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -56,8 +56,8 @@ func (o *GetBlockHashParams) BindRequest(r *http.Request, route *middleware.Matc
 	return nil
 }
 
-// bindHash binds and validates parameter Hash from path.
-func (o *GetBlockHashParams) bindHash(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindHashOrHeight binds and validates parameter HashOrHeight from path.
+func (o *GetBlockHashOrHeightParams) bindHashOrHeight(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -66,7 +66,7 @@ func (o *GetBlockHashParams) bindHash(rawData []string, hasKey bool, formats str
 	// Required: true
 	// Parameter is provided by construction from the route
 
-	o.Hash = raw
+	o.HashOrHeight = raw
 
 	return nil
 }
