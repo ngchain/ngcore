@@ -65,7 +65,7 @@ message Tx {
 
 // Sheet is a simplified States
 message Sheet {
-  uint64 height = 1
+  uint64 height = 1;
   map<string, bytes> anonymous = 2; // hex_publicKey(aka anonymous recipient) -> balance
   map<uint64, ngtypes.Account> accounts = 3;
 }

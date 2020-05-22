@@ -14,6 +14,7 @@ var log = logging.Logger("sheet")
 type State struct {
 	sync.RWMutex
 
+	height uint64
 	// using bytes to keep data safe
 	accounts  map[uint64][]byte
 	anonymous map[string][]byte
@@ -33,6 +34,7 @@ func GetCurrentState() *State {
 // NewStateFromSheet will create a new state which is a wrapper of *ngtypes.sheet
 func NewStateFromSheet(sheet *ngtypes.Sheet) (*State, error) {
 	entry := &State{
+		height:    sheet.Height,
 		accounts:  make(map[uint64][]byte),
 		anonymous: make(map[string][]byte),
 	}

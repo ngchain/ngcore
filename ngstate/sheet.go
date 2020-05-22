@@ -33,7 +33,7 @@ func (m *State) ToSheet() (*ngtypes.Sheet, error) {
 		anonymous[bs58PK] = balance
 	}
 
-	return ngtypes.NewSheet(accounts, anonymous), nil
+	return ngtypes.NewSheet(m.height, accounts, anonymous), nil
 }
 
 // GetBalanceByNum get the balance of account by the account's num

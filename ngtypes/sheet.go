@@ -7,8 +7,9 @@ import (
 )
 
 // NewSheet gets the rows from db and return the sheet for transport/saving.
-func NewSheet(accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
+func NewSheet(height uint64, accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
 	return &Sheet{
+		Height:    height,
 		Accounts:  accounts,
 		Anonymous: anonymous,
 	}
@@ -36,6 +37,7 @@ func GetGenesisSheet() *Sheet {
 	}
 
 	return &Sheet{
+		Height:   0,
 		Accounts: accounts,
 		Anonymous: map[string][]byte{
 			GenesisPublicKeyBase58: GetBig0Bytes(),
