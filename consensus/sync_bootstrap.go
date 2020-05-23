@@ -1,12 +1,10 @@
 package consensus
 
 import (
-	"fmt"
 	"sort"
 
 	"context"
 
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/multiformats/go-multiaddr"
@@ -71,39 +69,25 @@ func (sync *syncModule) bootstrap() {
 	}
 }
 
-// GetRemoteStatus just get the remote status from remote, and then put it into sync.store
-func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
-	origin := storage.GetChain().GetOriginBlock()
-	latest := storage.GetChain().GetLatestBlock()
-	checkpointHash := storage.GetChain().GetLatestCheckpointHash()
+func (sync *syncModule) doInit(record *remoteRecord) error {
+	sync.Lock()
+	defer sync.Unlock()
 
-	id, stream := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), checkpointHash)
-	if stream == nil {
-		return fmt.Errorf("failed to send ping")
-	}
+	log.Warnf("start initial syncing with remote node %s", record.id)
 
-	reply, err := ngp2p.ReceiveReply(id, stream)
-	if err != nil {
-		return err
-	}
-
-	switch reply.Header.MessageType {
-	case ngp2p.MessageType_PONG:
-		pongPayload, err := ngp2p.DecodePongPayload(reply.Payload)
+	// get chain
+	for storage.GetChain().GetLatestBlockHeight() < record.latest {
+		chain, err := sync.getRemoteChain(record.id)
 		if err != nil {
 			return err
 		}
 
-		sync.PutRemote(peerID, &remoteRecord{
-			id:     peerID,
-			origin: pongPayload.Origin,
-			latest: pongPayload.Latest,
-		})
-
-	case ngp2p.MessageType_REJECT:
-		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
-	default:
-		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		for i := 0; i < len(chain); i++ {
+			err = storage.GetChain().PutNewBlock(chain[i])
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

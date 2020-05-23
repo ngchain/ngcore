@@ -42,7 +42,7 @@ func (c *Chain) GetLatestBlockHeight() uint64 {
 		key := append(blockPrefix, latestHeightTag...)
 		item, err := txn.Get(key)
 		if err != nil {
-			return fmt.Errorf("failed to get item by key %s: %s", key, err)
+			return fmt.Errorf("failed to get item by key %x: %s", key, err)
 		}
 		raw, err := item.ValueCopy(nil)
 		if err != nil {
@@ -61,22 +61,16 @@ func (c *Chain) GetLatestBlockHeight() uint64 {
 
 // GetLatestCheckpointHash returns the hash of latest checkpoint
 func (c *Chain) GetLatestCheckpointHash() []byte {
-	cp, err := c.GetLatestCheckpoint()
-	if err != nil {
-		log.Errorf("failed GetLatestCheckpointHash:", err)
-
-		return nil
-	}
-
+	cp := c.GetLatestCheckpoint()
 	hash, _ := cp.CalculateHash()
 	return hash
 }
 
 // GetLatestCheckpoint returns the latest checkpoint block
-func (c *Chain) GetLatestCheckpoint() (*ngtypes.Block, error) {
+func (c *Chain) GetLatestCheckpoint() *ngtypes.Block {
 	b := c.GetLatestBlock()
 	if b.IsGenesis() {
-		return b, nil
+		return b
 	}
 
 	if err := c.db.View(func(txn *badger.Txn) error {
@@ -86,7 +80,7 @@ func (c *Chain) GetLatestCheckpoint() (*ngtypes.Block, error) {
 			key := append(blockPrefix, hash...)
 			item, err := txn.Get(key)
 			if err != nil {
-				return fmt.Errorf("failed to get item by key %s: %s", key, err)
+				return fmt.Errorf("failed to get item by key %x: %s", key, err)
 			}
 			raw, err = item.ValueCopy(nil)
 			if err != nil {
@@ -102,10 +96,10 @@ func (c *Chain) GetLatestCheckpoint() (*ngtypes.Block, error) {
 			}
 		}
 	}); err != nil {
-		return nil, err
+		log.Errorf("error when getting latest checkpoint, maybe chain is broken, please resync: %s", err)
 	}
 
-	return b, nil
+	return b
 }
 
 // GetBlockByHeight returns a block by height inputed
@@ -120,7 +114,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 		key := append(blockPrefix, utils.PackUint64LE(height)...)
 		item, err := txn.Get(key)
 		if err != nil {
-			return fmt.Errorf("failed to get item by key %s: %s", key, err)
+			return fmt.Errorf("failed to get item by key %x: %s", key, err)
 		}
 		hash, err := item.ValueCopy(nil)
 		if err != nil || hash == nil {
@@ -129,7 +123,7 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 		key = append(blockPrefix, hash...)
 		item, err = txn.Get(key)
 		if err != nil {
-			return fmt.Errorf("failed to get item by key %s: %s", key, err)
+			return fmt.Errorf("failed to get item by key %x: %s", key, err)
 		}
 		raw, err := item.ValueCopy(nil)
 		if err != nil || raw == nil {
@@ -160,7 +154,7 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 		key := append(blockPrefix, hash...)
 		item, err := txn.Get(key)
 		if err != nil {
-			return fmt.Errorf("failed to get item by key %s: %s", key, err)
+			return fmt.Errorf("failed to get item by key %x: %s", key, err)
 		}
 		raw, err := item.ValueCopy(nil)
 		if err != nil || raw == nil {
@@ -181,5 +175,5 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 
 // GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node
 func (c *Chain) GetOriginBlock() *ngtypes.Block {
-	return ngtypes.GetGenesisBlock() // TODO
+	return ngtypes.GetGenesisBlock() // TODO: for partial sync func
 }

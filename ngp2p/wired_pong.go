@@ -6,13 +6,14 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) pong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash []byte) bool {
+func (w *wiredProtocol) pong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash []byte, checkpointActualDiff []byte) bool {
 	log.Debugf("Sending pong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &PongPayload{
-		Origin:         origin,
-		Latest:         latest,
-		CheckpointHash: checkpointHash, //TODO
+		Origin:               origin,
+		Latest:               latest,
+		CheckpointHash:       checkpointHash,
+		CheckpointActualDiff: checkpointActualDiff,
 	}
 
 	rawPayload, err := utils.Proto.Marshal(pongPayload)

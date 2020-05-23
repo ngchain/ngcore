@@ -18,23 +18,6 @@ type syncModule struct {
 	store map[peer.ID]*remoteRecord
 }
 
-type remoteRecord struct {
-	id             peer.ID
-	origin         uint64 // rank 1
-	latest         uint64
-	checkpointHash []byte
-	lastChatTime   int64
-}
-
-// checkpoint fork rule: when a node mined a checkpoint, all other node are forced to start sync
-func (r *remoteRecord) shouldSync() bool {
-	if r.latest > storage.GetChain().GetLatestBlockHeight() {
-		return true
-	}
-
-	return false
-}
-
 func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	sync := &syncModule{
 		RWMutex: sync.RWMutex{},
@@ -49,13 +32,13 @@ func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	return sync
 }
 
-func (sync *syncModule) PutRemote(id peer.ID, remote *remoteRecord) {
+func (sync *syncModule) putRemote(id peer.ID, remote *remoteRecord) {
 	sync.Lock()
 	defer sync.Unlock()
 	sync.store[id] = remote
 }
 
-func (sync *syncModule) GetRemote(id peer.ID) *remoteRecord {
+func (sync *syncModule) getRemote(id peer.ID) *remoteRecord {
 	record, exists := sync.store[id]
 	if !exists {
 		return nil
@@ -69,43 +52,48 @@ func (sync *syncModule) loop() {
 
 	for {
 		<-ticker.C
+		log.Infof("checking sync status")
 
-		go func() {
-			log.Infof("checking sync status")
-
-			// do get status
-			for _, id := range ngp2p.GetLocalNode().Peerstore().Peers() {
-				if id != ngp2p.GetLocalNode().ID() {
-					err := sync.getRemoteStatus(id)
-					if err != nil {
-						log.Warn(err)
-					}
+		// do get status
+		for _, id := range ngp2p.GetLocalNode().Peerstore().Peers() {
+			if id != ngp2p.GetLocalNode().ID() {
+				err := sync.getRemoteStatus(id)
+				if err != nil {
+					log.Warn(err)
 				}
 			}
+		}
 
-			// do sync check
-			// convert map to slice first
-			slice := make([]*remoteRecord, len(sync.store))
-			i := 0
-
-			for _, v := range sync.store {
-				slice[i] = v
-				i++
+		// do fork check
+		if sync.detectFork() {
+			err := sync.doFork()
+			if err != nil {
+				log.Warnf("forking is failed: %s", err)
 			}
+		}
 
-			sort.SliceStable(slice, func(i, j int) bool {
-				return slice[i].lastChatTime > slice[j].lastChatTime
-			})
+		// do sync check
+		// convert map to slice first
+		slice := make([]*remoteRecord, len(sync.store))
+		i := 0
 
-			for _, r := range slice {
-				if r.shouldSync() {
-					sync.doSync(r)
-				}
+		for _, v := range sync.store {
+			slice[i] = v
+			i++
+		}
+
+		sort.SliceStable(slice, func(i, j int) bool {
+			return slice[i].lastChatTime > slice[j].lastChatTime
+		})
+
+		for _, r := range slice {
+			if r.shouldSync() {
+				sync.doSync(r)
 			}
+		}
 
-			// after sync
-			sync.PoWork.MiningOn()
-		}()
+		// after sync
+		sync.PoWork.MiningOn()
 	}
 }
 
@@ -114,30 +102,6 @@ func (sync *syncModule) doSync(record *remoteRecord) error {
 	defer sync.Unlock()
 
 	log.Warnf("start syncing with remote node %s", record.id)
-
-	// get chain
-	for storage.GetChain().GetLatestBlockHeight() < record.latest {
-		chain, err := sync.getRemoteChain(record.id)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < len(chain); i++ {
-			err = storage.GetChain().PutNewBlock(chain[i])
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (sync *syncModule) doInit(record *remoteRecord) error {
-	sync.Lock()
-	defer sync.Unlock()
-
-	log.Warnf("start initial syncing with remote node %s", record.id)
 
 	// get chain
 	for storage.GetChain().GetLatestBlockHeight() < record.latest {

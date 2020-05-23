@@ -10,6 +10,45 @@ import (
 	"github.com/ngchain/ngcore/storage"
 )
 
+// GetRemoteStatus just get the remote status from remote, and then put it into sync.store
+func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
+	origin := storage.GetChain().GetOriginBlock()
+	latest := storage.GetChain().GetLatestBlock()
+	cp := storage.GetChain().GetLatestCheckpoint()
+	cph, _ := cp.CalculateHash()
+
+	id, stream := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), cph, cp.GetActualDiff().Bytes())
+	if stream == nil {
+		return fmt.Errorf("failed to send ping")
+	}
+
+	reply, err := ngp2p.ReceiveReply(id, stream)
+	if err != nil {
+		return err
+	}
+
+	switch reply.Header.MessageType {
+	case ngp2p.MessageType_PONG:
+		pongPayload, err := ngp2p.DecodePongPayload(reply.Payload)
+		if err != nil {
+			return err
+		}
+
+		sync.putRemote(peerID, &remoteRecord{
+			id:     peerID,
+			origin: pongPayload.Origin,
+			latest: pongPayload.Latest,
+		})
+
+	case ngp2p.MessageType_REJECT:
+		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
+	default:
+		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+	}
+
+	return nil
+}
+
 // getRemoteChain just get the remote status from remote
 func (sync *syncModule) getRemoteChain(peerID core.PeerID) (chain []*ngtypes.Block, err error) {
 	latestHash := storage.GetChain().GetLatestBlockHash()

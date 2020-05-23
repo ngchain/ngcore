@@ -2,5 +2,13 @@
     "go.useLanguageServer": true,
     "go.autocompleteUnimportedPackages": true,
     "go.lintTool": "revive",
-    "go.testEnvFile": ""
+    "go.testEnvFile": "",
+    "todo-tree.general.tags": [
+        "BUG",
+        "HACK",
+        "FIXME",
+        "TODO",
+        "XXX",
+        "RULE"
+    ]
 }

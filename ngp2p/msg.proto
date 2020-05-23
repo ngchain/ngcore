@@ -49,12 +49,14 @@ message PingPayload {
   uint64 origin = 1;
   uint64 latest = 2;
   bytes checkpoint_hash = 3;
+  bytes checkpoint_actual_diff = 4;
 }
 
 message PongPayload {
   uint64 origin = 1;
   uint64 latest = 2;
   bytes checkpoint_hash = 3;
+  bytes checkpoint_actual_diff = 4;
 }
 
 message GetChainPayload {

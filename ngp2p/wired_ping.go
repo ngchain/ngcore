@@ -9,12 +9,13 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHash []byte) (id []byte,
+func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHash []byte, checkpointActualDiff []byte) (id []byte,
 	stream network.Stream) {
 	payload, err := utils.Proto.Marshal(&PingPayload{
-		Origin:         origin,
-		Latest:         latest,
-		CheckpointHash: checkpointHash,
+		Origin:               origin,
+		Latest:               latest,
+		CheckpointHash:       checkpointHash,
+		CheckpointActualDiff: checkpointActualDiff,
 	})
 	if err != nil {
 		log.Errorf("failed to sign pb data")
@@ -66,6 +67,7 @@ func (w *wiredProtocol) onPing(stream network.Stream, msg *Message) {
 
 	origin := storage.GetChain().GetOriginBlock()
 	latest := storage.GetChain().GetLatestBlock()
-	checkpointHash := storage.GetChain().GetLatestCheckpointHash()
-	w.pong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), checkpointHash)
+	checkpoint := storage.GetChain().GetLatestCheckpoint()
+	cph, _ := checkpoint.CalculateHash()
+	w.pong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), cph, checkpoint.GetActualDiff().Bytes())
 }
