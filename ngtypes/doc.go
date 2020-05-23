@@ -1,7 +1,7 @@
 /*
 Package ngtypes implements the block structure and related types.
 
-# NGTYPE
+# RULE: NGTYPES
 
 ## Account
 

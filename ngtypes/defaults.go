@@ -16,10 +16,11 @@ const (
 )
 
 // FIXME: before init network should manually init PK & Sign
+// try `go test ./...`  until all passed
 const (
-	GenesisPublicKeyBase58      = "ruBBKVQgTKDaB8dFbSZqQeJkgnZxzL26s8gwatw8M1F5"
-	GenesisGenerateTxSignBase58 = "3kCnakJZV9yYiFXc4dgDFBTp7KgZPdDLvsjqSux75FvsaroyTa7Xx4ksWk3gk2QS1zZELD15omcfrrQDVUuu6BmZ"
-	GenesisBlockNonceHex        = "ffb4e186e415927b"
+	GenesisPublicKeyBase58      = "25oohBi9yTLhC48WZ1G5f3zZeiwjF9nhDrVqrKmcW7UP6"
+	GenesisGenerateTxSignBase58 = "3JFnR7m4yuevAsgr44sCWYEqzbZew4j2o2QdxkQxHiV7shQQ6ErqUAQX6uAWtkKFG9YsMKAqnqe2fFbzrCg8rWQ5"
+	GenesisBlockNonceHex        = "9ea58763be0590dd"
 )
 
 // decoded genesis variables

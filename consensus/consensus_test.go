@@ -30,7 +30,7 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	_ = ngp2p.NewLocalNode(utils.RandInt())
+	_ = ngp2p.NewLocalNode(int(utils.RandUint16()))
 
 	s, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
 	if err != nil {
