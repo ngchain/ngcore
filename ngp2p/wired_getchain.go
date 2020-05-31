@@ -89,9 +89,10 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 			break
 		}
 
-		cur, err = storage.GetChain().GetBlockByHeight(cur.GetHeight() + 1)
+		nextHeight := cur.GetHeight() + 1
+		cur, err = storage.GetChain().GetBlockByHeight(nextHeight)
 		if err != nil {
-			log.Errorf("local chain is missing block@%d: %s", cur.GetHeight()+1, err)
+			log.Errorf("local chain is missing block@%d: %s", nextHeight, err)
 			break
 		}
 

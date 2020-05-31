@@ -16,6 +16,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/ngchain/ngcore/consensus"
+	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngstate"
@@ -153,8 +154,8 @@ var action = func(c *cli.Context) error {
 	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
 	pow.GoLoop()
 
-	go runSwaggerServer(apiPort)
-	go runSwaggerUI("127.0.0.1", apiPort+1)
+	rpc := jsonrpc.NewServer("127.0.0.1", apiPort)
+	rpc.Run()
 
 	// notify the exit events
 	var stopSignal = make(chan os.Signal, 1)

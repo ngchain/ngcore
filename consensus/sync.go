@@ -88,7 +88,10 @@ func (sync *syncModule) loop() {
 
 		for _, r := range slice {
 			if r.shouldSync() {
-				sync.doSync(r)
+				err := sync.doSync(r)
+				if err != nil {
+					log.Warnf("do sync failed: %s", err)
+				}
 			}
 		}
 

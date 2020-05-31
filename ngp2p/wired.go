@@ -66,5 +66,5 @@ func (w *wiredProtocol) handleStream(stream network.Stream) {
 		w.onGetChain(stream, msg)
 	}
 
-	stream.Close()
+	_ = stream.Close()
 }
