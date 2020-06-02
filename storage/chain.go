@@ -15,6 +15,7 @@ var (
 )
 
 // Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing.
+// TODO: Add DAG support to extend the capacity of chain
 type Chain struct {
 	db *badger.DB
 }

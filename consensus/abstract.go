@@ -1,5 +1,7 @@
 package consensus
 
+// TODO: Abstract the whole concensus and make concensus plugable
+
 // State is an abstract state interface
 type State interface {
 	CommitOp() (State, error)

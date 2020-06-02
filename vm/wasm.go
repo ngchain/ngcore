@@ -7,6 +7,7 @@ import (
 var engine = wasmtime.NewEngine()
 
 // WasmVM is a vm based on wasmer, exec wasm commands
+// TODO: Update me after experiment WASI tests
 type WasmVM struct {
 	*wasmtime.Instance
 }
@@ -19,7 +20,7 @@ func NewWasmVM(rawContract []byte) (*WasmVM, error) {
 		return nil, err
 	}
 
-	instance, err := wasmtime.NewInstance(module, getExterns())
+	instance, err := wasmtime.NewInstance(module, nil)
 	if err != nil {
 		return nil, err
 	}

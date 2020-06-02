@@ -12,6 +12,7 @@ import (
 var log = logging.Logger("txpool")
 
 // TxPool is a little mem db which stores **signed** tx.
+// TODO: !important embed txpool into ngstate!
 type TxPool struct {
 	sync.RWMutex
 

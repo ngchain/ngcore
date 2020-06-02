@@ -11,6 +11,7 @@ import (
 var log = logging.Logger("sheet")
 
 // State is a global set of account & txs status
+// TODO: Add TxPool and manage all off-chain data & structure in State
 type State struct {
 	sync.RWMutex
 

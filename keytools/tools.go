@@ -18,7 +18,7 @@ import (
 
 var log = logging.Logger("key")
 
-// ReadLocalKey will read the local x509 key file to load an ecdsa private key.
+// ReadLocalKey will read the local AES-256-GCM encrypted secp256k1 key file to load an ecdsa private key.
 func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	var key *secp256k1.PrivateKey
 

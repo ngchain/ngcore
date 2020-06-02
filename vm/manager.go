@@ -5,7 +5,7 @@ import (
 )
 
 // Manager is a manager to control the life circle of state vms
-// TODO
+// TODO: Update me after experiment WASI tests
 type Manager struct {
 	vms map[uint64]*WasmVM
 }
