@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "chain.go",
+        "doc.go",
+        "p2p.go",
+        "regiser_handlers.go",
+        "server.go",
+        "sheet.go",
+        "tx.go",
+        "vm.go",
+    ],
+    importpath = "github.com/ngchain/ngcore/jsonrpc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//consensus:go_default_library",
+        "//ngp2p:go_default_library",
+        "//ngstate:go_default_library",
+        "//ngtypes:go_default_library",
+        "//storage:go_default_library",
+        "//txpool:go_default_library",
+        "//utils:go_default_library",
+        "//vm:go_default_library",
+        "@com_github_ipfs_go_log_v2//:go_default_library",
+        "@com_github_libp2p_go_libp2p_core//peer:go_default_library",
+        "@com_github_maoxs2_go_jsonrpc2//:go_default_library",
+        "@com_github_maoxs2_go_jsonrpc2//jsonrpc2http:go_default_library",
+        "@com_github_mr_tron_base58//:go_default_library",
+        "@com_github_multiformats_go_multiaddr//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["server_test.go"],
+    embed = [":go_default_library"],
+)

@@ -15,6 +15,7 @@ go_library(
     srcs = [
         "account.go",
         "block.go",
+        "common.go",
         "defaults.go",
         "difficulty.go",
         "doc.go",
@@ -33,7 +34,6 @@ go_library(
         "@com_github_ngchain_go_schnorr//:go_default_library",
         "@com_github_ngchain_secp256k1//:go_default_library",
         "@com_github_ngin_network_cryptonight_go//:go_default_library",
-        "@org_golang_google_protobuf//proto:go_default_library",
         "@org_golang_x_crypto//sha3:go_default_library",
     ],
 )
@@ -49,6 +49,7 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//utils:go_default_library",
+        "@com_github_ipfs_go_log_v2//:go_default_library",
         "@com_github_nebulouslabs_fastrand//:go_default_library",
         "@com_github_ngchain_secp256k1//:go_default_library",
         "@org_golang_google_protobuf//proto:go_default_library",

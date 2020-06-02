@@ -4,12 +4,13 @@ go_library(
     name = "go_default_library",
     srcs = [
         "check.go",
+        "doc.go",
         "handle.go",
         "manager.go",
-        "nonce.go",
         "sheet.go",
+        "txn.go",
     ],
-    importpath = "github.com/ngchain/ngcore/ngsheet",
+    importpath = "github.com/ngchain/ngcore/ngstate",
     visibility = ["//visibility:public"],
     deps = [
         "//ngtypes:go_default_library",

@@ -31,6 +31,7 @@ func AES256GCMEncrypt(raw []byte, password []byte) (encrypted []byte) {
 // AES256GCMDecrypt is used for file decrypt
 func AES256GCMDecrypt(raw []byte, password []byte) (decrypted []byte) {
 	hashPassword := sha3.Sum256(password)
+
 	c, err := aes.NewCipher(hashPassword[:])
 	if err != nil {
 		panic(err)

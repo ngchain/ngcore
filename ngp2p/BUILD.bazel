@@ -1,53 +1,75 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
     srcs = [
-        "bootstraps.go",
+        "bootstrap_nodes.go",
         "broadcast.go",
-        "broadcastblock.go",
-        "broadcasttx.go",
+        "broadcast_block.go",
+        "broadcast_tx.go",
+        "doc.go",
         "init.go",
-        "localnode.go",
-        "methods.go",
+        "local_node.go",
+        "message.go",
+        "message_recv.go",
+        "message_send.go",
+        "message_verify.go",
         "server.go",
-        "sync.go",
         "wired.go",
-        "wiredchain.go",
-        "wiredgetchain.go",
-        "wiredgetpool.go",
-        "wirednotfound.go",
-        "wiredping.go",
-        "wiredpong.go",
-        "wiredpool.go",
-        "wiredreject.go",
+        "wired_chain.go",
+        "wired_getchain.go",
+        "wired_notfound.go",
+        "wired_ping.go",
+        "wired_pong.go",
+        "wired_reject.go",
     ],
+    embed = [":ngp2p_go_proto"],
     importpath = "github.com/ngchain/ngcore/ngp2p",
     visibility = ["//visibility:public"],
     deps = [
-        "//consensus:go_default_library",
-        "//ngp2p/pb:go_default_library",
         "//ngtypes:go_default_library",
+        "//storage:go_default_library",
         "//utils:go_default_library",
         "@com_github_google_uuid//:go_default_library",
         "@com_github_ipfs_go_log_v2//:go_default_library",
         "@com_github_libp2p_go_libp2p//:go_default_library",
         "@com_github_libp2p_go_libp2p//p2p/discovery:go_default_library",
-        "@com_github_libp2p_go_libp2p_core//:go_default_library",
         "@com_github_libp2p_go_libp2p_core//crypto:go_default_library",
         "@com_github_libp2p_go_libp2p_core//helpers:go_default_library",
         "@com_github_libp2p_go_libp2p_core//host:go_default_library",
         "@com_github_libp2p_go_libp2p_core//network:go_default_library",
         "@com_github_libp2p_go_libp2p_core//peer:go_default_library",
-        "@com_github_libp2p_go_libp2p_core//protocol:go_default_library",
         "@com_github_libp2p_go_libp2p_core//routing:go_default_library",
         "@com_github_libp2p_go_libp2p_kad_dht//:go_default_library",
         "@com_github_libp2p_go_libp2p_mplex//:go_default_library",
         "@com_github_libp2p_go_libp2p_pubsub//:go_default_library",
         "@com_github_libp2p_go_libp2p_yamux//:go_default_library",
         "@com_github_libp2p_go_tcp_transport//:go_default_library",
-        "@com_github_multiformats_go_multiaddr//:go_default_library",
         "@org_golang_google_protobuf//proto:go_default_library",
-        "@org_uber_go_atomic//:go_default_library",
     ],
+)
+
+proto_library(
+    name = "ngp2p_proto",
+    srcs = ["msg.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["//ngtypes:ngtypes_proto"],
+)
+
+go_proto_library(
+    name = "ngp2p_go_proto",
+    compilers = ["@io_bazel_rules_go//proto:gogoslick_proto"],
+    importpath = "github.com/ngchain/ngcore/ngp2p",
+    proto = ":ngp2p_proto",
+    visibility = ["//visibility:public"],
+    deps = ["//ngtypes:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["msg_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//utils:go_default_library"],
 )
