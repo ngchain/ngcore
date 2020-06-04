@@ -13,13 +13,21 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 		return jsonrpc2.NewJsonRpcSuccess(message.ID, []byte("pong"))
 	})
 
+	// p2p
 	httpHandler.RegisterJsonRpcHandleFunc("addNode", s.addNodeFunc)
 
-	httpHandler.RegisterJsonRpcHandleFunc("sendRegister", s.sendRegisterFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("sendLogout", s.sendLogoutFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("sendTransaction", s.sendTransactionFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("sendAssign", s.sendAssignFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("sendAppend", s.sendAppendFunc)
+	// chain
+	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHeight", s.getBlockByHeightFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHash", s.getBlockByHeightFunc)
+
+	// state
+	httpHandler.RegisterJsonRpcHandleFunc("sendTx", s.sendTxFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("signTx", s.signTxFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("genRegister", s.genRegisterFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("genLogout", s.genLogoutFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("genTransaction", s.genTransactionFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("genAssign", s.genAssignFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("genAppend", s.genAppendFunc)
 
 	httpHandler.RegisterJsonRpcHandleFunc("getAccounts", s.getAccountsFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBalanceByNum", s.getBalanceByNumFunc)

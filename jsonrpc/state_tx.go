@@ -14,7 +14,88 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/txpool"
 	"github.com/ngchain/ngcore/utils"
+	"github.com/ngchain/secp256k1"
 )
+
+type sendTxParams struct {
+	SignedRawTx string
+}
+
+func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params signTxParams
+	err := utils.JSON.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	signedTxRaw, err := hex.DecodeString(params.RawTx)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	tx := &ngtypes.Tx{}
+	err = utils.Proto.Unmarshal(signedTxRaw, tx)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = txpool.GetTxPool().PutNewTxFromLocal(tx)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte("OK"))
+}
+
+type signTxParams struct {
+	RawTx       string
+	PrivateKeys []string
+}
+
+type signTxReply struct {
+	SignedRawTx string
+}
+
+func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params signTxParams
+	err := utils.JSON.Unmarshal(msg.Params, &params)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	unsignedTxRaw, err := hex.DecodeString(params.RawTx)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	tx := &ngtypes.Tx{}
+	err = utils.Proto.Unmarshal(unsignedTxRaw, tx)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	privateKeys := make([]*secp256k1.PrivateKey, len(params.PrivateKeys))
+	for i := range params.PrivateKeys {
+		d, err := hex.DecodeString(params.PrivateKeys[i])
+		if err != nil {
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+
+		privateKeys[i] = secp256k1.NewPrivateKey(new(big.Int).SetBytes(d))
+	}
+
+	err = tx.Signature(privateKeys...)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := utils.Proto.Marshal(tx)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
 
 type commonTxReply struct {
 	TxID string `json:"txid"`
@@ -29,7 +110,7 @@ type sendTransactionParams struct {
 	Extra        string        `json:"extra"`
 }
 
-func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendTransactionParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
@@ -81,32 +162,19 @@ func (s *Server) sendTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		extra,
 	)
 
-	err = tx.Signature(consensus.GetPoWConsensus().PrivateKey)
+	raw, err := utils.Proto.Marshal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = txpool.GetTxPool().PutNewTxFromLocal(tx)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	result := commonTxReply{
-		TxID: tx.ID(),
-		Raw:  tx.BS58(),
-	}
-	raw, err := utils.JSON.Marshal(result)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
 type sendRegisterParams struct {
 	ID uint64 `json:"id"`
 }
 
-func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendRegisterParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
@@ -127,25 +195,12 @@ func (s *Server) sendRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		utils.PackUint64LE(params.ID),
 	)
 
-	err = tx.Signature(consensus.GetPoWConsensus().PrivateKey)
+	raw, err := utils.Proto.Marshal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = txpool.GetTxPool().PutNewTxFromLocal(tx)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	result := commonTxReply{
-		TxID: tx.ID(),
-		Raw:  tx.BS58(),
-	}
-	raw, err := utils.JSON.Marshal(result)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
 type sendLogoutParams struct {
@@ -154,7 +209,7 @@ type sendLogoutParams struct {
 	Extra    string  `json:"extra"`
 }
 
-func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendLogoutParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
@@ -180,25 +235,12 @@ func (s *Server) sendLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		extra,
 	)
 
-	err = tx.Signature(consensus.GetPoWConsensus().PrivateKey)
+	raw, err := utils.Proto.Marshal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = txpool.GetTxPool().PutNewTxFromLocal(tx)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	result := commonTxReply{
-		TxID: tx.ID(),
-		Raw:  tx.BS58(),
-	}
-	raw, err := utils.JSON.Marshal(result)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
 type sendAssignParams struct {
@@ -207,7 +249,7 @@ type sendAssignParams struct {
 	Extra    string  `json:"extra"`
 }
 
-func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendAssignParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
@@ -233,25 +275,12 @@ func (s *Server) sendAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		extra,
 	)
 
-	err = tx.Signature(consensus.GetPoWConsensus().PrivateKey)
+	raw, err := utils.Proto.Marshal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = txpool.GetTxPool().PutNewTxFromLocal(tx)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	result := commonTxReply{
-		TxID: tx.ID(),
-		Raw:  tx.BS58(),
-	}
-	raw, err := utils.JSON.Marshal(result)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
 type sendAppendParams struct {
@@ -260,7 +289,7 @@ type sendAppendParams struct {
 	Extra    string  `json:"extra"`
 }
 
-func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendAppendParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
@@ -286,23 +315,10 @@ func (s *Server) sendAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		extra,
 	)
 
-	err = tx.Signature(consensus.GetPoWConsensus().PrivateKey)
+	raw, err := utils.Proto.Marshal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = txpool.GetTxPool().PutNewTxFromLocal(tx)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	result := commonTxReply{
-		TxID: tx.ID(),
-		Raw:  tx.BS58(),
-	}
-	raw, err := utils.JSON.Marshal(result)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
