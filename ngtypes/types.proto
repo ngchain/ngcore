@@ -23,8 +23,16 @@ message BlockHeader {
   bytes nonce = 6;
 }
 
+enum NetworkType {
+  ZERONET = 0; // zero is INVALID: TODO: Add rule to block/tx check
+  TESTNET = 1; // TESTNET uses odd number
+  MAINNET = 2; // MAINNET uses even number
+  // TEST_FUTURE = 3;
+  // MAIN_FUTURE = 4;
+}
+
 message Block {
-  int32 network = 1;
+  NetworkType network = 1;
   BlockHeader header = 2;
 
   repeated Tx txs = 4; // miner should build the generate tx by themselves
@@ -58,7 +66,7 @@ message TxHeader {
 
 // Or you can call it Op
 message Tx {
-  int32 network = 1;
+  NetworkType network = 1;
   TxHeader header = 2;
   bytes sign = 3;
 }

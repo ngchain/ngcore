@@ -18,7 +18,7 @@ import (
 )
 
 type sendTxParams struct {
-	SignedRawTx string
+	SignedRawTx string `json:"signedRaw"`
 }
 
 func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -28,7 +28,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	signedTxRaw, err := hex.DecodeString(params.RawTx)
+	signedTxRaw, err := hex.DecodeString(params.Raw)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -48,8 +48,8 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 }
 
 type signTxParams struct {
-	RawTx       string
-	PrivateKeys []string
+	Raw         string   `json:"raw"`
+	PrivateKeys []string `json:"privateKeys"`
 }
 
 type signTxReply struct {
@@ -63,7 +63,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	unsignedTxRaw, err := hex.DecodeString(params.RawTx)
+	unsignedTxRaw, err := hex.DecodeString(params.Raw)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -95,11 +95,6 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
-}
-
-type commonTxReply struct {
-	TxID string `json:"txid"`
-	Raw  string `json:"raw"`
 }
 
 type sendTransactionParams struct {

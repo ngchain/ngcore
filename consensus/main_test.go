@@ -39,5 +39,5 @@ func TestNewConsensusManager(t *testing.T) {
 
 	_ = txpool.NewTxPool(s)
 
-	consensus.NewPoWConsensus(1, key, false)
+	_ = consensus.NewPoWConsensus(1, key, true)
 }

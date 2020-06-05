@@ -67,3 +67,25 @@ func TestGetGenesisGenerate(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestTxJSON(t *testing.T) {
+	tx1 := ngtypes.GetGenesisGenerateTx()
+	jsonTx, err := utils.JSON.Marshal(tx1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Log(string(jsonTx))
+
+	tx2 := &ngtypes.Tx{}
+	err = utils.JSON.Unmarshal(jsonTx, &tx2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if !proto.Equal(tx1, tx2) {
+		t.Error("tx 2 is different from 1")
+	}
+}

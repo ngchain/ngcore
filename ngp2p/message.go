@@ -14,7 +14,7 @@ func (n *LocalNode) NewHeader(uuid []byte, msgType MessageType) *Header {
 	}
 
 	return &Header{
-		NetworkId:   ngtypes.Network,
+		Network:     ngtypes.NETWORK,
 		MessageId:   uuid,
 		MessageType: msgType,
 		Timestamp:   time.Now().Unix(),

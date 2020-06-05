@@ -24,12 +24,12 @@ func (s *Server) getBlockByHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.MarshalToString(block)
+	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(raw))
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 type getBlockByHashParams struct {
@@ -53,12 +53,12 @@ func (s *Server) getBlockByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.MarshalToString(block)
+	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(raw))
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 type getTxByHashParams struct {
@@ -82,10 +82,10 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.MarshalToString(tx)
+	raw, err := utils.JSON.Marshal(tx)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(raw))
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }

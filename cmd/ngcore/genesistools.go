@@ -21,29 +21,39 @@ var genesistoolsCommand = &cli.Command{
 	Action: func(context *cli.Context) error {
 		logging.SetAllLoggers(logging.LevelDebug)
 
-		localKey := keytools.ReadLocalKey("genesis.key", "")
+		localKey := keytools.ReadLocalKey("genesis.key", "") // TODO: add password to options
 		if localKey == nil {
 			log.Panic("genesis.key is missing, using keytools to create one first")
 		}
 
 		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
-		log.Warnf("BS58 Genesis PublicKey: %s", raw)
+		log.Warnf("BS58 Genesis PublicKey: %x", raw)
 
 		gtx := ngtypes.GetGenesisGenerateTx()
-		err := gtx.Signature(localKey)
-		if err != nil {
-			log.Panic(err)
-		}
+		if err := gtx.CheckGenerate(); err != nil {
+			log.Warnf("current genesis generate tx sign %s is invalid: %x, resignaturing...", gtx.Sign, err)
+			err = gtx.Signature(localKey)
+			if err != nil {
+				log.Panic(err)
+			}
 
-		log.Warnf("BS58 Genesis Generate Tx Sign: %s", base58.FastBase58Encoding(gtx.Sign))
+			log.Warnf("BS58 Genesis Generate Tx Sign: %x", gtx.Sign)
+		} else {
+			log.Info("genesis block's generate tx is healthy")
+		}
 
 		b := ngtypes.GetGenesisBlock()
-		b, err = b.ToUnsealing([]*ngtypes.Tx{gtx})
-		if err != nil {
-			log.Error(err)
-		}
+		if err := b.CheckError(); err != nil {
+			log.Warnf("current genesis block is invalid, use the generate tx above to re-calc nonce...")
+			b, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
+			if err != nil {
+				log.Error(err)
+			}
 
-		genBlockNonce(b)
+			genBlockNonce(b)
+		} else {
+			log.Info("genesis block is healthy")
+		}
 
 		return nil
 	},

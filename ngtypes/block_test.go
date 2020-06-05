@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/sha3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -14,7 +15,9 @@ import (
 func TestBlock_GetHash(t *testing.T) {
 	b := ngtypes.GetGenesisBlock()
 	headerHash := b.CalculateHeaderHash()
-	t.Log(len(headerHash))
+	if len(headerHash) != 32 {
+		t.Errorf("bytes from CalculateHeaderHash is not hash")
+	}
 }
 
 func TestBlock_IsGenesis(t *testing.T) {
@@ -24,8 +27,8 @@ func TestBlock_IsGenesis(t *testing.T) {
 	}
 
 	if err := g.CheckError(); err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Error(err)
+		return
 	}
 
 	raw, _ := utils.Proto.Marshal(g)
@@ -33,12 +36,13 @@ func TestBlock_IsGenesis(t *testing.T) {
 	_ = utils.Proto.Unmarshal(raw, gg)
 
 	if !gg.IsGenesis() {
-		t.Fail()
+		t.Error("failed unmarshaling back to genesis block structure")
+		return
 	}
 
 	if err := gg.CheckError(); err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Error(err)
+		return
 	}
 }
 
@@ -60,6 +64,28 @@ func TestGetGenesisBlock(t *testing.T) {
 	d, _ := utils.Proto.Marshal(ngtypes.GetGenesisBlock())
 	hash := sha3.Sum256(d)
 
-	log.Infof("GenesisBlock hex: %x", d)
-	log.Infof("GenesisBlock hash: %x", hash)
+	t.Logf("GenesisBlock hex: %x", d)
+	t.Logf("GenesisBlock hash: %x", hash)
+}
+
+func TestBlockJSON(t *testing.T) {
+	block1 := ngtypes.GetGenesisBlock()
+	jsonBlock, err := utils.JSON.Marshal(block1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Log(string(jsonBlock))
+
+	block2 := &ngtypes.Block{}
+	err = utils.JSON.Unmarshal(jsonBlock, &block2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if !proto.Equal(block1, block2) {
+		t.Error("block 2 is different from 1")
+	}
 }

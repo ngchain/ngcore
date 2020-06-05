@@ -29,7 +29,7 @@ enum ChainType {
 
 /* common */
 message Header {
-  int32 network_id = 1;
+  ngtypes.NetworkType network = 1;
   bytes message_id = 2;
   MessageType message_type = 3;
 

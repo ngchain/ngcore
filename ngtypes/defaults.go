@@ -8,25 +8,19 @@ import (
 	"github.com/mr-tron/base58"
 )
 
-// network configure
-const (
-	Network        = testnetNetwork  // for hard fork
-	mainnetNetwork = 1               // mainnet shall be positive
-	testnetNetwork = -mainnetNetwork // testnet shall be neg
-)
-
 // FIXME: before init network should manually init PK & Sign
 // try `go test ./...`  until all passed
 const (
-	GenesisPublicKeyBase58      = "25oohBi9yTLhC48WZ1G5f3zZeiwjF9nhDrVqrKmcW7UP6"
-	GenesisGenerateTxSignBase58 = "3JFnR7m4yuevAsgr44sCWYEqzbZew4j2o2QdxkQxHiV7shQQ6ErqUAQX6uAWtkKFG9YsMKAqnqe2fFbzrCg8rWQ5"
-	GenesisBlockNonceHex        = "9ea58763be0590dd"
+	NETWORK                  = NetworkType_TESTNET
+	GenesisPublicKeyBase58   = "dBA86mCVuQdLHTgdxX9Pfj4LqofebwWj1fFQLtG5j95b"
+	GenesisGenerateTxSignHex = "f54c0794f36e071b42492827b03dc41a7101374eae042531d86ac843eaaf86eeb00ada8730d7e0d65661ff07a16c64ac0dbab819bf55d6983fb429e4c5c1e012"
+	GenesisBlockNonceHex     = "038c48ee9ef1f716"
 )
 
 // decoded genesis variables
 var (
 	GenesisPublicKey, _       = base58.FastBase58Decoding(GenesisPublicKeyBase58)
-	GenesisGenerateTxSign, _  = base58.FastBase58Decoding(GenesisGenerateTxSignBase58)
+	GenesisGenerateTxSign, _  = hex.DecodeString(GenesisGenerateTxSignHex)
 	genesisBlockNonceBytes, _ = hex.DecodeString(GenesisBlockNonceHex)
 	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)
 )

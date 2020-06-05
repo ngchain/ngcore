@@ -11,6 +11,7 @@ import (
 
 var log = logging.Logger("storage")
 
+// TODO: init me from the folder designated by user
 var db *badger.DB
 
 // InitStorage inits a new DB in data folder.

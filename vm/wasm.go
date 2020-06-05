@@ -20,7 +20,7 @@ func NewWasmVM(rawContract []byte) (*WasmVM, error) {
 		return nil, err
 	}
 
-	instance, err := wasmtime.NewInstance(module, nil)
+	instance, err := wasmtime.NewInstance(store, module, nil)
 	if err != nil {
 		return nil, err
 	}
