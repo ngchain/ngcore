@@ -66,9 +66,8 @@ message GetChainPayload {
 }
 
 message ChainPayload {
-  repeated bytes hashes = 2;
-  repeated ngtypes.BlockHeader headers = 3;
-  repeated ngtypes.Block blocks = 4;
+  repeated bytes hashes = 1;
+  repeated ngtypes.Block blocks = 2;
 }
 
 // TODO: Add Wired state exchange messages
