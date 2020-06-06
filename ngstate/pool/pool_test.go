@@ -1,4 +1,4 @@
-package txpool_test
+package pool
 
 import (
 	"testing"

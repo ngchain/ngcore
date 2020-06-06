@@ -21,7 +21,7 @@ func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Acco
 // GetGenesisStyleAccount will return the genesis style account.
 func GetGenesisStyleAccount(num uint64) *Account {
 	return &Account{
-		Num: num,
+		Num:   num,
 		Owner: GenesisPublicKey,
 		Txn:   0,
 		State: genesisState,
@@ -33,11 +33,11 @@ var genesisState, _ = utils.JSON.Marshal(map[string]interface{}{
 })
 
 type jsonAccount struct {
-	Num uint64 `json:"num"`
-	Owner string  `json:"owner"`
+	Num   uint64 `json:"num"`
+	Owner string `json:"owner"`
 
 	Contract string `json:"contract"`
-	State string `json:"state"`
+	State    string `json:"state"`
 }
 
 func (x Account) MarshalJSON() ([]byte, error) {

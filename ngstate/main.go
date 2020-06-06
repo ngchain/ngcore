@@ -34,7 +34,7 @@ func GetCurrentState() *State {
 
 // NewStateFromSheet will create a new state which is a wrapper of *ngtypes.sheet
 func NewStateFromSheet(sheet *ngtypes.Sheet) (*State, error) {
-	entry := &State{
+	state := &State{
 		height:    sheet.Height,
 		accounts:  make(map[uint64][]byte),
 		anonymous: make(map[string][]byte),
@@ -42,17 +42,17 @@ func NewStateFromSheet(sheet *ngtypes.Sheet) (*State, error) {
 
 	var err error
 	for id, account := range sheet.Accounts {
-		entry.accounts[id], err = utils.Proto.Marshal(account)
+		state.accounts[id], err = utils.Proto.Marshal(account)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	for bs58PK, balance := range sheet.Anonymous {
-		entry.anonymous[bs58PK] = balance
+		state.anonymous[bs58PK] = balance
 	}
 
-	currentState = entry
+	currentState = state
 
-	return entry, nil
+	return state, nil
 }

@@ -1,4 +1,4 @@
-package txpool
+package pool
 
 import (
 	"google.golang.org/protobuf/proto"

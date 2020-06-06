@@ -1,49 +1,32 @@
-package txpool
+package pool
 
 import (
-	"sync"
-
-	logging "github.com/ipfs/go-log/v2"
-
-	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
-
-var log = logging.Logger("txpool")
 
 // TxPool is a little mem db which stores **signed** tx.
 // TODO: !important embed txpool into ngstate!
 type TxPool struct {
-	sync.RWMutex
-
-	status *ngstate.State
-
-	Queuing map[uint64]map[uint64]*ngtypes.Tx // map[accountID] map[nonce]Tx
+	Queuing []*ngtypes.Tx // priority first
 
 	NewCreatedTxEvent chan *ngtypes.Tx
 }
 
 var txpool *TxPool
 
-// NewTxPool will create a new global txpool.
-func NewTxPool(status *ngstate.State) *TxPool {
-	if txpool == nil {
-		txpool = &TxPool{
-			status: status,
+// init will create a new global txpool.
+func init() {
+	txpool = &TxPool{
+		Queuing: make([]*ngtypes.Tx),
 
-			Queuing: make(map[uint64]map[uint64]*ngtypes.Tx),
-
-			NewCreatedTxEvent: make(chan *ngtypes.Tx),
-		}
+		NewCreatedTxEvent: make(chan *ngtypes.Tx),
 	}
-
-	return txpool
 }
 
 // GetTxPool will return the registered global txpool.
 func GetTxPool() *TxPool {
 	if txpool == nil {
-		panic("txpool is closed")
+		panic("txpool is not initialized")
 	}
 
 	return txpool

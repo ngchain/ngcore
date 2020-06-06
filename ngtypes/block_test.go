@@ -66,6 +66,7 @@ func TestGetGenesisBlock(t *testing.T) {
 
 	t.Logf("GenesisBlock hex: %x", d)
 	t.Logf("GenesisBlock hash: %x", hash)
+	t.Logf("GenesisBlock Size: %d bytes", len(d))
 }
 
 func TestBlockJSON(t *testing.T) {

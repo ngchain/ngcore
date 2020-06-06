@@ -83,9 +83,9 @@ func (x *TxHeader) UnmarshalJSON(b []byte) error {
 }
 
 type jsonTx struct {
-	Network int `json:"network"`
+	Network int       `json:"network"`
 	Header  *TxHeader `json:"header"`
-	Sign    string `json:"sign"`
+	Sign    string    `json:"sign"`
 }
 
 func (x Tx) MarshalJSON() ([]byte, error) {

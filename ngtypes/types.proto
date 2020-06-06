@@ -6,21 +6,9 @@ option go_package = "github.com/ngchain/ngcore/ngtypes";
 message Account {
   uint64 num = 1;
   bytes owner = 2; // pk -> balance in anonymous fields
-  uint64 txn = 4;
 
   bytes contract = 5; // separate the code and state
   bytes state = 6;
-}
-
-message BlockHeader {
-  uint64 height = 1;
-  int64 timestamp = 2;
-
-  bytes prev_block_hash = 3;
-  bytes trie_hash = 4;
-
-  bytes difficulty = 5; // diff = maxTarget / Big(header_hash)
-  bytes nonce = 6;
 }
 
 enum NetworkType {
@@ -33,9 +21,18 @@ enum NetworkType {
 
 message Block {
   NetworkType network = 1;
-  BlockHeader header = 2;
 
-  repeated Tx txs = 4; // miner should build the generate tx by themselves
+  uint64 height = 2;
+  int64 timestamp = 3;
+
+  bytes prev_block_hash = 4;
+  bytes trie_hash = 5;
+
+  bytes difficulty = 6; // diff = maxTarget / Big(header_hash)
+  bytes nonce = 7;
+
+  Sheet sheet = 8;
+  repeated Tx txs = 9; // miner should build the generate tx by themselves
 }
 
 enum TxType {
@@ -50,25 +47,22 @@ enum TxType {
   APPEND = 21;
 }
 
-message TxHeader {
-  TxType type = 1;
-
-  uint64 convener = 2; // account num required
-  repeated bytes participants = 3;
-  bytes fee = 4;
-  repeated bytes values = 5;
-
-  uint64 n = 6;
-
-  // extension
-  bytes extra = 7;
-}
-
 // Or you can call it Op
 message Tx {
   NetworkType network = 1;
-  TxHeader header = 2;
-  bytes sign = 3;
+  TxType type = 2;
+
+  bytes prev_block_hash = 3; // only available within one block
+
+  uint64 convener = 3; // account num required
+  repeated bytes participants = 4;
+  bytes fee = 5;
+  repeated bytes values = 6;
+
+  // extension
+  bytes extra = 7;
+
+  bytes sign = 2;
 }
 
 // Sheet is a simplified States

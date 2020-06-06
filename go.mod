@@ -4,7 +4,6 @@ go 1.14
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
-	github.com/bazelbuild/bazel-gazelle v0.21.1
 	github.com/bytecodealliance/wasmtime-go v0.17.0
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect

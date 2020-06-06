@@ -22,7 +22,6 @@ import (
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/txpool"
 )
 
 var strictModeFlag = &cli.BoolFlag{
@@ -144,12 +143,11 @@ var action = func(c *cli.Context) error {
 	}
 
 	_ = ngp2p.NewLocalNode(p2pTCPPort)
-	s, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
+
+	_, err = ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
 	if err != nil {
 		panic(err)
 	}
-
-	_ = txpool.NewTxPool(s)
 
 	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
 	pow.GoLoop()
