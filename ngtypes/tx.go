@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ngchain/go-schnorr"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
@@ -26,20 +27,16 @@ var (
 // NewUnsignedTx will return an unsigned tx, must using Signature().
 func NewUnsignedTx(txType TxType, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int,
 	n uint64, extraData []byte) *Tx {
-	header := &TxHeader{
+
+	return &Tx{
+		Network:      NETWORK,
 		Type:         txType,
 		Convener:     convener,
 		Participants: participants,
 		Fee:          fee.Bytes(),
 		Values:       BigIntsToBytesList(values),
-		N:            n,
 		Extra:        extraData,
-	}
-
-	return &Tx{
-		Network: NETWORK,
-		Header:  header,
-		Sign:    nil,
+		Sign:         nil,
 	}
 }
 
@@ -62,17 +59,17 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 		return fmt.Errorf("illegal public key")
 	}
 
-	b, err := utils.Proto.Marshal(x.Header)
+	cp := proto.Clone(x).(*Tx)
+	cp.Sign = nil
+	b, err := utils.Proto.Marshal(cp)
 	if err != nil {
 		return err
 	}
 
 	var signature [64]byte
-
 	copy(signature[:], x.Sign)
 
 	var key [33]byte
-
 	copy(key[:], publicKey.SerializeCompressed())
 
 	if ok, err := schnorr.Verify(key, sha3.Sum256(b), signature); !ok {

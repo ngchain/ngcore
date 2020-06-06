@@ -12,7 +12,6 @@ func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Acco
 	return &Account{
 		Num:      num,
 		Owner:    ownerPublicKey,
-		Txn:      0,
 		Contract: contract,
 		State:    state,
 	}
@@ -23,7 +22,6 @@ func GetGenesisStyleAccount(num uint64) *Account {
 	return &Account{
 		Num:   num,
 		Owner: GenesisPublicKey,
-		Txn:   0,
 		State: genesisState,
 	}
 }

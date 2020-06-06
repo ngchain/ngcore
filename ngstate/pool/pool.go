@@ -17,7 +17,7 @@ var txpool *TxPool
 // init will create a new global txpool.
 func init() {
 	txpool = &TxPool{
-		Queuing: make([]*ngtypes.Tx),
+		Queuing: make([]*ngtypes.Tx, 0),
 
 		NewCreatedTxEvent: make(chan *ngtypes.Tx),
 	}

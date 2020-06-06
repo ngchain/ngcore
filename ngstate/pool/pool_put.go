@@ -25,17 +25,18 @@ func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 }
 
 // PutTxs puts txs from network(p2p) into txpool, should check error before putting.
+// TODO: implement me
 func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
-	p.Lock()
-	defer p.Unlock()
+	// p.Lock()
+	// defer p.Unlock()
 
-	for i := range txs {
-		if p.Queuing[txs[i].Header.GetConvener()] == nil {
-			p.Queuing[txs[i].Header.GetConvener()] = make(map[uint64]*ngtypes.Tx)
-		}
+	// for i := range txs {
+	// 	if p.Queuing[txs[i].GetConvener()] == nil {
+	// 		p.Queuing[txs[i].GetConvener()] = make(map[uint64]*ngtypes.Tx)
+	// 	}
 
-		p.Queuing[txs[i].Header.GetConvener()][txs[i].Header.GetN()] = txs[i]
-	}
+	// 	p.Queuing[txs[i].Header.GetConvener()][txs[i].Header.GetN()] = txs[i]
+	// }
 
 	return nil
 }

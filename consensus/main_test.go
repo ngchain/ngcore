@@ -10,7 +10,6 @@ import (
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/txpool"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -32,12 +31,10 @@ func TestNewConsensusManager(t *testing.T) {
 
 	_ = ngp2p.NewLocalNode(int(utils.RandUint16()))
 
-	s, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
+	_, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
 	if err != nil {
 		panic(err)
 	}
-
-	_ = txpool.NewTxPool(s)
 
 	_ = consensus.NewPoWConsensus(1, key, true)
 }

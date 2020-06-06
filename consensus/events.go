@@ -2,8 +2,8 @@ package consensus
 
 import (
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngstate/pool"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/txpool"
 )
 
 func (pow *PoWork) loop() {
@@ -19,7 +19,7 @@ func (pow *PoWork) loop() {
 				log.Warnf("failed to put new block from p2p network: %s", err)
 			}
 		case tx := <-ngp2p.GetLocalNode().OnTx:
-			err := txpool.GetTxPool().PutTxs(tx)
+			err := pool.GetTxPool().PutTxs(tx)
 			if err != nil {
 				log.Warnf("failed to put new tx from p2p network: %s", err)
 			}
