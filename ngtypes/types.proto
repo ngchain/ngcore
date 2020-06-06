@@ -54,15 +54,15 @@ message Tx {
 
   bytes prev_block_hash = 3; // only available within one block
 
-  uint64 convener = 3; // account num required
-  repeated bytes participants = 4;
-  bytes fee = 5;
-  repeated bytes values = 6;
+  uint64 convener = 4; // account num required
+  repeated bytes participants = 5;
+  bytes fee = 6;
+  repeated bytes values = 7;
 
   // extension
-  bytes extra = 7;
+  bytes extra = 8;
 
-  bytes sign = 2;
+  bytes sign = 9;
 }
 
 // Sheet is a simplified States
