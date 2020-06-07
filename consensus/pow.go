@@ -2,9 +2,8 @@ package consensus
 
 import (
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/ngcore/ngstate/pool"
-
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
@@ -37,16 +36,19 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 	newDiff := ngtypes.GetNextDiff(currentBlock)
 	newHeight := currentBlock.Height + 1
 
+	sheet := ngstate.GetPrevState().ToSheet()
+
 	newBareBlock := ngtypes.NewBareBlock(
 		newHeight,
+		sheet,
 		currentBlockHash,
 		newDiff,
 	)
 
-	extraData := []byte("ngCore")
+	extraData := []byte("ngCore") // FIXME
 
 	Gen := pow.createGenerateTx(extraData)
-	txsWithGen := append([]*ngtypes.Tx{Gen}, pool.GetTxPool().GetPackTxs()...)
+	txsWithGen := append([]*ngtypes.Tx{Gen}, ngstate.GetTxPool().GetPackTxs()...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {

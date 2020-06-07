@@ -2,7 +2,6 @@ package ngtypes
 
 import (
 	"encoding/hex"
-
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -20,15 +19,12 @@ func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Acco
 // GetGenesisStyleAccount will return the genesis style account.
 func GetGenesisStyleAccount(num uint64) *Account {
 	return &Account{
-		Num:   num,
-		Owner: GenesisPublicKey,
-		State: genesisState,
+		Num:      num,
+		Owner:    GenesisPublicKey,
+		Contract: nil,
+		State:    nil,
 	}
 }
-
-var genesisState, _ = utils.JSON.Marshal(map[string]interface{}{
-	"name": "ngchain",
-})
 
 type jsonAccount struct {
 	Num   uint64 `json:"num"`

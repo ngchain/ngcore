@@ -11,7 +11,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// HandleTxs will apply the tx into the sheet if tx is VALID
+// HandleTxs will apply the tx into the state if tx is VALID
 func (m *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
 	err = m.CheckTxs(txs...)
 	if err != nil {

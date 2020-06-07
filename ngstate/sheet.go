@@ -12,7 +12,7 @@ import (
 )
 
 // ToSheet will conclude a sheet which has all status of all accounts & keys(if balance not nil)
-func (m *State) ToSheet() (*ngtypes.Sheet, error) {
+func (m *State) ToSheet() *ngtypes.Sheet {
 	m.RLock()
 	defer m.RUnlock()
 
@@ -24,7 +24,7 @@ func (m *State) ToSheet() (*ngtypes.Sheet, error) {
 		account := new(ngtypes.Account)
 		err = utils.Proto.Unmarshal(raw, account)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		accounts[height] = account
 	}
@@ -33,7 +33,7 @@ func (m *State) ToSheet() (*ngtypes.Sheet, error) {
 		anonymous[bs58PK] = balance
 	}
 
-	return ngtypes.NewSheet(m.height, accounts, anonymous), nil
+	return ngtypes.NewSheet(m.height, accounts, anonymous)
 }
 
 // GetBalanceByNum get the balance of account by the account's num

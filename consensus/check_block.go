@@ -20,7 +20,7 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 	}
 
 	prevHash := block.GetPrevHash()
-	if !bytes.Equal(prevHash, ngtypes.GenesisBlockHash) {
+	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash()) {
 		prevBlock, err := storage.GetChain().GetBlockByHash(prevHash)
 		if err != nil {
 			return err

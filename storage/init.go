@@ -14,7 +14,7 @@ func (c *Chain) InitWithGenesis() {
 	if !c.hasGenesisBlock() {
 		log.Infof("initializing with genesis block")
 
-		block := ngtypes.GenesisBlock
+		block := ngtypes.GetGenesisBlock()
 
 		if err := c.db.Update(func(txn *badger.Txn) error {
 			hash := block.Hash()
@@ -59,7 +59,7 @@ func (c *Chain) hasGenesisBlock() bool {
 		if hash != nil {
 			has = true
 		}
-		if !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+		if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
 			panic("wrong genesis block in db")
 		}
 

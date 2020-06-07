@@ -42,7 +42,7 @@ var genesistoolsCommand = &cli.Command{
 			log.Info("genesis block's generate tx is healthy")
 		}
 
-		b := ngtypes.GenesisBlock
+		b := ngtypes.GetGenesisBlock()
 		if err := b.CheckError(); err != nil {
 			log.Warnf("current genesis block is invalid, use the generate tx above to re-calc nonce...")
 			b, err := b.ToUnsealing([]*ngtypes.Tx{gtx})

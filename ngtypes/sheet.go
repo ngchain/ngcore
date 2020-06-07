@@ -28,7 +28,6 @@ func (x *Sheet) Hash() []byte {
 }
 
 var GenesisSheet *Sheet
-var GenesisSheetHash []byte
 
 // GetGenesisSheetHash returns a genesis sheet's hash
 func init() {
@@ -45,6 +44,4 @@ func init() {
 			GenesisPublicKeyBase58: GetBig0Bytes(),
 		},
 	}
-
-	GenesisSheetHash = GenesisSheet.Hash()
 }

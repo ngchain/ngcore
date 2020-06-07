@@ -17,7 +17,7 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash := block.Hash()
-	if !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+	if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
 		// when block is not genesis block, checking error
 		if block.GetHeight() != 0 {
 			if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {

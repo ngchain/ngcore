@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/runtime/protoimpl"
 	"math/big"
 	"time"
 
@@ -41,7 +40,7 @@ func (x *Block) IsTail() bool {
 
 // IsGenesis will check whether the Block is the genesis block.
 func (x *Block) IsGenesis() bool {
-	return bytes.Equal(x.Hash(), GenesisBlockHash)
+	return bytes.Equal(x.Hash(), GetGenesisBlockHash())
 }
 
 // GetPoWBlob will return a complete blob for block hash.
@@ -130,20 +129,20 @@ func (x *Block) GetActualDiff() *big.Int {
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(height uint64, prevSheetHash, prevBlockHash []byte, diff *big.Int) *Block {
+func NewBareBlock(height uint64, prevSheet *Sheet, prevBlockHash []byte, diff *big.Int) *Block {
 	return &Block{
 		Network:       NETWORK,
 		Height:        height,
 		Timestamp:     time.Now().Unix(),
 		PrevBlockHash: prevBlockHash,
 		TrieHash:      nil,
-		SheetHash:     prevSheetHash,
+		PrevSheetHash: prevSheet.Hash(),
 
 		Difficulty: diff.Bytes(),
 		Nonce:      nil,
 
-		Sheet: nil,
-		Txs:   make([]*Tx, 0),
+		PrevSheet: prevSheet,
+		Txs:       make([]*Tx, 0),
 	}
 }
 
@@ -172,7 +171,7 @@ func (x *Block) CheckError() error {
 // Hash will help you get the hash of block.
 func (x *Block) Hash() []byte {
 	b := proto.Clone(x).(*Block)
-	b.Sheet = nil
+	b.PrevSheet = nil
 	b.Txs = nil
 
 	raw, err := utils.Proto.Marshal(x)
@@ -190,29 +189,40 @@ func (x *Block) GetPrevHash() []byte {
 	return x.GetPrevBlockHash()
 }
 
-var GenesisBlock *Block
-var GenesisBlockHash []byte
+var genesisBlock *Block
 
 // GetGenesisBlock will return a complete sealed GenesisBlock.
-func init() {
-	txs := []*Tx{
-		GetGenesisGenerateTx(),
+func GetGenesisBlock() *Block {
+	if genesisBlock == nil {
+		txs := []*Tx{
+			GetGenesisGenerateTx(),
+		}
+
+		genesisBlock = &Block{
+			Network:   NETWORK,
+			Height:    0,
+			Timestamp: genesisTimestamp,
+
+			PrevBlockHash: nil,
+			TrieHash:      NewTxTrie(txs).TrieRoot(),
+			PrevSheetHash: GenesisSheet.Hash(),
+
+			Difficulty: minimumBigDifficulty.Bytes(),
+			Nonce:      genesisBlockNonce.Bytes(),
+			PrevSheet:  GenesisSheet,
+			Txs:        txs,
+		}
 	}
 
-	GenesisBlock = &Block{
-		Network:   NETWORK,
-		Height:    0,
-		Timestamp: genesisTimestamp,
+	return genesisBlock
+}
 
-		PrevBlockHash: nil,
-		TrieHash:      NewTxTrie(txs).TrieRoot(),
-		SheetHash:     nil,
+var genesisBlockHash []byte
 
-		Difficulty: minimumBigDifficulty.Bytes(),
-		Nonce:      genesisBlockNonce.Bytes(),
-		Sheet:      GenesisSheet,
-		Txs:        txs,
+func GetGenesisBlockHash() []byte {
+	if genesisBlockHash == nil {
+		genesisBlockHash = GetGenesisBlock().Hash()
 	}
 
-	GenesisBlockHash = GenesisBlock.Hash()
+	return genesisBlockHash
 }

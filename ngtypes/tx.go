@@ -104,10 +104,22 @@ func (x *Tx) ID() string {
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
+func (x *Tx) Hash() []byte {
+	raw, err := utils.Proto.Marshal(x)
+	if err != nil {
+		panic(err)
+	}
+
+	hash := sha3.Sum256(raw)
+
+	return hash[:]
+}
+
+// CalculateHash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) CalculateHash() ([]byte, error) {
 	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
-		log.Error(err)
+		return nil, err
 	}
 
 	hash := sha3.Sum256(raw)
@@ -369,10 +381,8 @@ func (x *Tx) TotalExpenditure() *big.Int {
 	return new(big.Int).Add(new(big.Int).SetBytes(x.Fee), total)
 }
 
-var GenesisGenerateTx *Tx
-
-func init() {
-	GenesisGenerateTx := NewUnsignedTx(
+func GetGenesisGenerateTx() *Tx {
+	ggtx := NewUnsignedTx(
 		TxType_GENERATE,
 		nil,
 		0,
@@ -382,5 +392,7 @@ func init() {
 		nil,
 	)
 
-	GenesisGenerateTx.Sign = GenesisGenerateTxSign
+	ggtx.Sign = GenesisGenerateTxSign
+
+	return ggtx
 }

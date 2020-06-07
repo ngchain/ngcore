@@ -19,8 +19,6 @@ import (
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/ngstate"
-	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
 
@@ -144,10 +142,10 @@ var action = func(c *cli.Context) error {
 
 	_ = ngp2p.NewLocalNode(p2pTCPPort)
 
-	_, err = ngstate.NewStateFromSheet(ngtypes.GenesisSheet)
-	if err != nil {
-		panic(err)
-	}
+	// m = ngstate.GetStateManager()// .UpdateState(ngtypes.GenesisSheet)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
 	pow.GoLoop()

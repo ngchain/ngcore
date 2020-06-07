@@ -3,7 +3,6 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ngchain/ngcore/ngstate/pool"
 	"github.com/ngchain/ngcore/storage"
 	"math/big"
 	"reflect"
@@ -40,7 +39,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = pool.GetTxPool().PutNewTxFromLocal(tx)
+	err = ngstate.GetTxPool().PutNewTxFromLocal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

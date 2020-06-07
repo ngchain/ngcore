@@ -15,26 +15,26 @@ type jsonBlock struct {
 	Timestamp     int64  `json:"timestamp"`
 	PrevBlockHash string `json:"prevBlockHash"`
 	TrieHash      string `json:"trieHash"`
+	PrevSheetHash string `json:"prevSheetHash"`
 	Difficulty    string `json:"difficulty"`
 	Nonce         string `json:"nonce"`
 
-	Sheet *Sheet `json:"sheet"`
-	Txs   []*Tx  `json:"txs"`
+	PrevSheet *Sheet `json:"prevSheet"`
+	Txs       []*Tx  `json:"txs"`
 }
 
 func (x *Block) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonBlock{
-		Network: int(x.Network),
-
+		Network:       int(x.Network),
 		Height:        x.GetHeight(),
 		Timestamp:     x.GetTimestamp(),
 		PrevBlockHash: hex.EncodeToString(x.GetPrevBlockHash()),
 		TrieHash:      hex.EncodeToString(x.GetTrieHash()),
+		PrevSheetHash: hex.EncodeToString(x.GetPrevSheetHash()),
 		Difficulty:    new(big.Int).SetBytes(x.GetDifficulty()).String(),
 		Nonce:         hex.EncodeToString(x.GetNonce()),
-
-		Sheet: x.Sheet,
-		Txs:   x.Txs,
+		PrevSheet:     x.GetPrevSheet(),
+		Txs:           x.GetTxs(),
 	})
 }
 
@@ -57,6 +57,10 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	x.PrevSheetHash, err = hex.DecodeString(b.PrevSheetHash)
+	if err != nil {
+		return err
+	}
 	bigDifficulty, ok := new(big.Int).SetString(b.Difficulty, 10)
 	if !ok {
 		return fmt.Errorf("failed to parse blockHeader's difficulty")
@@ -67,7 +71,7 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	x.Sheet = b.Sheet
+	x.PrevSheet = b.PrevSheet
 	x.Txs = b.Txs
 
 	return nil

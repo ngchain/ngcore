@@ -1,4 +1,4 @@
-package pool
+package ngstate
 
 import (
 	"google.golang.org/protobuf/proto"

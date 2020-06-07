@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"github.com/ngchain/ngcore/ngstate/pool"
 	"sync"
 
 	"github.com/ngchain/ngcore/ngstate"
@@ -25,7 +24,7 @@ func (pow *PoWork) PutNewBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	pool.GetTxPool().HandleNewBlock(block)
+	ngstate.GetStateManager().UpdateState(block)
 
 	err = ngstate.GetCurrentState().HandleTxs(block.Txs...)
 	if err != nil {

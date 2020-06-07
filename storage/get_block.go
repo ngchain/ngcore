@@ -98,7 +98,7 @@ func (c *Chain) GetLatestCheckpoint() *ngtypes.Block {
 // GetBlockByHeight returns a block by height inputed
 func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	if height == 0 {
-		return ngtypes.GenesisBlock, nil
+		return ngtypes.GetGenesisBlock(), nil
 	}
 
 	var block = &ngtypes.Block{}
@@ -137,8 +137,8 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 
 // GetBlockByHash returns a block by hash inputed
 func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
-	if bytes.Equal(hash, ngtypes.GenesisBlockHash) {
-		return ngtypes.GenesisBlock, nil
+	if bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
+		return ngtypes.GetGenesisBlock(), nil
 	}
 
 	var block = &ngtypes.Block{}
@@ -168,5 +168,5 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 
 // GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node
 func (c *Chain) GetOriginBlock() *ngtypes.Block {
-	return ngtypes.GenesisBlock // TODO: for partial sync func
+	return ngtypes.GetGenesisBlock() // TODO: for partial sync func
 }
