@@ -26,7 +26,7 @@ func (m *State) CheckTxs(txs ...*ngtypes.Tx) error {
 			return fmt.Errorf("tx is too large")
 		}
 
-		switch tx.Header.GetType() {
+		switch tx.GetType() {
 		case ngtypes.TxType_GENERATE: // generate
 			if err := m.CheckGenerate(tx); err != nil {
 				return err
@@ -64,7 +64,7 @@ func (m *State) CheckTxs(txs ...*ngtypes.Tx) error {
 
 // CheckGenerate checks the generate tx
 func (m *State) CheckGenerate(generateTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[generateTx.Header.GetConvener()]
+	rawConvener, exists := m.accounts[generateTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -82,11 +82,6 @@ func (m *State) CheckGenerate(generateTx *ngtypes.Tx) error {
 
 	// DO NOT CHECK BALANCE
 
-	// check nonce
-	if generateTx.Header.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong N: %d, should be %d", generateTx.Header.GetN(), convener.Txn+1)
-	}
-
 	return nil
 }
 
@@ -98,7 +93,7 @@ func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	}
 
 	// check balance
-	payer := registerTx.Header.GetParticipants()[0]
+	payer := registerTx.GetParticipants()[0]
 	rawPayerBalance, exists := m.anonymous[base58.FastBase58Encoding(payer)]
 	if !exists {
 		return fmt.Errorf("account does not exist")
@@ -111,7 +106,7 @@ func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	rawConvener, exists := m.accounts[registerTx.Header.GetConvener()]
+	rawConvener, exists := m.accounts[registerTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -121,16 +116,13 @@ func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	if err != nil {
 		return err
 	}
-	if registerTx.Header.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong N: %d, should be %d", registerTx.Header.GetN(), convener.Txn+1)
-	}
 
 	return nil
 }
 
 // CheckLogout checks logout tx
 func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[logoutTx.Header.GetConvener()]
+	rawConvener, exists := m.accounts[logoutTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -148,7 +140,7 @@ func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := logoutTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(logoutTx.Header.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(logoutTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -157,17 +149,12 @@ func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for logout")
 	}
 
-	// check nonce
-	if logoutTx.Header.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong N: %d, should be %d", logoutTx.Header.GetN(), convener.Txn+1)
-	}
-
 	return nil
 }
 
 // CheckTransaction checks normal transaction tx
 func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[transactionTx.Header.GetConvener()]
+	rawConvener, exists := m.accounts[transactionTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -185,7 +172,7 @@ func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := transactionTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(transactionTx.Header.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(transactionTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -194,17 +181,12 @@ func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for transaction")
 	}
 
-	// check nonce
-	if transactionTx.Header.GetN() != convener.Txn {
-		return fmt.Errorf("wrong N: %d, should be %d", transactionTx.Header.GetN(), convener.Txn)
-	}
-
 	return nil
 }
 
 // CheckAssign checks assign tx
 func (m *State) CheckAssign(assignTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[assignTx.Header.GetConvener()]
+	rawConvener, exists := m.accounts[assignTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -222,7 +204,7 @@ func (m *State) CheckAssign(assignTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := assignTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(assignTx.Header.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(assignTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -231,17 +213,12 @@ func (m *State) CheckAssign(assignTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for assign")
 	}
 
-	// check nonce
-	if assignTx.Header.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong assign nonce: %d, should be %d", assignTx.Header.GetN(), convener.Txn+1)
-	}
-
 	return nil
 }
 
 // CheckAppend checks append tx
 func (m *State) CheckAppend(appendTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[appendTx.Header.GetConvener()]
+	rawConvener, exists := m.accounts[appendTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -259,18 +236,13 @@ func (m *State) CheckAppend(appendTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := appendTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(appendTx.Header.GetConvener())
+	convenerBalance, err := m.GetBalanceByNum(appendTx.GetConvener())
 	if err != nil {
 		return err
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return fmt.Errorf("balance is insufficient for append")
-	}
-
-	// check nonce
-	if appendTx.Header.GetN() != convener.Txn+1 {
-		return fmt.Errorf("wrong append nonce: %d, should be %d", appendTx.Header.GetN(), convener.Txn+1)
 	}
 
 	return nil

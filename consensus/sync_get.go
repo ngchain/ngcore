@@ -15,9 +15,8 @@ func (sync *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	origin := storage.GetChain().GetOriginBlock()
 	latest := storage.GetChain().GetLatestBlock()
 	cp := storage.GetChain().GetLatestCheckpoint()
-	cph, _ := cp.CalculateHash()
 
-	id, stream := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), cph, cp.GetActualDiff().Bytes())
+	id, stream := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), cp.Hash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
 		return fmt.Errorf("failed to send ping")
 	}

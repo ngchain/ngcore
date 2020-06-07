@@ -32,7 +32,7 @@ func (r *remoteRecord) shouldSync() bool {
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
 func (r *remoteRecord) shouldFork() bool {
 	cp := storage.GetChain().GetLatestCheckpoint()
-	cpHash, _ := cp.CalculateHash()
+	cpHash := cp.Hash()
 
 	h := storage.GetChain().GetLatestBlockHeight()
 

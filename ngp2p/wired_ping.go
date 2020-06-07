@@ -68,6 +68,5 @@ func (w *wiredProtocol) onPing(stream network.Stream, msg *Message) {
 	origin := storage.GetChain().GetOriginBlock()
 	latest := storage.GetChain().GetLatestBlock()
 	checkpoint := storage.GetChain().GetLatestCheckpoint()
-	cph, _ := checkpoint.CalculateHash()
-	w.pong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), cph, checkpoint.GetActualDiff().Bytes())
+	w.pong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), checkpoint.Hash(), checkpoint.GetActualDiff().Bytes())
 }

@@ -28,8 +28,8 @@ func (tt *TxTrie) Len() int {
 
 // Less means that the tx (I) has lower priority (than J).
 func (tt *TxTrie) Less(i, j int) bool {
-	return new(big.Int).SetBytes(tt.Txs[i].Header.Fee).Cmp(new(big.Int).SetBytes(tt.Txs[j].Header.Fee)) < 0 ||
-		tt.Txs[i].Header.Convener > tt.Txs[j].Header.Convener
+	return new(big.Int).SetBytes(tt.Txs[i].Fee).Cmp(new(big.Int).SetBytes(tt.Txs[j].Fee)) < 0 ||
+		tt.Txs[i].Convener > tt.Txs[j].Convener
 }
 
 // Swap just swap the values of txs.

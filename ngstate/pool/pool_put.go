@@ -2,6 +2,7 @@ package pool
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngstate"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -10,7 +11,7 @@ import (
 func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 	log.Debugf("putting new tx %s from rpc", tx.BS58())
 
-	if err = p.status.CheckTxs(tx); err != nil {
+	if err = ngstate.GetCurrentState().CheckTxs(tx); err != nil {
 		return fmt.Errorf("malformed tx, rejected: %v", err)
 	}
 
@@ -19,7 +20,7 @@ func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	p.NewCreatedTxEvent <- tx
+	//p.NewCreatedTxEvent <- tx
 
 	return nil
 }

@@ -1,15 +1,21 @@
 package pool
 
 import (
+	"github.com/golang/protobuf/proto"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/ngtypes"
+	"sync"
 )
+
+var log = logging.Logger("pool")
 
 // TxPool is a little mem db which stores **signed** tx.
 // TODO: !important embed txpool into ngstate!
 type TxPool struct {
-	Queuing []*ngtypes.Tx // priority first
+	sync.RWMutex
 
-	NewCreatedTxEvent chan *ngtypes.Tx
+	currentPrevBlockHash []byte
+	Queuing              []*ngtypes.Tx // priority first
 }
 
 var txpool *TxPool
@@ -17,9 +23,8 @@ var txpool *TxPool
 // init will create a new global txpool.
 func init() {
 	txpool = &TxPool{
-		Queuing: make([]*ngtypes.Tx, 0),
-
-		NewCreatedTxEvent: make(chan *ngtypes.Tx),
+		currentPrevBlockHash: ngtypes.GenesisBlockHash,
+		Queuing:              make([]*ngtypes.Tx, 0),
 	}
 }
 
@@ -40,12 +45,20 @@ func (p *TxPool) HandleNewBlock(block *ngtypes.Block) {
 
 // IsInPool checks one tx is in pool or not. TODO: export it into rpc.
 func (p *TxPool) IsInPool(tx *ngtypes.Tx) (exists bool) {
-	_, exists = p.Queuing[tx.Header.GetConvener()]
-	if !exists {
-		return
+	for _, txInQueue := range p.Queuing {
+		if proto.Equal(tx, txInQueue) {
+			return true
+		}
 	}
 
-	exists = p.Queuing[tx.Header.GetConvener()][tx.Header.GetN()] != nil
-
 	return
+}
+
+func (p *TxPool) OnNewBlock(blockHash []byte) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.currentPrevBlockHash = blockHash
+	p.Queuing = make([]*ngtypes.Tx, 0)
+
 }

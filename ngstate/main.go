@@ -22,6 +22,7 @@ type State struct {
 }
 
 var currentState *State
+var pendingState *State // TODO
 
 // GetCurrentState will create a Sheet manager
 func GetCurrentState() *State {

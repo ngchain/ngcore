@@ -3,6 +3,8 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ngchain/ngcore/ngstate/pool"
+	"github.com/ngchain/ngcore/storage"
 	"math/big"
 	"reflect"
 
@@ -12,7 +14,6 @@ import (
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/txpool"
 	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/secp256k1"
 )
@@ -39,7 +40,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = txpool.GetTxPool().PutNewTxFromLocal(tx)
+	err = pool.GetTxPool().PutNewTxFromLocal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -140,8 +141,6 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	nonce := ngstate.GetCurrentState().GetNextNonce(params.Convener)
-
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -149,11 +148,11 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TxType_TRANSACTION,
+		storage.GetChain().GetLatestBlockHash(),
 		params.Convener,
 		participants,
 		values,
 		fee,
-		nonce,
 		extra,
 	)
 
@@ -176,17 +175,15 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	nonce := ngstate.GetCurrentState().GetNextNonce(1)
-
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TxType_REGISTER,
+		storage.GetChain().GetLatestBlockHash(),
 		1,
 		[][]byte{
 			utils.PublicKey2Bytes(*consensus.GetPoWConsensus().PrivateKey.PubKey()),
 		},
 		[]*big.Int{ngtypes.GetBig0()},
 		new(big.Int).Mul(ngtypes.NG, big.NewInt(10)),
-		nonce,
 		utils.PackUint64LE(params.ID),
 	)
 
@@ -213,8 +210,6 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	nonce := ngstate.GetCurrentState().GetNextNonce(params.Convener)
-
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -222,11 +217,11 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TxType_LOGOUT,
+		storage.GetChain().GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,
 		fee,
-		nonce,
 		extra,
 	)
 
@@ -253,8 +248,6 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	nonce := ngstate.GetCurrentState().GetNextNonce(params.Convener)
-
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -262,11 +255,11 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TxType_ASSIGN,
+		storage.GetChain().GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,
 		fee,
-		nonce,
 		extra,
 	)
 
@@ -293,8 +286,6 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	nonce := ngstate.GetCurrentState().GetNextNonce(params.Convener)
-
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -302,11 +293,11 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TxType_APPEND,
+		storage.GetChain().GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,
 		fee,
-		nonce,
 		extra,
 	)
 

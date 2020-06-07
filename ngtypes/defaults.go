@@ -12,9 +12,9 @@ import (
 // try `go test ./...`  until all passed
 const (
 	NETWORK                  = NetworkType_TESTNET
-	GenesisPublicKeyBase58   = "dBA86mCVuQdLHTgdxX9Pfj4LqofebwWj1fFQLtG5j95b"
-	GenesisGenerateTxSignHex = "f54c0794f36e071b42492827b03dc41a7101374eae042531d86ac843eaaf86eeb00ada8730d7e0d65661ff07a16c64ac0dbab819bf55d6983fb429e4c5c1e012"
-	GenesisBlockNonceHex     = "038c48ee9ef1f716"
+	GenesisPublicKeyBase58   = "rvpSonzzH8JA6DTVxo89H5WXY7JAkdfQdcsTJLDXYrkN"
+	GenesisGenerateTxSignHex = "7a3440d42ab5f17b6a5bef24bca137a4d12a6a5133439e83d2d236f3f633d44df258518c72b62d65f0ff1e5e18d4c1f7cb06800804e0f0148a0d1a8bff6571d1"
+	GenesisBlockNonceHex     = "a48d0395c8025ad9"
 )
 
 // decoded genesis variables

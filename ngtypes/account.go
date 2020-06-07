@@ -38,7 +38,7 @@ type jsonAccount struct {
 	State    string `json:"state"`
 }
 
-func (x Account) MarshalJSON() ([]byte, error) {
+func (x *Account) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonAccount{
 		Num:   x.GetNum(),
 		Owner: base58.FastBase58Encoding(x.GetOwner()),

@@ -24,8 +24,7 @@ func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) bool {
 		return false
 	}
 
-	hash, _ := block.CalculateHash()
-	log.Debugf("broadcasted block@%d:%x", block.GetHeight(), hash)
+	log.Debugf("broadcasted block@%d:%x", block.GetHeight(), block.Hash())
 
 	return true
 }

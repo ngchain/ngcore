@@ -27,12 +27,13 @@ message Block {
 
   bytes prev_block_hash = 4;
   bytes trie_hash = 5;
+  bytes sheet_hash = 6;
 
-  bytes difficulty = 6; // diff = maxTarget / Big(header_hash)
-  bytes nonce = 7;
+  bytes difficulty = 7; // diff = maxTarget / Big(header_hash)
+  bytes nonce = 8;
 
-  Sheet sheet = 8;
-  repeated Tx txs = 9; // miner should build the generate tx by themselves
+  Sheet sheet = 9; // can be nil
+  repeated Tx txs = 10; // miner should build the generate tx by themselves
 }
 
 enum TxType {

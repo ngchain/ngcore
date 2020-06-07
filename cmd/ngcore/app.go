@@ -144,7 +144,7 @@ var action = func(c *cli.Context) error {
 
 	_ = ngp2p.NewLocalNode(p2pTCPPort)
 
-	_, err = ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
+	_, err = ngstate.NewStateFromSheet(ngtypes.GenesisSheet)
 	if err != nil {
 		panic(err)
 	}

@@ -105,7 +105,6 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 		new(big.Int).SetBytes(tx.GetValues()[0]),
 	).Bytes()
 
-	convener.Txn++
 	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
@@ -158,8 +157,6 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	if err != nil {
 		return err
 	}
-
-	convener.Txn++
 
 	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
@@ -265,7 +262,6 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 		).Bytes()
 	}
 
-	convener.Txn++
 	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
@@ -317,7 +313,6 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	// assign the extra bytes
 	convener.Contract = tx.GetExtra()
 
-	convener.Txn++
 	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
@@ -370,7 +365,6 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return err
 	}
 
-	convener.Txn++
 	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err

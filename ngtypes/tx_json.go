@@ -9,17 +9,20 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-type jsonTxHeader struct {
-	Type         int      `json:"type"`
-	Convener     uint64   `json:"convener"`
-	Participants []string `json:"participants"`
-	Fee          string   `json:"fee"`
-	Values       []string `json:"values"`
-	N            uint64   `json:"n"`
-	Extra        string   `json:"extra"`
+type jsonTx struct {
+	Network       int      `json:"network"`
+	Type          int      `json:"type"`
+	PrevBlockHash []byte   `json:"prev_block_hash"`
+	Convener      uint64   `json:"convener"`
+	Participants  []string `json:"participants"`
+	Fee           string   `json:"fee"`
+	Values        []string `json:"values"`
+	Extra         string   `json:"extra"`
+
+	Sign string `json:"sign"`
 }
 
-func (x TxHeader) MarshalJSON() ([]byte, error) {
+func (x *Tx) MarshalJSON() ([]byte, error) {
 	participants := make([]string, len(x.Participants))
 	for i := range x.Participants {
 		participants[i] = base58.FastBase58Encoding(x.Participants[i])
@@ -30,72 +33,17 @@ func (x TxHeader) MarshalJSON() ([]byte, error) {
 		values[i] = new(big.Int).SetBytes(x.Values[i]).String()
 	}
 
-	return utils.JSON.Marshal(jsonTxHeader{
+	return utils.JSON.Marshal(jsonTx{
+		Network:      int(x.Network),
 		Type:         int(x.GetType()),
 		Convener:     x.Convener,
 		Participants: participants,
 		Fee:          new(big.Int).SetBytes(x.GetFee()).String(),
 		Values:       values,
-		N:            x.N,
 		Extra:        hex.EncodeToString(x.GetExtra()),
+
+		Sign: hex.EncodeToString(x.GetSign()),
 	})
-}
-
-func (x *TxHeader) UnmarshalJSON(b []byte) error {
-	var header jsonTxHeader
-	err := utils.JSON.Unmarshal(b, &header)
-	if err != nil {
-		return err
-	}
-
-	x.Type = TxType(header.Type)
-	x.Convener = uint64(header.Convener)
-
-	x.Participants = make([][]byte, len(header.Participants))
-	for i := range header.Participants {
-		raw, err := base58.FastBase58Decoding(header.Participants[i])
-		if err != nil {
-			x.Participants = nil
-			return err
-		}
-		x.Participants[i] = raw
-	}
-
-	bigFee, ok := new(big.Int).SetString(header.Fee, 10)
-	if !ok {
-		return fmt.Errorf("failed to parse txHeader's fee")
-	}
-	x.Fee = bigFee.Bytes()
-
-	x.Values = make([][]byte, len(header.Values))
-	for i := range header.Values {
-		bigV, ok := new(big.Int).SetString(header.Values[i], 10)
-		if !ok {
-			x.Values = nil
-			return fmt.Errorf("failed to parse txHeader's values")
-		}
-		x.Values[i] = bigV.Bytes()
-	}
-
-	x.N = header.N
-
-	return nil
-}
-
-type jsonTx struct {
-	Network int       `json:"network"`
-	Header  *TxHeader `json:"header"`
-	Sign    string    `json:"sign"`
-}
-
-func (x Tx) MarshalJSON() ([]byte, error) {
-	mapTx := jsonTx{
-		Network: int(x.GetNetwork()),
-		Header:  x.GetHeader(),
-		Sign:    hex.EncodeToString(x.GetSign()),
-	}
-
-	return utils.JSON.Marshal(&mapTx)
 }
 
 func (x *Tx) UnmarshalJSON(b []byte) error {
@@ -106,12 +54,36 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 	}
 
 	x.Network = NetworkType(tx.Network)
-	x.Header = tx.Header
 
-	x.Sign, err = hex.DecodeString(tx.Sign)
-	if err != nil {
-		return err
+	x.Type = TxType(tx.Type)
+	x.Convener = uint64(tx.Convener)
+
+	x.Participants = make([][]byte, len(tx.Participants))
+	for i := range tx.Participants {
+		raw, err := base58.FastBase58Decoding(tx.Participants[i])
+		if err != nil {
+			x.Participants = nil
+			return err
+		}
+		x.Participants[i] = raw
 	}
 
+	bigFee, ok := new(big.Int).SetString(tx.Fee, 10)
+	if !ok {
+		return fmt.Errorf("failed to parse txHeader's fee")
+	}
+	x.Fee = bigFee.Bytes()
+
+	x.Values = make([][]byte, len(tx.Values))
+	for i := range tx.Values {
+		bigV, ok := new(big.Int).SetString(tx.Values[i], 10)
+		if !ok {
+			x.Values = nil
+			return fmt.Errorf("failed to parse txHeader's values")
+		}
+		x.Values[i] = bigV.Bytes()
+	}
+
+	x.Sign, err = hex.DecodeString(tx.Sign)
 	return nil
 }

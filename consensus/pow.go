@@ -2,11 +2,11 @@ package consensus
 
 import (
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/ngcore/ngstate/pool"
 
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/txpool"
 )
 
 var log = logging.Logger("pow")
@@ -32,13 +32,10 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 
 	currentBlock := storage.GetChain().GetLatestBlock()
 
-	currentBlockHash, err := currentBlock.CalculateHash()
-	if err != nil {
-		log.Error(err)
-	}
+	currentBlockHash := currentBlock.Hash()
 
 	newDiff := ngtypes.GetNextDiff(currentBlock)
-	newHeight := currentBlock.Header.Height + 1
+	newHeight := currentBlock.Height + 1
 
 	newBareBlock := ngtypes.NewBareBlock(
 		newHeight,
@@ -48,8 +45,8 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 
 	extraData := []byte("ngCore")
 
-	Gen := pow.createGenerateTx(pow.PrivateKey, extraData)
-	txsWithGen := append([]*ngtypes.Tx{Gen}, txpool.GetTxPool().GetPackTxs()...)
+	Gen := pow.createGenerateTx(extraData)
+	txsWithGen := append([]*ngtypes.Tx{Gen}, pool.GetTxPool().GetPackTxs()...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {
@@ -69,7 +66,7 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 		return
 	}
 
-	prevBlock, err := storage.GetChain().GetBlockByHash(block.Header.PrevBlockHash)
+	prevBlock, err := storage.GetChain().GetBlockByHash(block.PrevBlockHash)
 	if err != nil {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
 		return
@@ -80,7 +77,7 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 		return
 	}
 
-	hash, _ := block.CalculateHash()
+	hash := block.Hash()
 	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
 
 	err = storage.GetChain().PutNewBlock(block) // chain will verify the block

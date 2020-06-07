@@ -13,15 +13,15 @@ import (
 
 // TestBlock_GetHash test func GetGenesisBlock() and return Hash value.
 func TestBlock_GetHash(t *testing.T) {
-	b := ngtypes.GetGenesisBlock()
-	headerHash := b.CalculateHeaderHash()
+	b := ngtypes.GenesisBlock
+	headerHash := b.PowHash()
 	if len(headerHash) != 32 {
 		t.Errorf("bytes from CalculateHeaderHash is not hash")
 	}
 }
 
 func TestBlock_IsGenesis(t *testing.T) {
-	g := ngtypes.GetGenesisBlock()
+	g := ngtypes.GenesisBlock
 	if !g.IsGenesis() {
 		t.Fail()
 	}
@@ -48,7 +48,7 @@ func TestBlock_IsGenesis(t *testing.T) {
 
 // TestBlock_Marshal test func GetGenesisBlock()'s Marshal().
 func TestBlock_Marshal(t *testing.T) {
-	block, _ := utils.Proto.Marshal(ngtypes.GetGenesisBlock())
+	block, _ := utils.Proto.Marshal(ngtypes.GenesisBlock)
 
 	var genesisBlock ngtypes.Block
 	_ = utils.Proto.Unmarshal(block, &genesisBlock)
@@ -61,7 +61,7 @@ func TestBlock_Marshal(t *testing.T) {
 
 // TestGetGenesisBlock test func GetGenesisBlock()'s parameter passing.
 func TestGetGenesisBlock(t *testing.T) {
-	d, _ := utils.Proto.Marshal(ngtypes.GetGenesisBlock())
+	d, _ := utils.Proto.Marshal(ngtypes.GenesisBlock)
 	hash := sha3.Sum256(d)
 
 	t.Logf("GenesisBlock hex: %x", d)
@@ -70,7 +70,7 @@ func TestGetGenesisBlock(t *testing.T) {
 }
 
 func TestBlockJSON(t *testing.T) {
-	block1 := ngtypes.GetGenesisBlock()
+	block1 := ngtypes.GenesisBlock
 	jsonBlock, err := utils.JSON.Marshal(block1)
 	if err != nil {
 		t.Error(err)

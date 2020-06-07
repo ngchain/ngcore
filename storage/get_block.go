@@ -25,13 +25,7 @@ func (c *Chain) GetLatestBlock() *ngtypes.Block {
 
 // GetLatestBlockHash will fetch the latest block from chain and then calc its hash
 func (c *Chain) GetLatestBlockHash() []byte {
-	hash, err := c.GetLatestBlock().CalculateHash()
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-
-	return hash
+	return c.GetLatestBlock().Hash()
 }
 
 // GetLatestBlockHeight will fetch the latest block from chain and then return its height
@@ -62,8 +56,7 @@ func (c *Chain) GetLatestBlockHeight() uint64 {
 // GetLatestCheckpointHash returns the hash of latest checkpoint
 func (c *Chain) GetLatestCheckpointHash() []byte {
 	cp := c.GetLatestCheckpoint()
-	hash, _ := cp.CalculateHash()
-	return hash
+	return cp.Hash()
 }
 
 // GetLatestCheckpoint returns the latest checkpoint block
@@ -105,7 +98,7 @@ func (c *Chain) GetLatestCheckpoint() *ngtypes.Block {
 // GetBlockByHeight returns a block by height inputed
 func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	if height == 0 {
-		return ngtypes.GetGenesisBlock(), nil
+		return ngtypes.GenesisBlock, nil
 	}
 
 	var block = &ngtypes.Block{}
@@ -144,8 +137,8 @@ func (c *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 
 // GetBlockByHash returns a block by hash inputed
 func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
-	if bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
-		return ngtypes.GetGenesisBlock(), nil
+	if bytes.Equal(hash, ngtypes.GenesisBlockHash) {
+		return ngtypes.GenesisBlock, nil
 	}
 
 	var block = &ngtypes.Block{}
@@ -175,5 +168,5 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 
 // GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node
 func (c *Chain) GetOriginBlock() *ngtypes.Block {
-	return ngtypes.GetGenesisBlock() // TODO: for partial sync func
+	return ngtypes.GenesisBlock // TODO: for partial sync func
 }

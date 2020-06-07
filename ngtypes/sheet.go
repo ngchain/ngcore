@@ -16,42 +16,35 @@ func NewSheet(height uint64, accounts map[uint64]*Account, anonymous map[string]
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
-func (x *Sheet) CalculateHash() ([]byte, error) {
+func (x *Sheet) Hash() []byte {
 	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	hash := sha3.Sum256(raw)
 
-	return hash[:], nil
+	return hash[:]
 }
 
-// GetGenesisSheet returns a genesis sheet
-func GetGenesisSheet() *Sheet {
-	// reserve 1-100 to provide official functions
+var GenesisSheet *Sheet
+var GenesisSheetHash []byte
+
+// GetGenesisSheetHash returns a genesis sheet's hash
+func init() {
 	accounts := make(map[uint64]*Account)
 
 	for i := uint64(0); i <= 100; i++ {
 		accounts[i] = GetGenesisStyleAccount(i)
 	}
 
-	return &Sheet{
+	GenesisSheet = &Sheet{
 		Height:   0,
 		Accounts: accounts,
 		Anonymous: map[string][]byte{
 			GenesisPublicKeyBase58: GetBig0Bytes(),
 		},
 	}
-}
 
-var genesisSheetHash []byte
-
-// GetGenesisSheetHash returns a genesis sheet's hash
-func GetGenesisSheetHash() []byte {
-	if genesisBlockHash == nil {
-		genesisSheetHash, _ = GetGenesisSheet().CalculateHash()
-	}
-
-	return genesisSheetHash
+	GenesisSheetHash = GenesisSheet.Hash()
 }

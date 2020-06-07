@@ -8,57 +8,67 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-type jsonBlockHeader struct {
-	Height        uint64
-	Timestamp     int64
-	PrevBlockHash string
-	TrieHash      string
-	Difficulty    string
-	Nonce         string
+type jsonBlock struct {
+	Network int `json:"network"`
+
+	Height        uint64 `json:"height"`
+	Timestamp     int64  `json:"timestamp"`
+	PrevBlockHash string `json:"prevBlockHash"`
+	TrieHash      string `json:"trieHash"`
+	Difficulty    string `json:"difficulty"`
+	Nonce         string `json:"nonce"`
+
+	Sheet *Sheet `json:"sheet"`
+	Txs   []*Tx  `json:"txs"`
 }
 
-func (x BlockHeader) MarshalJSON() ([]byte, error) {
-	return utils.JSON.Marshal(jsonBlockHeader{
+func (x *Block) MarshalJSON() ([]byte, error) {
+	return utils.JSON.Marshal(jsonBlock{
+		Network: int(x.Network),
+
 		Height:        x.GetHeight(),
 		Timestamp:     x.GetTimestamp(),
 		PrevBlockHash: hex.EncodeToString(x.GetPrevBlockHash()),
 		TrieHash:      hex.EncodeToString(x.GetTrieHash()),
 		Difficulty:    new(big.Int).SetBytes(x.GetDifficulty()).String(),
 		Nonce:         hex.EncodeToString(x.GetNonce()),
+
+		Sheet: x.Sheet,
+		Txs:   x.Txs,
 	})
 }
 
-func (x *BlockHeader) UnmarshalJSON(b []byte) error {
-	var header jsonBlockHeader
-	err := utils.JSON.Unmarshal(b, &header)
+func (x *Block) UnmarshalJSON(data []byte) error {
+	var b jsonBlock
+	err := utils.JSON.Unmarshal(data, &b)
 	if err != nil {
 		return err
 	}
 
-	x.Height = header.Height
+	x.Network = NetworkType(b.Network)
 
-	x.Timestamp = int64(header.Timestamp)
-
-	x.PrevBlockHash, err = hex.DecodeString(header.PrevBlockHash)
+	x.Height = b.Height
+	x.Timestamp = int64(b.Timestamp)
+	x.PrevBlockHash, err = hex.DecodeString(b.PrevBlockHash)
 	if err != nil {
 		return err
 	}
-
-	x.TrieHash, err = hex.DecodeString(header.TrieHash)
+	x.TrieHash, err = hex.DecodeString(b.TrieHash)
 	if err != nil {
 		return err
 	}
-
-	bigDifficulty, ok := new(big.Int).SetString(header.Difficulty, 10)
+	bigDifficulty, ok := new(big.Int).SetString(b.Difficulty, 10)
 	if !ok {
 		return fmt.Errorf("failed to parse blockHeader's difficulty")
 	}
 	x.Difficulty = bigDifficulty.Bytes()
-
-	x.Nonce, err = hex.DecodeString(header.Nonce)
+	x.Nonce, err = hex.DecodeString(b.Nonce)
 	if err != nil {
 		return err
 	}
+
+	x.Sheet = b.Sheet
+	x.Txs = b.Txs
 
 	return nil
 }

@@ -10,13 +10,13 @@ import (
 func (p *TxPool) GetPack() *ngtypes.TxTrie {
 	var txs []*ngtypes.Tx
 
-	for i := range p.Queuing {
-		if p.Queuing[i] != nil && len(p.Queuing[i]) > 0 {
-			for j := range p.Queuing[i] {
-				txs = append(txs, p.Queuing[i][j])
-			}
-		}
-	}
+	// for i := range p.Queuing {
+	// 	if p.Queuing[i] != nil && len(p.Queuing[i]) > 0 {
+	// 		for j := range p.Queuing[i] {
+	// 			txs = append(txs, p.Queuing[i][j])
+	// 		}
+	// 	}
+	// }
 
 	trie := ngtypes.NewTxTrie(txs)
 	trie.Sort()

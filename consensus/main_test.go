@@ -31,7 +31,7 @@ func TestNewConsensusManager(t *testing.T) {
 
 	_ = ngp2p.NewLocalNode(int(utils.RandUint16()))
 
-	_, err := ngstate.NewStateFromSheet(ngtypes.GetGenesisSheet())
+	_, err := ngstate.NewStateFromSheet(ngtypes.GenesisSheet)
 	if err != nil {
 		panic(err)
 	}

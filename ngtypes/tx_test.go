@@ -16,11 +16,11 @@ import (
 func TestDeserialize(t *testing.T) {
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TxType_GENERATE,
+		nil,
 		0,
 		[][]byte{ngtypes.GenesisPublicKey},
 		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
 		ngtypes.GetBig0(),
-		0,
 		nil,
 	)
 
@@ -39,11 +39,11 @@ func TestDeserialize(t *testing.T) {
 func TestTransaction_Signature(t *testing.T) {
 	o := ngtypes.NewUnsignedTx(
 		0,
+		nil,
 		1,
 		[][]byte{ngtypes.GenesisPublicKey},
 		[]*big.Int{ngtypes.GetBig0()},
 		ngtypes.GetBig0(),
-		0,
 		nil,
 	)
 	priv1, _ := secp256k1.GeneratePrivateKey()
@@ -62,7 +62,7 @@ func TestTransaction_Signature(t *testing.T) {
 
 func TestGetGenesisGenerate(t *testing.T) {
 	gg := ngtypes.GetGenesisGenerateTx()
-	if err := gg.Verify(utils.Bytes2PublicKey(gg.Header.GetParticipants()[0])); err != nil {
+	if err := gg.Verify(utils.Bytes2PublicKey(gg.GetParticipants()[0])); err != nil {
 		t.Log(err)
 		t.Fail()
 	}

@@ -16,12 +16,12 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		return fmt.Errorf("block is nil")
 	}
 
-	hash, _ := block.CalculateHash()
-	if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
+	hash := block.Hash()
+	if !bytes.Equal(hash, ngtypes.GenesisBlockHash) {
 		// when block is not genesis block, checking error
 		if block.GetHeight() != 0 {
 			if b, _ := c.GetBlockByHeight(block.GetHeight()); b != nil {
-				if hashInDB, _ := b.CalculateHash(); bytes.Equal(hash, hashInDB) {
+				if hashInDB := b.Hash(); bytes.Equal(hash, hashInDB) {
 					return nil
 				}
 
@@ -36,14 +36,14 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 
 	err := c.db.Update(func(txn *badger.Txn) error {
 		raw, _ := utils.Proto.Marshal(block)
-		log.Infof("putting block@%d: %x", block.Header.Height, hash)
+		log.Infof("putting block@%d: %x", block.Height, hash)
 
 		// put block hash & height
 		err := txn.Set(append(blockPrefix, hash...), raw)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
+		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Height)...), hash)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 		}
 
 		// update helper
-		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
+		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Height))
 		if err != nil {
 			return err
 		}

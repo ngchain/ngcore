@@ -27,11 +27,11 @@ var genesistoolsCommand = &cli.Command{
 		}
 
 		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
-		log.Warnf("BS58 Genesis PublicKey: %x", raw)
+		log.Warnf("BS58 Genesis PublicKey: %s", raw)
 
 		gtx := ngtypes.GetGenesisGenerateTx()
 		if err := gtx.CheckGenerate(); err != nil {
-			log.Warnf("current genesis generate tx sign %s is invalid: %x, resignaturing...", gtx.Sign, err)
+			log.Warnf("current genesis generate tx sign %x is invalid, err: %s, resignaturing...", gtx.Sign, err)
 			err = gtx.Signature(localKey)
 			if err != nil {
 				log.Panic(err)
@@ -42,7 +42,7 @@ var genesistoolsCommand = &cli.Command{
 			log.Info("genesis block's generate tx is healthy")
 		}
 
-		b := ngtypes.GetGenesisBlock()
+		b := ngtypes.GenesisBlock
 		if err := b.CheckError(); err != nil {
 			log.Warnf("current genesis block is invalid, use the generate tx above to re-calc nonce...")
 			b, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
