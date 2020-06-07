@@ -369,9 +369,10 @@ func (x *Tx) TotalExpenditure() *big.Int {
 	return new(big.Int).Add(new(big.Int).SetBytes(x.Fee), total)
 }
 
-// GetGenesisGenerateTx is a constructed function.
-func GetGenesisGenerateTx() *Tx {
-	gen := NewUnsignedTx(
+var GenesisGenerateTx *Tx
+
+func init() {
+	GenesisGenerateTx := NewUnsignedTx(
 		TxType_GENERATE,
 		nil,
 		0,
@@ -381,7 +382,5 @@ func GetGenesisGenerateTx() *Tx {
 		nil,
 	)
 
-	gen.Sign = GenesisGenerateTxSign
-
-	return gen
+	GenesisGenerateTx.Sign = GenesisGenerateTxSign
 }

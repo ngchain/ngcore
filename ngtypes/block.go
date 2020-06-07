@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoimpl"
 	"math/big"
 	"time"
 
@@ -129,19 +130,20 @@ func (x *Block) GetActualDiff() *big.Int {
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
+func NewBareBlock(height uint64, prevSheetHash, prevBlockHash []byte, diff *big.Int) *Block {
 	return &Block{
-		Network: NETWORK,
-
+		Network:       NETWORK,
 		Height:        height,
 		Timestamp:     time.Now().Unix(),
 		PrevBlockHash: prevBlockHash,
 		TrieHash:      nil,
-		Difficulty:    diff.Bytes(),
-		Nonce:         nil,
+		SheetHash:     prevSheetHash,
 
-		Txs:   make([]*Tx, 0),
+		Difficulty: diff.Bytes(),
+		Nonce:      nil,
+
 		Sheet: nil,
+		Txs:   make([]*Tx, 0),
 	}
 }
 
@@ -198,17 +200,18 @@ func init() {
 	}
 
 	GenesisBlock = &Block{
-		Network: NETWORK,
+		Network:   NETWORK,
+		Height:    0,
+		Timestamp: genesisTimestamp,
 
-		Height:        0,
-		Timestamp:     genesisTimestamp,
 		PrevBlockHash: nil,
 		TrieHash:      NewTxTrie(txs).TrieRoot(),
-		Difficulty:    minimumBigDifficulty.Bytes(),
-		Nonce:         genesisBlockNonce.Bytes(),
+		SheetHash:     nil,
 
-		Txs:   txs,
-		Sheet: GenesisSheet,
+		Difficulty: minimumBigDifficulty.Bytes(),
+		Nonce:      genesisBlockNonce.Bytes(),
+		Sheet:      GenesisSheet,
+		Txs:        txs,
 	}
 
 	GenesisBlockHash = GenesisBlock.Hash()
