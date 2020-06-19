@@ -129,20 +129,18 @@ func (x *Block) GetActualDiff() *big.Int {
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(height uint64, prevSheet *Sheet, prevBlockHash []byte, diff *big.Int) *Block {
+func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
 	return &Block{
 		Network:       NETWORK,
 		Height:        height,
 		Timestamp:     time.Now().Unix(),
 		PrevBlockHash: prevBlockHash,
 		TrieHash:      nil,
-		PrevSheetHash: prevSheet.Hash(),
 
 		Difficulty: diff.Bytes(),
 		Nonce:      nil,
 
-		PrevSheet: prevSheet,
-		Txs:       make([]*Tx, 0),
+		Txs: make([]*Tx, 0),
 	}
 }
 
@@ -171,8 +169,7 @@ func (x *Block) CheckError() error {
 // Hash will help you get the hash of block.
 func (x *Block) Hash() []byte {
 	b := proto.Clone(x).(*Block)
-	b.PrevSheet = nil
-	b.Txs = nil
+	b.Txs = nil // txs can be represented by triehash
 
 	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
@@ -205,11 +202,9 @@ func GetGenesisBlock() *Block {
 
 			PrevBlockHash: nil,
 			TrieHash:      NewTxTrie(txs).TrieRoot(),
-			PrevSheetHash: GenesisSheet.Hash(),
 
 			Difficulty: minimumBigDifficulty.Bytes(),
 			Nonce:      genesisBlockNonce.Bytes(),
-			PrevSheet:  GenesisSheet,
 			Txs:        txs,
 		}
 	}

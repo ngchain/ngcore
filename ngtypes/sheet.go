@@ -41,7 +41,7 @@ func init() {
 		Height:   0,
 		Accounts: accounts,
 		Anonymous: map[string][]byte{
-			GenesisPublicKeyBase58: GetBig0Bytes(),
+			GenesisAddress.String(): GetBig0Bytes(),
 		},
 	}
 }

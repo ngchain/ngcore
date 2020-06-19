@@ -20,7 +20,7 @@ func (s *Server) runContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	vm.NewWasmVM(params.Raw)
+	vm.NewWasmVM(params.Raw, nil)
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }

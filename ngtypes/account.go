@@ -2,17 +2,18 @@ package ngtypes
 
 import (
 	"encoding/hex"
+
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // NewAccount receive parameters and return a new Account(class constructor.
-func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Account {
+func NewAccount(num uint64, ownerPublicKey []byte, contract, context []byte) *Account {
 	return &Account{
 		Num:      num,
 		Owner:    ownerPublicKey,
 		Contract: contract,
-		State:    state,
+		Context:  context,
 	}
 }
 
@@ -20,9 +21,9 @@ func NewAccount(num uint64, ownerPublicKey []byte, contract, state []byte) *Acco
 func GetGenesisStyleAccount(num uint64) *Account {
 	return &Account{
 		Num:      num,
-		Owner:    GenesisPublicKey,
+		Owner:    GenesisAddress,
 		Contract: nil,
-		State:    nil,
+		Context:  nil,
 	}
 }
 
@@ -31,7 +32,7 @@ type jsonAccount struct {
 	Owner string `json:"owner"`
 
 	Contract string `json:"contract"`
-	State    string `json:"state"`
+	Context  string `json:"state"`
 }
 
 func (x *Account) MarshalJSON() ([]byte, error) {
@@ -40,7 +41,7 @@ func (x *Account) MarshalJSON() ([]byte, error) {
 		Owner: base58.FastBase58Encoding(x.GetOwner()),
 
 		Contract: hex.EncodeToString(x.GetContract()),
-		State:    hex.EncodeToString(x.GetState()),
+		Context:  hex.EncodeToString(x.GetContext()),
 	})
 }
 
@@ -62,7 +63,7 @@ func (x *Account) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	x.State, err = hex.DecodeString(account.State)
+	x.Context, err = hex.DecodeString(account.Context)
 	if err != nil {
 		return err
 	}

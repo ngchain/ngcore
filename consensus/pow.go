@@ -36,11 +36,8 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 	newDiff := ngtypes.GetNextDiff(currentBlock)
 	newHeight := currentBlock.Height + 1
 
-	sheet := ngstate.GetPrevState().ToSheet()
-
 	newBareBlock := ngtypes.NewBareBlock(
 		newHeight,
-		sheet,
 		currentBlockHash,
 		newDiff,
 	)
@@ -48,7 +45,7 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 	extraData := []byte("ngCore") // FIXME
 
 	Gen := pow.createGenerateTx(extraData)
-	txsWithGen := append([]*ngtypes.Tx{Gen}, ngstate.GetTxPool().GetPackTxs()...)
+	txsWithGen := append([]*ngtypes.Tx{Gen}, ngstate.GetTxPool().GetPack().Txs...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {

@@ -1,14 +1,15 @@
 package ngstate
 
 import (
-	"bytes"
-	"fmt"
+	"sync"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 type Manager struct {
+	sync.Mutex
+
 	prevSheetHash []byte
 	prevState     *State // frozen state
 	CurrentState  *State // the state handling txs in realtime
@@ -34,12 +35,12 @@ func init() {
 // UpdateState will create a new state which is a wrapper of *ngtypes.sheet
 func initFromSheet(sheet *ngtypes.Sheet) *Manager {
 	state := &State{
-		prevSheetkHash: sheet.Hash(),
-		height:         sheet.Height + 1,
-		accounts:       make(map[uint64][]byte),
-		anonymous:      make(map[string][]byte),
+		prevSheetHash: sheet.Hash(),
+		height:        sheet.Height + 1,
+		accounts:      make(map[uint64][]byte),
+		anonymous:     make(map[string][]byte),
 		pool: &TxPool{
-			txs: make([]*ngtypes.Tx, 0),
+			txMap: make(map[uint64]*ngtypes.Tx, 0),
 		},
 	}
 
@@ -67,9 +68,8 @@ func initFromSheet(sheet *ngtypes.Sheet) *Manager {
 }
 
 func (m *Manager) UpdateState(block *ngtypes.Block) error {
-	if !bytes.Equal(block.PrevSheetHash, m.prevSheetHash) {
-		return fmt.Errorf("the new block doesnt belong to local chain")
-	}
+	m.Lock()
+	defer m.Unlock()
 
 	newState := m.prevState
 	err := newState.ApplyTxs(block.Txs...)

@@ -29,6 +29,8 @@ var genesistoolsCommand = &cli.Command{
 		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
 		log.Warnf("BS58 Genesis PublicKey: %s", raw)
 
+		log.Warnf("BS58 Genesis Address: %s", ngtypes.NewAddress(localKey).String())
+
 		gtx := ngtypes.GetGenesisGenerateTx()
 		if err := gtx.CheckGenerate(); err != nil {
 			log.Warnf("current genesis generate tx sign %x is invalid, err: %s, resignaturing...", gtx.Sign, err)

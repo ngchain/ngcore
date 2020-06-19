@@ -4,22 +4,20 @@ import (
 	"encoding/hex"
 	"math/big"
 	"time"
-
-	"github.com/mr-tron/base58"
 )
 
 // FIXME: before init network should manually init PK & Sign
 // try `go test ./...`  until all passed
 const (
 	NETWORK                  = NetworkType_TESTNET
-	GenesisPublicKeyBase58   = "rvpSonzzH8JA6DTVxo89H5WXY7JAkdfQdcsTJLDXYrkN"
-	GenesisGenerateTxSignHex = "7a3440d42ab5f17b6a5bef24bca137a4d12a6a5133439e83d2d236f3f633d44df258518c72b62d65f0ff1e5e18d4c1f7cb06800804e0f0148a0d1a8bff6571d1"
-	GenesisBlockNonceHex     = "a48d0395c8025ad9"
+	GenesisAddressBase58     = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
+	GenesisGenerateTxSignHex = "bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d"
+	GenesisBlockNonceHex     = "9575f5cc827a1632"
 )
 
 // decoded genesis variables
 var (
-	GenesisPublicKey, _       = base58.FastBase58Decoding(GenesisPublicKeyBase58)
+	GenesisAddress, _         = NewAddressFromBS58(GenesisAddressBase58)
 	GenesisGenerateTxSign, _  = hex.DecodeString(GenesisGenerateTxSignHex)
 	genesisBlockNonceBytes, _ = hex.DecodeString(GenesisBlockNonceHex)
 	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)

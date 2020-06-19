@@ -193,7 +193,7 @@ func (x *Tx) CheckGenerate() error {
 		return fmt.Errorf("generate's fee should be ZERO")
 	}
 
-	publicKey := utils.Bytes2PublicKey(x.GetParticipants()[0])
+	publicKey := Address(x.GetParticipants()[0]).PubKey()
 	err := x.Verify(publicKey)
 	if err != nil {
 		return err
@@ -232,7 +232,7 @@ func (x *Tx) CheckRegister() error {
 		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
 	}
 
-	publicKey := utils.Bytes2PublicKey(x.GetParticipants()[0])
+	publicKey := Address(x.GetParticipants()[0]).PubKey()
 	err := x.Verify(publicKey)
 	if err != nil {
 		return err
@@ -386,7 +386,7 @@ func GetGenesisGenerateTx() *Tx {
 		TxType_GENERATE,
 		nil,
 		0,
-		[][]byte{GenesisPublicKey},
+		[][]byte{GenesisAddress},
 		[]*big.Int{OneBlockBigReward},
 		GetBig0(),
 		nil,

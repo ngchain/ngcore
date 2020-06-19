@@ -18,7 +18,7 @@ func TestDeserialize(t *testing.T) {
 		ngtypes.TxType_GENERATE,
 		nil,
 		0,
-		[][]byte{ngtypes.GenesisPublicKey},
+		[][]byte{ngtypes.GenesisAddress},
 		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
 		ngtypes.GetBig0(),
 		nil,
@@ -41,7 +41,7 @@ func TestTransaction_Signature(t *testing.T) {
 		0,
 		nil,
 		1,
-		[][]byte{ngtypes.GenesisPublicKey},
+		[][]byte{ngtypes.GenesisAddress},
 		[]*big.Int{ngtypes.GetBig0()},
 		ngtypes.GetBig0(),
 		nil,
@@ -62,7 +62,7 @@ func TestTransaction_Signature(t *testing.T) {
 
 func TestGetGenesisGenerate(t *testing.T) {
 	gg := ngtypes.GetGenesisGenerateTx()
-	if err := gg.Verify(utils.Bytes2PublicKey(gg.GetParticipants()[0])); err != nil {
+	if err := gg.Verify(ngtypes.Address(gg.GetParticipants()[0]).PubKey()); err != nil {
 		t.Log(err)
 		t.Fail()
 	}

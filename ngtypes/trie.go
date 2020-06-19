@@ -2,8 +2,6 @@ package ngtypes
 
 import (
 	"errors"
-	"math/big"
-	"sort"
 
 	"github.com/cbergoon/merkletree"
 	"golang.org/x/crypto/sha3"
@@ -22,31 +20,31 @@ func NewTxTrie(txs []*Tx) *TxTrie {
 	}
 }
 
-func (tt *TxTrie) Len() int {
-	return len(tt.Txs)
-}
+// func (tt *TxTrie) Len() int {
+// 	return len(tt.Txs)
+// }
 
 // Less means that the tx (I) has lower priority (than J).
-func (tt *TxTrie) Less(i, j int) bool {
-	return new(big.Int).SetBytes(tt.Txs[i].Fee).Cmp(new(big.Int).SetBytes(tt.Txs[j].Fee)) < 0 ||
-		tt.Txs[i].Convener > tt.Txs[j].Convener
-}
+// func (tt *TxTrie) Less(i, j int) bool {
+// 	return new(big.Int).SetBytes(tt.Txs[i].Fee).Cmp(new(big.Int).SetBytes(tt.Txs[j].Fee)) < 0 ||
+// 		tt.Txs[i].Convener > tt.Txs[j].Convener
+// }
 
 // Swap just swap the values of txs.
-func (tt *TxTrie) Swap(i, j int) {
-	tt.Txs[i], tt.Txs[j] = tt.Txs[j], tt.Txs[i]
-}
+// func (tt *TxTrie) Swap(i, j int) {
+// 	tt.Txs[i], tt.Txs[j] = tt.Txs[j], tt.Txs[i]
+// }
 
 // Sort will sort the txs from lower priority to higher priority.
-func (tt *TxTrie) Sort() *TxTrie {
-	sort.Sort(tt)
-	return tt
-}
+// func (tt *TxTrie) Sort() *TxTrie {
+// 	sort.Sort(tt)
+// 	return tt
+// }
 
 // ReverseSort will sort the txs from higher priority to lower priority.
-func (tt *TxTrie) ReverseSort() *TxTrie {
-	return sort.Reverse(tt).(*TxTrie)
-}
+// func (tt *TxTrie) ReverseSort() *TxTrie {
+// 	return sort.Reverse(tt).(*TxTrie)
+// }
 
 // Append will append new tx to the end of TxTrie's txs.
 func (tt *TxTrie) Append(tx *Tx) {

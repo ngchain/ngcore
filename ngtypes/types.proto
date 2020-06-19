@@ -8,7 +8,7 @@ message Account {
   bytes owner = 2; // pk -> balance in anonymous fields
 
   bytes contract = 5; // separate the code and state
-  bytes storage = 6;
+  bytes context = 6;
 }
 
 enum NetworkType {
@@ -27,12 +27,12 @@ message Block {
 
   bytes prev_block_hash = 4;
   bytes trie_hash = 5;
-  bytes prev_sheet_hash = 6; // the hash of sheet before block txs
+  // bytes prev_sheet_hash = 6; // the hash of sheet before block txs
 
   bytes difficulty = 7; // diff = maxTarget / Big(header_hash)
   bytes nonce = 8;
 
-  Sheet prev_sheet = 9; // can be nil, the sheet before block txs
+  // Sheet prev_sheet = 9; // can be nil, the sheet before block txs
   repeated Tx txs = 10; // miner should build the generate tx by themselves
 }
 

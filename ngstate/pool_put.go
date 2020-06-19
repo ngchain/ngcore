@@ -3,6 +3,7 @@ package ngstate
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -42,12 +43,15 @@ func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
 	}
 
 	for _, tx := range txs {
-		if !bytes.Equal(tx.PrevBlockHash, GetCurrentState().prevSheetkHash) {
+		if !bytes.Equal(tx.PrevBlockHash, GetCurrentState().prevSheetHash) {
 			return fmt.Errorf("tx %s does not belong to current State", tx.Hash())
 		}
-	}
 
-	p.txs = append(p.txs, txs...)
+		if p.txMap[tx.Convener] == nil ||
+			new(big.Int).SetBytes(p.txMap[tx.Convener].Fee).Cmp(new(big.Int).SetBytes(tx.Fee)) < 0 {
+			p.txMap[tx.Convener] = tx
+		}
+	}
 
 	return nil
 }

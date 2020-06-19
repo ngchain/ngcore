@@ -13,8 +13,8 @@ var log = logging.Logger("sheet")
 type State struct {
 	sync.RWMutex
 
-	prevSheetkHash []byte
-	height         uint64
+	prevSheetHash []byte
+	height        uint64
 
 	// using bytes to keep data safe
 	accounts  map[uint64][]byte
