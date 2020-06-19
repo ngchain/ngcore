@@ -22,9 +22,9 @@ func (m *State) CheckTxs(txs ...*ngtypes.Tx) error {
 			return fmt.Errorf("tx is not signed")
 		}
 
-		if utils.Proto.Size(tx) > ngtypes.TxMaxExtraSize {
-			return fmt.Errorf("tx is too large")
-		}
+		// if utils.Proto.Size(tx) > ngtypes.TxMaxExtraSize {
+		// 	return fmt.Errorf("tx is too large")
+		// }
 
 		switch tx.GetType() {
 		case ngtypes.TxType_GENERATE: // generate

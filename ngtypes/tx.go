@@ -103,7 +103,7 @@ func (x *Tx) ID() string {
 	return hex.EncodeToString(hash)
 }
 
-// CalculateHash mainly for calculating the tire root of txs and sign tx.
+// Hash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) Hash() []byte {
 	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
@@ -242,7 +242,7 @@ func (x *Tx) CheckRegister() error {
 }
 
 // CheckLogout does a self check for logout tx
-func (x *Tx) CheckLogout(key secp256k1.PublicKey) error {
+func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
 	if x == nil {
 		return errors.New("logout is missing header")
 	}
@@ -263,7 +263,7 @@ func (x *Tx) CheckLogout(key secp256k1.PublicKey) error {
 		return fmt.Errorf("logout should have same len with participants")
 	}
 
-	err := x.Verify(key)
+	err := x.Verify(publicKey)
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func (x *Tx) CheckLogout(key secp256k1.PublicKey) error {
 }
 
 // CheckTransaction does a self check for normal transaction tx
-func (x *Tx) CheckTransaction(key secp256k1.PublicKey) error {
+func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 	if x == nil {
 		return errors.New("transaction is missing header")
 	}
@@ -285,7 +285,7 @@ func (x *Tx) CheckTransaction(key secp256k1.PublicKey) error {
 		return fmt.Errorf("transaction should have same len with participants")
 	}
 
-	err := x.Verify(key)
+	err := x.Verify(publicKey)
 	if err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (x *Tx) CheckTransaction(key secp256k1.PublicKey) error {
 }
 
 // CheckAssign does a self check for assign tx
-func (x *Tx) CheckAssign(key secp256k1.PublicKey) error {
+func (x *Tx) CheckAssign(publicKey secp256k1.PublicKey) error {
 	if x == nil {
 		return errors.New("assign is missing header")
 	}
@@ -311,7 +311,7 @@ func (x *Tx) CheckAssign(key secp256k1.PublicKey) error {
 		return fmt.Errorf("assign should have NO value")
 	}
 
-	err := x.Verify(key)
+	err := x.Verify(publicKey)
 	if err != nil {
 		return err
 	}

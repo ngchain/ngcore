@@ -15,7 +15,7 @@ WORKDIR /build
 #     fi
 # RUN apk add --no-cache make gcc musl-dev linux-headers git
 RUN if [ $CHINA == 1 ]; \
-    sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list; \
+    then sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list; \
     fi
 RUN apt install make gcc
 RUN GOPROXY=$GOPROXY go build ./cmd/ngcore

@@ -18,6 +18,7 @@ func (sync *syncModule) bootstrap() {
 
 	peerStore := ngp2p.GetLocalNode().Peerstore()
 
+	okNum := 0
 	for i := range ngp2p.BootstrapNodes {
 		addr, err := multiaddr.NewMultiaddr(ngp2p.BootstrapNodes[i])
 		if err != nil {
@@ -31,17 +32,23 @@ func (sync *syncModule) bootstrap() {
 
 		err = ngp2p.GetLocalNode().Connect(c, *p)
 		if err != nil {
-			panic(err)
+			log.Error(err)
+		} else {
+			okNum++
 		}
 
 		peerStore.AddAddr(p.ID, addr, peerstore.PermanentAddrTTL)
+	}
+
+	if okNum == 0 {
+		panic("all bootstrap nodes are unreachable, check your net status")
 	}
 
 	for _, id := range peerStore.Peers() {
 		if id != ngp2p.GetLocalNode().ID() {
 			err := sync.getRemoteStatus(id)
 			if err != nil {
-				panic(err)
+				log.Error(err)
 			}
 		}
 	}
