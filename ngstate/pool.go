@@ -1,9 +1,9 @@
 package ngstate
 
 import (
+	"bytes"
 	"sync"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -23,24 +23,24 @@ func GetTxPool() *TxPool {
 		panic("state manager is not initialized")
 	}
 
-	if manager.CurrentState == nil {
+	if manager.currentState == nil {
 		panic("state is not initialized")
 	}
 
-	if manager.CurrentState.pool == nil {
+	if manager.currentState.pool == nil {
 		panic("txpool is not initialized")
 	}
 
-	return manager.CurrentState.pool
+	return manager.currentState.pool
 }
 
 // IsInPool checks one tx is in pool or not. TODO: export it into rpc.
-func (p *TxPool) IsInPool(tx *ngtypes.Tx) (exists bool) {
+func (p *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) {
 	for _, txInQueue := range p.txMap {
-		if proto.Equal(tx, txInQueue) {
-			return true
+		if bytes.Equal(txInQueue.Hash(), txHash) {
+			return true, txInQueue
 		}
 	}
 
-	return
+	return false, nil
 }

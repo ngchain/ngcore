@@ -29,7 +29,7 @@ func GetPrevState() *State {
 		panic("failed to get current state from nil")
 	}
 
-	if manager.prevState == nil {
+	if manager.GetPrevState() == nil {
 		panic("failed to get prev state from nil")
 	}
 
@@ -42,9 +42,9 @@ func GetCurrentState() *State {
 		panic("failed to get current state from nil")
 	}
 
-	if manager.CurrentState == nil {
+	if manager.GetCurrentState() == nil {
 		panic("failed to get current state from nil")
 	}
 
-	return manager.CurrentState
+	return manager.currentState
 }

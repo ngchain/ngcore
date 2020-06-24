@@ -11,9 +11,9 @@ import (
 )
 
 // CheckTxs will check the influenced accounts which mentioned in op, and verify their balance and nonce
-func (m *State) CheckTxs(txs ...*ngtypes.Tx) error {
-	m.RLock()
-	defer m.RUnlock()
+func (s *State) CheckTxs(txs ...*ngtypes.Tx) error {
+	s.RLock()
+	defer s.RUnlock()
 
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
@@ -22,38 +22,39 @@ func (m *State) CheckTxs(txs ...*ngtypes.Tx) error {
 			return fmt.Errorf("tx is not signed")
 		}
 
-		// if utils.Proto.Size(tx) > ngtypes.TxMaxExtraSize {
-		// 	return fmt.Errorf("tx is too large")
-		// }
+		// check the tx's extra size is necessary
+		if len(tx.Extra) > ngtypes.TxMaxExtraSize {
+			return fmt.Errorf("tx is too large")
+		}
 
 		switch tx.GetType() {
 		case ngtypes.TxType_GENERATE: // generate
-			if err := m.CheckGenerate(tx); err != nil {
+			if err := s.CheckGenerate(tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_REGISTER: // register
-			if err := m.CheckRegister(tx); err != nil {
+			if err := s.CheckRegister(tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_LOGOUT: // logout
-			if err := m.CheckLogout(tx); err != nil {
+			if err := s.CheckLogout(tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_TRANSACTION: // transaction
-			if err := m.CheckTransaction(tx); err != nil {
+			if err := s.CheckTransaction(tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_ASSIGN: // assign & append
-			if err := m.CheckAssign(tx); err != nil {
+			if err := s.CheckAssign(tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_APPEND: // assign & append
-			if err := m.CheckAppend(tx); err != nil {
+			if err := s.CheckAppend(tx); err != nil {
 				return err
 			}
 		}
@@ -63,8 +64,8 @@ func (m *State) CheckTxs(txs ...*ngtypes.Tx) error {
 }
 
 // CheckGenerate checks the generate tx
-func (m *State) CheckGenerate(generateTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[generateTx.GetConvener()]
+func (s *State) CheckGenerate(generateTx *ngtypes.Tx) error {
+	rawConvener, exists := s.accounts[generateTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -86,7 +87,7 @@ func (m *State) CheckGenerate(generateTx *ngtypes.Tx) error {
 }
 
 // CheckRegister checks the register tx
-func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
+func (s *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	// check structure and key
 	if err := registerTx.CheckRegister(); err != nil {
 		return err
@@ -94,7 +95,7 @@ func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 
 	// check balance
 	payer := registerTx.GetParticipants()[0]
-	rawPayerBalance, exists := m.anonymous[base58.FastBase58Encoding(payer)]
+	rawPayerBalance, exists := s.anonymous[base58.FastBase58Encoding(payer)]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -106,7 +107,7 @@ func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	}
 
 	// check nonce
-	rawConvener, exists := m.accounts[registerTx.GetConvener()]
+	rawConvener, exists := s.accounts[registerTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -121,8 +122,8 @@ func (m *State) CheckRegister(registerTx *ngtypes.Tx) error {
 }
 
 // CheckLogout checks logout tx
-func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[logoutTx.GetConvener()]
+func (s *State) CheckLogout(logoutTx *ngtypes.Tx) error {
+	rawConvener, exists := s.accounts[logoutTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -140,7 +141,7 @@ func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := logoutTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(logoutTx.GetConvener())
+	convenerBalance, err := s.GetBalanceByNum(logoutTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -153,8 +154,8 @@ func (m *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 }
 
 // CheckTransaction checks normal transaction tx
-func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[transactionTx.GetConvener()]
+func (s *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
+	rawConvener, exists := s.accounts[transactionTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -172,7 +173,7 @@ func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := transactionTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(transactionTx.GetConvener())
+	convenerBalance, err := s.GetBalanceByNum(transactionTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -185,8 +186,8 @@ func (m *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 }
 
 // CheckAssign checks assign tx
-func (m *State) CheckAssign(assignTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[assignTx.GetConvener()]
+func (s *State) CheckAssign(assignTx *ngtypes.Tx) error {
+	rawConvener, exists := s.accounts[assignTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -204,7 +205,7 @@ func (m *State) CheckAssign(assignTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := assignTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(assignTx.GetConvener())
+	convenerBalance, err := s.GetBalanceByNum(assignTx.GetConvener())
 	if err != nil {
 		return err
 	}
@@ -217,8 +218,8 @@ func (m *State) CheckAssign(assignTx *ngtypes.Tx) error {
 }
 
 // CheckAppend checks append tx
-func (m *State) CheckAppend(appendTx *ngtypes.Tx) error {
-	rawConvener, exists := m.accounts[appendTx.GetConvener()]
+func (s *State) CheckAppend(appendTx *ngtypes.Tx) error {
+	rawConvener, exists := s.accounts[appendTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -236,7 +237,7 @@ func (m *State) CheckAppend(appendTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := appendTx.TotalExpenditure()
-	convenerBalance, err := m.GetBalanceByNum(appendTx.GetConvener())
+	convenerBalance, err := s.GetBalanceByNum(appendTx.GetConvener())
 	if err != nil {
 		return err
 	}

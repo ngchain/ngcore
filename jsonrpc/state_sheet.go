@@ -7,12 +7,13 @@ import (
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 func (s *Server) getAccountsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	key := utils.PublicKey2Bytes(*consensus.GetPoWConsensus().PrivateKey.PubKey())
-	accounts, err := ngstate.GetCurrentState().GetAccountsByPublicKey(key)
+	addr := ngtypes.NewAddress(consensus.GetPoWConsensus().PrivateKey)
+	accounts, err := ngstate.GetCurrentState().GetAccountsByAddress(addr)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -35,7 +36,7 @@ type getBalanceReply struct {
 
 func (s *Server) getBalanceFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	key := utils.PublicKey2Bytes(*consensus.GetPoWConsensus().PrivateKey.PubKey())
-	balance, err := ngstate.GetCurrentState().GetBalanceByPublicKey(key)
+	balance, err := ngstate.GetCurrentState().GetBalanceByAddress(key)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

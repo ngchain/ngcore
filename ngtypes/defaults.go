@@ -42,7 +42,8 @@ var (
 
 // Maximum sizes
 var (
-	BlockMaxTxsSize = 1 << 25 // 32M
+	// !NO MAX LIMITATION!
+	//BlockMaxTxsSize = 1 << 25 // 32M
 	TxMaxExtraSize  = 1 << 20 // if more than 1m, extra should be separated ot multi append
 
 	TimestampSize = 8
@@ -50,7 +51,7 @@ var (
 	NonceSize     = 8 // nonce uses 8 bytes
 )
 
-// Unit consts
+// Unit const
 const (
 	FloatNG    = 1000000.0
 	mega       = 1000000

@@ -8,11 +8,11 @@ import (
 )
 
 type Manager struct {
-	sync.Mutex
+	sync.RWMutex
 
 	prevSheetHash []byte
 	prevState     *State // frozen state
-	CurrentState  *State // the state handling txs in realtime
+	currentState  *State // the state handling txs in realtime
 }
 
 // (nil) --> B0(Prev: S0) --> B1(Prev: S1) -> B2(Prev: S2)
@@ -63,7 +63,7 @@ func initFromSheet(sheet *ngtypes.Sheet) *Manager {
 	return &Manager{
 		prevSheetHash: prevSheetHash,
 		prevState:     prevState,
-		CurrentState:  currentState,
+		currentState:  currentState,
 	}
 }
 
@@ -80,7 +80,21 @@ func (m *Manager) UpdateState(block *ngtypes.Block) error {
 	sheet := newState.ToSheet()
 	m.prevSheetHash = sheet.Hash()
 	m.prevState = newState    // static one
-	m.CurrentState = newState // active one
+	m.currentState = newState // active one
 
 	return nil
+}
+
+func (m *Manager) GetPrevState() *State {
+	m.RLock()
+	defer m.RUnlock()
+
+	return m.prevState
+}
+
+func (m *Manager) GetCurrentState() *State {
+	m.RLock()
+	defer m.RUnlock()
+
+	return m.currentState
 }

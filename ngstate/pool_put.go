@@ -12,7 +12,7 @@ import (
 func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 	log.Debugf("putting new tx %s from rpc", tx.BS58())
 
-	err = p.PutTxs(tx)
+	err = p.PutTx(tx)
 	if err != nil {
 		return err
 	}
@@ -24,7 +24,7 @@ func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 func (p *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 	log.Debugf("putting new tx %s from p2p", tx.BS58())
 
-	err = p.PutTxs(tx)
+	err = p.PutTx(tx)
 	if err != nil {
 		return err
 	}
@@ -34,23 +34,21 @@ func (p *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 
 // PutTxs puts txs from network(p2p) into txpool, should check error before putting.
 // TODO: implement me
-func (p *TxPool) PutTxs(txs ...*ngtypes.Tx) error {
+func (p *TxPool) PutTx(tx *ngtypes.Tx) error {
 	p.Lock()
 	defer p.Unlock()
 
-	if err := GetCurrentState().CheckTxs(txs...); err != nil {
+	if err := GetCurrentState().CheckTxs(tx); err != nil {
 		return fmt.Errorf("malformed tx, rejected: %v", err)
 	}
 
-	for _, tx := range txs {
-		if !bytes.Equal(tx.PrevBlockHash, GetCurrentState().prevSheetHash) {
-			return fmt.Errorf("tx %s does not belong to current State", tx.Hash())
-		}
+	if !bytes.Equal(tx.PrevBlockHash, GetCurrentState().prevSheetHash) {
+		return fmt.Errorf("tx %s does not belong to current State", tx.Hash())
+	}
 
-		if p.txMap[tx.Convener] == nil ||
-			new(big.Int).SetBytes(p.txMap[tx.Convener].Fee).Cmp(new(big.Int).SetBytes(tx.Fee)) < 0 {
-			p.txMap[tx.Convener] = tx
-		}
+	if p.txMap[tx.Convener] == nil ||
+		new(big.Int).SetBytes(p.txMap[tx.Convener].Fee).Cmp(new(big.Int).SetBytes(tx.Fee)) < 0 {
+		p.txMap[tx.Convener] = tx
 	}
 
 	return nil

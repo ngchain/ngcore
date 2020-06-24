@@ -2,9 +2,8 @@
 
 ## v0.0.11
 
+- DONE: Introducing Address to avoid potential public key collision 
 - TODO: Finish new ngstate and tests
-- TODO: Give up on the deletable chain. Use new account design.
-- TODO: Give up on the deletable chain. Use new tx design.
 
 ## v0.0.10
 

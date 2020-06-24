@@ -12,15 +12,15 @@ import (
 )
 
 // ToSheet will conclude a sheet which has all status of all accounts & keys(if balance not nil)
-func (m *State) ToSheet() *ngtypes.Sheet {
-	m.RLock()
-	defer m.RUnlock()
+func (s *State) ToSheet() *ngtypes.Sheet {
+	s.RLock()
+	defer s.RUnlock()
 
 	accounts := make(map[uint64]*ngtypes.Account)
 	anonymous := make(map[string][]byte)
 
 	var err error
-	for height, raw := range m.accounts {
+	for height, raw := range s.accounts {
 		account := new(ngtypes.Account)
 		err = utils.Proto.Unmarshal(raw, account)
 		if err != nil {
@@ -29,19 +29,19 @@ func (m *State) ToSheet() *ngtypes.Sheet {
 		accounts[height] = account
 	}
 
-	for bs58PK, balance := range m.anonymous {
+	for bs58PK, balance := range s.anonymous {
 		anonymous[bs58PK] = balance
 	}
 
-	return ngtypes.NewSheet(m.height, accounts, anonymous)
+	return ngtypes.NewSheet(s.height, accounts, anonymous)
 }
 
 // GetBalanceByNum get the balance of account by the account's num
-func (m *State) GetBalanceByNum(id uint64) (*big.Int, error) {
-	m.RLock()
-	defer m.RUnlock()
+func (s *State) GetBalanceByNum(id uint64) (*big.Int, error) {
+	s.RLock()
+	defer s.RUnlock()
 
-	rawAccount, exists := m.accounts[id]
+	rawAccount, exists := s.accounts[id]
 	if !exists {
 		return nil, fmt.Errorf("account does not exists")
 	}
@@ -54,7 +54,7 @@ func (m *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 
 	publicKey := base58.FastBase58Encoding(account.Owner)
 
-	rawBalance, exists := m.anonymous[publicKey]
+	rawBalance, exists := s.anonymous[publicKey]
 	if !exists {
 		return nil, fmt.Errorf("account balance does not exists")
 	}
@@ -62,12 +62,12 @@ func (m *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
-// GetBalanceByPublicKey get the balance of account by the account's publickey
-func (m *State) GetBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
-	m.RLock()
-	defer m.RUnlock()
+// GetBalanceByAddress get the balance of account by the account's publickey
+func (s *State) GetBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
+	s.RLock()
+	defer s.RUnlock()
 
-	rawBalance, exists := m.anonymous[base58.FastBase58Encoding(publicKey)]
+	rawBalance, exists := s.anonymous[base58.FastBase58Encoding(address)]
 	if !exists {
 		return nil, fmt.Errorf("account balance does not exist")
 	}
@@ -76,20 +76,20 @@ func (m *State) GetBalanceByPublicKey(publicKey []byte) (*big.Int, error) {
 }
 
 // AccountIsRegistered checks whether the account is registered in state
-func (m *State) AccountIsRegistered(num uint64) bool {
-	m.RLock()
-	defer m.RUnlock()
+func (s *State) AccountIsRegistered(num uint64) bool {
+	s.RLock()
+	defer s.RUnlock()
 
-	_, exists := m.accounts[num]
+	_, exists := s.accounts[num]
 	return exists
 }
 
 // GetAccountByNum returns an ngtypes.Account obj by the account's number
-func (m *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
-	m.RLock()
-	defer m.RUnlock()
+func (s *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
+	s.RLock()
+	defer s.RUnlock()
 
-	rawAccount, exists := m.accounts[num]
+	rawAccount, exists := s.accounts[num]
 	if !exists {
 		return nil, fmt.Errorf("account does not exist")
 	}
@@ -104,14 +104,14 @@ func (m *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error
 	return account, nil
 }
 
-// GetAccountsByPublicKey returns an ngtypes.Account obj by the account's publickey
-func (m *State) GetAccountsByPublicKey(publicKey []byte) ([]*ngtypes.Account, error) {
-	m.RLock()
-	defer m.RUnlock()
+// GetAccountsByAddress returns an ngtypes.Account obj by the account's publickey
+func (s *State) GetAccountsByAddress(publicKey []byte) ([]*ngtypes.Account, error) {
+	s.RLock()
+	defer s.RUnlock()
 
 	accounts := make([]*ngtypes.Account, 0)
 	var err error
-	for _, raw := range m.accounts {
+	for _, raw := range s.accounts {
 		account := new(ngtypes.Account)
 		err = utils.Proto.Unmarshal(raw, account)
 		if err != nil {

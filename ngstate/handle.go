@@ -12,31 +12,31 @@ import (
 )
 
 // HandleTxs will apply the tx into the state if tx is VALID
-func (m *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
-	err = m.CheckTxs(txs...)
+func (s *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
+	err = s.CheckTxs(txs...)
 	if err != nil {
 		return err
 	}
 
-	m.Lock()
-	defer m.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	newAccounts := make(map[uint64][]byte)
-	for i := range m.accounts {
-		newAccounts[i] = make([]byte, len(m.accounts[i]))
-		copy(newAccounts[i], m.accounts[i])
+	for i := range s.accounts {
+		newAccounts[i] = make([]byte, len(s.accounts[i]))
+		copy(newAccounts[i], s.accounts[i])
 	}
 
 	newAnonymous := make(map[string][]byte)
-	for i := range m.anonymous {
-		newAnonymous[i] = make([]byte, len(m.anonymous[i]))
-		copy(newAnonymous[i], m.anonymous[i])
+	for i := range s.anonymous {
+		newAnonymous[i] = make([]byte, len(s.anonymous[i]))
+		copy(newAnonymous[i], s.anonymous[i])
 	}
 
 	defer func() {
 		if err == nil {
-			m.accounts = newAccounts
-			m.anonymous = newAnonymous
+			s.accounts = newAccounts
+			s.anonymous = newAnonymous
 		}
 	}()
 

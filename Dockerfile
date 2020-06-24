@@ -17,7 +17,7 @@ WORKDIR /build
 RUN if [ $CHINA == 1 ]; \
     then sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list; \
     fi
-RUN apt install make gcc
+RUN apt install make gcc -y
 RUN GOPROXY=$GOPROXY go build ./cmd/ngcore
 
 # MAIN
