@@ -2,6 +2,7 @@ package vm
 
 import (
 	"github.com/bytecodealliance/wasmtime-go"
+	"sync"
 )
 
 var engine = wasmtime.NewEngine()
@@ -9,10 +10,13 @@ var engine = wasmtime.NewEngine()
 // WasmVM is a vm based on wasmer, exec wasm commands
 // TODO: Update me after experiment WASI tests
 type WasmVM struct {
-	store      *wasmtime.Store
-	mainModule *wasmtime.Module
-	instance   *wasmtime.Instance
-	context    []byte
+	sync.RWMutex
+
+	store    *wasmtime.Store
+	module   *wasmtime.Module
+	instance *wasmtime.Instance
+
+	context []byte // the liner memory
 }
 
 // NewWasmVM creates a new Wasm
@@ -24,35 +28,58 @@ func NewWasmVM(contract, context []byte) (*WasmVM, error) {
 	}
 
 	return &WasmVM{
-		store:      store,
-		mainModule: module,
-		instance:   nil,
-		context:    context,
+		store:    store,
+		module:   module,
+		instance: nil,
+		context:  context,
 	}, nil
 }
 
-func (vm *WasmVM) Instantiate() {
-	wasi, err := wasmtime.NewWasiInstance(vm.store, getWASICfg(), "wasi_snapshot_preview1")
+func (vm *WasmVM) GetStore() *wasmtime.Store {
+	vm.RLock()
+	store := vm.store
+	vm.RUnlock()
+
+	return store
+}
+
+func (vm *WasmVM) GetModule() *wasmtime.Module {
+	vm.RLock()
+	module := vm.module
+	vm.RUnlock()
+
+	return module
+}
+
+const MaxLen = 1 << 32 // 2GB
+
+func (vm *WasmVM) Instantiate(imports ...*wasmtime.Extern) error {
+	instance, err := wasmtime.NewInstance(vm.store, vm.module, imports)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	linker := wasmtime.NewLinker(vm.store)
-	err = linker.DefineWasi(wasi)
-	if err != nil {
-		panic(err)
-	}
-
-	instance, err := linker.Instantiate(vm.mainModule)
-	if err != nil {
-		panic(err)
-	}
+	vm.Lock()
 
 	vm.instance = instance
+
+	// init context
+	mem := vm.instance.GetExport("memory").Memory()
+	length := mem.DataSize()
+	if length >= MaxLen {
+		length = MaxLen // avoid panic
+	}
+	vm.context = (*[MaxLen]byte)(mem.Data())[:length:length] // UnsafeData()
+
+	vm.Unlock()
+	return nil
 }
 
 func (vm *WasmVM) Start() {
-	start := vm.instance.GetExport("_start") // run the wasm's main func
+	vm.RLock()
+	defer vm.RUnlock()
+
+	start := vm.instance.GetExport("_start") // run the wasm's main func, _start is same to WASI's main
 	_, err := start.Func().Call()
 	if err != nil {
 		panic(err)
