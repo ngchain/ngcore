@@ -1,8 +1,9 @@
 package vm
 
 import (
-	"github.com/bytecodealliance/wasmtime-go"
 	"sync"
+
+	"github.com/bytecodealliance/wasmtime-go"
 )
 
 var engine = wasmtime.NewEngine()
@@ -54,7 +55,7 @@ func (vm *WasmVM) GetModule() *wasmtime.Module {
 const MaxLen = 1 << 32 // 2GB
 
 func (vm *WasmVM) Instantiate(imports ...*wasmtime.Extern) error {
-	instance, err := wasmtime.NewInstance(vm.store, vm.module, imports)
+	instance, err := wasmtime.NewInstance(vm.module, imports)
 	if err != nil {
 		return err
 	}
