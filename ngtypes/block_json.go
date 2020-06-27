@@ -21,6 +21,11 @@ type jsonBlock struct {
 
 	//PrevSheet *Sheet `json:"prevSheet"`
 	Txs []*Tx `json:"txs"`
+
+	// some helper fields
+	Hash    string `json:"hash"`
+	PoWHash string `json:"powHash"`
+	Txn     int    `json:"txn"`
 }
 
 func (x *Block) MarshalJSON() ([]byte, error) {
@@ -33,6 +38,10 @@ func (x *Block) MarshalJSON() ([]byte, error) {
 		Difficulty:    new(big.Int).SetBytes(x.GetDifficulty()).String(),
 		Nonce:         hex.EncodeToString(x.GetNonce()),
 		Txs:           x.GetTxs(),
+
+		Hash:    hex.EncodeToString(x.Hash()),
+		PoWHash: hex.EncodeToString(x.PowHash()),
+		Txn:     len(x.Txs),
 	})
 }
 

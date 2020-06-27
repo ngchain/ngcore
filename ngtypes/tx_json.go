@@ -20,6 +20,9 @@ type jsonTx struct {
 	Extra         string   `json:"extra"`
 
 	Sign string `json:"sign"`
+
+	// helpers
+	Hash string `json:"hash"`
 }
 
 func (x *Tx) MarshalJSON() ([]byte, error) {
@@ -34,15 +37,18 @@ func (x *Tx) MarshalJSON() ([]byte, error) {
 	}
 
 	return utils.JSON.Marshal(jsonTx{
-		Network:      int(x.Network),
-		Type:         int(x.GetType()),
-		Convener:     x.Convener,
-		Participants: participants,
-		Fee:          new(big.Int).SetBytes(x.GetFee()).String(),
-		Values:       values,
-		Extra:        hex.EncodeToString(x.GetExtra()),
+		Network:       int(x.Network),
+		Type:          int(x.GetType()),
+		PrevBlockHash: x.PrevBlockHash,
+		Convener:      x.Convener,
+		Participants:  participants,
+		Fee:           new(big.Int).SetBytes(x.GetFee()).String(),
+		Values:        values,
+		Extra:         hex.EncodeToString(x.GetExtra()),
 
 		Sign: hex.EncodeToString(x.GetSign()),
+
+		Hash: hex.EncodeToString(x.Hash()),
 	})
 }
 

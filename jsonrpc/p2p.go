@@ -8,10 +8,11 @@ import (
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (s *Server) addNodeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params string
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
@@ -35,4 +36,14 @@ func (s *Server) addNodeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 
 	ok, _ := utils.JSON.Marshal(true)
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, ok)
+}
+
+func (s *Server) getNetworkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	network, _ := utils.JSON.Marshal(ngtypes.NETWORK.String())
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, network)
+}
+
+func (s *Server) getPeersFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	raw, _ := utils.JSON.Marshal(ngp2p.GetLocalNode().Peerstore().PeersWithAddrs())
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
