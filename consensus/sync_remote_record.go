@@ -44,6 +44,7 @@ func (r *remoteRecord) shouldFork() bool {
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
 		r.latest > h &&
 		r.latest%ngtypes.BlockCheckRound == h%ngtypes.BlockCheckRound &&
+		r.checkpointActualDiff != nil &&
 		r.checkpointActualDiff.Cmp(cp.GetActualDiff()) > 0 {
 		return true
 	}

@@ -84,6 +84,11 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		x.Values[i] = bigV.Bytes()
 	}
 
-	x.Sign, err = hex.DecodeString(tx.Sign)
+	sign, err := hex.DecodeString(tx.Sign)
+	if err != nil {
+		return err
+	}
+
+	x.Sign = sign
 	return nil
 }

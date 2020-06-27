@@ -151,7 +151,7 @@ var action = func(c *cli.Context) error {
 	pow.GoLoop()
 
 	rpc := jsonrpc.NewServer("127.0.0.1", apiPort)
-	rpc.GoServe()
+	go rpc.Serve()
 
 	// notify the exit events
 	var stopSignal = make(chan os.Signal, 1)

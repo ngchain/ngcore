@@ -25,7 +25,7 @@ func NewServer(host string, port int) *Server {
 }
 
 // GoServe will make the server running
-func (s *Server) GoServe() {
+func (s *Server) Serve() {
 	log.Info("rpc server running")
 	err := s.ListenAndServe()
 	if err != nil {

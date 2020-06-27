@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 
@@ -10,6 +11,39 @@ import (
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
+
+func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	height := storage.GetChain().GetLatestBlockHeight()
+
+	raw, err := utils.JSON.Marshal(height)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
+
+func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	hash := storage.GetChain().GetLatestBlockHash()
+
+	raw, err := utils.JSON.Marshal(hash)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
+
+func (s *Server) getLatestBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	block := storage.GetChain().GetLatestBlock()
+
+	raw, err := utils.JSON.Marshal(block)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
 
 type getBlockByHeightParams struct {
 	Height uint64 `json:"height"`
@@ -69,8 +103,8 @@ type getTxByHashParams struct {
 }
 
 type getTxByHashReply struct {
-	OnChain bool `json:"onChain"`
-	Tx *ngtypes.Tx `json:"tx"`
+	OnChain bool        `json:"onChain"`
+	Tx      *ngtypes.Tx `json:"tx"`
 }
 
 func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -93,7 +127,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	if tx != nil {
 		raw, err := utils.JSON.Marshal(&getTxByHashReply{
 			OnChain: true,
-			Tx: tx,
+			Tx:      tx,
 		})
 		if err != nil {
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -108,7 +142,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	if exists && tx != nil {
 		raw, err := utils.JSON.Marshal(&getTxByHashReply{
 			OnChain: true,
-			Tx: tx,
+			Tx:      tx,
 		})
 		if err != nil {
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

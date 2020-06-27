@@ -10,7 +10,7 @@ import (
 // TODO: add tests for each method
 func TestNewRPCServer(t *testing.T) {
 	rpc := jsonrpc.NewServer("127.0.0.1", 52521)
-	go rpc.GoServe()
+	go rpc.Serve()
 
 	go func() {
 		finished := time.After(2 * time.Minute)

@@ -17,6 +17,9 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler.RegisterJsonRpcHandleFunc("addNode", s.addNodeFunc)
 
 	// chain
+	httpHandler.RegisterJsonRpcHandleFunc("getLatestBlockHeight", s.getLatestBlockHeightFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getLatestBlockHash", s.getLatestBlockHeightFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getLatestBlock", s.getLatestBlockFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHeight", s.getBlockByHeightFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHash", s.getBlockByHeightFunc)
 
