@@ -52,15 +52,13 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	x.Network = NetworkType(b.Network)
+	network := NetworkType(b.Network)
 
-	x.Height = b.Height
-	x.Timestamp = int64(b.Timestamp)
-	x.PrevBlockHash, err = hex.DecodeString(b.PrevBlockHash)
+	prevBlockHash, err := hex.DecodeString(b.PrevBlockHash)
 	if err != nil {
 		return err
 	}
-	x.TrieHash, err = hex.DecodeString(b.TrieHash)
+	trieHash, err := hex.DecodeString(b.TrieHash)
 	if err != nil {
 		return err
 	}
@@ -68,13 +66,22 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 	if !ok {
 		return fmt.Errorf("failed to parse blockHeader's difficulty")
 	}
-	x.Difficulty = bigDifficulty.Bytes()
-	x.Nonce, err = hex.DecodeString(b.Nonce)
+	difficulty := bigDifficulty.Bytes()
+	nonce, err := hex.DecodeString(b.Nonce)
 	if err != nil {
 		return err
 	}
 
-	x.Txs = b.Txs
+	*x = Block{
+		Network:       network,
+		Height:        b.Height,
+		Timestamp:     b.Timestamp,
+		PrevBlockHash: prevBlockHash,
+		TrieHash:      trieHash,
+		Difficulty:    difficulty,
+		Nonce:         nonce,
+		Txs:           b.Txs,
+	}
 
 	return nil
 }

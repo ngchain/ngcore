@@ -12,7 +12,7 @@ import (
 type jsonTx struct {
 	Network       int      `json:"network"`
 	Type          int      `json:"type"`
-	PrevBlockHash []byte   `json:"prev_block_hash"`
+	PrevBlockHash string   `json:"prev_block_hash"`
 	Convener      uint64   `json:"convener"`
 	Participants  []string `json:"participants"`
 	Fee           string   `json:"fee"`
@@ -39,7 +39,7 @@ func (x *Tx) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonTx{
 		Network:       int(x.Network),
 		Type:          int(x.GetType()),
-		PrevBlockHash: x.PrevBlockHash,
+		PrevBlockHash: hex.EncodeToString(x.PrevBlockHash),
 		Convener:      x.Convener,
 		Participants:  participants,
 		Fee:           new(big.Int).SetBytes(x.GetFee()).String(),
@@ -59,12 +59,18 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	x.Network = NetworkType(tx.Network)
+	network := NetworkType(tx.Network)
 
-	x.Type = TxType(tx.Type)
-	x.Convener = uint64(tx.Convener)
+	t := TxType(tx.Type)
 
-	x.Participants = make([][]byte, len(tx.Participants))
+	prevBlockHash, err := hex.DecodeString(tx.PrevBlockHash)
+	if err != nil {
+		return err
+	}
+
+	convener := uint64(tx.Convener)
+
+	participants := make([][]byte, len(tx.Participants))
 	for i := range tx.Participants {
 		raw, err := base58.FastBase58Decoding(tx.Participants[i])
 		if err != nil {
@@ -78,9 +84,9 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 	if !ok {
 		return fmt.Errorf("failed to parse txHeader's fee")
 	}
-	x.Fee = bigFee.Bytes()
+	fee := bigFee.Bytes()
 
-	x.Values = make([][]byte, len(tx.Values))
+	values := make([][]byte, len(tx.Values))
 	for i := range tx.Values {
 		bigV, ok := new(big.Int).SetString(tx.Values[i], 10)
 		if !ok {
@@ -90,11 +96,27 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		x.Values[i] = bigV.Bytes()
 	}
 
+	extra, err := hex.DecodeString(tx.Extra)
+	if err != nil {
+		return err
+	}
+
 	sign, err := hex.DecodeString(tx.Sign)
 	if err != nil {
 		return err
 	}
 
-	x.Sign = sign
+	*x = Tx{
+		Network:       network,
+		Type:          t,
+		PrevBlockHash: prevBlockHash,
+		Convener:      convener,
+		Participants:  participants,
+		Fee:           fee,
+		Values:        values,
+		Extra:         extra,
+		Sign:          sign,
+	}
+
 	return nil
 }
