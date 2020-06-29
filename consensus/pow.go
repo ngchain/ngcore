@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngstate"
@@ -20,12 +21,12 @@ func (pow *PoWork) MiningOff() {
 // MiningOn resumes the pow consensus.
 func (pow *PoWork) MiningOn() {
 	if pow.minerMod != nil {
-		pow.minerMod.start(pow.getBlockTemplate())
+		pow.minerMod.start(pow.GetBlockTemplate())
 	}
 }
 
 // getBlockTemplate is a generator of new block. But the generated block has no nonce.
-func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
+func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	pow.RLock()
 	defer pow.RUnlock()
 
@@ -56,24 +57,24 @@ func (pow *PoWork) getBlockTemplate() *ngtypes.Block {
 }
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
-func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
+func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	pow.Lock()
 	defer pow.Unlock()
 
 	if err := pow.checkBlock(block); err != nil {
 		log.Warn("Malformed block mined:", err)
-		return
+		return err
 	}
 
 	prevBlock, err := storage.GetChain().GetBlockByHash(block.PrevBlockHash)
 	if err != nil {
 		log.Error("cannot find the prevBlock for new block, rejected:", err)
-		return
+		return err
 	}
 
 	if prevBlock == nil {
 		log.Warn("Malformed block mined: PrevBlockHash")
-		return
+		return err
 	}
 
 	hash := block.Hash()
@@ -82,8 +83,13 @@ func (pow *PoWork) minedNewBlock(block *ngtypes.Block) {
 	err = storage.GetChain().PutNewBlock(block) // chain will verify the block
 	if err != nil {
 		log.Warn(err)
-		return
+		return err
 	}
 
-	ngp2p.GetLocalNode().BroadcastBlock(block)
+	ok := ngp2p.GetLocalNode().BroadcastBlock(block)
+	if !ok {
+		return fmt.Errorf("failed to broadcast the new mined block")
+	}
+
+	return nil
 }

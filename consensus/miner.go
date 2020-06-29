@@ -142,7 +142,7 @@ func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
 		log.Panic(err)
 	}
 
-	pow.minedNewBlock(block)
+	pow.MinedNewBlock(block)
 	// assign new job
-	pow.minerMod.start(pow.getBlockTemplate())
+	pow.minerMod.start(pow.GetBlockTemplate())
 }
