@@ -17,7 +17,7 @@ func main() {
 	app.Usage = "Brand-new golang daemon implement of Ngin Network Node"
 	app.Description = "NGIN is a radically updating brand-new blockchain network, " +
 		"which is not a fork of ethereum or any other chain."
-	app.Version = "v0.0.11"
+	app.Version = "v0.0.12"
 	app.Action = action
 
 	app.Flags = []cli.Flag{
