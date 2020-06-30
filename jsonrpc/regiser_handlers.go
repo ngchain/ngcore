@@ -34,9 +34,9 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler.RegisterJsonRpcHandleFunc("genAssign", s.genAssignFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("genAppend", s.genAppendFunc)
 
-	httpHandler.RegisterJsonRpcHandleFunc("getAccounts", s.getAccountsFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getAccountsByAddress", s.getAccountsByAddressFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBalanceByNum", s.getBalanceByNumFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getBalance", s.getBalanceFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.getBalanceByAddressFunc)
 
 	// mining
 	httpHandler.RegisterJsonRpcHandleFunc("submitBlock", s.submitBlockFunc)

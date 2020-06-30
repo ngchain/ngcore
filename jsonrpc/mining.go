@@ -9,6 +9,7 @@ import (
 
 func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var block ngtypes.Block
+
 	err := utils.JSON.Unmarshal(msg.Params, &block)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -22,6 +23,7 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.Hash())
 }
 
+// getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	blockTemplate := consensus.GetPoWConsensus().GetBlockTemplate()
 

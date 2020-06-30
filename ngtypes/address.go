@@ -39,14 +39,23 @@ func (a Address) String() string {
 }
 
 func (a Address) MarshalJSON() ([]byte, error) {
-	return []byte(base58.FastBase58Encoding(a)), nil
+	raw := base58.FastBase58Encoding(a)
+
+	return utils.JSON.Marshal(raw)
 }
 
 func (a *Address) UnmarshalJSON(b []byte) error {
-	addr, err := base58.FastBase58Decoding(string(b))
+	var bs58Addr string
+	err := utils.JSON.Unmarshal(b, &bs58Addr)
 	if err != nil {
 		return err
 	}
+
+	addr, err := base58.FastBase58Decoding(bs58Addr)
+	if err != nil {
+		return err
+	}
+
 	*a = Address(addr)
 	return nil
 }

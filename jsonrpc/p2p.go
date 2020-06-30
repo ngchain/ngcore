@@ -12,14 +12,19 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+type addPeerParams struct {
+	PeerMultiAddr string `json:"peerMultiAddr"`
+}
+
 func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params string
+	var params addPeerParams
+
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	targetAddr, err := multiaddr.NewMultiaddr(params)
+	targetAddr, err := multiaddr.NewMultiaddr(params.PeerMultiAddr)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

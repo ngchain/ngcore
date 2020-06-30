@@ -23,9 +23,9 @@ type jsonBlock struct {
 	Txs []*Tx `json:"txs"`
 
 	// some helper fields
-	Hash    string `json:"hash"`
-	PoWHash string `json:"powHash"`
-	Txn     int    `json:"txn"`
+	Hash    string `json:"hash,omitempty"`
+	PoWHash string `json:"powHash,omitempty"`
+	Txn     int    `json:"txn,omitempty"`
 }
 
 func (x *Block) MarshalJSON() ([]byte, error) {

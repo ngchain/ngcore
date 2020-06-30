@@ -22,7 +22,7 @@ type jsonTx struct {
 	Sign string `json:"sign"`
 
 	// helpers
-	Hash string `json:"hash"`
+	Hash string `json:"hash,omitempty"`
 }
 
 func (x *Tx) MarshalJSON() ([]byte, error) {

@@ -9,18 +9,18 @@ import (
 
 // TODO: add options on machine joining, e.g. encryption
 type runContractParams struct {
-	Raw []byte `json:"raw"`
+	RawContract []byte `json:"rawContract"`
 }
 
 // runContractFunc typically used to run the long loop task. Can be treated as a deploy
 func (s *Server) runContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params runContractParams
-	err := utils.JSON.Unmarshal(msg.Params, params)
+	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	vm.NewWasmVM(params.Raw, nil)
+	vm.NewWasmVM(params.RawContract, nil)
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }
