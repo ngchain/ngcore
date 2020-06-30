@@ -13,6 +13,7 @@ import (
 
 	"github.com/ngchain/secp256k1"
 
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -64,10 +65,10 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	return key
 }
 
-// PrintPublicKey will print the privateKey's **publicKey** to the console.
-func PrintPublicKey(privateKey *secp256k1.PrivateKey) {
-	publicKey := utils.PublicKey2Bytes(*privateKey.PubKey())
-	log.Warnf("PublicKey is bs58: %s\n", base58.FastBase58Encoding(publicKey))
+// PrintAddress will print the privateKey's **address** to the console.
+func PrintAddress(privateKey *secp256k1.PrivateKey) {
+	address := ngtypes.NewAddress(privateKey)
+	log.Warnf("Address is bs58: %s\n", base58.FastBase58Encoding(address))
 }
 
 // PrintKeyPair will print the **privateKey and its publicKey** to the console.
@@ -77,4 +78,7 @@ func PrintKeyPair(privateKey *secp256k1.PrivateKey) {
 
 	bPubKey := utils.PublicKey2Bytes(*privateKey.PubKey())
 	fmt.Println("Public Key: ", base58.FastBase58Encoding(bPubKey))
+
+	address := ngtypes.NewAddress(privateKey)
+	fmt.Println("Address: ", base58.FastBase58Encoding(address))
 }

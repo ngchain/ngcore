@@ -119,7 +119,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(keyPass))
-	keytools.PrintPublicKey(key)
+	keytools.PrintAddress(key)
 
 	var db *badger.DB
 	if inMem {

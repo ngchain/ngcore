@@ -15,7 +15,7 @@ import (
 
 func TestNewConsensusManager(t *testing.T) {
 	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(""))
-	keytools.PrintPublicKey(key)
+	keytools.PrintAddress(key)
 
 	db := storage.InitMemStorage()
 
