@@ -1,18 +1,21 @@
 package jsonrpc
 
 import (
+	"github.com/mr-tron/base58"
+	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
 
 	"github.com/maoxs2/go-jsonrpc2"
 
-	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngstate"
-	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 func (s *Server) getAccountsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	addr := ngtypes.NewAddress(consensus.GetPoWConsensus().PrivateKey)
+	addr, err := base58.FastBase58Decoding(string(msg.Params))
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 	accounts, err := ngstate.GetCurrentState().GetAccountsByAddress(addr)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -35,8 +38,27 @@ type getBalanceReply struct {
 }
 
 func (s *Server) getBalanceFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	key := utils.PublicKey2Bytes(*consensus.GetPoWConsensus().PrivateKey.PubKey())
-	balance, err := ngstate.GetCurrentState().GetBalanceByAddress(key)
+	var addr ngtypes.Address
+	if len(msg.Params) == 35 {
+		bAddr, err := base58.FastBase58Decoding(string(msg.Params))
+		if err != nil {
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		addr = ngtypes.Address(bAddr)
+	} else {
+		var num uint64
+		err := utils.JSON.Unmarshal(msg.Params, &num)
+		if err != nil {
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		acc, err := ngstate.GetCurrentState().GetAccountByNum(num)
+		if err != nil {
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		addr = ngtypes.Address(acc.Owner)
+	}
+
+	balance, err := ngstate.GetCurrentState().GetBalanceByAddress(addr)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -48,20 +70,16 @@ func (s *Server) getBalanceFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
-}
-
-type getBalanceByNumParams struct {
-	Num uint64 `json:"id"`
 }
 
 func (s *Server) getBalanceByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	params := new(getBalanceByNumParams)
-	err := utils.JSON.Unmarshal(msg.Params, params)
+	var num uint64
+	err := utils.JSON.Unmarshal(msg.Params, &num)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	balance, err := ngstate.GetCurrentState().GetBalanceByNum(params.Num)
+	balance, err := ngstate.GetCurrentState().GetBalanceByNum(num)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -76,18 +94,14 @@ func (s *Server) getBalanceByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type getAccountByNumParams struct {
-	Num uint64 `json:"id"`
-}
-
 func (s *Server) getAccountByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	params := new(getAccountByNumParams)
-	err := utils.JSON.Unmarshal(msg.Params, params)
+	var num uint64
+	err := utils.JSON.Unmarshal(msg.Params, &num)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	account, err := ngstate.GetCurrentState().GetAccountByNum(params.Num)
+	account, err := ngstate.GetCurrentState().GetAccountByNum(num)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

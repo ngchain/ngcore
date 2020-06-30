@@ -6,7 +6,7 @@ import (
 	"github.com/ngchain/secp256k1"
 )
 
-// Address is the anonymous address for receiving coin
+// Address is the anonymous address for receiving coin, 2+33=35 length
 type Address []byte
 
 // NewAddress will return a 2+33=35 bytes length address
@@ -36,4 +36,17 @@ func (a Address) BS58() string {
 
 func (a Address) String() string {
 	return a.BS58()
+}
+
+func (a Address) MarshalJSON() ([]byte, error) {
+	return []byte(base58.FastBase58Encoding(a)), nil
+}
+
+func (a *Address) UnmarshalJSON(b []byte) error {
+	addr, err := base58.FastBase58Decoding(string(b))
+	if err != nil {
+		return err
+	}
+	*a = Address(addr)
+	return nil
 }

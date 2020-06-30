@@ -10,25 +10,14 @@ import (
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 
-	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/secp256k1"
 )
 
-type sendTxParams struct {
-	SignedRawTx string `json:"signedRaw"`
-}
-
 func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params signTxParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
-	if err != nil {
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	signedTxRaw, err := hex.DecodeString(params.Raw)
+	signedTxRaw, err := hex.DecodeString(string(msg.Params))
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -44,16 +33,12 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte("OK"))
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }
 
 type signTxParams struct {
 	Raw         string   `json:"raw"`
 	PrivateKeys []string `json:"privateKeys"`
-}
-
-type signTxReply struct {
-	SignedRawTx string
 }
 
 func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -97,7 +82,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type sendTransactionParams struct {
+type genTransactionParams struct {
 	Convener     uint64        `json:"convener"`
 	Participants []interface{} `json:"participants"`
 	Values       []float64     `json:"values"`
@@ -106,7 +91,7 @@ type sendTransactionParams struct {
 }
 
 func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params sendTransactionParams
+	var params genTransactionParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -163,12 +148,13 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
-type sendRegisterParams struct {
-	ID uint64 `json:"id"`
+type genRegisterParams struct {
+	Owner ngtypes.Address `json:"owner"`
+	ID    uint64          `json:"id"`
 }
 
 func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params sendRegisterParams
+	var params genRegisterParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -179,7 +165,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		storage.GetChain().GetLatestBlockHash(),
 		1,
 		[][]byte{
-			utils.PublicKey2Bytes(*consensus.GetPoWConsensus().PrivateKey.PubKey()),
+			params.Owner,
 		},
 		[]*big.Int{ngtypes.GetBig0()},
 		new(big.Int).Mul(ngtypes.NG, big.NewInt(10)),
@@ -194,14 +180,14 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
-type sendLogoutParams struct {
+type genLogoutParams struct {
 	Convener uint64  `json:"convener"`
 	Fee      float64 `json:"fee"`
 	Extra    string  `json:"extra"`
 }
 
 func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params sendLogoutParams
+	var params genLogoutParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -232,14 +218,14 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
-type sendAssignParams struct {
+type genAssignParams struct {
 	Convener uint64  `json:"convener"`
 	Fee      float64 `json:"fee"`
 	Extra    string  `json:"extra"`
 }
 
 func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params sendAssignParams
+	var params genAssignParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -270,14 +256,14 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(hex.EncodeToString(raw)))
 }
 
-type sendAppendParams struct {
+type genAppendParams struct {
 	Convener uint64  `json:"convener"`
 	Fee      float64 `json:"fee"`
 	Extra    string  `json:"extra"`
 }
 
 func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params sendAppendParams
+	var params genAppendParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

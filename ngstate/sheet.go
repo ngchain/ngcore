@@ -29,8 +29,8 @@ func (s *State) ToSheet() *ngtypes.Sheet {
 		accounts[height] = account
 	}
 
-	for bs58PK, balance := range s.anonymous {
-		anonymous[bs58PK] = balance
+	for bs58Addr, balance := range s.anonymous {
+		anonymous[bs58Addr] = balance
 	}
 
 	return ngtypes.NewSheet(s.height, accounts, anonymous)
@@ -52,9 +52,9 @@ func (s *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 		return nil, err
 	}
 
-	publicKey := base58.FastBase58Encoding(account.Owner)
+	addr := base58.FastBase58Encoding(account.Owner)
 
-	rawBalance, exists := s.anonymous[publicKey]
+	rawBalance, exists := s.anonymous[addr]
 	if !exists {
 		return nil, fmt.Errorf("account balance does not exists")
 	}
@@ -62,7 +62,7 @@ func (s *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 	return new(big.Int).SetBytes(rawBalance), nil
 }
 
-// GetBalanceByAddress get the balance of account by the account's publickey
+// GetBalanceByAddress get the balance of account by the account's address
 func (s *State) GetBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -104,8 +104,8 @@ func (s *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error
 	return account, nil
 }
 
-// GetAccountsByAddress returns an ngtypes.Account obj by the account's publickey
-func (s *State) GetAccountsByAddress(publicKey []byte) ([]*ngtypes.Account, error) {
+// GetAccountsByAddress returns an ngtypes.Account obj by the account's address
+func (s *State) GetAccountsByAddress(address ngtypes.Address) ([]*ngtypes.Account, error) {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -117,7 +117,7 @@ func (s *State) GetAccountsByAddress(publicKey []byte) ([]*ngtypes.Account, erro
 		if err != nil {
 			return nil, err
 		}
-		if bytes.Equal(account.Owner, publicKey) {
+		if bytes.Equal(account.Owner, address) {
 			accounts = append(accounts, account)
 		}
 	}
