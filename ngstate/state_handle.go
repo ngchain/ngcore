@@ -21,52 +21,33 @@ func (s *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
 	s.Lock()
 	defer s.Unlock()
 
-	newAccounts := make(map[uint64][]byte)
-	for i := range s.accounts {
-		newAccounts[i] = make([]byte, len(s.accounts[i]))
-		copy(newAccounts[i], s.accounts[i])
-	}
-
-	newAnonymous := make(map[string][]byte)
-	for i := range s.anonymous {
-		newAnonymous[i] = make([]byte, len(s.anonymous[i]))
-		copy(newAnonymous[i], s.anonymous[i])
-	}
-
-	defer func() {
-		if err == nil {
-			s.accounts = newAccounts
-			s.anonymous = newAnonymous
-		}
-	}()
-
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.GetType() {
 		case ngtypes.TxType_INVALID:
 			return fmt.Errorf("invalid tx")
 		case ngtypes.TxType_GENERATE:
-			if err := handleGenerate(newAccounts, newAnonymous, tx); err != nil {
+			if err := s.handleGenerate(tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_REGISTER:
-			if err := handleRegister(newAccounts, newAnonymous, tx); err != nil {
+			if err := s.handleRegister(tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_LOGOUT:
-			if err := handleLogout(newAccounts, newAnonymous, tx); err != nil {
+			if err := s.handleLogout(tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_TRANSACTION:
-			if err := handleTransaction(newAccounts, newAnonymous, tx); err != nil {
+			if err := s.handleTransaction(tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_ASSIGN: // assign tx
-			if err := handleAssign(newAccounts, newAnonymous, tx); err != nil {
+			if err := s.handleAssign(tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_APPEND: // append tx
-			if err := handleAppend(newAccounts, newAnonymous, tx); err != nil {
+			if err := s.handleAppend(tx); err != nil {
 				return err
 			}
 		default:
@@ -74,11 +55,11 @@ func (s *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
 		}
 	}
 
-	return err
+	return nil
 }
 
-func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+func (s *State) handleGenerate(tx *ngtypes.Tx) (err error) {
+	rawConvener, exists := s.accounts[tx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -94,17 +75,17 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	}
 
 	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
+	rawParticipantBalance, exists := s.anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
 	}
 
-	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Add(
+	s.anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Add(
 		new(big.Int).SetBytes(rawParticipantBalance),
 		new(big.Int).SetBytes(tx.GetValues()[0]),
 	).Bytes()
 
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -112,9 +93,9 @@ func handleGenerate(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	return nil
 }
 
-func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
+func (s *State) handleRegister(tx *ngtypes.Tx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
-	rawConvener, exists := accounts[tx.GetConvener()]
+	rawConvener, exists := s.accounts[tx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -133,7 +114,8 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	totalExpense := new(big.Int).SetBytes(tx.GetFee())
 
 	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
+	bs58Addr := base58.FastBase58Encoding(participants[0])
+	rawParticipantBalance, exists := s.anonymous[bs58Addr]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
 	}
@@ -141,22 +123,22 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
 		return fmt.Errorf("balance is insufficient for register")
 	}
-	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
+	s.anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
 		new(big.Int).SetBytes(rawParticipantBalance),
 		totalExpense,
 	).Bytes()
 
 	newAccount := ngtypes.NewAccount(binary.LittleEndian.Uint64(tx.GetExtra()), tx.GetParticipants()[0], nil, nil)
-	if _, exists := accounts[newAccount.Num]; exists {
+	if _, exists := s.accounts[newAccount.Num]; exists {
 		return fmt.Errorf("failed to register account@%d", newAccount.Num)
 	}
 
-	accounts[newAccount.Num], err = utils.Proto.Marshal(newAccount)
+	s.accounts[newAccount.Num], err = utils.Proto.Marshal(newAccount)
 	if err != nil {
 		return err
 	}
 
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -164,7 +146,7 @@ func handleRegister(accounts map[uint64][]byte, anonymous map[string][]byte, tx 
 	return nil
 }
 
-func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
+func (s *State) handleLogout(tx *ngtypes.Tx) (err error) {
 	publicKey := ngtypes.Address(tx.GetParticipants()[0]).PubKey()
 	if err = tx.Verify(publicKey); err != nil {
 		return err
@@ -173,7 +155,7 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	totalExpense := new(big.Int).SetBytes(tx.GetFee())
 
 	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := anonymous[base58.FastBase58Encoding(participants[0])]
+	rawParticipantBalance, exists := s.anonymous[base58.FastBase58Encoding(participants[0])]
 	if !exists {
 		rawParticipantBalance = ngtypes.GetBig0Bytes()
 	}
@@ -181,12 +163,12 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
 		return fmt.Errorf("balance is insufficient for logout")
 	}
-	anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
+	s.anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
 		new(big.Int).SetBytes(rawParticipantBalance),
 		totalExpense,
 	).Bytes()
 
-	rawAccount, exists := accounts[binary.LittleEndian.Uint64(tx.GetExtra())]
+	rawAccount, exists := s.accounts[binary.LittleEndian.Uint64(tx.GetExtra())]
 	if !exists {
 		return fmt.Errorf("trying to logout an unregistered account")
 	}
@@ -197,18 +179,18 @@ func handleLogout(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return err
 	}
 
-	if _, exists := accounts[delAccount.Num]; !exists {
+	if _, exists := s.accounts[delAccount.Num]; !exists {
 
 		return fmt.Errorf("failed to delete account@%d", delAccount.Num)
 	}
 
-	delete(accounts, delAccount.Num)
+	delete(s.accounts, delAccount.Num)
 
 	return nil
 }
 
-func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+func (s *State) handleTransaction(tx *ngtypes.Tx) (err error) {
+	rawConvener, exists := s.accounts[tx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -233,7 +215,7 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 	totalExpense := new(big.Int).Add(fee, totalValue)
 
-	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
+	rawConvenerBalance, exists := s.anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -243,23 +225,23 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 		return fmt.Errorf("balance is insufficient for transaction")
 	}
 
-	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense).Bytes()
+	s.anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense).Bytes()
 
 	participants := tx.GetParticipants()
 	for i := range participants {
 		var rawParticipantBalance []byte
-		rawParticipantBalance, exists = anonymous[base58.FastBase58Encoding(participants[i])]
+		rawParticipantBalance, exists = s.anonymous[base58.FastBase58Encoding(participants[i])]
 		if !exists {
 			rawParticipantBalance = ngtypes.GetBig0Bytes()
 		}
 
-		anonymous[base58.FastBase58Encoding(participants[i])] = new(big.Int).Add(
+		s.anonymous[base58.FastBase58Encoding(participants[i])] = new(big.Int).Add(
 			new(big.Int).SetBytes(rawParticipantBalance),
 			new(big.Int).SetBytes(tx.GetValues()[i]),
 		).Bytes()
 	}
 
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -270,8 +252,8 @@ func handleTransaction(accounts map[uint64][]byte, anonymous map[string][]byte, 
 	return nil
 }
 
-func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+func (s *State) handleAssign(tx *ngtypes.Tx) (err error) {
+	rawConvener, exists := s.accounts[tx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -295,7 +277,7 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 
-	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
+	rawConvenerBalance, exists := s.anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
 		return fmt.Errorf("account balance does not exist")
 	}
@@ -305,12 +287,12 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return fmt.Errorf("balance is insufficient for assign")
 	}
 
-	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
+	s.anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
 	// assign the extra bytes
 	convener.Contract = tx.GetExtra()
 
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
@@ -318,8 +300,8 @@ func handleAssign(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 	return nil
 }
 
-func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := accounts[tx.GetConvener()]
+func (s *State) handleAppend(tx *ngtypes.Tx) (err error) {
+	rawConvener, exists := s.accounts[tx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
 	}
@@ -343,7 +325,7 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 
-	rawConvenerBalance, exists := anonymous[base58.FastBase58Encoding(convener.Owner)]
+	rawConvenerBalance, exists := s.anonymous[base58.FastBase58Encoding(convener.Owner)]
 	if !exists {
 		return fmt.Errorf("account balance does not exist")
 	}
@@ -353,16 +335,16 @@ func handleAppend(accounts map[uint64][]byte, anonymous map[string][]byte, tx *n
 		return fmt.Errorf("balance is insufficient for append")
 	}
 
-	anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
+	s.anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
 
 	// append the extra bytes
 	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}
 
-	accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
 	if err != nil {
 		return err
 	}

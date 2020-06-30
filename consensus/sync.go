@@ -114,7 +114,7 @@ func (sync *syncModule) doSync(record *remoteRecord) error {
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = storage.GetChain().PutNewBlock(chain[i])
+			err = GetPoWConsensus().ApplyBlock(chain[i])
 			if err != nil {
 				return err
 			}

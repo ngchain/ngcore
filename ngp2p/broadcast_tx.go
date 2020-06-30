@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (b *broadcastProtocol) broadcastTx(tx *ngtypes.Tx) bool {
+func (b *broadcastProtocol) BroadcastTx(tx *ngtypes.Tx) bool {
 	log.Debugf("broadcasting tx %s", tx.BS58())
 
 	raw, err := utils.Proto.Marshal(tx)

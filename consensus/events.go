@@ -3,7 +3,6 @@ package consensus
 import (
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngstate"
-	"github.com/ngchain/ngcore/storage"
 )
 
 func (pow *PoWork) loop() {
@@ -14,7 +13,7 @@ func (pow *PoWork) loop() {
 
 		select {
 		case block := <-ngp2p.GetLocalNode().OnBlock:
-			err := storage.GetChain().PutNewBlock(block)
+			err := pow.ApplyBlock(block)
 			if err != nil {
 				log.Warnf("failed to put new block from p2p network: %s", err)
 			}

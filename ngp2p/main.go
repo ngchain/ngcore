@@ -99,8 +99,8 @@ func NewLocalNode(port int) *LocalNode {
 		broadcastProtocol: nil,
 
 		// events
-		OnBlock: make(chan *ngtypes.Block, 1),
-		OnTx:    make(chan *ngtypes.Tx, 1),
+		OnBlock: make(chan *ngtypes.Block, 0),
+		OnTx:    make(chan *ngtypes.Tx, 0),
 	}
 
 	localNode.broadcastProtocol = registerBroadcaster(localNode)

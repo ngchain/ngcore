@@ -18,7 +18,7 @@ type State struct {
 
 	// using bytes to keep data safe
 	accounts  map[uint64][]byte
-	anonymous map[string][]byte
+	anonymous map[string][]byte // key is base58encoded
 
 	pool *TxPool
 }

@@ -10,8 +10,8 @@ import (
 
 var chainMu sync.Mutex
 
-// PutNewBlock calls ngchain's PutNewBlock
-func (pow *PoWork) PutNewBlock(block *ngtypes.Block) error {
+// ApplyBlock checks the block and then calls ngchain's PutNewBlock, after which update the state
+func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 	chainMu.Lock()
 	defer chainMu.Unlock()
 
@@ -24,12 +24,7 @@ func (pow *PoWork) PutNewBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	ngstate.GetStateManager().UpdateState(block)
-
-	err = ngstate.GetCurrentState().HandleTxs(block.Txs...)
-	if err != nil {
-		return err
-	}
+	ngstate.GetStateManager().UpdateState(block) // handle Block Txs inside
 
 	return nil
 }

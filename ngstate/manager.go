@@ -52,8 +52,8 @@ func initFromSheet(sheet *ngtypes.Sheet) *Manager {
 		}
 	}
 
-	for bs58PK, balance := range sheet.Anonymous {
-		state.anonymous[bs58PK] = balance
+	for bs58Address, balance := range sheet.Anonymous {
+		state.anonymous[bs58Address] = balance
 	}
 
 	prevSheetHash := sheet.Hash()
@@ -72,15 +72,15 @@ func (m *Manager) UpdateState(block *ngtypes.Block) error {
 	defer m.Unlock()
 
 	newState := m.prevState
-	err := newState.ApplyTxs(block.Txs...)
+	err := newState.HandleTxs(block.Txs...)
 	if err != nil {
 		return err
 	}
 
 	sheet := newState.ToSheet()
 	m.prevSheetHash = sheet.Hash()
-	m.prevState = newState    // static one
-	m.currentState = newState // active one
+	m.prevState = newState    // static one, for fallback and chain update
+	m.currentState = newState // active one, for verification
 
 	return nil
 }

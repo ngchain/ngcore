@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngstate"
@@ -46,7 +47,8 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	extraData := []byte("ngCore") // FIXME
 
 	Gen := pow.createGenerateTx(extraData)
-	txsWithGen := append([]*ngtypes.Tx{Gen}, ngstate.GetTxPool().GetPack().Txs...)
+	txs := ngstate.GetTxPool().GetPack().Txs
+	txsWithGen := append([]*ngtypes.Tx{Gen}, txs...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {

@@ -5,7 +5,7 @@ option go_package = "github.com/ngchain/ngcore/ngtypes";
 
 message Account {
   uint64 num = 1;
-  bytes owner = 2; // pk -> balance in anonymous fields
+  bytes owner = 2; // address -> balance in anonymous fields
 
   bytes contract = 5; // separate the code and state
   bytes context = 6;
@@ -69,6 +69,6 @@ message Tx {
 // Sheet is a simplified States
 message Sheet {
   uint64 height = 1;
-  map<string, bytes> anonymous = 2; // hex_publicKey(aka anonymous recipient) -> balance
+  map<string, bytes> anonymous = 2; // bs58_address(aka anonymous recipient) -> balance
   map<uint64, ngtypes.Account> accounts = 3;
 }

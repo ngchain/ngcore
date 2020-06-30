@@ -97,7 +97,7 @@ func (s *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	payer := registerTx.GetParticipants()[0]
 	rawPayerBalance, exists := s.anonymous[base58.FastBase58Encoding(payer)]
 	if !exists {
-		return fmt.Errorf("account does not exist")
+		return fmt.Errorf("the payer for registering does not exist")
 	}
 	payerBalance := new(big.Int).SetBytes(rawPayerBalance)
 

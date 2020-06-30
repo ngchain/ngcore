@@ -228,7 +228,7 @@ func (x *Tx) CheckRegister() error {
 		return fmt.Errorf("register should have at least 10NG(one block reward) fee")
 	}
 
-	if len(x.GetExtra()) != 2<<3 {
+	if len(x.GetExtra()) != 1<<3 {
 		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
 	}
 

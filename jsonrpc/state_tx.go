@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/storage"
 
 	"github.com/maoxs2/go-jsonrpc2"
@@ -44,6 +45,11 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	err = ngstate.GetTxPool().PutNewTxFromLocal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	ok := ngp2p.GetLocalNode().BroadcastTx(tx)
+	if !ok {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("failed to broadcast tx")))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(tx.Hash()))

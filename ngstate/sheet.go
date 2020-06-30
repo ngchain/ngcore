@@ -52,9 +52,7 @@ func (s *State) GetBalanceByNum(id uint64) (*big.Int, error) {
 		return nil, err
 	}
 
-	addr := base58.FastBase58Encoding(account.Owner)
-
-	rawBalance, exists := s.anonymous[addr]
+	rawBalance, exists := s.anonymous[base58.FastBase58Encoding(account.Owner)]
 	if !exists {
 		return nil, fmt.Errorf("account balance does not exists")
 	}

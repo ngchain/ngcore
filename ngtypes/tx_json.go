@@ -74,10 +74,9 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 	for i := range tx.Participants {
 		raw, err := base58.FastBase58Decoding(tx.Participants[i])
 		if err != nil {
-			x.Participants = nil
 			return err
 		}
-		x.Participants[i] = raw
+		participants[i] = raw
 	}
 
 	bigFee, ok := new(big.Int).SetString(tx.Fee, 10)
@@ -90,10 +89,9 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 	for i := range tx.Values {
 		bigV, ok := new(big.Int).SetString(tx.Values[i], 10)
 		if !ok {
-			x.Values = nil
 			return fmt.Errorf("failed to parse txHeader's values")
 		}
-		x.Values[i] = bigV.Bytes()
+		values[i] = bigV.Bytes()
 	}
 
 	extra, err := hex.DecodeString(tx.Extra)
