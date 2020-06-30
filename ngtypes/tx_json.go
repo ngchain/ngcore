@@ -2,22 +2,20 @@ package ngtypes
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 
-	"github.com/mr-tron/base58/base58"
 	"github.com/ngchain/ngcore/utils"
 )
 
 type jsonTx struct {
-	Network       int      `json:"network"`
-	Type          int      `json:"type"`
-	PrevBlockHash string   `json:"prev_block_hash"`
-	Convener      uint64   `json:"convener"`
-	Participants  []string `json:"participants"`
-	Fee           string   `json:"fee"`
-	Values        []string `json:"values"`
-	Extra         string   `json:"extra"`
+	Network       int        `json:"network"`
+	Type          int        `json:"type"`
+	PrevBlockHash string     `json:"prev_block_hash"`
+	Convener      uint64     `json:"convener"`
+	Participants  []Address  `json:"participants"`
+	Fee           *big.Int   `json:"fee"`
+	Values        []*big.Int `json:"values"`
+	Extra         string     `json:"extra"`
 
 	Sign string `json:"sign"`
 
@@ -26,14 +24,14 @@ type jsonTx struct {
 }
 
 func (x *Tx) MarshalJSON() ([]byte, error) {
-	participants := make([]string, len(x.Participants))
+	participants := make([]Address, len(x.Participants))
 	for i := range x.Participants {
-		participants[i] = base58.FastBase58Encoding(x.Participants[i])
+		participants[i] = Address(x.Participants[i])
 	}
 
-	values := make([]string, len(x.Values))
+	values := make([](*big.Int), len(x.Values))
 	for i := range x.Values {
-		values[i] = new(big.Int).SetBytes(x.Values[i]).String()
+		values[i] = new(big.Int).SetBytes(x.Values[i])
 	}
 
 	return utils.JSON.Marshal(jsonTx{
@@ -42,7 +40,7 @@ func (x *Tx) MarshalJSON() ([]byte, error) {
 		PrevBlockHash: hex.EncodeToString(x.PrevBlockHash),
 		Convener:      x.Convener,
 		Participants:  participants,
-		Fee:           new(big.Int).SetBytes(x.GetFee()).String(),
+		Fee:           new(big.Int).SetBytes(x.GetFee()),
 		Values:        values,
 		Extra:         hex.EncodeToString(x.GetExtra()),
 
@@ -72,26 +70,12 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 
 	participants := make([][]byte, len(tx.Participants))
 	for i := range tx.Participants {
-		raw, err := base58.FastBase58Decoding(tx.Participants[i])
-		if err != nil {
-			return err
-		}
-		participants[i] = raw
+		participants[i] = tx.Participants[i]
 	}
-
-	bigFee, ok := new(big.Int).SetString(tx.Fee, 10)
-	if !ok {
-		return fmt.Errorf("failed to parse txHeader's fee")
-	}
-	fee := bigFee.Bytes()
 
 	values := make([][]byte, len(tx.Values))
 	for i := range tx.Values {
-		bigV, ok := new(big.Int).SetString(tx.Values[i], 10)
-		if !ok {
-			return fmt.Errorf("failed to parse txHeader's values")
-		}
-		values[i] = bigV.Bytes()
+		values[i] = tx.Values[i].Bytes()
 	}
 
 	extra, err := hex.DecodeString(tx.Extra)
@@ -110,7 +94,7 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		PrevBlockHash: prevBlockHash,
 		Convener:      convener,
 		Participants:  participants,
-		Fee:           fee,
+		Fee:           tx.Fee.Bytes(),
 		Values:        values,
 		Extra:         extra,
 		Sign:          sign,
