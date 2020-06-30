@@ -1,17 +1,16 @@
 package ngtypes
 
 import (
-	"golang.org/x/crypto/sha3"
-
 	"github.com/ngchain/ngcore/utils"
+	"golang.org/x/crypto/sha3"
 )
 
 // NewSheet gets the rows from db and return the sheet for transport/saving.
-func NewSheet(height uint64, accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
+func NewSheet(prevBlockHash []byte, accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
 	return &Sheet{
-		Height:    height,
-		Accounts:  accounts,
-		Anonymous: anonymous,
+		PrevBlockHash: prevBlockHash,
+		Anonymous:     anonymous,
+		Accounts:      accounts,
 	}
 }
 
@@ -38,8 +37,8 @@ func init() {
 	}
 
 	GenesisSheet = &Sheet{
-		Height:   0,
-		Accounts: accounts,
+		PrevBlockHash: nil,
+		Accounts:      accounts,
 		Anonymous: map[string][]byte{
 			GenesisAddress.String(): GetBig0Bytes(),
 		},

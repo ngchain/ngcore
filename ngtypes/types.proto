@@ -68,7 +68,7 @@ message Tx {
 
 // Sheet is a simplified States
 message Sheet {
-  uint64 height = 1;
+  bytes prevBlockHash = 1; // use prevBlockHash to replace height to keep uniqueness
   map<string, bytes> anonymous = 2; // bs58_address(aka anonymous recipient) -> balance
   map<uint64, ngtypes.Account> accounts = 3;
 }

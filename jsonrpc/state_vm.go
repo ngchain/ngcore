@@ -1,7 +1,7 @@
 package jsonrpc
 
 import (
-	jsonrpc2 "github.com/maoxs2/go-jsonrpc2"
+	"github.com/maoxs2/go-jsonrpc2"
 
 	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/ngcore/vm"
@@ -20,7 +20,10 @@ func (s *Server) runContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	vm.NewWasmVM(params.RawContract, nil)
+	_, err = vm.NewWasmVM(params.RawContract, nil)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }

@@ -47,7 +47,7 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	extraData := []byte("ngCore") // FIXME
 
 	Gen := pow.createGenerateTx(extraData)
-	txs := ngstate.GetTxPool().GetPack().Txs
+	txs := ngstate.GetActiveState().GetPool().GetPack().Txs
 	txsWithGen := append([]*ngtypes.Tx{Gen}, txs...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
@@ -64,8 +64,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	defer pow.Unlock()
 
 	if err := pow.checkBlock(block); err != nil {
-		log.Warn("Malformed block mined:", err)
-		return err
+		return fmt.Errorf("malformed block mined: %s", err)
 	}
 
 	prevBlock, err := storage.GetChain().GetBlockByHash(block.PrevBlockHash)
@@ -75,8 +74,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	if prevBlock == nil {
-		log.Warn("Malformed block mined: PrevBlockHash")
-		return err
+		return fmt.Errorf("malformed block mined: cannot find PrevBlock %x", block.PrevBlockHash)
 	}
 
 	hash := block.Hash()
@@ -84,12 +82,11 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 
 	err = storage.GetChain().PutNewBlock(block) // chain will verify the block
 	if err != nil {
-		log.Warn(err)
-		return err
+		return fmt.Errorf("failed put new block into chain %s", err)
 	}
 
-	ok := ngp2p.GetLocalNode().BroadcastBlock(block)
-	if !ok {
+	err = ngp2p.GetLocalNode().BroadcastBlock(block)
+	if err != nil {
 		return fmt.Errorf("failed to broadcast the new mined block")
 	}
 

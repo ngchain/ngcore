@@ -18,7 +18,7 @@ func (pow *PoWork) loop() {
 				log.Warnf("failed to put new block from p2p network: %s", err)
 			}
 		case tx := <-ngp2p.GetLocalNode().OnTx:
-			err := ngstate.GetTxPool().PutTx(tx)
+			err := ngstate.GetActiveState().GetPool().PutTx(tx)
 			if err != nil {
 				log.Warnf("failed to put new tx from p2p network: %s", err)
 			}

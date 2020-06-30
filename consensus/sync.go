@@ -19,17 +19,17 @@ type syncModule struct {
 }
 
 func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
-	sync := &syncModule{
+	syncMod := &syncModule{
 		RWMutex: sync.RWMutex{},
 		PoWork:  pow,
 		store:   make(map[peer.ID]*remoteRecord),
 	}
 
 	if !isBootstrapNode {
-		sync.bootstrap()
+		syncMod.bootstrap()
 	}
 
-	return sync
+	return syncMod
 }
 
 func (sync *syncModule) putRemote(id peer.ID, remote *remoteRecord) {

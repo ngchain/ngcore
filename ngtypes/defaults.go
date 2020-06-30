@@ -44,7 +44,7 @@ var (
 var (
 	// !NO MAX LIMITATION!
 	//BlockMaxTxsSize = 1 << 25 // 32M
-	TxMaxExtraSize  = 1 << 20 // if more than 1m, extra should be separated ot multi append
+	TxMaxExtraSize = 1 << 20 // if more than 1m, extra should be separated ot multi append
 
 	TimestampSize = 8
 	HashSize      = 32

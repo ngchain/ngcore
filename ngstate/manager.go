@@ -10,9 +10,8 @@ import (
 type Manager struct {
 	sync.RWMutex
 
-	prevSheetHash []byte
-	prevState     *State // frozen state
-	currentState  *State // the state handling txs in realtime
+	staticState *State // frozen state
+	activeState *State // the state handling txs in realtime
 }
 
 // (nil) --> B0(Prev: S0) --> B1(Prev: S1) -> B2(Prev: S2)
@@ -28,20 +27,20 @@ func GetStateManager() *Manager {
 }
 
 func init() {
-	manager = initFromSheet(ngtypes.GenesisSheet)
-	manager.UpdateState(ngtypes.GetGenesisBlock())
+	manager = initFromSheet(ngtypes.GenesisSheet, ngtypes.GetGenesisBlockHash())
+	err := manager.UpdateState(ngtypes.GetGenesisBlock())
+	if err != nil {
+		panic(err)
+	}
 }
 
 // UpdateState will create a new state which is a wrapper of *ngtypes.sheet
-func initFromSheet(sheet *ngtypes.Sheet) *Manager {
+func initFromSheet(sheet *ngtypes.Sheet, newBlockHash []byte) *Manager {
 	state := &State{
-		prevSheetHash: sheet.Hash(),
-		height:        sheet.Height + 1,
+		prevBlockHash: newBlockHash,
 		accounts:      make(map[uint64][]byte),
 		anonymous:     make(map[string][]byte),
-		pool: &TxPool{
-			txMap: make(map[uint64]*ngtypes.Tx, 0),
-		},
+		pool:          NewTxPool(),
 	}
 
 	var err error
@@ -56,45 +55,47 @@ func initFromSheet(sheet *ngtypes.Sheet) *Manager {
 		state.anonymous[bs58Address] = balance
 	}
 
-	prevSheetHash := sheet.Hash()
-	prevState := state    // static one
-	currentState := state // active one
+	staticState := state // static one
+	activeState := state // active one
 
 	return &Manager{
-		prevSheetHash: prevSheetHash,
-		prevState:     prevState,
-		currentState:  currentState,
+		staticState: staticState,
+		activeState: activeState,
 	}
 }
 
+// UpdateState will generate a new state after importing block's txs
 func (m *Manager) UpdateState(block *ngtypes.Block) error {
 	m.Lock()
 	defer m.Unlock()
 
-	newState := m.prevState
+	newState := &State{
+		prevBlockHash: block.Hash(),
+		accounts:      m.staticState.accounts,
+		anonymous:     m.staticState.anonymous, // if copy it will cost too much time
+		pool:          NewTxPool(),
+	}
 	err := newState.HandleTxs(block.Txs...)
 	if err != nil {
 		return err
 	}
 
-	sheet := newState.ToSheet()
-	m.prevSheetHash = sheet.Hash()
-	m.prevState = newState    // static one, for fallback and chain update
-	m.currentState = newState // active one, for verification
+	m.staticState = newState // static one, for fallback and chain update
+	m.activeState = newState // active one, for verification
 
 	return nil
 }
 
-func (m *Manager) GetPrevState() *State {
+func (m *Manager) GetStaticState() *State {
 	m.RLock()
 	defer m.RUnlock()
 
-	return m.prevState
+	return m.staticState
 }
 
 func (m *Manager) GetCurrentState() *State {
 	m.RLock()
 	defer m.RUnlock()
 
-	return m.currentState
+	return m.activeState
 }

@@ -142,7 +142,10 @@ func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
 		log.Panic(err)
 	}
 
-	pow.MinedNewBlock(block)
+	err = pow.MinedNewBlock(block)
+	if err != nil {
+		log.Warn(err) // may have "has block in same height" error here
+	}
 	// assign new job
 	pow.minerMod.start(pow.GetBlockTemplate())
 }

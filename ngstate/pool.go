@@ -12,26 +12,13 @@ import (
 // Every time the state updated, the old pool will be deprecated
 type TxPool struct {
 	sync.Mutex
-
-	state *State
 	txMap map[uint64]*ngtypes.Tx // priority first
 }
 
-// GetTxPool will return the registered global txpool.
-func GetTxPool() *TxPool {
-	if manager == nil {
-		panic("state manager is not initialized")
+func NewTxPool() *TxPool {
+	return &TxPool{
+		txMap: make(map[uint64]*ngtypes.Tx, 0),
 	}
-
-	if manager.currentState == nil {
-		panic("state is not initialized")
-	}
-
-	if manager.currentState.pool == nil {
-		panic("txpool is not initialized")
-	}
-
-	return manager.currentState.pool
 }
 
 // IsInPool checks one tx is in pool or not. TODO: export it into rpc.

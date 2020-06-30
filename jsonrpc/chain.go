@@ -7,7 +7,7 @@ import (
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 
-	jsonrpc2 "github.com/maoxs2/go-jsonrpc2"
+	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -139,7 +139,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 
 	// search in pool
-	pool := ngstate.GetTxPool()
+	pool := ngstate.GetActiveState().GetPool()
 	exists, tx := pool.IsInPool(hash)
 	if exists && tx != nil {
 		raw, err := utils.JSON.Marshal(&getTxByHashReply{

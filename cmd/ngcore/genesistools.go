@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/big"
 	"runtime"
 
@@ -23,7 +24,9 @@ var genesistoolsCommand = &cli.Command{
 
 		localKey := keytools.ReadLocalKey("genesis.key", "") // TODO: add password to options
 		if localKey == nil {
-			log.Panic("genesis.key is missing, using keytools to create one first")
+			err := fmt.Errorf("genesis.key is missing, using keytools to create one first")
+			log.Panic(err)
+			return err
 		}
 
 		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))

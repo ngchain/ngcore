@@ -9,24 +9,24 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (b *broadcastProtocol) BroadcastTx(tx *ngtypes.Tx) bool {
+func (b *broadcastProtocol) BroadcastTx(tx *ngtypes.Tx) error {
 	log.Debugf("broadcasting tx %s", tx.BS58())
 
 	raw, err := utils.Proto.Marshal(tx)
 	if err != nil {
 		log.Errorf("failed to sign pb data")
-		return false
+		return err
 	}
 
 	err = b.topics[broadcastTxTopic].Publish(context.Background(), raw)
 	if err != nil {
 		log.Error(err)
-		return false
+		return err
 	}
 
 	log.Debugf("broadcasted Tx:%s", tx.ID())
 
-	return true
+	return nil
 }
 
 func (b *broadcastProtocol) onBroadcastTx(msg *pubsub.Message) {

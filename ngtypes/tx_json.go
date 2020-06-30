@@ -26,10 +26,10 @@ type jsonTx struct {
 func (x *Tx) MarshalJSON() ([]byte, error) {
 	participants := make([]Address, len(x.Participants))
 	for i := range x.Participants {
-		participants[i] = Address(x.Participants[i])
+		participants[i] = x.Participants[i]
 	}
 
-	values := make([](*big.Int), len(x.Values))
+	values := make([]*big.Int, len(x.Values))
 	for i := range x.Values {
 		values[i] = new(big.Int).SetBytes(x.Values[i])
 	}
@@ -66,7 +66,7 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	convener := uint64(tx.Convener)
+	convener := tx.Convener
 
 	participants := make([][]byte, len(tx.Participants))
 	for i := range tx.Participants {

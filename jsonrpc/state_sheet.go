@@ -23,7 +23,7 @@ func (s *Server) getAccountsByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	accounts, err := ngstate.GetCurrentState().GetAccountsByAddress(addr)
+	accounts, err := ngstate.GetActiveState().GetAccountsByAddress(addr)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -57,7 +57,7 @@ func (s *Server) getBalanceByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	balance, err := ngstate.GetCurrentState().GetBalanceByAddress(addr)
+	balance, err := ngstate.GetActiveState().GetBalanceByAddress(addr)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -81,7 +81,7 @@ func (s *Server) getBalanceByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	balance, err := ngstate.GetCurrentState().GetBalanceByNum(params.Num)
+	balance, err := ngstate.GetActiveState().GetBalanceByNum(params.Num)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -106,7 +106,7 @@ func (s *Server) getAccountByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	account, err := ngstate.GetCurrentState().GetAccountByNum(params.Num)
+	account, err := ngstate.GetActiveState().GetAccountByNum(params.Num)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

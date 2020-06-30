@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/big"
 
@@ -110,6 +111,12 @@ func (s *State) CheckRegister(registerTx *ngtypes.Tx) error {
 	rawConvener, exists := s.accounts[registerTx.GetConvener()]
 	if !exists {
 		return fmt.Errorf("account does not exist")
+	}
+
+	// check newAccountNum
+	newAccountNum := binary.LittleEndian.Uint64(registerTx.GetExtra())
+	if _, exists := s.accounts[newAccountNum]; exists {
+		return fmt.Errorf("failed to register account@%d, account is already used by others", newAccountNum)
 	}
 
 	convener := new(ngtypes.Account)

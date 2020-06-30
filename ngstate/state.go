@@ -13,8 +13,7 @@ var log = logging.Logger("sheet")
 type State struct {
 	sync.RWMutex
 
-	prevSheetHash []byte
-	height        uint64
+	prevBlockHash []byte
 
 	// using bytes to keep data safe
 	accounts  map[uint64][]byte
@@ -23,21 +22,25 @@ type State struct {
 	pool *TxPool
 }
 
-// GetPrevState will create a Sheet manager
-func GetPrevState() *State {
+func (s *State) GetPool() *TxPool {
+	return s.pool
+}
+
+// GetStaticState will create a Sheet manager
+func GetStaticState() *State {
 	if manager == nil {
 		panic("failed to get current state from nil")
 	}
 
-	if manager.GetPrevState() == nil {
+	if manager.GetStaticState() == nil {
 		panic("failed to get prev state from nil")
 	}
 
-	return manager.prevState
+	return manager.staticState
 }
 
-// GetCurrentState will create a Sheet manager
-func GetCurrentState() *State {
+// GetActiveState will create a Sheet manager
+func GetActiveState() *State {
 	if manager == nil {
 		panic("failed to get current state from nil")
 	}
@@ -46,5 +49,5 @@ func GetCurrentState() *State {
 		panic("failed to get current state from nil")
 	}
 
-	return manager.currentState
+	return manager.activeState
 }

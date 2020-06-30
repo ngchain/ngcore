@@ -24,7 +24,10 @@ func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	ngstate.GetStateManager().UpdateState(block) // handle Block Txs inside
+	err = ngstate.GetStateManager().UpdateState(block) // handle Block Txs inside
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

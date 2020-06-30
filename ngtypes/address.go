@@ -56,6 +56,6 @@ func (a *Address) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	*a = Address(addr)
+	*a = addr
 	return nil
 }

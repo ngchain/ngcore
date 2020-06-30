@@ -42,14 +42,14 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = ngstate.GetTxPool().PutNewTxFromLocal(tx)
+	err = ngstate.GetActiveState().GetPool().PutNewTxFromLocal(tx)
 	if err != nil {
 		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	ok := ngp2p.GetLocalNode().BroadcastTx(tx)
-	if !ok {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("failed to broadcast tx")))
+	err = ngp2p.GetLocalNode().BroadcastTx(tx)
+	if err != nil {
+		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("failed to broadcast tx %s", err)))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(tx.Hash()))
@@ -138,7 +138,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 			}
 		case float64:
 			accountID := uint64(p)
-			account, err := ngstate.GetCurrentState().GetAccountByNum(accountID)
+			account, err := ngstate.GetActiveState().GetAccountByNum(accountID)
 			if err != nil {
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}

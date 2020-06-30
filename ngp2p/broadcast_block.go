@@ -2,6 +2,7 @@ package ngp2p
 
 import (
 	"context"
+	"fmt"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
@@ -9,24 +10,22 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) bool {
+func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) error {
 	broadcastBlockPayload := block
 
 	raw, err := utils.Proto.Marshal(broadcastBlockPayload)
 	if err != nil {
-		log.Errorf("failed to sign pb data")
-		return false
+		return fmt.Errorf("failed to sign pb data")
 	}
 
 	err = b.topics[broadcastBlockTopic].Publish(context.Background(), raw)
 	if err != nil {
-		log.Error(err)
-		return false
+		return err
 	}
 
 	log.Debugf("broadcasted block@%d:%x", block.GetHeight(), block.Hash())
 
-	return true
+	return nil
 }
 
 func (b *broadcastProtocol) onBroadcastBlock(msg *pubsub.Message) {
