@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/storage"
 
 	"github.com/maoxs2/go-jsonrpc2"
@@ -44,17 +43,12 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 
 	err = ngstate.GetActiveState().GetPool().PutNewTxFromLocal(tx)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	err = ngp2p.GetLocalNode().BroadcastTx(tx)
-	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("failed to broadcast tx %s", err)))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(tx.Hash()))
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
@@ -96,17 +90,17 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 
 	err = tx.Signature(privateKeys...)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
@@ -158,7 +152,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx := ngtypes.NewUnsignedTx(
@@ -175,12 +169,12 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	// Reason: 1. avoid accident client modification 2. less length
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
@@ -212,12 +206,12 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
@@ -240,7 +234,7 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx := ngtypes.NewUnsignedTx(
@@ -255,12 +249,12 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
@@ -283,7 +277,7 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx := ngtypes.NewUnsignedTx(
@@ -298,12 +292,12 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
@@ -326,7 +320,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx := ngtypes.NewUnsignedTx(
@@ -341,12 +335,12 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
-		jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)

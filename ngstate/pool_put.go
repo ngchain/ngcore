@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -13,6 +14,11 @@ func (p *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 	log.Debugf("putting new tx %x from rpc", tx.Hash())
 
 	err = p.PutTx(tx)
+	if err != nil {
+		return err
+	}
+
+	err = ngp2p.GetLocalNode().BroadcastTx(tx)
 	if err != nil {
 		return err
 	}
