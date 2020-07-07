@@ -147,7 +147,7 @@ func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 			}
 
 			// Compute the PoW value of this nonce
-			nonce := make([]byte, 4)
+			nonce := make([]byte, ngtypes.NonceSize)
 			fastrand.Read(nonce)
 
 			hash := randomx.CalculateHash(vm, job.GetPoWRawHeader(nonce))
