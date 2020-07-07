@@ -24,9 +24,9 @@ func NewServer(host string, port int) *Server {
 	return s
 }
 
-// GoServe will make the server running
+// Serve will make the server running
 func (s *Server) Serve() {
-	log.Info("rpc server running")
+	log.Infof("rpc server running on address: %s", s.Addr)
 	err := s.ListenAndServe()
 	if err != nil {
 		panic(err)

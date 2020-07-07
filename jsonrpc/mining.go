@@ -1,6 +1,8 @@
 package jsonrpc
 
 import (
+	"encoding/hex"
+
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -36,14 +38,27 @@ func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 }
 
 type getWorkReply struct {
-	PoWRaw string `json:"raw"`
+	Seed      string `json:"seed"`
+	RawHeader string `json:"raw"`
+	RawBlock  string `json:"block"`
 }
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	blockTemplate := consensus.GetPoWConsensus().GetBlockTemplate().GetPoWRawHeader(nil)
+	blockTemplate := consensus.GetPoWConsensus().GetBlockTemplate()
 
-	raw, err := utils.JSON.Marshal(blockTemplate)
+	rawTxs, err := utils.Proto.Marshal(blockTemplate)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	var reply = getWorkReply{
+		Seed:      hex.EncodeToString(blockTemplate.GetPrevBlockHash()),
+		RawHeader: hex.EncodeToString(blockTemplate.GetPoWRawHeader(nil)),
+		RawBlock:  hex.EncodeToString(rawTxs),
+	}
+
+	raw, err := utils.JSON.Marshal(reply)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -52,8 +67,8 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 }
 
 type submitWorkParams struct {
-	RawHeader string `json:"header"`
-	RawTxs    string `json:"txs"`
+	Nonce    string `json:"nonce"`
+	RawBlock string `json:"block"`
 }
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
@@ -65,7 +80,28 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	// params.RawHeader
+	nonce, err := hex.DecodeString(params.Nonce)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	rawBlock, err := hex.DecodeString(params.RawBlock)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	var block ngtypes.Block
+	err = utils.Proto.Unmarshal(rawBlock, &block)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	block.Nonce = nonce
+
+	err = consensus.GetPoWConsensus().MinedNewBlock(&block)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }
