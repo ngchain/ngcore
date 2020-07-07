@@ -2,6 +2,7 @@ package ngtypes_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"golang.org/x/crypto/sha3"
@@ -11,12 +12,11 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// TestBlock_GetHash test func GetGenesisBlock() and return Hash value.
-func TestBlock_GetHash(t *testing.T) {
+func TestPowHash(t *testing.T) {
 	b := ngtypes.GetGenesisBlock()
 	headerHash := b.PowHash()
-	if len(headerHash) != 32 {
-		t.Errorf("bytes from CalculateHeaderHash is not hash")
+	if len(headerHash) != ngtypes.HashSize {
+		t.Errorf("pow hash %x is not a valid hash", headerHash)
 	}
 }
 
@@ -36,7 +36,7 @@ func TestBlock_IsGenesis(t *testing.T) {
 	_ = utils.Proto.Unmarshal(raw, gg)
 
 	if !gg.IsGenesis() {
-		t.Error("failed unmarshaling back to genesis block structure")
+		t.Error("failed unmarshalling back to genesis block structure")
 		return
 	}
 
@@ -88,5 +88,21 @@ func TestBlockJSON(t *testing.T) {
 
 	if !proto.Equal(block1, block2) {
 		t.Error("block 2 is different from 1")
+	}
+}
+
+func TestBlockRawPoW(t *testing.T) {
+	block := ngtypes.GetGenesisBlock()
+	raw := block.GetPoWRawHeader(nil)
+	txs := block.Txs
+	block_ := new(ngtypes.Block)
+	err := block_.ApplyPoWRawAndTxs(raw, txs)
+	if err != nil {
+		panic(err)
+	}
+	if !proto.Equal(block, block_) {
+		fmt.Println("block", block)
+		fmt.Println("block_", block_)
+		t.Fail()
 	}
 }

@@ -41,6 +41,8 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	// mining
 	httpHandler.RegisterJsonRpcHandleFunc("submitBlock", s.submitBlockFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBlockTemplate", s.getBlockTemplateFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getWork", s.getWorkFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("submitWork", s.submitWorkFunc)
 
 	return httpHandler
 }

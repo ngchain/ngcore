@@ -9,7 +9,7 @@ import (
 
 // TODO: add tests for each method
 func TestNewRPCServer(t *testing.T) {
-	rpc := jsonrpc.NewServer("127.0.0.1", 52521)
+	rpc := jsonrpc.NewServer("", 52521)
 	go rpc.Serve()
 
 	go func() {

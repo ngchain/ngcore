@@ -77,7 +77,7 @@ func (tt *TxTrie) Contains(tx *Tx) bool {
 // TrieRoot sort tx tire by trie tree and return the root hash.
 func (tt *TxTrie) TrieRoot() []byte {
 	if len(tt.Txs) == 0 {
-		return make([]byte, 32)
+		return make([]byte, HashSize)
 	}
 
 	trie, err := merkletree.NewTreeWithHashStrategy(TxsToMerkleTreeContents(tt.Txs), sha3.New256)

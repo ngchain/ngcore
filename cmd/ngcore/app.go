@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"strings"
-	"syscall"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -142,24 +140,12 @@ var action = func(c *cli.Context) error {
 
 	_ = ngp2p.NewLocalNode(p2pTCPPort)
 
-	// m = ngstate.GetStateManager()// .UpdateState(ngtypes.GenesisSheet)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
 	pow.GoLoop()
 
-	rpc := jsonrpc.NewServer("127.0.0.1", apiPort)
+	rpc := jsonrpc.NewServer("", apiPort)
 	go rpc.Serve()
 
 	// notify the exit events
-	var stopSignal = make(chan os.Signal, 1)
-	signal.Notify(stopSignal, syscall.SIGTERM)
-	signal.Notify(stopSignal, syscall.SIGINT)
-	for {
-		sign := <-stopSignal
-		log.Info("Signal received:", sign)
-		return nil
-	}
+	select {}
 }

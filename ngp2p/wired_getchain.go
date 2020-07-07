@@ -66,7 +66,7 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 		return
 	}
 
-	lastFromHash := make([]byte, 32)
+	lastFromHash := make([]byte, ngtypes.HashSize)
 
 	if len(getChainPayload.GetFrom()) == 0 {
 		copy(lastFromHash, ngtypes.GetGenesisBlockHash())

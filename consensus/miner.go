@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ngchain/go-randomx"
+
 	"github.com/NebulousLabs/fastrand"
-	"github.com/ngchain/cryptonight-go"
 	"go.uber.org/atomic"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -102,6 +103,39 @@ func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 	diff := new(big.Int).SetBytes(job.GetDifficulty())
 	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
+	cache, err := randomx.AllocCache(randomx.FlagJIT)
+	if err != nil {
+		panic(err)
+	}
+	defer randomx.ReleaseCache(cache)
+
+	randomx.InitCache(cache, job.PrevBlockHash)
+	ds, err := randomx.AllocDataset(randomx.FlagJIT)
+	if err != nil {
+		panic(err)
+	}
+	defer randomx.ReleaseDataset(ds)
+
+	count := randomx.DatasetItemCount()
+	var wg sync.WaitGroup
+	var workerNum = uint32(runtime.NumCPU())
+	for i := uint32(0); i < workerNum; i++ {
+		wg.Add(1)
+		a := (count * i) / workerNum
+		b := (count * (i + 1)) / workerNum
+		go func() {
+			defer wg.Done()
+			randomx.InitDataset(ds, cache, a, b-a)
+		}()
+	}
+	wg.Wait()
+
+	vm, err := randomx.CreateVM(cache, ds, randomx.FlagJIT)
+	if err != nil {
+		panic(err)
+	}
+	defer randomx.DestroyVM(vm)
+
 	for {
 		select {
 		case <-m.abortCh:
@@ -116,7 +150,7 @@ func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 			nonce := make([]byte, 4)
 			fastrand.Read(nonce)
 
-			hash := cryptonight.Sum(job.GetPoWBlob(nonce), 0)
+			hash := randomx.CalculateHash(vm, job.GetPoWRawHeader(nonce))
 
 			m.hashes.Inc()
 

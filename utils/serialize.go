@@ -55,3 +55,13 @@ func PackUint16BE(n uint16) []byte {
 	binary.BigEndian.PutUint16(b, n)
 	return b
 }
+
+func ReverseBytes(b []byte) []byte {
+	_b := make([]byte, len(b))
+	copy(_b, b)
+
+	for i, j := 0, len(_b)-1; i < j; i, j = i+1, j-1 {
+		_b[i], _b[j] = _b[j], _b[i]
+	}
+	return _b
+}

@@ -12,7 +12,7 @@ const (
 	NETWORK                  = NetworkType_TESTNET
 	GenesisAddressBase58     = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
 	GenesisGenerateTxSignHex = "bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d"
-	GenesisBlockNonceHex     = "9575f5cc827a1632"
+	GenesisBlockNonceHex     = "35440b9cb02b0380"
 )
 
 // decoded genesis variables

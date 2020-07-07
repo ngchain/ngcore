@@ -1,6 +1,6 @@
 package consensus
 
-// TODO: Abstract the whole concensus and make concensus plugable
+// TODO: Abstract the whole consensus and make consensus plugable
 
 // State is an abstract state interface
 type State interface {
