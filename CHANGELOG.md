@@ -1,5 +1,12 @@
 # ChangeLog
 
+## v0.0.14
+
+- DONE: change PoW algorithm from cryptonight-go to RandomNG
+- DONE: add submitWork and getWork
+- DONE: update genesis block
+- BUGFIX: nonce length => 8
+
 ## v0.0.13
 
 - DONE: huge changes on JSON RPC
