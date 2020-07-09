@@ -25,6 +25,9 @@ type minerModule struct {
 
 	abortCh      chan struct{}
 	FoundBlockCh chan *ngtypes.Block
+
+	cache   randomx.Cache
+	dataset randomx.Dataset
 }
 
 // newMinerModule will create a local miner which works in *threadNum* threads.
@@ -44,10 +47,10 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 	}
 
 	go func() {
-		reportTicker := time.NewTicker(time.Minute)
+		reportTicker := time.NewTicker(ngtypes.TargetTime)
 		defer reportTicker.Stop()
 
-		elapsed := int64(time.Minute / time.Second) // 60
+		elapsed := int64(ngtypes.TargetTime / time.Second) // 60
 
 		for {
 			<-reportTicker.C
@@ -82,6 +85,34 @@ func (m *minerModule) start(job *ngtypes.Block) {
 	m.abortCh = make(chan struct{})
 	once := new(sync.Once)
 
+	cache, err := randomx.AllocCache(randomx.FlagJIT)
+	if err != nil {
+		panic(err)
+	}
+
+	randomx.InitCache(cache, job.PrevBlockHash)
+	dataset, err := randomx.AllocDataset(randomx.FlagJIT)
+	if err != nil {
+		panic(err)
+	}
+
+	count := randomx.DatasetItemCount()
+	var wg sync.WaitGroup
+	var workerNum = uint32(runtime.NumCPU())
+	for i := uint32(0); i < workerNum; i++ {
+		wg.Add(1)
+		a := (count * i) / workerNum
+		b := (count * (i + 1)) / workerNum
+		go func() {
+			defer wg.Done()
+			randomx.InitDataset(dataset, cache, a, b-a)
+		}()
+	}
+	wg.Wait()
+
+	m.cache = cache
+	m.dataset = dataset
+
 	for threadID := 0; threadID < m.threadNum; threadID++ {
 		go m.mine(threadID, job, once)
 	}
@@ -96,6 +127,10 @@ func (m *minerModule) stop() {
 	m.job = new(atomic.Value) // nil value
 	close(m.abortCh)
 	<-m.abortCh // wait
+
+	randomx.ReleaseCache(m.cache)
+	randomx.ReleaseDataset(m.dataset)
+
 	log.Info("mining mode off")
 }
 
@@ -103,38 +138,10 @@ func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
 	diff := new(big.Int).SetBytes(job.GetDifficulty())
 	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
-	cache, err := randomx.AllocCache(randomx.FlagJIT)
+	vm, err := randomx.CreateVM(m.cache, m.dataset, randomx.FlagJIT)
 	if err != nil {
 		panic(err)
 	}
-	defer randomx.ReleaseCache(cache)
-
-	randomx.InitCache(cache, job.PrevBlockHash)
-	ds, err := randomx.AllocDataset(randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-	defer randomx.ReleaseDataset(ds)
-
-	count := randomx.DatasetItemCount()
-	var wg sync.WaitGroup
-	var workerNum = uint32(runtime.NumCPU())
-	for i := uint32(0); i < workerNum; i++ {
-		wg.Add(1)
-		a := (count * i) / workerNum
-		b := (count * (i + 1)) / workerNum
-		go func() {
-			defer wg.Done()
-			randomx.InitDataset(ds, cache, a, b-a)
-		}()
-	}
-	wg.Wait()
-
-	vm, err := randomx.CreateVM(cache, ds, randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-	defer randomx.DestroyVM(vm)
 
 	for {
 		select {

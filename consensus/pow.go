@@ -26,7 +26,7 @@ func (pow *PoWork) MiningOn() {
 	}
 }
 
-// getBlockTemplate is a generator of new block. But the generated block has no nonce.
+// GetBlockTemplate is a generator of new block. But the generated block has no nonce.
 func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	pow.RLock()
 	defer pow.RUnlock()
