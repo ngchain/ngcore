@@ -78,7 +78,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash := block.Hash()
-	log.Infof("Mined a new Block: %x@%d", hash, block.GetHeight())
+	log.Warnf("Mined a new Block: %x@%d", hash, block.GetHeight())
 
 	err = storage.GetChain().PutNewBlock(block) // chain will verify the block
 	if err != nil {

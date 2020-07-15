@@ -142,7 +142,7 @@ func (s *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = logoutTx.CheckLogout(utils.Bytes2PublicKey(convener.Owner)); err != nil {
+	if err = logoutTx.CheckLogout(ngtypes.Address(convener.Owner).PubKey()); err != nil {
 		return err
 	}
 
@@ -174,7 +174,7 @@ func (s *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = transactionTx.CheckTransaction(utils.Bytes2PublicKey(convener.Owner)); err != nil {
+	if err = transactionTx.CheckTransaction(ngtypes.Address(convener.Owner).PubKey()); err != nil {
 		return err
 	}
 
@@ -206,7 +206,7 @@ func (s *State) CheckAssign(assignTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = assignTx.CheckAssign(utils.Bytes2PublicKey(convener.Owner)); err != nil {
+	if err = assignTx.CheckAssign(ngtypes.Address(convener.Owner).PubKey()); err != nil {
 		return err
 	}
 
@@ -238,7 +238,7 @@ func (s *State) CheckAppend(appendTx *ngtypes.Tx) error {
 	}
 
 	// check structure and key
-	if err = appendTx.CheckAppend(utils.Bytes2PublicKey(convener.Owner)); err != nil {
+	if err = appendTx.CheckAppend(ngtypes.Address(convener.Owner).PubKey()); err != nil {
 		return err
 	}
 

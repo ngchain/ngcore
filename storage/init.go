@@ -12,7 +12,7 @@ import (
 // InitWithGenesis will initialize the chain with genesis block & vault.
 func (c *Chain) InitWithGenesis() {
 	if !c.hasGenesisBlock() {
-		log.Infof("initializing with genesis block")
+		log.Warnf("initializing with genesis block")
 
 		block := ngtypes.GetGenesisBlock()
 

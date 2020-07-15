@@ -25,6 +25,8 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHeight", s.getBlockByHeightFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHash", s.getBlockByHashFunc)
 
+	httpHandler.RegisterJsonRpcHandleFunc("getTxByHash", s.getTxByHashFunc)
+
 	// state
 	httpHandler.RegisterJsonRpcHandleFunc("sendTx", s.sendTxFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("signTx", s.signTxFunc)

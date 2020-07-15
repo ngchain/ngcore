@@ -147,8 +147,19 @@ func (s *State) handleRegister(tx *ngtypes.Tx) (err error) {
 }
 
 func (s *State) handleLogout(tx *ngtypes.Tx) (err error) {
-	publicKey := ngtypes.Address(tx.GetParticipants()[0]).PubKey()
-	if err = tx.Verify(publicKey); err != nil {
+	rawConvener, exists := s.accounts[tx.GetConvener()]
+	if !exists {
+		return fmt.Errorf("account does not exist")
+	}
+
+	convener := new(ngtypes.Account)
+	err = utils.Proto.Unmarshal(rawConvener, convener)
+	if err != nil {
+		return err
+	}
+
+	pk := ngtypes.Address(convener.Owner).PubKey()
+	if err = tx.Verify(pk); err != nil {
 		return err
 	}
 

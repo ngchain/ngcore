@@ -75,7 +75,7 @@ func NewLocalNode(port int) *LocalNode {
 
 	// init
 	for _, addr := range localHost.Addrs() {
-		log.Infof("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
+		log.Warnf("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
 	}
 
 	mdns, err := discovery.NewMdnsService(ctx, localHost, time.Minute, "") // using ipfs network

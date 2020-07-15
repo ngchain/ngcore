@@ -69,9 +69,9 @@ var miningFlag = &cli.IntFlag{
 
 var logLevelFlag = &cli.StringFlag{
 	Name:  "log-level",
-	Value: "INFO",
+	Value: "WARNING",
 	Usage: "Enable displaying logs which are equal or higher to the level. " +
-		"Values can be ERROR, WARNING, NOTICE, INFO or DEBUG",
+		"Values can be ERROR, WARNING, INFO or DEBUG",
 }
 
 var inMemFlag = &cli.BoolFlag{

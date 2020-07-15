@@ -19,7 +19,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.3.2
 	github.com/libp2p/go-libp2p-yamux v0.2.8
 	github.com/libp2p/go-tcp-transport v0.2.0
-	github.com/maoxs2/go-jsonrpc2 v0.0.0-20200326130745-a6a35812420f
+	github.com/maoxs2/go-jsonrpc2 v0.0.0-20200715024857-a413889804df
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/ngchain/go-randomx v0.1.5
