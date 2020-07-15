@@ -36,7 +36,7 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 
 	err := c.db.Update(func(txn *badger.Txn) error {
 		raw, _ := utils.Proto.Marshal(block)
-		log.Infof("putting block@%d: %x", block.Height, hash)
+		log.Debugf("putting block@%d: %x", block.Height, hash)
 
 		// put block hash & height
 		err := txn.Set(append(blockPrefix, hash...), raw)

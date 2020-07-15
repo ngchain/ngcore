@@ -22,15 +22,15 @@ require (
 	github.com/maoxs2/go-jsonrpc2 v0.0.0-20200326130745-a6a35812420f
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.2.2
-	github.com/ngchain/go-randomx v0.1.4
+	github.com/ngchain/go-randomx v0.1.5
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/urfave/cli/v2 v2.2.0
 	go.uber.org/atomic v1.6.0
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
-	golang.org/x/tools v0.0.0-20200706234117-b22de6825cf7 // indirect
+	golang.org/x/tools v0.0.0-20200714190737-9048b464a08d // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

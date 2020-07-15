@@ -22,7 +22,7 @@ func (pow *PoWork) MiningOff() {
 // MiningOn resumes the pow consensus.
 func (pow *PoWork) MiningOn() {
 	if pow.minerMod != nil {
-		pow.minerMod.start(pow.GetBlockTemplate())
+		go pow.minerMod.start(pow.GetBlockTemplate())
 	}
 }
 

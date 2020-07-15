@@ -25,9 +25,6 @@ type minerModule struct {
 
 	abortCh      chan struct{}
 	FoundBlockCh chan *ngtypes.Block
-
-	cache   randomx.Cache
-	dataset randomx.Dataset
 }
 
 // newMinerModule will create a local miner which works in *threadNum* threads.
@@ -85,13 +82,13 @@ func (m *minerModule) start(job *ngtypes.Block) {
 	m.abortCh = make(chan struct{})
 	once := new(sync.Once)
 
-	cache, err := randomx.AllocCache(randomx.FlagJIT)
+	cache, err := randomx.AllocCache(randomx.FlagDefault)
 	if err != nil {
 		panic(err)
 	}
 
 	randomx.InitCache(cache, job.PrevBlockHash)
-	dataset, err := randomx.AllocDataset(randomx.FlagJIT)
+	dataset, err := randomx.AllocDataset(randomx.FlagDefault)
 	if err != nil {
 		panic(err)
 	}
@@ -110,12 +107,52 @@ func (m *minerModule) start(job *ngtypes.Block) {
 	}
 	wg.Wait()
 
-	m.cache = cache
-	m.dataset = dataset
-
+	var miningWG sync.WaitGroup
 	for threadID := 0; threadID < m.threadNum; threadID++ {
-		go m.mine(threadID, job, once)
+		miningWG.Add(1)
+		go func(threadID int) {
+			defer miningWG.Done()
+			diff := new(big.Int).SetBytes(job.GetDifficulty())
+			target := new(big.Int).Div(ngtypes.MaxTarget, diff)
+
+			vm, err := randomx.CreateVM(cache, dataset, randomx.FlagDefault)
+			if err != nil {
+				panic(err)
+			}
+
+			for {
+				select {
+				case <-m.abortCh:
+					// Mining terminated, update stats and abort
+					return
+				default:
+					if !job.IsUnsealing() {
+						continue
+					}
+
+					// Compute the PoW value of this nonce
+					nonce := make([]byte, ngtypes.NonceSize)
+					fastrand.Read(nonce)
+
+					hash := randomx.CalculateHash(vm, job.GetPoWRawHeader(nonce))
+
+					m.hashes.Inc()
+
+					if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
+						go once.Do(func() {
+							m.found(threadID, job, nonce)
+						})
+
+						return
+					}
+				}
+			}
+		}(threadID)
 	}
+	miningWG.Wait()
+
+	randomx.ReleaseCache(cache)
+	randomx.ReleaseDataset(dataset)
 }
 
 // stop will stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
@@ -128,48 +165,7 @@ func (m *minerModule) stop() {
 	close(m.abortCh)
 	<-m.abortCh // wait
 
-	randomx.ReleaseCache(m.cache)
-	randomx.ReleaseDataset(m.dataset)
-
 	log.Info("mining mode off")
-}
-
-func (m *minerModule) mine(threadID int, job *ngtypes.Block, once *sync.Once) {
-	diff := new(big.Int).SetBytes(job.GetDifficulty())
-	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
-
-	vm, err := randomx.CreateVM(m.cache, m.dataset, randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-
-	for {
-		select {
-		case <-m.abortCh:
-			// Mining terminated, update stats and abort
-			return
-		default:
-			if !job.IsUnsealing() {
-				continue
-			}
-
-			// Compute the PoW value of this nonce
-			nonce := make([]byte, ngtypes.NonceSize)
-			fastrand.Read(nonce)
-
-			hash := randomx.CalculateHash(vm, job.GetPoWRawHeader(nonce))
-
-			m.hashes.Inc()
-
-			if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
-				go once.Do(func() {
-					m.found(threadID, job, nonce)
-				})
-
-				return
-			}
-		}
-	}
 }
 
 func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
@@ -188,5 +184,5 @@ func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
 		log.Warn(err) // may have "has block in same height" error here
 	}
 	// assign new job
-	pow.minerMod.start(pow.GetBlockTemplate())
+	m.start(pow.GetBlockTemplate())
 }
