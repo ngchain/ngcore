@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/ngp2p"
@@ -36,8 +35,6 @@ func (sync *syncModule) bootstrap() {
 		} else {
 			okNum++
 		}
-
-		peerStore.AddAddr(p.ID, addr, peerstore.PermanentAddrTTL)
 	}
 
 	if okNum == 0 {

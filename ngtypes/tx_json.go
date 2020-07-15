@@ -10,7 +10,7 @@ import (
 type jsonTx struct {
 	Network       int        `json:"network"`
 	Type          int        `json:"type"`
-	PrevBlockHash string     `json:"prev_block_hash"`
+	PrevBlockHash string     `json:"prevBlockHash"`
 	Convener      uint64     `json:"convener"`
 	Participants  []Address  `json:"participants"`
 	Fee           *big.Int   `json:"fee"`

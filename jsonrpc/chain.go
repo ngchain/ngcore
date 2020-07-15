@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 
@@ -122,7 +123,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 
 	tx, err := storage.GetChain().GetTxByHash(hash)
-	if err != nil {
+	if err != nil && err != badger.ErrKeyNotFound {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -143,7 +144,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	exists, tx := pool.IsInPool(hash)
 	if exists && tx != nil {
 		raw, err := utils.JSON.Marshal(&getTxByHashReply{
-			OnChain: true,
+			OnChain: false,
 			Tx:      tx,
 		})
 		if err != nil {

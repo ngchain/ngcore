@@ -37,6 +37,7 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler.RegisterJsonRpcHandleFunc("genAppend", s.genAppendFunc)
 
 	httpHandler.RegisterJsonRpcHandleFunc("getAccountsByAddress", s.getAccountsByAddressFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getAccountByNum", s.getAccountByNumFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBalanceByNum", s.getBalanceByNumFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.getBalanceByAddressFunc)
 
