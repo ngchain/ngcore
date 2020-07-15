@@ -1,5 +1,12 @@
 # ChangeLog
 
+## v0.0.15
+
+- DONE: optimize built-in miner
+- DONE: avoid mem leak
+- DONE: fix tx check
+- DONE: pass ngwallet basic test
+
 ## v0.0.14
 
 - DONE: change PoW algorithm from cryptonight-go to RandomNG
