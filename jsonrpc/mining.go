@@ -47,7 +47,7 @@ type getWorkReply struct {
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	blockTemplate := consensus.GetPoWConsensus().GetBlockTemplate()
 
-	rawTxs, err := utils.Proto.Marshal(blockTemplate)
+	rawBlock, err := utils.Proto.Marshal(blockTemplate)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -55,7 +55,7 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 	var reply = getWorkReply{
 		Seed:      hex.EncodeToString(blockTemplate.GetPrevBlockHash()),
 		RawHeader: hex.EncodeToString(blockTemplate.GetPoWRawHeader(nil)),
-		RawBlock:  hex.EncodeToString(rawTxs),
+		RawBlock:  hex.EncodeToString(rawBlock),
 	}
 
 	raw, err := utils.JSON.Marshal(reply)
