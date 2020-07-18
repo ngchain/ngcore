@@ -86,6 +86,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	logging.SetAllLoggers(logLevel)
+	logging.SetLogLevel("pubsub", "ERROR")
 
 	isBootstrapNode := c.Bool("bootstrap")
 	mining := c.Int("mining")

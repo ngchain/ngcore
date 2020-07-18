@@ -68,7 +68,7 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 // PrintAddress will print the privateKey's **address** to the console.
 func PrintAddress(privateKey *secp256k1.PrivateKey) {
 	address := ngtypes.NewAddress(privateKey)
-	log.Warnf("Address is bs58: %s\n", base58.FastBase58Encoding(address))
+	log.Warnf("Address is: %s\n", base58.FastBase58Encoding(address))
 }
 
 // PrintKeyPair will print the **privateKey and its publicKey** to the console.

@@ -3,20 +3,19 @@ package ngp2p
 import (
 	"context"
 	"fmt"
-	"time"
 
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-tcp-transport"
 	"github.com/ngchain/ngcore/ngtypes"
 )
+
+var log = logging.Logger("ngp2p")
 
 // LocalNode is the local host on p2p network
 type LocalNode struct {
@@ -50,22 +49,13 @@ func NewLocalNode(port int) *LocalNode {
 		libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
 	)
 
-	var p2pDHT *dht.IpfsDHT
-
-	newDHT := func(h host.Host) (routing.PeerRouting, error) {
-		var err error
-		p2pDHT, err = dht.New(ctx, h)
-
-		return p2pDHT, err
-	}
-
 	localHost, err := libp2p.New(
 		ctx,
 		transports,
 		listenAddrs,
 		muxers,
 		libp2p.Identity(priv),
-		libp2p.Routing(newDHT),
+		getPublicRouter(),
 		libp2p.NATPortMap(),
 		libp2p.EnableAutoRelay(),
 	)
@@ -78,23 +68,11 @@ func NewLocalNode(port int) *LocalNode {
 		log.Warnf("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
 	}
 
-	mdns, err := discovery.NewMdnsService(ctx, localHost, time.Minute, "") // using ipfs network
-	if err != nil {
-		panic(err)
-	}
-
-	peerInfoCh := make(chan peer.AddrInfo)
-
-	mdns.RegisterNotifee(
-		&mdnsNotifee{
-			h:          localHost,
-			PeerInfoCh: peerInfoCh,
-		},
-	)
+	initMDNS(ctx, localHost)
 
 	localNode = &LocalNode{
 		// sub modules
-		Host:              localHost,
+		Host:              rhost.Wrap(localHost, p2pDHT),
 		wiredProtocol:     nil,
 		broadcastProtocol: nil,
 
@@ -106,23 +84,7 @@ func NewLocalNode(port int) *LocalNode {
 	localNode.broadcastProtocol = registerBroadcaster(localNode)
 	localNode.wiredProtocol = registerWired(localNode)
 
-	// mdns seeding
-	go func() {
-		for {
-			pi := <-peerInfoCh // will block until we discover a peer
-			log.Infof("Found peer:", pi, ", connecting")
-
-			if err = localNode.Connect(ctx, pi); err != nil {
-				log.Errorf("Connection failed: %s", err)
-				continue
-			}
-		}
-	}()
-
-	err = p2pDHT.Bootstrap(ctx)
-	if err != nil {
-		panic(err)
-	}
+	activeDHT(ctx, p2pDHT, localNode)
 
 	return localNode
 }

@@ -23,7 +23,7 @@ type WasmVM struct {
 // NewWasmVM creates a new Wasm
 func NewWasmVM(contract, context []byte) (*WasmVM, error) {
 	store := wasmtime.NewStore(engine)
-	module, err := wasmtime.NewModule(store, contract)
+	module, err := wasmtime.NewModule(engine, contract)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (vm *WasmVM) GetModule() *wasmtime.Module {
 const MaxLen = 1 << 32 // 2GB
 
 func (vm *WasmVM) Instantiate(imports ...*wasmtime.Extern) error {
-	instance, err := wasmtime.NewInstance(vm.module, imports)
+	instance, err := wasmtime.NewInstance(vm.store, vm.module, imports)
 	if err != nil {
 		return err
 	}

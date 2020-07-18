@@ -14,7 +14,7 @@ import (
 
 func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream) {
 	if len(from) == 0 {
-		log.Errorf("failed to send getChain: from is nil")
+		log.Debugf("failed to send getChain: from is nil")
 
 		return nil, nil
 	}
@@ -24,7 +24,7 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 		To:   to,
 	})
 	if err != nil {
-		log.Error("failed to sign pb data")
+		log.Debugf("failed to sign pb data")
 		return nil, nil
 	}
 
@@ -39,7 +39,7 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 	// sign the data
 	signature, err := signMessage(w.node.PrivKey(), req)
 	if err != nil {
-		log.Error("failed to sign pb data")
+		log.Debugf("failed to sign pb data")
 		return nil, nil
 	}
 
@@ -48,7 +48,7 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 
 	stream, err = w.node.sendProtoMessage(peerID, req)
 	if err != nil {
-		log.Error(err)
+		log.Debug(err)
 		return nil, nil
 	}
 
@@ -91,7 +91,7 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 		nextHeight := cur.GetHeight() + 1
 		cur, err = storage.GetChain().GetBlockByHeight(nextHeight)
 		if err != nil {
-			log.Errorf("local chain is missing block@%d: %s", nextHeight, err)
+			log.Debugf("local chain is missing block@%d: %s", nextHeight, err)
 			break
 		}
 

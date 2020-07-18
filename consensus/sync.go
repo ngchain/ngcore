@@ -56,7 +56,8 @@ func (sync *syncModule) loop() {
 
 		// do get status
 		for _, id := range ngp2p.GetLocalNode().Peerstore().Peers() {
-			if id != ngp2p.GetLocalNode().ID() {
+			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, ngp2p.WiredProtocol)
+			if p == ngp2p.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
 				err := sync.getRemoteStatus(id)
 				if err != nil {
 					log.Warn(err)

@@ -18,7 +18,7 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 		CheckpointActualDiff: checkpointActualDiff,
 	})
 	if err != nil {
-		log.Errorf("failed to sign pb data")
+		log.Debugf("failed to sign pb data")
 		return nil, nil
 	}
 
@@ -33,7 +33,7 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 	// sign the data
 	signature, err := signMessage(w.node.PrivKey(), req)
 	if err != nil {
-		log.Errorf("failed to sign pb data")
+		log.Debugf("failed to sign pb data")
 		return nil, nil
 	}
 
@@ -44,7 +44,7 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 
 	stream, err = w.node.sendProtoMessage(peerID, req)
 	if err != nil {
-		log.Errorf("failed sending ping to: %s: %s", peerID, err)
+		log.Debugf("failed sending ping to: %s: %s", peerID, err)
 		return nil, nil
 	}
 

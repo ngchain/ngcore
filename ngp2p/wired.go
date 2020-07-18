@@ -10,7 +10,7 @@ import (
 // pattern: /ngp2p/protocol-name/version
 const (
 	protocolVersion = "0.0.2"
-	channal         = "/ngp2p/wired/" + protocolVersion
+	WiredProtocol         = "/ngp2p/wired/" + protocolVersion
 )
 
 // Wired type
@@ -23,7 +23,7 @@ func registerWired(node *LocalNode) *wiredProtocol {
 		node: node,
 	}
 
-	w.node.SetStreamHandler(channal, func(stream network.Stream) {
+	w.node.SetStreamHandler(WiredProtocol, func(stream network.Stream) {
 		log.Debugf("handling new stream from %s", stream.Conn().RemotePeer())
 		go w.handleStream(stream)
 	})

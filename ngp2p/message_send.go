@@ -18,7 +18,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, data proto.Message) (networ
 		return nil, err
 	}
 
-	stream, err := n.NewStream(context.Background(), peerID, channal)
+	stream, err := n.NewStream(context.Background(), peerID, WiredProtocol)
 	if err != nil {
 		return nil, err
 	}

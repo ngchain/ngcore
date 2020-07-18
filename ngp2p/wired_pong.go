@@ -29,7 +29,7 @@ func (w *wiredProtocol) pong(uuid []byte, stream network.Stream, origin, latest 
 	// sign the data
 	signature, err := signMessage(w.node.PrivKey(), resp)
 	if err != nil {
-		log.Error("failed to sign response")
+		log.Debugf("failed to sign response")
 		return false
 	}
 

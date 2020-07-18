@@ -21,7 +21,7 @@ func (w *wiredProtocol) chain(uuid []byte, stream network.Stream, blocks ...*ngt
 		Blocks: blocks,
 	})
 	if err != nil {
-		log.Errorf("failed to sign pb data: %s", err)
+		log.Debugf("failed to sign pb data: %s", err)
 		return false
 	}
 
@@ -34,7 +34,7 @@ func (w *wiredProtocol) chain(uuid []byte, stream network.Stream, blocks ...*ngt
 	// sign the data
 	signature, err := signMessage(w.node.PrivKey(), resp)
 	if err != nil {
-		log.Errorf("failed to sign pb data")
+		log.Debugf("failed to sign pb data")
 		return false
 	}
 
