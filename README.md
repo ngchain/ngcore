@@ -44,10 +44,6 @@ https://goreportcard.com/report/github.com/ngchain/ngcore)
 
 go version >= 1.14
 
-Or using bazel build tool if you want
-
-Linux or WSL on Windows
-
 ## Build
 
 ### Go
@@ -56,21 +52,6 @@ Linux or WSL on Windows
 # go will automatically sync the dependencies
 # GCC is required because of high performance db & vm
 go build ./cmd/ngcore
-```
-
-### Bazel
-
-Bazel works better in linux than windows (personal experience)
-
-```bash
-# BUILD.bazel files are not always updated with codes, it would be better update them (with gazelle)
-bazel run //:gazelle -- -go_prefix github.com/ngchain/ngcore
-
-# update repos from go.mod
-bazel run //:gazelle -- update-repos -from_file=go.mod
-
-# build the ngcore
-bazel build //cmd/ngcore
 ```
 
 ## Usage

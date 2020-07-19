@@ -23,7 +23,7 @@ require (
 	github.com/maoxs2/go-jsonrpc2 v0.0.0-20200715024857-a413889804df
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.2.2
-	github.com/ngchain/go-randomx v0.1.5
+	github.com/ngchain/go-randomx v0.1.6
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/urfave/cli/v2 v2.2.0
