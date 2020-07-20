@@ -111,6 +111,16 @@ jobs:
         name: tarballs
         path: dist
 
+    - name: Calculate tag name
+      run: |
+        name=dev
+        if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          name=${GITHUB_REF:10}
+        fi
+        echo ::set-output name=val::$name
+        echo ::set-env name=TAG::$name
+      id: tagname
+
     # ... and if this was an actual push (tag or `master`) then we publish a
     # new release. This'll automatically publish a tag release or update `dev`
     # with this `sha`
