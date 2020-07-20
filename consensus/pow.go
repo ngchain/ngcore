@@ -82,7 +82,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 
 	err = storage.GetChain().PutNewBlock(block) // chain will verify the block
 	if err != nil {
-		return fmt.Errorf("failed put new block into chain %s", err)
+		return fmt.Errorf("failed put new block into chain: %s", err)
 	}
 
 	err = ngp2p.GetLocalNode().BroadcastBlock(block)

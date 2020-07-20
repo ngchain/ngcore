@@ -25,7 +25,8 @@ func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 					return nil
 				}
 
-				return fmt.Errorf("has block in same height: %s", b)
+				jsonBlock, _ := b.MarshalJSON()
+				return fmt.Errorf("storage already has a block in same height: %s", string(jsonBlock))
 			}
 		}
 
