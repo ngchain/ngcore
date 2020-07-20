@@ -21,5 +21,5 @@ mktarball() {
 bin_pkgname=randomx-$platform
 mkdir tmp/$bin_pkgname
 
-mv c-api-$platform/* tmp/$bin_pkgname
+mv ngcore-$platform/* tmp/$bin_pkgname
 mktarball $bin_pkgname
