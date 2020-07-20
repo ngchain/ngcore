@@ -22,7 +22,6 @@ fast ignition, free account state and so on. So It's safe and robust like bitcoi
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](
 https://goreportcard.com/report/github.com/ngchain/ngcore)
-[![CircleCI](https://circleci.com/gh/ngchain/ngcore.svg?style=svg)](https://circleci.com/gh/ngchain/ngcore)
 ![GitHub](https://img.shields.io/github/license/ngchain/ngcore)
 ![GitHub last commit](https://img.shields.io/github/last-commit/ngchain/ngcore)
 
