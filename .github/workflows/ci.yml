@@ -1,4 +1,4 @@
-name: Github Actions CI for building ngcore
+name: CI
 on:
   push:
     branches: [master]
@@ -47,6 +47,12 @@ jobs:
         upcase=$(echo ${{ matrix.target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
       if: matrix.target != '' && matrix.os == 'ubuntu-latest'
 
+    - name: Analysis ngcore
+      run: go vet ./...
+
+    - name: Test ngcore
+      run: go test ./...
+
     - name: Build ngcore
       run: go build ./cmd/ngcore
 
@@ -55,7 +61,7 @@ jobs:
     # something that we'll upload from this action.
     - run: mkdir dist
 
-    # Move `librandomx.a` to dist folder
+    # Move `ngcore` or `ngcore.exe` to dist folder
     - run: cp ngcore* dist
 
     - uses: actions/upload-artifact@v1
