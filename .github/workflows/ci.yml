@@ -17,7 +17,7 @@ jobs:
           os: ubuntu-latest
         - build: x86_64-macos
           os: macos-latest
-        - build: x86_64-mingw
+        - build: x86_64-windows
           os: windows-latest
           target: x86_64-pc-windows-gnu
         - build: aarch64-linux
@@ -95,15 +95,15 @@ jobs:
     - name: Download x86_64 Windows MinGW binaries
       uses: actions/download-artifact@v1
       with:
-        name: ngcore-x86_64-mingw
+        name: ngcore-x86_64-windows
 
     # Assemble all the build artifacts into tarballs and zip archives.
     - name: Assemble tarballs
       run: |
-        bash ./tools/build-tarballs.sh x86_64-linux
-        bash ./tools/build-tarballs.sh x86_64-mingw zip
-        bash ./tools/build-tarballs.sh x86_64-macos
-        bash ./tools/build-tarballs.sh aarch64-linux
+        bash ./.github/tools/build-tarballs.sh x86_64-linux
+        bash ./.github/tools/build-tarballs.sh x86_64-windows zip
+        bash ./.github/tools/build-tarballs.sh x86_64-macos
+        bash ./.github/tools/build-tarballs.sh aarch64-linux
     # Upload all assembled tarballs as an artifact of the github action run, so
     # that way even PRs can inspect the output.
     - uses: actions/upload-artifact@v1

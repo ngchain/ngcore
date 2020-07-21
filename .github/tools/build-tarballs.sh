@@ -18,7 +18,7 @@ mktarball() {
 }
 
 # Create the main tarball of binaries
-bin_pkgname=randomx-$platform
+bin_pkgname=ngcore-$platform
 mkdir tmp/$bin_pkgname
 
 mv ngcore-$platform/* tmp/$bin_pkgname
