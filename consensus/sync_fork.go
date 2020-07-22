@@ -24,8 +24,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 	pow.Lock()
 	defer pow.Unlock()
 
-	log.Warnf("start forking chain from remote node %s", record.id)
-
+	log.Warnf("start forking chain from remote node %s, height: %d", record.id, record.latest)
 	chain, err := mod.getBlocksSinceForkPoint(record)
 	if err != nil {
 		return err
@@ -46,6 +45,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 		return err
 	}
 
+	log.Warn("fork finished")
 	return nil
 }
 
