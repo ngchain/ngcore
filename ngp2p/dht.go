@@ -14,8 +14,6 @@ import (
 	"go.uber.org/atomic"
 )
 
-const DHTProtocolExtension = "/ngp2p/dht/" + protocolVersion
-
 var p2pDHT *dht.IpfsDHT
 
 func getPublicRouter() libp2p.Option {
