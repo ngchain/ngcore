@@ -11,6 +11,7 @@ import (
 	"github.com/ngchain/ngcore/storage"
 )
 
+// syncModule is a submodule to the pow, managing the sync of blocks
 type syncModule struct {
 	sync.RWMutex
 	pow *PoWork
@@ -18,6 +19,7 @@ type syncModule struct {
 	store map[peer.ID]*remoteRecord
 }
 
+// newSyncModule creates a new sync module
 func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	syncMod := &syncModule{
 		RWMutex: sync.RWMutex{},
@@ -32,21 +34,14 @@ func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	return syncMod
 }
 
+// put the peer and its remote status into mod
 func (mod *syncModule) putRemote(id peer.ID, remote *remoteRecord) {
 	mod.Lock()
 	defer mod.Unlock()
 	mod.store[id] = remote
 }
 
-func (mod *syncModule) getRemote(id peer.ID) *remoteRecord {
-	record, exists := mod.store[id]
-	if !exists {
-		return nil
-	}
-
-	return record
-}
-
+// main loop of sync module
 func (mod *syncModule) loop() {
 	ticker := time.NewTicker(time.Minute)
 
@@ -71,6 +66,7 @@ func (mod *syncModule) loop() {
 			if err != nil {
 				log.Warnf("forking is failed: %s", err)
 			}
+			continue
 		}
 
 		// do sync check

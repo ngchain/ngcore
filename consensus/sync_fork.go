@@ -65,6 +65,7 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 			blockHashes[height-(localHeight-ngp2p.MaxBlocks)] = b.Hash()
 		}
 
+		// requires protocol v0.0.3
 		chain, err := mod.getRemoteChain(record.id, blockHashes, nil)
 		if err != nil {
 			return nil, err
