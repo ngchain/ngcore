@@ -25,21 +25,12 @@ func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	return nil
-}
-
-// forceApplyBlocks checks the block and then calls ngchain's PutNewBlock, after which update the state
-func (pow *PoWork) forceApplyBlocks(blocks []*ngtypes.Block) error {
-	for i := 0; i < len(blocks); i++ {
-		block := blocks[i]
-		if err := pow.checkBlock(block); err != nil {
-			return err
-		}
-
-		err := storage.GetChain().ForcePutNewBlock(block)
-		if err != nil {
-			return err
-		}
+	//TODO update miner work
+	if pow.minerMod != nil {
+		go func() {
+			pow.minerMod.stop()
+			pow.minerMod.start(pow.GetBlockTemplate())
+		}()
 	}
 
 	return nil

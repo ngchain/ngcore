@@ -50,6 +50,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 	return nil
 }
 
+// getBlocksSinceForkPoint gets the fork point by comparing hashes between local and remote
 func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
 	blockHashes := make([][]byte, ngp2p.MaxBlocks)
@@ -76,4 +77,21 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 	}
 
 	return blocks, nil
+}
+
+// forceApplyBlocks checks the block and then calls ngchain's PutNewBlock, after which update the state
+func (pow *PoWork) forceApplyBlocks(blocks []*ngtypes.Block) error {
+	for i := 0; i < len(blocks); i++ {
+		block := blocks[i]
+		if err := pow.checkBlock(block); err != nil {
+			return err
+		}
+
+		err := storage.GetChain().ForcePutNewBlock(block)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
