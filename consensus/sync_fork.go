@@ -30,7 +30,8 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 		return err
 	}
 
-	err = mod.pow.ForceApplyBlocks(chain)
+	log.Info("have got the fork point: block@%d", chain[0].Height)
+	err = mod.pow.forceApplyBlocks(chain)
 	if err != nil {
 		return err
 	}

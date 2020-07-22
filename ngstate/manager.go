@@ -1,8 +1,9 @@
 package ngstate
 
 import (
-	"github.com/ngchain/ngcore/storage"
 	"sync"
+
+	"github.com/ngchain/ngcore/storage"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -105,6 +106,7 @@ func (m *Manager) RegenerateState() error {
 	m.Lock()
 	defer m.Unlock()
 
+	log.Warn("regenerating local state")
 	chain := storage.GetChain()
 	newState := &State{
 		prevBlockHash: ngtypes.GetGenesisBlockHash(),

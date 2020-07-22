@@ -28,11 +28,8 @@ func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 	return nil
 }
 
-// ForceApplyBlocksAndRegenerateState checks the block and then calls ngchain's PutNewBlock, after which update the state
-func (pow *PoWork) ForceApplyBlocks(blocks []*ngtypes.Block) error {
-	pow.Lock()
-	defer pow.Unlock()
-
+// forceApplyBlocks checks the block and then calls ngchain's PutNewBlock, after which update the state
+func (pow *PoWork) forceApplyBlocks(blocks []*ngtypes.Block) error {
 	for i := 0; i < len(blocks); i++ {
 		block := blocks[i]
 		if err := pow.checkBlock(block); err != nil {
