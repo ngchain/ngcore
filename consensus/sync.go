@@ -13,7 +13,7 @@ import (
 
 type syncModule struct {
 	sync.RWMutex
-	*PoWork
+	pow *PoWork
 
 	store map[peer.ID]*remoteRecord
 }
@@ -21,7 +21,7 @@ type syncModule struct {
 func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	syncMod := &syncModule{
 		RWMutex: sync.RWMutex{},
-		PoWork:  pow,
+		pow:     pow,
 		store:   make(map[peer.ID]*remoteRecord),
 	}
 
@@ -32,14 +32,14 @@ func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	return syncMod
 }
 
-func (sync *syncModule) putRemote(id peer.ID, remote *remoteRecord) {
-	sync.Lock()
-	defer sync.Unlock()
-	sync.store[id] = remote
+func (mod *syncModule) putRemote(id peer.ID, remote *remoteRecord) {
+	mod.Lock()
+	defer mod.Unlock()
+	mod.store[id] = remote
 }
 
-func (sync *syncModule) getRemote(id peer.ID) *remoteRecord {
-	record, exists := sync.store[id]
+func (mod *syncModule) getRemote(id peer.ID) *remoteRecord {
+	record, exists := mod.store[id]
 	if !exists {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (sync *syncModule) getRemote(id peer.ID) *remoteRecord {
 	return record
 }
 
-func (sync *syncModule) loop() {
+func (mod *syncModule) loop() {
 	ticker := time.NewTicker(time.Minute)
 
 	for {
@@ -58,7 +58,7 @@ func (sync *syncModule) loop() {
 		for _, id := range ngp2p.GetLocalNode().Peerstore().Peers() {
 			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, ngp2p.WiredProtocol)
 			if p == ngp2p.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
-				err := sync.getRemoteStatus(id)
+				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Warn(err)
 				}
@@ -66,8 +66,8 @@ func (sync *syncModule) loop() {
 		}
 
 		// do fork check
-		if sync.detectFork() {
-			err := sync.doFork()
+		if shouldFork, r := mod.detectFork(); shouldFork {
+			err := mod.doFork(r) // temporarily stuck here
 			if err != nil {
 				log.Warnf("forking is failed: %s", err)
 			}
@@ -75,10 +75,10 @@ func (sync *syncModule) loop() {
 
 		// do sync check
 		// convert map to slice first
-		slice := make([]*remoteRecord, len(sync.store))
+		slice := make([]*remoteRecord, len(mod.store))
 		i := 0
 
-		for _, v := range sync.store {
+		for _, v := range mod.store {
 			slice[i] = v
 			i++
 		}
@@ -89,7 +89,7 @@ func (sync *syncModule) loop() {
 
 		for _, r := range slice {
 			if r.shouldSync() {
-				err := sync.doSync(r)
+				err := mod.doSync(r)
 				if err != nil {
 					log.Warnf("do sync failed: %s", err)
 				}
@@ -97,19 +97,19 @@ func (sync *syncModule) loop() {
 		}
 
 		// after sync
-		sync.PoWork.MiningOn()
+		mod.pow.MiningOn()
 	}
 }
 
-func (sync *syncModule) doSync(record *remoteRecord) error {
-	sync.Lock()
-	defer sync.Unlock()
+func (mod *syncModule) doSync(record *remoteRecord) error {
+	mod.Lock()
+	defer mod.Unlock()
 
 	log.Warnf("start syncing with remote node %s", record.id)
 
 	// get chain
 	for storage.GetChain().GetLatestBlockHeight() < record.latest {
-		chain, err := sync.getRemoteChain(record.id)
+		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}

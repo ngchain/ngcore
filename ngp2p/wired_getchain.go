@@ -66,24 +66,35 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 		return
 	}
 
-	lastFromHash := make([]byte, ngtypes.HashSize)
+	var lastFromHash []byte
 
 	if len(getChainPayload.GetFrom()) == 0 {
-		copy(lastFromHash, ngtypes.GetGenesisBlockHash())
+		lastFromHash = ngtypes.GetGenesisBlockHash()
 	} else {
-		copy(lastFromHash, getChainPayload.GetFrom()[len(getChainPayload.GetFrom())-1])
+		// do hashes check first
+		for i := 0; i < len(getChainPayload.GetFrom()); i++ {
+			_, err := storage.GetChain().GetBlockByHash(getChainPayload.GetFrom()[i])
+
+			if err != nil {
+				break
+			}
+
+			// finally fetch blocks since the last common block hash
+			lastFromHash = getChainPayload.GetFrom()[i]
+		}
 	}
 
 	log.Debugf("Received getchain request from %s. Requested %x to %x", stream.Conn().RemotePeer(), lastFromHash, getChainPayload.GetTo())
 
+	// dont input the same block
 	cur, err := storage.GetChain().GetBlockByHash(lastFromHash)
 	if err != nil {
 		w.reject(msg.Header.MessageId, stream, err)
 		return
 	}
 
-	blocks := []*ngtypes.Block{cur}
-	for i := 0; i < 1000; i++ {
+	blocks := make([]*ngtypes.Block, 0)
+	for i := 0; i < MaxBlocks; i++ {
 		if bytes.Equal(cur.Hash(), getChainPayload.GetTo()) {
 			break
 		}

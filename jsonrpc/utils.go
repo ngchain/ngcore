@@ -2,13 +2,13 @@ package jsonrpc
 
 // some utils for wallet clients
 
-type getSchnorrPublicKeyParams struct {
-	PrivateKeys []string
-}
-
-type getSchnorrPublicKeyReply struct {
-	PublicKey string
-}
+//type getSchnorrPublicKeyParams struct {
+//	PrivateKeys []string
+//}
+//
+//type getSchnorrPublicKeyReply struct {
+//	PublicKey string
+//}
 
 // getSchnorrPublicKeyFunc helps client to get the schnorr publickey of private keys
 // func (s *Server) getSchnorrPublicKeyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {

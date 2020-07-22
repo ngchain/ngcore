@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
-	sync "sync"
+	"sync"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
