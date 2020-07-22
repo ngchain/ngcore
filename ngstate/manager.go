@@ -3,6 +3,8 @@ package ngstate
 import (
 	"sync"
 
+	"github.com/ngchain/ngcore/storage"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -28,13 +30,13 @@ func GetStateManager() *Manager {
 
 func init() {
 	manager = initFromSheet(ngtypes.GenesisSheet, ngtypes.GetGenesisBlockHash())
-	err := manager.UpdateState(ngtypes.GetGenesisBlock())
+	err := manager.UpgradeState(ngtypes.GetGenesisBlock())
 	if err != nil {
 		panic(err)
 	}
 }
 
-// UpdateState will create a new state which is a wrapper of *ngtypes.sheet
+// UpgradeState will create a new state which is a wrapper of *ngtypes.sheet
 func initFromSheet(sheet *ngtypes.Sheet, newBlockHash []byte) *Manager {
 	state := &State{
 		prevBlockHash: newBlockHash,
@@ -64,8 +66,22 @@ func initFromSheet(sheet *ngtypes.Sheet, newBlockHash []byte) *Manager {
 	}
 }
 
-// UpdateState will generate a new state after importing block's txs
-func (m *Manager) UpdateState(block *ngtypes.Block) error {
+func (m *Manager) GetStaticState() *State {
+	m.RLock()
+	defer m.RUnlock()
+
+	return m.staticState
+}
+
+func (m *Manager) GetCurrentState() *State {
+	m.RLock()
+	defer m.RUnlock()
+
+	return m.activeState
+}
+
+// UpgradeState will generate a new state after importing block's txs
+func (m *Manager) UpgradeState(block *ngtypes.Block) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -86,16 +102,50 @@ func (m *Manager) UpdateState(block *ngtypes.Block) error {
 	return nil
 }
 
-func (m *Manager) GetStaticState() *State {
-	m.RLock()
-	defer m.RUnlock()
+func (m *Manager) RegenerateState() error {
+	m.Lock()
+	defer m.Unlock()
 
-	return m.staticState
+	log.Warn("regenerating local state")
+	chain := storage.GetChain()
+	newState := &State{
+		prevBlockHash: ngtypes.GetGenesisBlockHash(),
+		accounts:      make(map[uint64][]byte),
+		anonymous:     make(map[string][]byte),
+		pool:          NewTxPool(),
+	}
+	latest := chain.GetLatestBlockHeight()
+	for h := uint64(0); h <= latest; h++ {
+		block, _ := chain.GetBlockByHeight(h)
+		err := newState.HandleTxs(block.Txs...)
+		if err != nil {
+			return err
+		}
+	}
+	m.staticState = newState // static one, for fallback and chain update
+	m.activeState = newState // active one, for verification
+
+	return nil
 }
 
-func (m *Manager) GetCurrentState() *State {
-	m.RLock()
-	defer m.RUnlock()
-
-	return m.activeState
-}
+// DowngradeState will generate a new state after importing block's txs
+//func (m *Manager) DowngradeState(block *ngtypes.Block) error {
+//	m.Lock()
+//	defer m.Unlock()
+//
+//	newState := &State{
+//		prevBlockHash: block.Hash(),
+//		accounts:      m.staticState.accounts,
+//		anonymous:     m.staticState.anonymous, // if copy it will cost too much time
+//		pool:          NewTxPool(),
+//	}
+//	err := newState.HandleTxs(block.Txs...)
+//	if err != nil {
+//		return err
+//	}
+//
+//	m.staticState = newState // static one, for fallback and chain update
+//	m.activeState = newState // active one, for verification
+//
+//	return nil
+//}

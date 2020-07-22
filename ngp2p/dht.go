@@ -2,6 +2,7 @@ package ngp2p
 
 import (
 	"context"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
 
 	"github.com/libp2p/go-libp2p"
@@ -9,12 +10,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/multiformats/go-multiaddr"
 	"go.uber.org/atomic"
 )
-
-const DHTProtocolExtension = "/ngp2p/dht/" + protocolVersion
 
 var p2pDHT *dht.IpfsDHT
 
@@ -42,7 +40,7 @@ func connectToDHTBootstrapNodes(ctx context.Context, h host.Host, mas []multiadd
 	for _, ma := range mas {
 		wg.Add(1)
 		go func(ma multiaddr.Multiaddr) {
-			pi, err := peerstore.InfoFromP2pAddr(ma)
+			pi, err := peer.AddrInfoFromP2pAddr(ma)
 			if err != nil {
 				panic(err)
 			}

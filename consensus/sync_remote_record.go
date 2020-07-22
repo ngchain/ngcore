@@ -37,13 +37,14 @@ func (r *remoteRecord) shouldFork() bool {
 	h := storage.GetChain().GetLatestBlockHeight()
 
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
-		r.latest%ngtypes.BlockCheckRound > h%ngtypes.BlockCheckRound {
+		r.latest > h &&
+		r.latest/ngtypes.BlockCheckRound > h/ngtypes.BlockCheckRound {
 		return true
 	}
 
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
 		r.latest > h &&
-		r.latest%ngtypes.BlockCheckRound == h%ngtypes.BlockCheckRound &&
+		r.latest/ngtypes.BlockCheckRound == h/ngtypes.BlockCheckRound &&
 		r.checkpointActualDiff != nil &&
 		r.checkpointActualDiff.Cmp(cp.GetActualDiff()) > 0 {
 		return true

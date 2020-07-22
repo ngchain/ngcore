@@ -7,12 +7,6 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// pattern: /ngp2p/protocol-name/version
-const (
-	protocolVersion = "0.0.2"
-	WiredProtocol         = "/ngp2p/wired/" + protocolVersion
-)
-
 // Wired type
 type wiredProtocol struct {
 	node *LocalNode // local host

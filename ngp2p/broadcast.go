@@ -6,9 +6,6 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
-const broadcastBlockTopic = "/ngp2p/broadcast/block/0.0.2"
-const broadcastTxTopic = "/ngp2p/broadcast/tx/0.0.2"
-
 type broadcastProtocol struct {
 	PubSub *pubsub.PubSub
 	node   *LocalNode

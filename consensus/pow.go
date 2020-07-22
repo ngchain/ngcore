@@ -44,7 +44,7 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 		newDiff,
 	)
 
-	extraData := []byte("ngCore") // FIXME
+	var extraData []byte // FIXME
 
 	Gen := pow.createGenerateTx(extraData)
 	txs := ngstate.GetActiveState().GetPool().GetPack().Txs

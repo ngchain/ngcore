@@ -63,7 +63,7 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 
 	// get chain
 	for storage.GetChain().GetLatestBlockHeight() < record.latest {
-		chain, err := mod.getRemoteChain(record.id)
+		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}

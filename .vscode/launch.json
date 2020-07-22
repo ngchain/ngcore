@@ -27,7 +27,18 @@
         "1",
         "--log-level",
         "debug",
-        "--in-mem"
+      ]
+    },
+    {
+      "name": "debug",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/ngcore",
+      "env": {},
+      "args": [
+        "--log-level",
+        "debug",
       ]
     }
   ]
