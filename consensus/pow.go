@@ -2,6 +2,9 @@ package consensus
 
 import (
 	"fmt"
+	"sync"
+
+	"github.com/ngchain/secp256k1"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/ngp2p"
@@ -11,6 +14,43 @@ import (
 )
 
 var log = logging.Logger("pow")
+
+// PoWork is a proof on work consensus manager
+type PoWork struct {
+	sync.RWMutex
+
+	syncMod  *syncModule
+	minerMod *minerModule
+
+	PrivateKey *secp256k1.PrivateKey
+}
+
+var pow *PoWork
+
+// NewPoWConsensus creates and initializes the PoW consensus.
+func NewPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBootstrapNode bool) *PoWork {
+	pow = &PoWork{
+		RWMutex:    sync.RWMutex{},
+		PrivateKey: privateKey,
+
+		syncMod:  nil,
+		minerMod: nil,
+	}
+
+	pow.minerMod = newMinerModule(pow, miningThread)
+	pow.syncMod = newSyncModule(pow, isBootstrapNode)
+
+	return pow
+}
+
+// GetPoWConsensus creates a new proof of work consensus manager.
+func GetPoWConsensus() *PoWork {
+	if pow == nil {
+		panic("pow has not initialized")
+	}
+
+	return pow
+}
 
 // MiningOff stops the pow consensus.
 func (pow *PoWork) MiningOff() {
@@ -24,6 +64,12 @@ func (pow *PoWork) MiningOn() {
 	if pow.minerMod != nil {
 		go pow.minerMod.start(pow.GetBlockTemplate())
 	}
+}
+
+// MiningUpdate updates the mining work
+func (pow *PoWork) MiningUpdate() {
+	pow.MiningOff()
+	pow.MiningOn()
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
@@ -91,4 +137,32 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	return nil
+}
+
+// GoLoop ignites all loops
+func (pow *PoWork) GoLoop() {
+	go pow.eventLoop()
+	go pow.syncMod.loop()
+}
+
+// channel receiver for broadcasts events
+func (pow *PoWork) eventLoop() {
+	for {
+		if ngp2p.GetLocalNode().OnBlock == nil || ngp2p.GetLocalNode().OnTx == nil {
+			panic("event chan is nil")
+		}
+
+		select {
+		case block := <-ngp2p.GetLocalNode().OnBlock:
+			err := pow.ApplyBlock(block)
+			if err != nil {
+				log.Warnf("failed to put new block from p2p network: %s", err)
+			}
+		case tx := <-ngp2p.GetLocalNode().OnTx:
+			err := ngstate.GetActiveState().GetPool().PutTx(tx)
+			if err != nil {
+				log.Warnf("failed to put new tx from p2p network: %s", err)
+			}
+		}
+	}
 }
