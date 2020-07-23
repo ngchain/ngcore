@@ -3,9 +3,8 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/ngchain/ngcore/storage"
-
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // createGenerateTx will create a generate Tx for new Block.

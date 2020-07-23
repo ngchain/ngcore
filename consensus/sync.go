@@ -93,7 +93,7 @@ func (mod *syncModule) loop() {
 		}
 
 		// after sync
-		mod.pow.MiningOn()
+		pow.MiningOn()
 	}
 }
 

@@ -58,7 +58,7 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 
 				if m.job.Load() != nil {
 					current, _ := m.job.Load().(*ngtypes.Block)
-					log.Warnf("Total Hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
+					log.Warnf("Total hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
 				}
 
 				m.hashes.Sub(hashes)

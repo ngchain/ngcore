@@ -25,13 +25,8 @@ func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	//TODO update miner work
-	if pow.minerMod != nil {
-		go func() {
-			pow.minerMod.stop()
-			pow.minerMod.start(pow.GetBlockTemplate())
-		}()
-	}
+	// update miner work
+	pow.MiningUpdate()
 
 	return nil
 }
