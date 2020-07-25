@@ -60,16 +60,7 @@ func (mod *syncModule) loop() {
 			}
 		}
 
-		// do fork check
-		if shouldFork, r := mod.detectFork(); shouldFork {
-			err := mod.doFork(r) // temporarily stuck here
-			if err != nil {
-				log.Warnf("forking is failed: %s", err)
-			}
-			continue
-		}
-
-		// do sync check
+		// do sync check takes the priority
 		// convert map to slice first
 		slice := make([]*remoteRecord, len(mod.store))
 		i := 0
@@ -90,6 +81,15 @@ func (mod *syncModule) loop() {
 					log.Warnf("do sync failed: %s", err)
 				}
 			}
+		}
+
+		// do fork check after sync check
+		if shouldFork, r := mod.detectFork(); shouldFork {
+			err := mod.doFork(r) // temporarily stuck here
+			if err != nil {
+				log.Error("forking is failed: %s", err)
+			}
+			continue
 		}
 
 		// after sync

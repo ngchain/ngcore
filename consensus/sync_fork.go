@@ -20,6 +20,7 @@ func (mod *syncModule) detectFork() (shouldFork bool, remote *remoteRecord) {
 }
 
 // force local chain be same as the remote record
+// fork is a danger operation so all msg are warn level
 func (mod *syncModule) doFork(record *remoteRecord) error {
 	pow.Lock()
 	defer pow.Unlock()
@@ -30,7 +31,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 		return err
 	}
 
-	log.Info("have got the fork point: block@%d", chain[0].Height)
+	log.Warnf("have got the fork point: block@%d", chain[0].Height)
 	err = mod.pow.forceApplyBlocks(chain)
 	if err != nil {
 		return err
