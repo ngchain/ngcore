@@ -53,6 +53,14 @@ func (mod *syncModule) bootstrap() {
 
 	latest := storage.GetChain().GetLatestBlock()
 	log.Warnf("completed sync, latest height@%d: %x", latest.Height, latest.Hash())
+
+	// then check fork
+	if shouldFork, r := mod.detectFork(); shouldFork {
+		err := mod.doFork(r) // temporarily stuck here
+		if err != nil {
+			log.Error("forking is failed: %s", err)
+		}
+	}
 }
 
 func (mod *syncModule) doInit(record *remoteRecord) error {
