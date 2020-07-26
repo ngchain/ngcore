@@ -11,10 +11,12 @@ func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 	pow.Lock()
 	defer pow.Unlock()
 
+	// check block first
 	if err := pow.checkBlock(block); err != nil {
 		return err
 	}
 
+	// block is valid
 	err := storage.GetChain().PutNewBlock(block)
 	if err != nil {
 		return err
@@ -26,7 +28,7 @@ func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 	}
 
 	// update miner work
-	pow.MiningUpdate()
+	go pow.MiningUpdate()
 
 	return nil
 }

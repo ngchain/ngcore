@@ -56,6 +56,7 @@ func PackUint16BE(n uint16) []byte {
 	return b
 }
 
+// ReverseBytes converts bytes order between LittleEndian and BigEndian
 func ReverseBytes(b []byte) []byte {
 	_b := make([]byte, len(b))
 	copy(_b, b)

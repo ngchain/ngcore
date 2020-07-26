@@ -2,6 +2,7 @@ package ngp2p
 
 import (
 	"bytes"
+	"encoding/hex"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -52,7 +53,7 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 		return nil, nil
 	}
 
-	log.Debugf("getchain to: %s was sent. Message Id: %x, request height: %d to %d", peerID, req.Header.MessageId, from, to)
+	log.Debugf("getchain to: %s was sent. Message Id: %x, request blocks: %d to %d", peerID, req.Header.MessageId, fmtFromField(from), to)
 
 	return req.Header.MessageId, stream
 }
@@ -74,8 +75,8 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 		// do hashes check first
 		for i := 0; i < len(getChainPayload.GetFrom()); i++ {
 			_, err := storage.GetChain().GetBlockByHash(getChainPayload.GetFrom()[i])
-
 			if err != nil {
+				// failed to get block from local chain means there is a fork since this block and its prevBlock is the last common one
 				break
 			}
 
@@ -86,7 +87,6 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 
 	log.Debugf("Received getchain request from %s. Requested %x to %x", stream.Conn().RemotePeer(), lastFromHash, getChainPayload.GetTo())
 
-	// dont input the same block
 	cur, err := storage.GetChain().GetBlockByHash(lastFromHash)
 	if err != nil {
 		w.reject(msg.Header.MessageId, stream, err)
@@ -110,4 +110,14 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 	}
 
 	w.chain(msg.Header.MessageId, stream, blocks...)
+}
+
+func fmtFromField(from [][]byte) string {
+	hashes := make([]string, len(from))
+	for i := 0; i < len(from); i++ {
+		hashes[i] = hex.EncodeToString(from[i])
+	}
+
+	json, _ := utils.JSON.MarshalToString(hashes)
+	return json
 }

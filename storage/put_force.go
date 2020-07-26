@@ -3,19 +3,20 @@ package storage
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-// ForcePutNewBlock puts a block into db regardless of local chain
+// ForcePutNewBlock puts a block into db regardless of local chain check
+// should check block self before putting
 func (c *Chain) ForcePutNewBlock(block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
 	}
 
 	hash := block.Hash()
-
 	err := c.db.Update(func(txn *badger.Txn) error {
 		if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
 			// when block is not genesis block, checking error

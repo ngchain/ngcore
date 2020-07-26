@@ -141,6 +141,10 @@ func (c *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 		return ngtypes.GetGenesisBlock(), nil
 	}
 
+	if len(hash) != 32 {
+		return nil, fmt.Errorf("%x is not a legal hash", hash)
+	}
+
 	var block = &ngtypes.Block{}
 
 	if err := c.db.View(func(txn *badger.Txn) error {

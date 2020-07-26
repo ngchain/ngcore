@@ -15,6 +15,7 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 		return nil
 	}
 
+	// check block itself
 	if err := block.CheckError(); err != nil {
 		return err
 	}
