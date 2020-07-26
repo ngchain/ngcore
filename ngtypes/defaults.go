@@ -12,7 +12,7 @@ const (
 	NETWORK                  = NetworkType_TESTNET
 	GenesisAddressBase58     = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
 	GenesisGenerateTxSignHex = "bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d"
-	GenesisBlockNonceHex     = "8c50f0ad9a3f4e74"
+	GenesisBlockNonceHex     = "92794d9c9c69dae5"
 )
 
 // decoded genesis variables
@@ -25,10 +25,10 @@ var (
 
 // PoW const
 const (
-	// MinimumDifficulty is the minimum of pow minimumDifficulty because my laptop has 50 h/s, I believe you can either
-	minimumDifficulty = 5000 * 10 // Target = MaxTarget / diff
-	TargetTime        = 10 * time.Second
-	BlockCheckRound   = 10
+	// MinimumDifficulty is the minimum of pow minimumDifficulty because my laptop has 200 h/s, I believe you can either
+	minimumDifficulty = 200 << 4         // Target = MaxTarget / diff
+	TargetTime        = 16 * time.Second // change time from 10 -> 16 = 1 << 4
+	BlockCheckRound   = 10               // do fork if fall behind one round
 )
 
 // PoW variables
