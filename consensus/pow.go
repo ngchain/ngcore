@@ -37,8 +37,9 @@ func NewPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBoots
 		minerMod: nil,
 	}
 
-	pow.minerMod = newMinerModule(pow, miningThread)
+	// init sync before miner to prevent bootstrap sync from mining job update
 	pow.syncMod = newSyncModule(pow, isBootstrapNode)
+	pow.minerMod = newMinerModule(pow, miningThread)
 
 	return pow
 }

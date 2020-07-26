@@ -26,7 +26,7 @@ func (pow *PoWork) ApplyBlock(block *ngtypes.Block) error {
 	}
 
 	// update miner work
-	pow.MiningUpdate()
+	go pow.MiningUpdate()
 
 	return nil
 }
