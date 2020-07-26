@@ -274,7 +274,7 @@ func GetGenesisBlock() *Block {
 		genesisBlock = &Block{
 			Network:   NETWORK,
 			Height:    0,
-			Timestamp: genesisTimestamp,
+			Timestamp: GenesisTimestamp,
 
 			PrevBlockHash: make([]byte, HashSize),
 			TrieHash:      NewTxTrie(txs).TrieRoot(),

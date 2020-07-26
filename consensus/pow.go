@@ -110,6 +110,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	pow.Lock()
 	defer pow.Unlock()
 
+	// check block first
 	if err := pow.checkBlock(block); err != nil {
 		return fmt.Errorf("malformed block mined: %s", err)
 	}
@@ -124,6 +125,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 		return fmt.Errorf("malformed block mined: cannot find PrevBlock %x", block.PrevBlockHash)
 	}
 
+	// block is valid
 	hash := block.Hash()
 	log.Warnf("Mined a new Block: %x@%d", hash, block.GetHeight())
 

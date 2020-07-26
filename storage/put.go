@@ -11,6 +11,7 @@ import (
 )
 
 // PutNewBlock puts a new block into db.
+// should check block before putting
 func (c *Chain) PutNewBlock(block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")

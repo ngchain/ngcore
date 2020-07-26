@@ -2,8 +2,9 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"

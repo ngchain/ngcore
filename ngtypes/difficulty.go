@@ -5,13 +5,6 @@ import (
 	"time"
 )
 
-// GetNextTarget is a helper to get next pow block target field.
-func GetNextTarget(tailBlock *Block) *big.Int {
-	diff := GetNextDiff(tailBlock)
-
-	return new(big.Int).Div(MaxTarget, diff)
-}
-
 // GetNextDiff is a helper to get next pow block Diff field.
 func GetNextDiff(tailBlock *Block) *big.Int {
 	diff := new(big.Int).SetBytes(tailBlock.GetDifficulty())
@@ -23,7 +16,7 @@ func GetNextDiff(tailBlock *Block) *big.Int {
 
 	// when next block is head(checkpoint)
 	diff = new(big.Int).Div(MaxTarget, target)
-	elapsed := int64(uint64(tailBlock.Timestamp) - tailBlock.GetHeight()*uint64(TargetTime/time.Second))
+	elapsed := int64(tailBlock.Timestamp - GenesisTimestamp - int64(tailBlock.GetHeight())*int64(TargetTime/time.Second))
 
 	if elapsed < int64(TargetTime/time.Second)*(BlockCheckRound-2) {
 		diff = new(big.Int).Add(diff, new(big.Int).Div(diff, big.NewInt(10)))
