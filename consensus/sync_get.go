@@ -52,9 +52,9 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain []*ngtypes.Block, err error) {
 	latestHash := storage.GetChain().GetLatestBlockHash()
 
-	id, s := ngp2p.GetLocalNode().GetChain(peerID, [][]byte{latestHash}, nil)
+	id, s, err := ngp2p.GetLocalNode().GetChain(peerID, [][]byte{latestHash}, nil)
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getchain")
+		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
 
 	reply, err := ngp2p.ReceiveReply(id, s)
@@ -85,9 +85,9 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain 
 
 // getRemoteChain just get the remote status from remote
 func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.Block, err error) {
-	id, s := ngp2p.GetLocalNode().GetChain(peerID, from, to)
+	id, s, err := ngp2p.GetLocalNode().GetChain(peerID, from, to)
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getchain")
+		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
 
 	reply, err := ngp2p.ReceiveReply(id, s)

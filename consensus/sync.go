@@ -87,7 +87,7 @@ func (mod *syncModule) loop() {
 		if shouldFork, r := mod.detectFork(); shouldFork {
 			err := mod.doFork(r) // temporarily stuck here
 			if err != nil {
-				log.Error("forking is failed: %s", err)
+				log.Errorf("forking is failed: %s", err)
 			}
 			continue
 		}

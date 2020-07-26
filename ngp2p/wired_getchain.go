@@ -3,6 +3,7 @@ package ngp2p
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -13,11 +14,12 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream) {
+func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream, err error) {
 	if len(from) == 0 {
-		log.Debugf("failed to send getChain: from is nil")
+		err := fmt.Errorf("getchain's from is nil")
+		log.Debug(err)
 
-		return nil, nil
+		return nil, nil, err
 	}
 
 	payload, err := utils.Proto.Marshal(&GetChainPayload{
@@ -25,8 +27,9 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 		To:   to,
 	})
 	if err != nil {
-		log.Debugf("failed to sign pb data")
-		return nil, nil
+		err = fmt.Errorf("failed to sign pb data: %s", err)
+		log.Debug(err)
+		return nil, nil, err
 	}
 
 	id, _ = uuid.New().MarshalBinary()
@@ -40,8 +43,9 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 	// sign the data
 	signature, err := signMessage(w.node.PrivKey(), req)
 	if err != nil {
-		log.Debugf("failed to sign pb data")
-		return nil, nil
+		err = fmt.Errorf("failed to sign pb data: %s", err)
+		log.Debug(err)
+		return nil, nil, err
 	}
 
 	// add the signature to the message
@@ -50,12 +54,12 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 	stream, err = w.node.sendProtoMessage(peerID, req)
 	if err != nil {
 		log.Debug(err)
-		return nil, nil
+		return nil, nil, err
 	}
 
 	log.Debugf("getchain to: %s was sent. Message Id: %x, request blocks: %d to %d", peerID, req.Header.MessageId, fmtFromField(from), to)
 
-	return req.Header.MessageId, stream
+	return req.Header.MessageId, stream, nil
 }
 
 func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
