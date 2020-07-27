@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -30,6 +31,10 @@ func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	if !isBootstrapNode {
 		syncMod.bootstrap()
 	}
+
+	latest := storage.GetChain().GetLatestBlock()
+	fmt.Printf("Initial sync completed, latest: \t%x@%d \n", latest.Hash(), latest.Height)
+	log.Warnf("Initial sync completed, latest: \t%x@%d", latest.Hash(), latest.Height)
 
 	return syncMod
 }

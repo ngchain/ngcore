@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/NebulousLabs/fastrand"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/go-randomx"
 	"github.com/urfave/cli/v2"
@@ -17,58 +16,92 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-var genesistoolsCommand = &cli.Command{
-	Name:        "gen",
-	Description: "built-in helper func for generate initial variables for genesis items",
-	Action: func(context *cli.Context) error {
-		logging.SetAllLoggers(logging.LevelDebug)
+func getGenesisToolsCommand() *cli.Command {
 
-		localKey := keytools.ReadLocalKey("genesis.key", "") // TODO: add password to options
-		if localKey == nil {
-			err := fmt.Errorf("genesis.key is missing, using keytools to create one first")
-			log.Panic(err)
-			return err
-		}
+	var filenameFlag = &cli.StringFlag{
+		Name:    "filename",
+		Aliases: []string{"f"},
+		Value:   "genesis.key",
+		Usage:   "the genesis.key file",
+	}
 
-		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
-		log.Warnf("BS58 Genesis PublicKey: %s", raw)
+	var passwordFlag = &cli.StringFlag{
+		Name:    "password",
+		Aliases: []string{"p"},
+		Usage:   "the password to genesis.key file",
+	}
 
-		log.Warnf("BS58 Genesis Address: %s", ngtypes.NewAddress(localKey).String())
-
-		gtx := ngtypes.GetGenesisGenerateTx()
-		if err := gtx.CheckGenerate(); err != nil {
-			log.Warnf("current genesis generate tx sign %x is invalid, err: %s, resignaturing...", gtx.Sign, err)
-			err = gtx.Signature(localKey)
-			if err != nil {
-				log.Panic(err)
+	var checkCommand = &cli.Command{
+		Name:        "check",
+		Flags:       []cli.Flag{filenameFlag, passwordFlag},
+		Description: "check genesis blocks and generateTx and re-generate them if error occurs",
+		Action: func(context *cli.Context) error {
+			localKey := keytools.ReadLocalKey("genesis.key", "") // TODO: add password to options
+			if localKey == nil {
+				err := fmt.Errorf("genesis.key is missing, using keytools to create one first")
+				panic(err)
 			}
 
-			log.Warnf("BS58 Genesis Generate Tx Sign: %x", gtx.Sign)
-		} else {
-			log.Info("genesis block's generate tx is healthy")
-		}
+			raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
+			fmt.Printf("Genesis PublicKey: %s \n", raw)
 
-		b := ngtypes.GetGenesisBlock()
-		if err := b.CheckError(); err != nil {
-			log.Warnf("current genesis block is invalid, use the generate tx above to re-calc nonce...")
-			b, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
-			if err != nil {
-				log.Error(err)
+			fmt.Printf("Genesis Address: %s \n", ngtypes.NewAddress(localKey).String())
+
+			gtx := ngtypes.GetGenesisGenerateTx()
+			if err := gtx.CheckGenerate(); err != nil {
+				fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing...", gtx.Sign, err)
+				err = gtx.Signature(localKey)
+				if err != nil {
+					panic(err)
+				}
+
+				fmt.Printf("Genesis Generate Tx Sign: %x \n", gtx.Sign)
+			} else {
+				fmt.Printf("Genesis block's generate tx is healthy \n")
 			}
 
-			genBlockNonce(b)
-		} else {
-			log.Info("genesis block is healthy")
-		}
+			b := ngtypes.GetGenesisBlock()
+			if err := b.CheckError(); err != nil {
+				fmt.Printf("Current genesis block is invalid, use the generate tx above to re-calc nonce...")
+				b, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
+				if err != nil {
+					fmt.Print(err)
+				}
 
-		return nil
-	},
+				genBlockNonce(b)
+			} else {
+				fmt.Printf("Genesis block is healthy")
+			}
+
+			return nil
+		},
+	}
+
+	var displayCommand = &cli.Command{
+		Name:        "display",
+		Flags:       nil,
+		Description: "check genesis blocks and generateTx and re-generate them if error occurs",
+		Action: func(context *cli.Context) error {
+			b := ngtypes.GetGenesisBlock()
+			jsonBlock, _ := utils.JSON.MarshalToString(b)
+			fmt.Println(jsonBlock)
+
+			return nil
+		},
+	}
+
+	return &cli.Command{
+		Name:        "gentools",
+		Flags:       nil,
+		Description: "built-in helper func for generate initial variables for genesis items",
+		Subcommands: []*cli.Command{checkCommand, displayCommand},
+	}
 }
 
 func genBlockNonce(b *ngtypes.Block) {
 	diff := new(big.Int).SetBytes(b.GetDifficulty())
 	genesisTarget := new(big.Int).Div(ngtypes.MaxTarget, diff)
-	log.Warnf("diff %d, target %x", diff, genesisTarget.Bytes())
+	fmt.Printf("diff %d, target %x", diff, genesisTarget.Bytes())
 
 	nCh := make(chan []byte, 1)
 	stopCh := make(chan struct{}, 1)
@@ -81,7 +114,7 @@ func genBlockNonce(b *ngtypes.Block) {
 	answer := <-nCh
 	stopCh <- struct{}{}
 
-	log.Warnf("Genesis Block Nonce Hex: %x", answer)
+	fmt.Printf("Genesis Block Nonce Hex: %x", answer)
 }
 
 func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {

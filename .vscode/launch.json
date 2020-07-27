@@ -5,14 +5,25 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "debug gen",
+      "name": "debug help",
       "type": "go",
       "request": "launch",
       "mode": "debug",
       "env": {},
       "program": "${workspaceFolder}/cmd/ngcore",
       "args": [
-        "gen"
+        "help"
+      ]
+    },
+    {
+      "name": "debug gen check",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "env": {},
+      "program": "${workspaceFolder}/cmd/ngcore",
+      "args": [
+        "gentools check"
       ]
     },
     {

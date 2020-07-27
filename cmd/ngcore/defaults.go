@@ -8,6 +8,10 @@ const (
 	version = "v0.0.16"
 
 	// flag values
-	defaultTCPP2PPort = 52520
-	defaultAPIPort    = 52521
+	defaultTCPP2PPort   = 52520
+	defaultAPIPort      = 52521
+	defaultLogLevel     = "WARN"
+	defaultLogFile      = "ngcore.log"
+	dafaultMiningThread = -1
+	defaultDBFolder     = "ngdb"
 )

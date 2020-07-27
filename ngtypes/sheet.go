@@ -14,7 +14,7 @@ func NewSheet(prevBlockHash []byte, accounts map[uint64]*Account, anonymous map[
 	}
 }
 
-// CalculateHash mainly for calculating the tire root of txs and sign tx.
+// Hash mainly for calculating the tire root of txs and sign tx.
 func (x *Sheet) Hash() []byte {
 	raw, err := utils.Proto.Marshal(x)
 	if err != nil {
