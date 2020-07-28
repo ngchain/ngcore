@@ -18,6 +18,7 @@ func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 
 	raw, err := utils.JSON.Marshal(height)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -29,6 +30,7 @@ func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 
 	raw, err := utils.JSON.Marshal(hash)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -40,6 +42,7 @@ func (s *Server) getLatestBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -55,16 +58,19 @@ func (s *Server) getBlockByHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	block, err := storage.GetChain().GetBlockByHeight(params.Height)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -80,21 +86,25 @@ func (s *Server) getBlockByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	hash, err := hex.DecodeString(params.Hash)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	block, err := storage.GetChain().GetBlockByHash(hash)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -114,16 +124,19 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	var params getTxByHashParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	hash, err := hex.DecodeString(params.Hash)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx, err := storage.GetChain().GetTxByHash(hash)
 	if err != nil && err != badger.ErrKeyNotFound {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -148,11 +161,14 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 			Tx:      tx,
 		})
 		if err != nil {
+			log.Error(err)
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
 
 		return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 	}
 
-	return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("cannot find the tx with hash %x", hash)))
+	err = fmt.Errorf("cannot find the tx with hash %x", hash)
+	log.Error(err)
+	return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 }

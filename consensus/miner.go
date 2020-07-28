@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -48,7 +49,7 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 		reportTicker := time.NewTicker(ngtypes.TargetTime)
 		defer reportTicker.Stop()
 
-		elapsed := int64(ngtypes.TargetTime / time.Second) // 60
+		elapsed := int64(ngtypes.TargetTime / time.Second) // 16
 
 		for {
 			<-reportTicker.C
@@ -58,7 +59,7 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 
 				if m.job.Load() != nil {
 					current, _ := m.job.Load().(*ngtypes.Block)
-					log.Warnf("Total hashrate: %d h/s, Current Job: block@%d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
+					fmt.Printf("Total hashrate: %d h/s, height: %d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
 				}
 
 				m.hashes.Sub(hashes)

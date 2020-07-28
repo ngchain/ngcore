@@ -18,3 +18,8 @@ func GetBig0Bytes() []byte {
 func GetBig1() *big.Int {
 	return big.NewInt(1)
 }
+
+// GetBig2 returns a new big 2.
+func GetBig2() *big.Int {
+	return big.NewInt(2)
+}

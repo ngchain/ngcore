@@ -47,5 +47,8 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler.RegisterJsonRpcHandleFunc("getWork", s.getWorkFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("submitWork", s.submitWorkFunc)
 
+	// utils
+	httpHandler.RegisterJsonRpcHandleFunc("getAddress", s.getAddressFunc)
+
 	return httpHandler
 }

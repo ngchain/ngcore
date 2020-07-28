@@ -27,27 +27,32 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	signedTxRaw, err := hex.DecodeString(params.RawTx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx := &ngtypes.Tx{}
 	err = utils.Proto.Unmarshal(signedTxRaw, tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	err = ngstate.GetActiveState().GetPool().PutNewTxFromLocal(tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(tx.Hash()))
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -64,17 +69,20 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	var params signTxParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	unsignedTxRaw, err := hex.DecodeString(params.RawTx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx := &ngtypes.Tx{}
 	err = utils.Proto.Unmarshal(unsignedTxRaw, tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -82,6 +90,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	for i := range params.PrivateKeys {
 		d, err := base58.FastBase58Decoding(params.PrivateKeys[i])
 		if err != nil {
+			log.Error(err)
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
 
@@ -90,16 +99,19 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 
 	err = tx.Signature(privateKeys...)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -119,6 +131,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	var params genTransactionParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -128,12 +141,14 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		case string:
 			participants[i], err = base58.FastBase58Decoding(p)
 			if err != nil {
+				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
 		case float64:
 			accountID := uint64(p)
 			account, err := ngstate.GetActiveState().GetAccountByNum(accountID)
 			if err != nil {
+				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
 			participants[i] = account.Owner
@@ -152,6 +167,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -169,11 +185,13 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	// Reason: 1. avoid accident client modification 2. less length
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -189,6 +207,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	var params genRegisterParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -206,11 +225,13 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -227,6 +248,7 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	var params genLogoutParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -234,6 +256,7 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -249,11 +272,13 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -270,6 +295,7 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	var params genAssignParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -277,6 +303,7 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -292,11 +319,13 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -313,6 +342,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	var params genAppendParams
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -320,6 +350,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -335,11 +366,13 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	rawTx, err := utils.Proto.Marshal(tx)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 

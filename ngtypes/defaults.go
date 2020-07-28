@@ -7,12 +7,12 @@ import (
 )
 
 // FIXME: before init network should manually init PK & Sign
-// try `go test ./...`  until all passed
+// use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
 	NETWORK                  = NetworkType_TESTNET
 	GenesisAddressBase58     = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
 	GenesisGenerateTxSignHex = "bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d"
-	GenesisBlockNonceHex     = "c6a79045aa96b881"
+	GenesisBlockNonceHex     = "e81f86c132a0aada"
 )
 
 // decoded genesis variables
@@ -39,7 +39,7 @@ var (
 		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
 
 	// GenesisTimestamp must be the time chain started, or the difficulty algo wont work
-	GenesisTimestamp = time.Date(2020, time.July, 26, 14, 0, 0, 0, time.UTC).Unix()
+	GenesisTimestamp = time.Date(2020, time.July, 28, 14, 0, 0, 0, time.UTC).Unix()
 )
 
 // Maximum sizes

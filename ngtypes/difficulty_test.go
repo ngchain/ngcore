@@ -1,18 +1,34 @@
 package ngtypes_test
 
 import (
+	"math/big"
 	"testing"
+	"time"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func TestDiffifultyAlgo(t *testing.T) {
-	// TODO: enable test after deployment
-	// tailBlock := &ngtypes.Block{
-	// 	Timestamp:  GenesisTimestamp + 1,
-	// 	Height:     9,
-	// 	Difficulty: big.NewInt(10).Bytes(),
-	// }
+	tailBlock := &ngtypes.Block{
+		Timestamp:  ngtypes.GenesisTimestamp + 9*int64(ngtypes.TargetTime/time.Second) - 129,
+		Height:     9, // tail
+		Difficulty: ngtypes.GetGenesisBlock().GetDifficulty(),
+	}
 
-	// if ngtypes.GetNextDiff(tailBlock).Cmp(ngtypes.GenesisBlock().GetDifficulty()) <= 0 {
-	// 	panic("diff should be lower")
-	// }
+	genesisDiff := new(big.Int).SetBytes(ngtypes.GetGenesisBlock().GetDifficulty())
+	diff := ngtypes.GetNextDiff(tailBlock)
+	if diff.Cmp(genesisDiff) <= 0 {
+		t.Errorf("diff %d should be higher than %d", diff, genesisDiff)
+	}
+
+	nextTailBlock := &ngtypes.Block{
+		Timestamp:  ngtypes.GenesisTimestamp + 19*int64(ngtypes.TargetTime/time.Second) + 129,
+		Height:     19, // tail
+		Difficulty: diff.Bytes(),
+	}
+
+	nextDiff := ngtypes.GetNextDiff(nextTailBlock)
+	if nextDiff.Cmp(diff) >= 0 {
+		t.Errorf("diff %d should be lower than %d", nextDiff, diff)
+	}
 }

@@ -62,8 +62,8 @@ __debug_bin
 
 #Debug
 env/*
-storage/.ngdb
-./.ngdb
+**/.ngdb
+*.log
 
 #Binary
 ./ngcore

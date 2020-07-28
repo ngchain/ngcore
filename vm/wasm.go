@@ -4,7 +4,10 @@ import (
 	"sync"
 
 	"github.com/bytecodealliance/wasmtime-go"
+	logging "github.com/ipfs/go-log/v2"
 )
+
+var log = logging.Logger("wasm")
 
 var engine = wasmtime.NewEngine()
 
@@ -83,6 +86,6 @@ func (vm *WasmVM) Start() {
 	start := vm.instance.GetExport("_start") // run the wasm's main func, _start is same to WASI's main
 	_, err := start.Func().Call()
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 }

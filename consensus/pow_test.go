@@ -1,7 +1,6 @@
 package consensus_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/ngchain/ngcore/consensus"
@@ -10,12 +9,10 @@ import (
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/utils"
 )
 
 func TestNewConsensusManager(t *testing.T) {
-	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(""))
-	keytools.PrintAddress(key)
+	key := keytools.NewLocalKey()
 
 	db := storage.InitMemStorage()
 
@@ -29,7 +26,7 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	_ = ngp2p.NewLocalNode(int(utils.RandUint16()))
+	_ = ngp2p.NewLocalNode(52520)
 
 	m := ngstate.GetStateManager()
 	err := m.UpgradeState(ngtypes.GetGenesisBlock())

@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -51,9 +52,6 @@ func (mod *syncModule) bootstrap() {
 		}
 	}
 
-	latest := storage.GetChain().GetLatestBlock()
-	log.Warnf("completed sync, latest height@%d: %x", latest.Height, latest.Hash())
-
 	// then check fork
 	if shouldFork, r := mod.detectFork(); shouldFork {
 		err := mod.doFork(r) // temporarily stuck here
@@ -67,7 +65,8 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	log.Warnf("start initial syncing with remote node %s", record.id)
+	fmt.Printf("Start initial syncing with remote node:\t%s\n", record.id)
+	log.Warnf("Start initial syncing with remote node %s", record.id)
 
 	// get chain
 	for storage.GetChain().GetLatestBlockHeight() < record.latest {

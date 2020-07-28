@@ -12,18 +12,23 @@ func GetNextDiff(tailBlock *Block) *big.Int {
 		return diff
 	}
 
-	target := new(big.Int).Div(MaxTarget, diff)
-
-	// when next block is head(checkpoint)
-	diff = new(big.Int).Div(MaxTarget, target)
-	elapsed := int64(tailBlock.Timestamp - GenesisTimestamp - int64(tailBlock.GetHeight())*int64(TargetTime/time.Second))
-
-	if elapsed < int64(TargetTime/time.Second)*(BlockCheckRound-2) {
-		diff = new(big.Int).Add(diff, new(big.Int).Div(diff, big.NewInt(10)))
+	elapsed := int64(tailBlock.Timestamp - GenesisTimestamp)
+	elapsed = elapsed - int64(tailBlock.GetHeight())*int64(TargetTime/time.Second)
+	delta := new(big.Int)
+	if elapsed < int64(TargetTime/time.Second)*(-2) {
+		delta.Div(diff, big.NewInt(10))
+		diff.Add(diff, delta)
 	}
 
-	if elapsed > int64(TargetTime/time.Second)*(BlockCheckRound+2) {
-		diff = new(big.Int).Sub(diff, new(big.Int).Div(diff, big.NewInt(10)))
+	if elapsed > int64(TargetTime/time.Second)*(+2) {
+		delta.Div(diff, big.NewInt(10))
+		diff.Sub(diff, delta)
+	}
+
+	period := (tailBlock.Height + 1) / 1000
+	if (tailBlock.Height+1)%1000 == 0 && period > 10 {
+		delta.Exp(GetBig2(), new(big.Int).SetUint64(period), nil)
+		diff.Add(diff, delta)
 	}
 
 	if diff.Cmp(minimumBigDifficulty) < 0 {

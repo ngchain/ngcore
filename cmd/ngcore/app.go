@@ -9,6 +9,7 @@ import (
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/mr-tron/base58"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/urfave/cli/v2"
@@ -17,6 +18,7 @@ import (
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
 
@@ -26,22 +28,22 @@ var strictModeFlag = &cli.BoolFlag{
 	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
-var logFlag = &cli.StringFlag{
-	Name:  "log-file",
-	Value: "",
-	Usage: "Enable save the log into the file",
-}
-
 var p2pTCPPortFlag = &cli.IntFlag{
 	Name:  "p2p-port",
 	Usage: "Port for P2P connection",
 	Value: defaultTCPP2PPort,
 }
 
-var apiPortFlag = &cli.IntFlag{
-	Name:  "api-port",
-	Usage: "Port for API",
-	Value: defaultAPIPort,
+var rpcHostFlag = &cli.IntFlag{
+	Name:  "rpc-host",
+	Usage: "Host address for JSON RPC",
+	Value: defaultRPCPort,
+}
+
+var rpcPortFlag = &cli.IntFlag{
+	Name:  "rpc-port",
+	Usage: "Port for JSON RPC",
+	Value: defaultRPCPort,
 }
 
 var isBootstrapFlag = &cli.BoolFlag{
@@ -52,6 +54,12 @@ var isBootstrapFlag = &cli.BoolFlag{
 var profileFlag = &cli.BoolFlag{
 	Name:  "profile",
 	Usage: "Enable writing cpu profile to the file",
+}
+
+var keyFileFlag = &cli.StringFlag{
+	Name:  "key-file",
+	Usage: "The filename to the key",
+	Value: "",
 }
 
 var keyPassFlag = &cli.StringFlag{
@@ -67,9 +75,15 @@ var miningFlag = &cli.IntFlag{
 	Value: -1,
 }
 
+var logFileFlag = &cli.StringFlag{
+	Name:  "log-file",
+	Value: defaultLogFile,
+	Usage: "Enable save the log into the file",
+}
+
 var logLevelFlag = &cli.StringFlag{
 	Name:  "log-level",
-	Value: "WARN",
+	Value: defaultLogLevel,
 	Usage: "Enable displaying logs which are equal or higher to the level. " +
 		"Values can be ERROR, WARN, INFO or DEBUG",
 }
@@ -79,14 +93,22 @@ var inMemFlag = &cli.BoolFlag{
 	Usage: "Run the database of blocks, vaults in memory",
 }
 
+var dbFolderFlag = &cli.StringFlag{
+	Name:  "db-folder",
+	Usage: "The folder location for db",
+	Value: defaultDBFolder,
+}
+
 var action = func(c *cli.Context) error {
 	logLevel, err := logging.LevelFromString(c.String("log-level"))
 	if err != nil {
 		panic(err)
 	}
 
-	logging.SetAllLoggers(logLevel)
-	logging.SetLogLevel("pubsub", "ERROR")
+	logging.SetupLogging(logging.Config{
+		Level: logLevel,
+		File:  c.String("log-file"),
+	})
 
 	isBootstrapNode := c.Bool("bootstrap")
 	mining := c.Int("mining")
@@ -98,8 +120,10 @@ var action = func(c *cli.Context) error {
 	p2pTCPPort := c.Int("p2p-port")
 	apiPort := c.Int("api-port")
 	keyPass := c.String("key-pass")
+	keyFile := c.String("key-file")
 	withProfile := c.Bool("profile")
 	inMem := c.Bool("in-mem")
+	dbFolder := c.String("db-folder")
 
 	if withProfile {
 		var f *os.File
@@ -117,14 +141,14 @@ var action = func(c *cli.Context) error {
 		defer pprof.StopCPUProfile()
 	}
 
-	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(keyPass))
-	keytools.PrintAddress(key)
+	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
+	fmt.Printf("Use address: %s to receive mining rewards", string(base58.FastBase58Encoding(ngtypes.NewAddress(key))))
 
 	var db *badger.DB
 	if inMem {
 		db = storage.InitMemStorage()
 	} else {
-		db = storage.InitStorage()
+		db = storage.InitStorage(dbFolder)
 	}
 	defer func() {
 		err = db.Close()

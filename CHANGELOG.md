@@ -1,5 +1,30 @@
 # ChangeLog
 
+## v0.0.17
+
+- BUGFIX: fix difficulty algorithm
+- DONE: add height bomb for difficulty algorithm
+- DONE: add keytools functions
+- DONE: rename gen to gentools
+- DONE: change default key and db path
+- DONE: save log into log file
+- DONE: use fmt to output
+- DONE: update genesis block time
+- DONE: upgrade P2P version
+
+## v0.0.16
+
+- BUGFIX: fix jsonrpc
+- DONE: add kad-dht and mdns for peer discovery
+- REMOVE: temporarily remove bazel
+- DONE: use github action CI instead of circleCI
+- DONE: add auto-fork mechanism
+- BUGFIX: fix miner's job update on receiving p2p broadcasts
+- BUGFIX: fix some deadlocks
+- DONE: update genesis block time
+- DONE: upgrade P2P version
+- DONE: test new difficulty algorithm
+
 ## v0.0.15
 
 - DONE: optimize built-in miner

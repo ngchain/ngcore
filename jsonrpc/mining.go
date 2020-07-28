@@ -60,6 +60,7 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 
 	raw, err := utils.JSON.Marshal(reply)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -77,22 +78,26 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	nonce, err := hex.DecodeString(params.Nonce)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	rawBlock, err := hex.DecodeString(params.RawBlock)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	var block ngtypes.Block
 	err = utils.Proto.Unmarshal(rawBlock, &block)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -100,6 +105,7 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	err = consensus.GetPoWConsensus().MinedNewBlock(&block)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 

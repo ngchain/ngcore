@@ -4,11 +4,8 @@ package main
 import (
 	"os"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 )
-
-var log = logging.Logger("main")
 
 func main() {
 	app := cli.NewApp()
@@ -20,19 +17,23 @@ func main() {
 	app.Action = action
 
 	app.Flags = []cli.Flag{
-		strictModeFlag, logFlag, p2pTCPPortFlag, apiPortFlag, miningFlag,
-		isBootstrapFlag, keyPassFlag, profileFlag,
-		logLevelFlag,
-		inMemFlag,
+		strictModeFlag,
+		p2pTCPPortFlag,
+		rpcHostFlag, rpcPortFlag,
+		miningFlag,
+		isBootstrapFlag, profileFlag,
+		keyFileFlag, keyPassFlag,
+		logLevelFlag, logFileFlag,
+		inMemFlag, dbFolderFlag,
 	}
 
 	app.Commands = []*cli.Command{
-		getKeyToolsCommand(), genesistoolsCommand,
+		getKeyToolsCommand(), getGenesisToolsCommand(),
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	os.Exit(0)

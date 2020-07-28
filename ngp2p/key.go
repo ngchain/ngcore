@@ -29,9 +29,24 @@ func readKeyFromFile(filename string) crypto.PrivKey {
 	return priv
 }
 
+// TODO:  migrate p2p keys into keytools
 func getP2PKey() crypto.PrivKey {
 	// read from db / file
-	if _, err := os.Stat("p2p.key"); os.IsNotExist(err) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	path := filepath.Join(home, ".ngkeys")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err := os.Mkdir(path, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	path = filepath.Join(path, "ngp2p.key")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		priv, _, err := crypto.GenerateKeyPair(crypto.Secp256k1, 256)
 		if err != nil {
 			log.Panic(err)
@@ -44,7 +59,7 @@ func getP2PKey() crypto.PrivKey {
 
 		log.Info("creating bootstrap key")
 
-		f, err := os.Create("p2p.key")
+		f, err := os.Create(path)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -53,5 +68,5 @@ func getP2PKey() crypto.PrivKey {
 		_ = f.Close()
 	}
 
-	return readKeyFromFile("p2p.key")
+	return readKeyFromFile(path)
 }

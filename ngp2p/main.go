@@ -23,7 +23,7 @@ type LocalNode struct {
 	*wiredProtocol
 	*broadcastProtocol
 
-	OnBlock chan *ngtypes.Block
+	OnBlock chan *ngtypes.Block // TODO: add queue for receiving
 	OnTx    chan *ngtypes.Tx
 }
 
@@ -65,7 +65,7 @@ func NewLocalNode(port int) *LocalNode {
 
 	// init
 	for _, addr := range localHost.Addrs() {
-		log.Warnf("Listening P2P on %s/p2p/%s", addr.String(), localHost.ID().String())
+		fmt.Printf("P2P Listening on: \t%s/p2p/%s \n", addr.String(), localHost.ID().String())
 	}
 
 	initMDNS(ctx, localHost)

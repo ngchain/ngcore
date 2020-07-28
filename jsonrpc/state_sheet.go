@@ -16,15 +16,18 @@ func (s *Server) getAccountsByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	addr, err := base58.FastBase58Decoding(params.Address)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 	accounts, err := ngstate.GetActiveState().GetAccountsByAddress(addr)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 	result := make([]uint64, len(accounts))
@@ -34,6 +37,7 @@ func (s *Server) getAccountsByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 
 	raw, err := utils.JSON.Marshal(result)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -49,20 +53,24 @@ func (s *Server) getBalanceByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	addr, err := base58.FastBase58Decoding(params.Address)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	balance, err := ngstate.GetActiveState().GetBalanceByAddress(addr)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 	raw, err := utils.JSON.Marshal(balance.String())
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -78,16 +86,19 @@ func (s *Server) getBalanceByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	balance, err := ngstate.GetActiveState().GetBalanceByNum(params.Num)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(balance.String())
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -103,16 +114,19 @@ func (s *Server) getAccountByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	account, err := ngstate.GetActiveState().GetAccountByNum(params.Num)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	raw, err := utils.JSON.Marshal(account)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 

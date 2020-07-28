@@ -7,7 +7,7 @@ import (
 )
 
 func TestInitStorage(t *testing.T) {
-	db := storage.InitStorage()
+	db := storage.InitStorage(".ngdb")
 	if db == nil {
 		t.Error("failed to init db on home dir")
 		return
