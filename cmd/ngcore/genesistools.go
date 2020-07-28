@@ -36,7 +36,10 @@ func getGenesisToolsCommand() *cli.Command {
 		Flags:       []cli.Flag{filenameFlag, passwordFlag},
 		Description: "check genesis blocks and generateTx and re-generate them if error occurs",
 		Action: func(context *cli.Context) error {
-			localKey := keytools.ReadLocalKey("genesis.key", "") // TODO: add password to options
+			filename := context.String("filename")
+			password := context.String("password")
+
+			localKey := keytools.ReadLocalKey(filename, password)
 			if localKey == nil {
 				err := fmt.Errorf("genesis.key is missing, using keytools to create one first")
 				panic(err)
