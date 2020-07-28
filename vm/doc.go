@@ -1,2 +1,2 @@
-// Package vm is a web assembly vm for NGIN contracts
+// Package vm is a webassembly vm for NGIN contracts
 package vm
