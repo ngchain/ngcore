@@ -23,7 +23,10 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	if len(filename) == 0 {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			os.Mkdir(path, os.ModePerm)
+			err := os.Mkdir(path, os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
 		}
 		filename = GetDefaultFile()
 	}
@@ -62,7 +65,10 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	if len(filename) == 0 {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			os.Mkdir(path, os.ModePerm)
+			err := os.Mkdir(path, os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
 		}
 		filename = GetDefaultFile()
 	}
@@ -97,7 +103,10 @@ func RecoverLocalKey(filename string, password string, privateKey string) *secp2
 	if len(filename) == 0 {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			os.Mkdir(path, os.ModePerm)
+			err := os.Mkdir(path, os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
 		}
 		filename = GetDefaultFile()
 	}
