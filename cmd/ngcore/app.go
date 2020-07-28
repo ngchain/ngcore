@@ -93,6 +93,12 @@ var inMemFlag = &cli.BoolFlag{
 	Usage: "Run the database of blocks, vaults in memory",
 }
 
+var dbFolderFlag = &cli.StringFlag{
+	Name:  "db-folder",
+	Usage: "The folder location for db",
+	Value: defaultDBFolder,
+}
+
 var action = func(c *cli.Context) error {
 	logLevel, err := logging.LevelFromString(c.String("log-level"))
 	if err != nil {
@@ -117,6 +123,7 @@ var action = func(c *cli.Context) error {
 	keyFile := c.String("key-file")
 	withProfile := c.Bool("profile")
 	inMem := c.Bool("in-mem")
+	dbFolder := c.String("db-folder")
 
 	if withProfile {
 		var f *os.File
@@ -141,7 +148,7 @@ var action = func(c *cli.Context) error {
 	if inMem {
 		db = storage.InitMemStorage()
 	} else {
-		db = storage.InitStorage()
+		db = storage.InitStorage(dbFolder)
 	}
 	defer func() {
 		err = db.Close()

@@ -9,13 +9,12 @@ import (
 
 var log = logging.Logger("storage")
 
-// TODO: init me from the folder designated by user
 var db *badger.DB
 
 // InitStorage inits a new DB in data folder.
-func InitStorage() *badger.DB {
+func InitStorage(dbFolder string) *badger.DB {
 	if db == nil {
-		options := badger.DefaultOptions(".ngdb")
+		options := badger.DefaultOptions(dbFolder)
 		if runtime.GOOS == "windows" {
 			options.Truncate = true
 		}

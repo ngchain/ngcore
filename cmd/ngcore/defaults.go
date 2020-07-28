@@ -13,5 +13,5 @@ const (
 	defaultLogLevel     = "WARN"
 	defaultLogFile      = "ngcore.log"
 	dafaultMiningThread = -1
-	defaultDBFolder     = "ngdb"
+	defaultDBFolder     = ".ngdb"
 )
