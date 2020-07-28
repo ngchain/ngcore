@@ -9,7 +9,6 @@ import (
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/utils"
 )
 
 func TestNewConsensusManager(t *testing.T) {
@@ -27,7 +26,7 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	_ = ngp2p.NewLocalNode(int(utils.RandUint16()))
+	_ = ngp2p.NewLocalNode(52521)
 
 	m := ngstate.GetStateManager()
 	err := m.UpgradeState(ngtypes.GetGenesisBlock())
