@@ -127,8 +127,8 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 
 	// block is valid
 	hash := block.Hash()
-	fmt.Printf("Mined a new Block: \t%x@%d \n", hash, block.GetHeight())
-	log.Warnf("Mined a new Block: \t%x@%d", hash, block.GetHeight())
+	fmt.Printf("Mined a new Block: %x@%d \n", hash, block.GetHeight())
+	log.Warnf("Mined a new Block: %x@%d", hash, block.GetHeight())
 
 	err = storage.GetChain().PutNewBlock(block) // chain will verify the block
 	if err != nil {

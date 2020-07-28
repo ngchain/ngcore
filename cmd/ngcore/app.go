@@ -34,10 +34,10 @@ var p2pTCPPortFlag = &cli.IntFlag{
 	Value: defaultTCPP2PPort,
 }
 
-var rpcHostFlag = &cli.IntFlag{
+var rpcHostFlag = &cli.StringFlag{
 	Name:  "rpc-host",
 	Usage: "Host address for JSON RPC",
-	Value: defaultRPCPort,
+	Value: defaultRPCHost,
 }
 
 var rpcPortFlag = &cli.IntFlag{
@@ -118,7 +118,8 @@ var action = func(c *cli.Context) error {
 
 	isStrictMode := isBootstrapNode || c.Bool("strict")
 	p2pTCPPort := c.Int("p2p-port")
-	apiPort := c.Int("api-port")
+	rpcHost := c.String("rpc-host")
+	rpcPort := c.Int("rpc-port")
 	keyPass := c.String("key-pass")
 	keyFile := c.String("key-file")
 	withProfile := c.Bool("profile")
@@ -142,7 +143,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
-	fmt.Printf("Use address: %s to receive mining rewards", string(base58.FastBase58Encoding(ngtypes.NewAddress(key))))
+	fmt.Printf("Use address: %s to receive mining rewards \n", string(base58.FastBase58Encoding(ngtypes.NewAddress(key))))
 
 	var db *badger.DB
 	if inMem {
@@ -168,7 +169,7 @@ var action = func(c *cli.Context) error {
 	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
 	pow.GoLoop()
 
-	rpc := jsonrpc.NewServer("", apiPort)
+	rpc := jsonrpc.NewServer(rpcHost, rpcPort)
 	go rpc.Serve()
 
 	// notify the exit events

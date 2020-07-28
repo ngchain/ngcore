@@ -23,7 +23,7 @@ func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	log.Debugf("broadcasted block@%d:%x", block.GetHeight(), block.Hash())
+	log.Debugf("broadcasted block@%d: %x", block.GetHeight(), block.Hash())
 
 	return nil
 }

@@ -9,6 +9,7 @@ const (
 
 	// flag values
 	defaultTCPP2PPort   = 52520
+	defaultRPCHost      = "127.0.0.1"
 	defaultRPCPort      = 52521
 	defaultLogLevel     = "WARN"
 	defaultLogFile      = "ngcore.log"

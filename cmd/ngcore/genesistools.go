@@ -52,7 +52,7 @@ func getGenesisToolsCommand() *cli.Command {
 
 			gtx := ngtypes.GetGenesisGenerateTx()
 			if err := gtx.CheckGenerate(); err != nil {
-				fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing...", gtx.Sign, err)
+				fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing... \n", gtx.Sign, err)
 				err = gtx.Signature(localKey)
 				if err != nil {
 					panic(err)
@@ -65,7 +65,7 @@ func getGenesisToolsCommand() *cli.Command {
 
 			b := ngtypes.GetGenesisBlock()
 			if err := b.CheckError(); err != nil {
-				fmt.Printf("Current genesis block is invalid, use the generate tx above to re-calc nonce...\n")
+				fmt.Printf("Current genesis block is invalid, use the generate tx above to re-calc nonce...  \n")
 				b, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
 				if err != nil {
 					fmt.Print(err)
@@ -73,7 +73,7 @@ func getGenesisToolsCommand() *cli.Command {
 
 				genBlockNonce(b)
 			} else {
-				fmt.Printf("Genesis block is healthy")
+				fmt.Printf("Genesis block is healthy \n")
 			}
 
 			return nil
@@ -104,7 +104,7 @@ func getGenesisToolsCommand() *cli.Command {
 func genBlockNonce(b *ngtypes.Block) {
 	diff := new(big.Int).SetBytes(b.GetDifficulty())
 	genesisTarget := new(big.Int).Div(ngtypes.MaxTarget, diff)
-	fmt.Printf("Genesis block's diff %d, target %x\n", diff, genesisTarget.Bytes())
+	fmt.Printf("Genesis block's diff %d, target %x \n", diff, genesisTarget.Bytes())
 
 	nCh := make(chan []byte, 1)
 	stopCh := make(chan struct{}, 1)
@@ -117,7 +117,7 @@ func genBlockNonce(b *ngtypes.Block) {
 	answer := <-nCh
 	stopCh <- struct{}{}
 
-	fmt.Printf("Genesis Block Nonce Hex: %x\n", answer)
+	fmt.Printf("Genesis Block Nonce Hex: %x \n", answer)
 }
 
 func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {

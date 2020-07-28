@@ -65,7 +65,7 @@ func NewLocalNode(port int) *LocalNode {
 
 	// init
 	for _, addr := range localHost.Addrs() {
-		fmt.Printf("P2P Listening on: \t%s/p2p/%s \n", addr.String(), localHost.ID().String())
+		fmt.Printf("P2P Listening on: %s/p2p/%s \n", addr.String(), localHost.ID().String())
 	}
 
 	initMDNS(ctx, localHost)

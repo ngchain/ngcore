@@ -33,8 +33,8 @@ func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
 	}
 
 	latest := storage.GetChain().GetLatestBlock()
-	fmt.Printf("Initial sync completed, latest: \t%x@%d \n", latest.Hash(), latest.Height)
-	log.Warnf("Initial sync completed, latest: \t%x@%d", latest.Hash(), latest.Height)
+	fmt.Printf("Initial sync completed, latest: %x@%d \n", latest.Hash(), latest.Height)
+	log.Warnf("Initial sync completed, latest: %x@%d", latest.Hash(), latest.Height)
 
 	return syncMod
 }

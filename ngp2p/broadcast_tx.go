@@ -24,7 +24,7 @@ func (b *broadcastProtocol) BroadcastTx(tx *ngtypes.Tx) error {
 		return err
 	}
 
-	log.Debugf("broadcasted Tx:%s", tx.ID())
+	log.Debugf("broadcasted Tx: %s", tx.ID())
 
 	return nil
 }

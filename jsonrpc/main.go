@@ -26,7 +26,7 @@ func NewServer(host string, port int) *Server {
 
 // Serve will make the server running
 func (s *Server) Serve() {
-	fmt.Printf("JSON RPC listening on: \t %s\n", s.Addr)
+	fmt.Printf("JSON RPC listening on: %s \n", s.Addr)
 	err := s.ListenAndServe()
 	if err != nil {
 		panic(err)

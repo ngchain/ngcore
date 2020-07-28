@@ -65,7 +65,7 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	fmt.Printf("Start initial syncing with remote node:\t%s\n", record.id)
+	fmt.Printf("Start initial syncing with remote node: %s\n", record.id)
 	log.Warnf("Start initial syncing with remote node %s", record.id)
 
 	// get chain
