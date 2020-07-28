@@ -9,7 +9,7 @@ const (
 
 	// flag values
 	defaultTCPP2PPort   = 52520
-	defaultAPIPort      = 52521
+	defaultRPCPort      = 52521
 	defaultLogLevel     = "WARN"
 	defaultLogFile      = "ngcore.log"
 	dafaultMiningThread = -1

@@ -37,13 +37,13 @@ var p2pTCPPortFlag = &cli.IntFlag{
 var rpcHostFlag = &cli.IntFlag{
 	Name:  "rpc-host",
 	Usage: "Host address for JSON RPC",
-	Value: defaultAPIPort,
+	Value: defaultRPCPort,
 }
 
 var rpcPortFlag = &cli.IntFlag{
 	Name:  "rpc-port",
 	Usage: "Port for JSON RPC",
-	Value: defaultAPIPort,
+	Value: defaultRPCPort,
 }
 
 var isBootstrapFlag = &cli.BoolFlag{

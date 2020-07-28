@@ -15,7 +15,7 @@ import (
 func TestPoWMiner(t *testing.T) {
 	storage.NewChain(storage.InitMemStorage())
 
-	_ = ngp2p.NewLocalNode(52521)
+	_ = ngp2p.NewLocalNode(52520)
 	pk := secp256k1.NewPrivateKey(big.NewInt(1))
 	pow := consensus.NewPoWConsensus(1, pk, true) // as bootstrap to avoid sync
 	pow.MiningOn()

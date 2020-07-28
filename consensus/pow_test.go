@@ -26,7 +26,7 @@ func TestNewConsensusManager(t *testing.T) {
 	chain := storage.NewChain(db)
 	chain.InitWithGenesis()
 
-	_ = ngp2p.NewLocalNode(52521)
+	_ = ngp2p.NewLocalNode(52520)
 
 	m := ngstate.GetStateManager()
 	err := m.UpgradeState(ngtypes.GetGenesisBlock())
