@@ -41,6 +41,10 @@ func (s *Server) getAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 
 	addr, err := ngtypes.NewAddressFromMultiKeys(privKeys...)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	result := getAddressReply{
 		Address: addr,
