@@ -21,21 +21,25 @@ func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	targetAddr, err := multiaddr.NewMultiaddr(params.PeerMultiAddr)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	targetInfo, err := peer.AddrInfoFromP2pAddr(targetAddr)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	err = ngp2p.GetLocalNode().Connect(context.Background(), *targetInfo)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -43,11 +47,21 @@ func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 }
 
 func (s *Server) getNetworkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	network, _ := utils.JSON.Marshal(ngtypes.NETWORK.String())
+	network, err := utils.JSON.Marshal(ngtypes.NETWORK.String())
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, network)
 }
 
 func (s *Server) getPeersFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	raw, _ := utils.JSON.Marshal(ngp2p.GetLocalNode().Peerstore().PeersWithAddrs())
+	raw, err := utils.JSON.Marshal(ngp2p.GetLocalNode().Peerstore().PeersWithAddrs())
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
