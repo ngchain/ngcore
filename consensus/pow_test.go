@@ -1,7 +1,6 @@
 package consensus_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/ngchain/ngcore/consensus"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestNewConsensusManager(t *testing.T) {
-	key := keytools.ReadLocalKey("ngcore.key", strings.TrimSpace(""))
+	key := keytools.NewLocalKey()
 
 	db := storage.InitMemStorage()
 
