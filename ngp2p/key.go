@@ -39,7 +39,7 @@ func getP2PKey() crypto.PrivKey {
 
 	path := filepath.Join(home, ".ngkeys")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.Mkdir(path, 644)
+		os.Mkdir(path, os.ModePerm)
 	}
 
 	path = filepath.Join(path, "ngp2p.key")
