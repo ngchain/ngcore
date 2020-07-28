@@ -20,7 +20,7 @@ import (
 func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	var key *secp256k1.PrivateKey
 
-	if len(filename) == 0 {
+	if filename == "" {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			err := os.Mkdir(path, os.ModePerm)
@@ -59,10 +59,10 @@ func NewLocalKey() *secp256k1.PrivateKey {
 }
 
 // CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm.
-func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
+func CreateLocalKey(filename, password string) *secp256k1.PrivateKey {
 	key := NewLocalKey()
 
-	if len(filename) == 0 {
+	if filename == "" {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			err := os.Mkdir(path, os.ModePerm)
@@ -92,7 +92,7 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 }
 
 // RecoverLocalKey will recover a keyfile named *filename* with the password from the privateKey string.
-func RecoverLocalKey(filename string, password string, privateKey string) *secp256k1.PrivateKey {
+func RecoverLocalKey(filename, password, privateKey string) *secp256k1.PrivateKey {
 	bKey, err := base58.FastBase58Decoding(privateKey)
 	if err != nil {
 		panic(err)
@@ -100,7 +100,7 @@ func RecoverLocalKey(filename string, password string, privateKey string) *secp2
 
 	key := secp256k1.NewPrivateKey(new(big.Int).SetBytes(bKey))
 
-	if len(filename) == 0 {
+	if filename == "" {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			err := os.Mkdir(path, os.ModePerm)
