@@ -1,7 +1,10 @@
 package ngtypes
 
 import (
+	"fmt"
+
 	"github.com/mr-tron/base58"
+	"github.com/ngchain/go-schnorr"
 	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/secp256k1"
 )
@@ -14,6 +17,26 @@ func NewAddress(privKey *secp256k1.PrivateKey) Address {
 	checkSum := utils.Sha3Sum256(privKey.Serialize())[0:2]
 
 	return append(checkSum, utils.PublicKey2Bytes(*privKey.PubKey())...)
+}
+
+// NewAddressFromMultiKeys will return a 2+33=35 bytes length address
+func NewAddressFromMultiKeys(privKeys ...*secp256k1.PrivateKey) (Address, error) {
+	if len(privKeys) == 0 {
+		return nil, fmt.Errorf("cannot generate Address without privateKey")
+	}
+
+	pubKeys := make([]secp256k1.PublicKey, len(privKeys))
+	allKeyBytes := make([]byte, 0, len(privKeys)*32)
+	for i := 0; i < len(privKeys); i++ {
+		pubKeys[i] = *privKeys[i].PubKey()
+		allKeyBytes = append(allKeyBytes, privKeys[i].Serialize()...)
+	}
+
+	checkSum := utils.Sha3Sum256(allKeyBytes)[0:2]
+
+	pub := schnorr.CombinePublicKeys(pubKeys...)
+
+	return append(checkSum, utils.PublicKey2Bytes(*pub)...), nil
 }
 
 func NewAddressFromBS58(s string) (Address, error) {
