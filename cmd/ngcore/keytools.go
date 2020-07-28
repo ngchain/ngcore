@@ -13,7 +13,7 @@ func getKeyToolsCommand() *cli.Command {
 		Name:    "filename",
 		Aliases: []string{"f"},
 		Value:   "",
-		Usage:   "when empty, keyfile will be written into " + keytools.GetDefault(),
+		Usage:   "when empty, keyfile will be written into " + keytools.GetDefaultFile(),
 	}
 
 	var passwordFlag = &cli.StringFlag{

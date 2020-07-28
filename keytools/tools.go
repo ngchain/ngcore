@@ -16,14 +16,16 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-
-
 // ReadLocalKey will read the local AES-256-GCM encrypted secp256k1 key file to load an ecdsa private key.
 func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	var key *secp256k1.PrivateKey
 
 	if len(filename) == 0 {
-		filename = GetDefault()
+		path := GetDefaultFolder()
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			os.Mkdir(path, os.ModePerm)
+		}
+		filename = GetDefaultFile()
 	}
 
 	if _, err := os.Stat(filename); err != nil {
@@ -58,7 +60,11 @@ func CreateLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	key := NewLocalKey()
 
 	if len(filename) == 0 {
-		filename = GetDefault()
+		path := GetDefaultFolder()
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			os.Mkdir(path, os.ModePerm)
+		}
+		filename = GetDefaultFile()
 	}
 
 	// save key to ngcore.key file
@@ -89,7 +95,11 @@ func RecoverLocalKey(filename string, password string, privateKey string) *secp2
 	key := secp256k1.NewPrivateKey(new(big.Int).SetBytes(bKey))
 
 	if len(filename) == 0 {
-		filename = GetDefault()
+		path := GetDefaultFolder()
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			os.Mkdir(path, os.ModePerm)
+		}
+		filename = GetDefaultFile()
 	}
 
 	// save key to ngcore.key file
