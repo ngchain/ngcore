@@ -22,6 +22,11 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 		return nil, nil, err
 	}
 
+	// avoid nil hash
+	if to == nil {
+		to = ngtypes.GetEmptyHash()
+	}
+
 	payload, err := utils.Proto.Marshal(&GetChainPayload{
 		From: from,
 		To:   to,
@@ -71,11 +76,9 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 		return
 	}
 
-	var lastFromHash []byte
+	lastFromHash := ngtypes.GetGenesisBlockHash()
 
-	if len(getChainPayload.GetFrom()) == 0 {
-		lastFromHash = ngtypes.GetGenesisBlockHash()
-	} else {
+	if len(getChainPayload.GetFrom()) != 0 {
 		// do hashes check first
 		for i := 0; i < len(getChainPayload.GetFrom()); i++ {
 			_, err := storage.GetChain().GetBlockByHash(getChainPayload.GetFrom()[i])
