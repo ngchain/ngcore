@@ -38,8 +38,7 @@ func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 }
 
 type getWorkReply struct {
-	Seed      string `json:"seed"`
-	RawHeader string `json:"raw"`
+	RawHeader string `json:"raw"` // seed is in [17:49]
 	RawBlock  string `json:"block"`
 }
 
@@ -53,7 +52,6 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 	}
 
 	var reply = getWorkReply{
-		Seed:      hex.EncodeToString(blockTemplate.GetPrevBlockHash()),
 		RawHeader: hex.EncodeToString(blockTemplate.GetPoWRawHeader(nil)),
 		RawBlock:  hex.EncodeToString(rawBlock),
 	}

@@ -47,6 +47,7 @@ func (x *Block) IsGenesis() bool {
 }
 
 // GetPoWRawHeader will return a complete raw for block hash.
+// When nonce is not nil, the RawHeader will use the nonce param not the x.Nonce.
 func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 	//lenRaw := 1 + // network size
 	//	HeightSize+
