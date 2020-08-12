@@ -1,5 +1,11 @@
 # ChangeLog
 
+## v0.0.18
+
+- TODO: add fast-sync mode
+- TODO: add GetSheet and Sheet p2p message
+- TODO: add storage for the state
+
 ## v0.0.17
 
 - BUGFIX: fix difficulty algorithm
