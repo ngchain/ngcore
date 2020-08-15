@@ -26,8 +26,8 @@ func TestNewConsensusManager(t *testing.T) {
 		}
 	}()
 
-	chain := ngblocks.NewChain(db)
-	chain.InitWithGenesis()
+	ngblocks.Init(db)
+	ngblocks.InitWithGenesis()
 
 	_ = ngp2p.NewLocalNode(52520)
 

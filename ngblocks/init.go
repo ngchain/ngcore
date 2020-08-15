@@ -9,14 +9,14 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// InitWithGenesis will initialize the chain with genesis block & vault.
-func (c *Chain) InitWithGenesis() {
-	if !c.hasGenesisBlock() {
+// InitWithGenesis will initialize the store with genesis block & vault.
+func InitWithGenesis() {
+	if !hasGenesisBlock() {
 		log.Warnf("initializing with genesis block")
 
 		block := ngtypes.GetGenesisBlock()
 
-		if err := c.Update(func(txn *badger.Txn) error {
+		if err := store.Update(func(txn *badger.Txn) error {
 			hash := block.Hash()
 			raw, _ := utils.Proto.Marshal(block)
 			log.Debugf("putting block@%d: %x", block.Height, hash)
@@ -44,10 +44,10 @@ func (c *Chain) InitWithGenesis() {
 }
 
 // hasGenesisBlock checks whether the genesis vault is in db.
-func (c *Chain) hasGenesisBlock() bool {
+func hasGenesisBlock() bool {
 	var has = false
 
-	if err := c.View(func(txn *badger.Txn) error {
+	if err := store.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(0)...))
 		if err != nil {
 			return err
@@ -71,12 +71,12 @@ func (c *Chain) hasGenesisBlock() bool {
 	return has
 }
 
-// InitWithChain initialize the chain by importing the external chain.
-func (c *Chain) InitWithChain(chain ...*ngtypes.Block) error {
+// InitWithBlockchain initialize the store by importing the external store.
+func InitWithBlockchain(blocks ...*ngtypes.Block) error {
 	/* Put start */
-	err := c.Update(func(txn *badger.Txn) error {
-		for i := 0; i < len(chain); i++ {
-			block := chain[i]
+	err := store.Update(func(txn *badger.Txn) error {
+		for i := 0; i < len(blocks); i++ {
+			block := blocks[i]
 			hash := block.Hash()
 			raw, _ := utils.Proto.Marshal(block)
 			log.Debugf("putting block@%d: %x", block.Height, hash)

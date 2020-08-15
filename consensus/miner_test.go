@@ -15,7 +15,7 @@ import (
 )
 
 func TestPoWMiner(t *testing.T) {
-	ngblocks.NewChain(storage.InitMemStorage())
+	ngblocks.Init(storage.InitMemStorage())
 
 	_ = ngp2p.NewLocalNode(52520)
 	pk := secp256k1.NewPrivateKey(big.NewInt(1))

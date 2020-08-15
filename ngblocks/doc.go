@@ -1,2 +1,2 @@
-// Package storage is a chain for blocks which contains txs
+// Package storage is a store for blocks which contains txs
 package ngblocks

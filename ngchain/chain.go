@@ -12,3 +12,7 @@ type Chain struct {
 }
 
 var chain *Chain
+
+func Init(db *badger.DB) {
+	chain = &Chain{db}
+}

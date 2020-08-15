@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngpool"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/storage"
 	"os"
 	"runtime"
@@ -153,6 +155,7 @@ var action = func(c *cli.Context) error {
 	} else {
 		db = storage.InitStorage(dbFolder)
 	}
+
 	defer func() {
 		err = db.Close()
 		if err != nil {
@@ -160,9 +163,13 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	chain := ngblocks.NewChain(db)
+	ngchain.Init(db)
+	ngblocks.Init(db)
+	ngstate.InitStateFromGenesis(db)
+	ngpool.InitTxPool()
+
 	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
-		chain.InitWithGenesis()
+		ngblocks.InitWithGenesis()
 		// then sync
 	}
 

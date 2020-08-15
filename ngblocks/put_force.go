@@ -7,7 +7,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// ForcePutNewBlock puts a block into db regardless of local chain check
+// ForcePutNewBlock puts a block into db regardless of local store check
 // should check block self before putting
 func ForcePutNewBlock(block *ngtypes.Block) error {
 	if block == nil {
@@ -15,7 +15,7 @@ func ForcePutNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash := block.Hash()
-	err := chain.Update(func(txn *badger.Txn) error {
+	err := store.Update(func(txn *badger.Txn) error {
 		// when block is not genesis block, checking error
 		if blockHeightExists(txn, block.Height) {
 			b, err := GetBlockByHeight(txn, block.Height)

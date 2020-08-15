@@ -25,14 +25,6 @@ type State struct {
 	*badger.DB
 }
 
-func GetState() *State {
-	if state == nil {
-		panic("state is not initialized")
-	}
-
-	return state
-}
-
 func InitStateDB(db *badger.DB, sheet *ngtypes.Sheet) {
 	state = &State{db}
 	err := state.Update(func(txn *badger.Txn) error {
@@ -43,7 +35,7 @@ func InitStateDB(db *badger.DB, sheet *ngtypes.Sheet) {
 	}
 }
 
-func InitStateDBFromGenesis(db *badger.DB) {
+func InitStateFromGenesis(db *badger.DB) {
 	state = &State{db}
 	err := state.Update(func(txn *badger.Txn) error {
 		err := initFromSheet(txn, ngtypes.GenesisSheet)

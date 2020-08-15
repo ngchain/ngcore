@@ -17,30 +17,19 @@ var (
 	txPrefix    = []byte("t:")
 )
 
-// Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing.
-// TODO: Add DAG support to extend the capacity of chain
-type Chain struct {
+// BlockStore managers a badger DB, which stores vaults and blocks and some helper tags for managing.
+// TODO: Add DAG support to extend the capacity of store
+type BlockStore struct {
 	*badger.DB
 }
 
-var chain *Chain
+var store *BlockStore
 
-// NewChain will return a chain, but no initialization.
-func NewChain(db *badger.DB) *Chain {
-	if chain == nil {
-		chain = &Chain{
+// Init will return a store, but no initialization.
+func Init(db *badger.DB) {
+	if store == nil {
+		store = &BlockStore{
 			db,
 		}
 	}
-
-	return chain
-}
-
-// GetChain returns an unique chain storage
-func GetChain() *Chain {
-	if chain == nil {
-		panic("chain is closed")
-	}
-
-	return chain
 }
