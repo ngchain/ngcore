@@ -26,7 +26,7 @@ type PoWork struct {
 	syncMod  *syncModule
 	minerMod *minerModule
 
-	storage *badger.DB
+	db *badger.DB
 
 	PrivateKey *secp256k1.PrivateKey
 }
@@ -136,7 +136,7 @@ func eventLoop() {
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
 func MinedNewBlock(block *ngtypes.Block) error {
 	// check block first
-	err := pow.storage.Update(func(txn *badger.Txn) error {
+	err := pow.db.Update(func(txn *badger.Txn) error {
 		// check block first
 		if err := ngchain.CheckBlock(block); err != nil {
 			return err

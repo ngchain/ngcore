@@ -2,6 +2,7 @@ package ngpool
 
 import (
 	"bytes"
+	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/ngtypes"
 	"sync"
@@ -14,17 +15,18 @@ var log = logging.Logger("ngpool")
 // Every time the state updated, the old pool will be deprecated
 type TxPool struct {
 	sync.Mutex
+
+	db    *badger.DB
 	txMap map[uint64]*ngtypes.Tx // priority first
 }
 
 var pool *TxPool
 
-func InitTxPool() *TxPool {
+func Init(db *badger.DB) {
 	pool = &TxPool{
+		db:    db,
 		txMap: make(map[uint64]*ngtypes.Tx, 0),
 	}
-
-	return pool
 }
 
 // IsInPool checks one tx is in pool or not. TODO: export it into rpc.

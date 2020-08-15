@@ -166,7 +166,7 @@ var action = func(c *cli.Context) error {
 	ngchain.Init(db)
 	ngblocks.Init(db)
 	ngstate.InitStateFromGenesis(db)
-	ngpool.InitTxPool()
+	ngpool.Init(db)
 
 	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
 		ngblocks.InitWithGenesis()
