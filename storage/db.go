@@ -24,7 +24,7 @@ func InitStorage(dbFolder string) *badger.DB {
 		var err error
 		db, err = badger.Open(options)
 		if err != nil {
-			log.Panic("failed to open storage:", err)
+			log.Panic("failed to init badgerDB:", err)
 		}
 	}
 
@@ -44,7 +44,7 @@ func InitMemStorage() *badger.DB {
 
 		db, err = badger.Open(options)
 		if err != nil {
-			log.Panic("failed to open storage:", err)
+			log.Panic("failed to init badgerDB:", err)
 		}
 	}
 

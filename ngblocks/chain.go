@@ -1,7 +1,8 @@
-package storage
+package ngblocks
 
 import (
 	"github.com/dgraph-io/badger/v2"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 const (
@@ -9,15 +10,17 @@ const (
 	latestHashTag   = "hash"
 )
 
+var log = logging.Logger("blocks")
+
 var (
-	blockPrefix = []byte("b")
-	txPrefix    = []byte("t")
+	blockPrefix = []byte("b:")
+	txPrefix    = []byte("t:")
 )
 
 // Chain managers a badger DB, which stores vaults and blocks and some helper tags for managing.
 // TODO: Add DAG support to extend the capacity of chain
 type Chain struct {
-	db *badger.DB
+	*badger.DB
 }
 
 var chain *Chain
@@ -26,7 +29,7 @@ var chain *Chain
 func NewChain(db *badger.DB) *Chain {
 	if chain == nil {
 		chain = &Chain{
-			db: db,
+			db,
 		}
 	}
 

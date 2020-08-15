@@ -3,18 +3,19 @@ package consensus
 import (
 	"fmt"
 
+	"github.com/ngchain/ngcore/ngchain"
+
 	core "github.com/libp2p/go-libp2p-core"
 
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 // GetRemoteStatus just get the remote status from remote, and then put it into sync.store
 func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
-	origin := storage.GetChain().GetOriginBlock()
-	latest := storage.GetChain().GetLatestBlock()
-	cp := storage.GetChain().GetLatestCheckpoint()
+	origin := ngchain.GetOriginBlock()
+	latest := ngchain.GetLatestBlock()
+	cp := ngchain.GetLatestCheckpoint()
 
 	id, stream := ngp2p.GetLocalNode().Ping(peerID, origin.GetHeight(), latest.GetHeight(), cp.Hash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
@@ -50,7 +51,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 
 // getRemoteChainFromLocalLatest just get the remote status from remote
 func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain []*ngtypes.Block, err error) {
-	latestHash := storage.GetChain().GetLatestBlockHash()
+	latestHash := ngchain.GetLatestBlockHash()
 
 	id, s, err := ngp2p.GetLocalNode().GetChain(peerID, [][]byte{latestHash}, nil)
 	if s == nil {

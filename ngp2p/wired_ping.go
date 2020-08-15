@@ -4,8 +4,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ngchain/ngcore/ngchain"
 
-	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -65,8 +65,8 @@ func (w *wiredProtocol) onPing(stream network.Stream, msg *Message) {
 
 	// send pong
 
-	origin := storage.GetChain().GetOriginBlock()
-	latest := storage.GetChain().GetLatestBlock()
-	checkpoint := storage.GetChain().GetLatestCheckpoint()
+	origin := ngchain.GetOriginBlock()
+	latest := ngchain.GetLatestBlock()
+	checkpoint := ngchain.GetLatestCheckpoint()
 	w.pong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), checkpoint.Hash(), checkpoint.GetActualDiff().Bytes())
 }

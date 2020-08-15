@@ -1,4 +1,4 @@
-package ngstate
+package ngpool
 
 import (
 	"sort"
@@ -7,19 +7,19 @@ import (
 )
 
 // GetPack will gives a sorted TxTire.
-func (p *TxPool) GetPack() *ngtypes.TxTrie {
+func GetPack() *ngtypes.TxTrie {
 	txs := make([]*ngtypes.Tx, 0)
 	accountNums := make([]uint64, 0)
 
-	for num := range p.txMap {
+	for num := range pool.txMap {
 		accountNums = append(accountNums, num)
 	}
 
 	sort.Slice(accountNums, func(i, j int) bool { return accountNums[i] < accountNums[j] })
 
 	for _, num := range accountNums {
-		if p.txMap[num] != nil {
-			txs = append(txs, p.txMap[num])
+		if pool.txMap[num] != nil {
+			txs = append(txs, pool.txMap[num])
 		}
 	}
 

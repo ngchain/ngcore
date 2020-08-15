@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ngchain/ngcore/ngchain"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -81,7 +81,7 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 	if len(getChainPayload.GetFrom()) != 0 {
 		// do hashes check first
 		for i := 0; i < len(getChainPayload.GetFrom()); i++ {
-			_, err := storage.GetChain().GetBlockByHash(getChainPayload.GetFrom()[i])
+			_, err := ngchain.GetBlockByHash(getChainPayload.GetFrom()[i])
 			if err != nil {
 				// failed to get block from local chain means there is a fork since this block and its prevBlock is the last common one
 				break
@@ -94,7 +94,7 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 
 	log.Debugf("Received getchain request from %s. Requested %x to %x", stream.Conn().RemotePeer(), lastFromHash, getChainPayload.GetTo())
 
-	cur, err := storage.GetChain().GetBlockByHash(lastFromHash)
+	cur, err := ngchain.GetBlockByHash(lastFromHash)
 	if err != nil {
 		w.reject(msg.Header.MessageId, stream, err)
 		return
@@ -107,7 +107,7 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 		}
 
 		nextHeight := cur.GetHeight() + 1
-		cur, err = storage.GetChain().GetBlockByHeight(nextHeight)
+		cur, err = ngchain.GetBlockByHeight(nextHeight)
 		if err != nil {
 			log.Debugf("local chain is missing block@%d: %s", nextHeight, err)
 			break

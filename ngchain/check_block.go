@@ -1,16 +1,15 @@
-package consensus
+package ngchain
 
 import (
 	"bytes"
 	"fmt"
-
+	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
-// checkBlock checks block before putting into chain.
-func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
+// CheckBlock checks block before putting into chain.
+func CheckBlock(block *ngtypes.Block) error {
 	if block.IsGenesis() {
 		return nil
 	}
@@ -22,17 +21,19 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 
 	prevHash := block.GetPrevHash()
 	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash()) {
-		prevBlock, err := storage.GetChain().GetBlockByHash(prevHash)
+		prevBlock, err := GetBlockByHash(prevHash)
 		if err != nil {
 			return err
 		}
 
-		if err := pow.checkBlockTarget(block, prevBlock); err != nil {
+		if err := checkBlockTarget(block, prevBlock); err != nil {
 			return err
 		}
 	}
 
-	err := ngstate.GetActiveState().CheckTxs(block.Txs...)
+	err := chain.View(func(txn *badger.Txn) error {
+		return ngstate.CheckTxs(txn, block.Txs...)
+	})
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func (pow *PoWork) checkBlock(block *ngtypes.Block) error {
 	return nil
 }
 
-func (pow *PoWork) checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
+func checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
 	correctDiff := ngtypes.GetNextDiff(prevBlock)
 	actualDiff := block.GetActualDiff()
 

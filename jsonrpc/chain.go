@@ -4,17 +4,18 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngpool"
+
 	"github.com/dgraph-io/badger/v2"
-	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 
 	"github.com/maoxs2/go-jsonrpc2"
-	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
 
 func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	height := storage.GetChain().GetLatestBlockHeight()
+	height := ngchain.GetLatestBlockHeight()
 
 	raw, err := utils.JSON.Marshal(height)
 	if err != nil {
@@ -26,7 +27,7 @@ func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 }
 
 func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	hash := storage.GetChain().GetLatestBlockHash()
+	hash := ngchain.GetLatestBlockHash()
 
 	raw, err := utils.JSON.Marshal(hash)
 	if err != nil {
@@ -38,7 +39,7 @@ func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 }
 
 func (s *Server) getLatestBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	block := storage.GetChain().GetLatestBlock()
+	block := ngchain.GetLatestBlock()
 
 	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
@@ -62,7 +63,7 @@ func (s *Server) getBlockByHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	block, err := storage.GetChain().GetBlockByHeight(params.Height)
+	block, err := ngchain.GetBlockByHeight(params.Height)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -96,7 +97,7 @@ func (s *Server) getBlockByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	block, err := storage.GetChain().GetBlockByHash(hash)
+	block, err := ngchain.GetBlockByHash(hash)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -134,7 +135,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	tx, err := storage.GetChain().GetTxByHash(hash)
+	tx, err := ngchain.GetTxByHash(hash)
 	if err != nil && err != badger.ErrKeyNotFound {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -153,8 +154,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 
 	// search in pool
-	pool := ngstate.GetActiveState().GetPool()
-	exists, tx := pool.IsInPool(hash)
+	exists, tx := ngpool.IsInPool(hash)
 	if exists && tx != nil {
 		raw, err := utils.JSON.Marshal(&getTxByHashReply{
 			OnChain: false,

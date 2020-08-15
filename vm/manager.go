@@ -2,17 +2,22 @@ package vm
 
 import (
 	"fmt"
+	"net/http"
+	"sync"
+
 	"github.com/bytecodealliance/wasmtime-go"
 	"github.com/ngchain/ngcore/ngtypes"
-	"sync"
 )
+
+const defaultHTTPVMServerPort = 52528 // TODO: move this into app flag
 
 // Manager is a manager to control the life circle of state vms
 // TODO: Update me after experiment WASI tests
 type Manager struct {
 	sync.RWMutex
 
-	engine *wasmtime.Engine
+	server http.Server      // for frontend app
+	engine *wasmtime.Engine // for backend app
 
 	vms map[uint64]*WasmVM
 }

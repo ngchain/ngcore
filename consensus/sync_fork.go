@@ -1,10 +1,10 @@
 package consensus
 
 import (
+	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 // detectFork detection ignites the forking in local node
@@ -32,7 +32,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 	}
 
 	log.Warnf("have got the fork point: block@%d", chain[0].Height)
-	err = mod.pow.forceApplyBlocks(chain)
+	err = ngchain.ForceApplyBlocks(chain)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 	// 2. download the state from remote(maybe unreliable)
 	// 3. flash back(require remove logout and assign tx)
 	// Currently choose the No.1
-	err = ngstate.GetStateManager().RegenerateState()
+	err = ngstate.Regenerate()
 	if err != nil {
 		return err
 	}
@@ -56,13 +56,13 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 	blocks := make([]*ngtypes.Block, 0)
 	blockHashes := make([][]byte, ngp2p.MaxBlocks)
 
-	localHeight := storage.GetChain().GetLatestBlockHeight()
+	localHeight := ngchain.GetLatestBlockHeight()
 
 	chainLen := ngp2p.MaxBlocks
 
 	for i := uint64(0); chainLen == ngp2p.MaxBlocks; i++ {
 		for height := localHeight - (i+1)*ngp2p.MaxBlocks; height < localHeight-i*ngp2p.MaxBlocks; height++ {
-			b, _ := storage.GetChain().GetBlockByHeight(height)
+			b, _ := ngchain.GetBlockByHeight(height)
 
 			blockHashes[height-(localHeight-ngp2p.MaxBlocks)] = b.Hash()
 		}
@@ -78,21 +78,4 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 	}
 
 	return blocks, nil
-}
-
-// forceApplyBlocks checks the block and then calls ngchain's PutNewBlock, after which update the state
-func (pow *PoWork) forceApplyBlocks(blocks []*ngtypes.Block) error {
-	for i := 0; i < len(blocks); i++ {
-		block := blocks[i]
-		if err := pow.checkBlock(block); err != nil {
-			return err
-		}
-
-		err := storage.GetChain().ForcePutNewBlock(block)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

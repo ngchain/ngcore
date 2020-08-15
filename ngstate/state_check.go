@@ -3,19 +3,13 @@ package ngstate
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
-
-	"github.com/mr-tron/base58"
-
+	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // CheckTxs will check the influenced accounts which mentioned in op, and verify their balance and nonce
-func (s *State) CheckTxs(txs ...*ngtypes.Tx) error {
-	s.RLock()
-	defer s.RUnlock()
-
+func CheckTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		// check tx is signed
@@ -30,49 +24,56 @@ func (s *State) CheckTxs(txs ...*ngtypes.Tx) error {
 
 		switch tx.GetType() {
 		case ngtypes.TxType_GENERATE: // generate
-			if err := s.CheckGenerate(tx); err != nil {
+			if err := checkGenerate(txn, tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_REGISTER: // register
-			if err := s.CheckRegister(tx); err != nil {
+			if err := checkRegister(txn, tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_LOGOUT: // logout
-			if err := s.CheckLogout(tx); err != nil {
+			if err := checkLogout(txn, tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_TRANSACTION: // transaction
-			if err := s.CheckTransaction(tx); err != nil {
+			if err := checkTransaction(txn, tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_ASSIGN: // assign & append
-			if err := s.CheckAssign(tx); err != nil {
+			if err := checkAssign(txn, tx); err != nil {
 				return err
 			}
 
 		case ngtypes.TxType_APPEND: // assign & append
-			if err := s.CheckAppend(tx); err != nil {
+			if err := checkAppend(txn, tx); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+
 }
 
-// CheckGenerate checks the generate tx
-func (s *State) CheckGenerate(generateTx *ngtypes.Tx) error {
-	rawConvener, exists := s.accounts[generateTx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
+// checkGenerate checks the generate tx
+func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx) error {
+
+	item, err := txn.Get(append(accountPrefix, ngtypes.AccountNum(generateTx.GetConvener()).Bytes()...))
+	if err != nil {
+		return fmt.Errorf("cannot find convener: %s", err)
+	}
+
+	rawConvener, err := item.ValueCopy(nil)
+	if err != nil {
+		return fmt.Errorf("cannot get convener account: %s", err)
 	}
 
 	convener := new(ngtypes.Account)
-	err := utils.Proto.Unmarshal(rawConvener, convener)
+	err = utils.Proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -87,56 +88,37 @@ func (s *State) CheckGenerate(generateTx *ngtypes.Tx) error {
 	return nil
 }
 
-// CheckRegister checks the register tx
-func (s *State) CheckRegister(registerTx *ngtypes.Tx) error {
+// checkRegister checks the register tx
+func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 	// check structure and key
 	if err := registerTx.CheckRegister(); err != nil {
 		return err
 	}
 
 	// check balance
-	payer := registerTx.GetParticipants()[0]
-	rawPayerBalance, exists := s.anonymous[base58.FastBase58Encoding(payer)]
-	if !exists {
-		return fmt.Errorf("the payer for registering does not exist")
+	payerAddr := registerTx.GetParticipants()[0]
+	payerBalance, err := getBalance(txn, payerAddr)
+	if err != nil {
+		return err
 	}
-	payerBalance := new(big.Int).SetBytes(rawPayerBalance)
 
 	expenditure := registerTx.TotalExpenditure()
 	if payerBalance.Cmp(expenditure) < 0 {
 		return fmt.Errorf("balance is insufficient for register")
 	}
 
-	// check nonce
-	rawConvener, exists := s.accounts[registerTx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
 	// check newAccountNum
 	newAccountNum := binary.LittleEndian.Uint64(registerTx.GetExtra())
-	if _, exists := s.accounts[newAccountNum]; exists {
+	if accountExists(txn, ngtypes.AccountNum(newAccountNum)) {
 		return fmt.Errorf("failed to register account@%d, account is already used by others", newAccountNum)
-	}
-
-	convener := new(ngtypes.Account)
-	err := utils.Proto.Unmarshal(rawConvener, convener)
-	if err != nil {
-		return err
 	}
 
 	return nil
 }
 
-// CheckLogout checks logout tx
-func (s *State) CheckLogout(logoutTx *ngtypes.Tx) error {
-	rawConvener, exists := s.accounts[logoutTx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err := utils.Proto.Unmarshal(rawConvener, convener)
+// checkLogout checks logout tx
+func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
+	convener, err := getAccount(txn, ngtypes.AccountNum(logoutTx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -148,7 +130,7 @@ func (s *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := logoutTx.TotalExpenditure()
-	convenerBalance, err := s.GetBalanceByNum(logoutTx.GetConvener())
+	convenerBalance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
 	}
@@ -160,15 +142,9 @@ func (s *State) CheckLogout(logoutTx *ngtypes.Tx) error {
 	return nil
 }
 
-// CheckTransaction checks normal transaction tx
-func (s *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
-	rawConvener, exists := s.accounts[transactionTx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err := utils.Proto.Unmarshal(rawConvener, convener)
+// checkTransaction checks normal transaction tx
+func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
+	convener, err := getAccount(txn, ngtypes.AccountNum(transactionTx.Convener))
 	if err != nil {
 		return err
 	}
@@ -180,7 +156,7 @@ func (s *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := transactionTx.TotalExpenditure()
-	convenerBalance, err := s.GetBalanceByNum(transactionTx.GetConvener())
+	convenerBalance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
 	}
@@ -192,15 +168,9 @@ func (s *State) CheckTransaction(transactionTx *ngtypes.Tx) error {
 	return nil
 }
 
-// CheckAssign checks assign tx
-func (s *State) CheckAssign(assignTx *ngtypes.Tx) error {
-	rawConvener, exists := s.accounts[assignTx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err := utils.Proto.Unmarshal(rawConvener, convener)
+// checkAssign checks assign tx
+func checkAssign(txn *badger.Txn, assignTx *ngtypes.Tx) error {
+	convener, err := getAccount(txn, ngtypes.AccountNum(assignTx.Convener))
 	if err != nil {
 		return err
 	}
@@ -212,7 +182,7 @@ func (s *State) CheckAssign(assignTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := assignTx.TotalExpenditure()
-	convenerBalance, err := s.GetBalanceByNum(assignTx.GetConvener())
+	convenerBalance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
 	}
@@ -222,17 +192,12 @@ func (s *State) CheckAssign(assignTx *ngtypes.Tx) error {
 	}
 
 	return nil
+
 }
 
-// CheckAppend checks append tx
-func (s *State) CheckAppend(appendTx *ngtypes.Tx) error {
-	rawConvener, exists := s.accounts[appendTx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err := utils.Proto.Unmarshal(rawConvener, convener)
+// checkAppend checks append tx
+func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
+	convener, err := getAccount(txn, ngtypes.AccountNum(appendTx.Convener))
 	if err != nil {
 		return err
 	}
@@ -244,7 +209,7 @@ func (s *State) CheckAppend(appendTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := appendTx.TotalExpenditure()
-	convenerBalance, err := s.GetBalanceByNum(appendTx.GetConvener())
+	convenerBalance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
 	}
@@ -254,4 +219,5 @@ func (s *State) CheckAppend(appendTx *ngtypes.Tx) error {
 	}
 
 	return nil
+
 }

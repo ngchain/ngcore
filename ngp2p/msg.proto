@@ -70,4 +70,14 @@ message ChainPayload {
   repeated ngtypes.Block blocks = 2;
 }
 
-// TODO: Add Wired state exchange messages
+// fast-sync for state
+// support checkpoint height only
+// when fast-sync: 1. sync to latest checkpoint 2. sync to latest checkpoint state 3. sync the remaining blocks 4. update local state
+message GetSheetPayload {
+  uint64 checkpoint_height = 1; // required
+  bytes checkpoint_hash = 2; // required
+}
+
+message SheetPayload {
+  ngtypes.Sheet sheet = 2;
+}

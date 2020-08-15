@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/storage"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -17,9 +19,9 @@ import (
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 var strictModeFlag = &cli.BoolFlag{
@@ -143,7 +145,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
-	fmt.Printf("Use address: %s to receive mining rewards \n", string(base58.FastBase58Encoding(ngtypes.NewAddress(key))))
+	fmt.Printf("Use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
 
 	var db *badger.DB
 	if inMem {
@@ -158,16 +160,16 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	chain := storage.NewChain(db)
-	if isStrictMode && chain.GetLatestBlockHeight() == 0 {
+	chain := ngblocks.NewChain(db)
+	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
 		chain.InitWithGenesis()
 		// then sync
 	}
 
 	_ = ngp2p.NewLocalNode(p2pTCPPort)
 
-	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
-	pow.GoLoop()
+	consensus.InitPoWConsensus(mining, key, isBootstrapNode)
+	consensus.GoLoop()
 
 	rpc := jsonrpc.NewServer(rpcHost, rpcPort)
 	go rpc.Serve()

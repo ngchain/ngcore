@@ -5,9 +5,10 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ngchain/ngcore/ngchain"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/storage"
 )
 
 func (mod *syncModule) bootstrap() {
@@ -69,14 +70,14 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	log.Warnf("Start initial syncing with remote node %s", record.id)
 
 	// get chain
-	for storage.GetChain().GetLatestBlockHeight() < record.latest {
+	for ngchain.GetLatestBlockHeight() < record.latest {
 		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = GetPoWConsensus().ApplyBlock(chain[i])
+			err = ngchain.ApplyBlock(chain[i])
 			if err != nil {
 				return err
 			}

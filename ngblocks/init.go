@@ -1,4 +1,4 @@
-package storage
+package ngblocks
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ func (c *Chain) InitWithGenesis() {
 
 		block := ngtypes.GetGenesisBlock()
 
-		if err := c.db.Update(func(txn *badger.Txn) error {
+		if err := c.Update(func(txn *badger.Txn) error {
 			hash := block.Hash()
 			raw, _ := utils.Proto.Marshal(block)
 			log.Debugf("putting block@%d: %x", block.Height, hash)
@@ -47,7 +47,7 @@ func (c *Chain) InitWithGenesis() {
 func (c *Chain) hasGenesisBlock() bool {
 	var has = false
 
-	if err := c.db.View(func(txn *badger.Txn) error {
+	if err := c.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(0)...))
 		if err != nil {
 			return err
@@ -74,7 +74,7 @@ func (c *Chain) hasGenesisBlock() bool {
 // InitWithChain initialize the chain by importing the external chain.
 func (c *Chain) InitWithChain(chain ...*ngtypes.Block) error {
 	/* Put start */
-	err := c.db.Update(func(txn *badger.Txn) error {
+	err := c.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(chain); i++ {
 			block := chain[i]
 			hash := block.Hash()
