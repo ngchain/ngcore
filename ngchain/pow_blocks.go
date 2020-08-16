@@ -24,7 +24,22 @@ func GetLatestBlock() *ngtypes.Block {
 
 // GetLatestBlockHash will fetch the latest block from chain and then calc its hash
 func GetLatestBlockHash() []byte {
-	return GetLatestBlock().Hash()
+	var latestHash []byte
+
+	if err := chain.View(func(txn *badger.Txn) error {
+		var err error
+		latestHash, err = ngblocks.GetLatestHash(txn)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	return latestHash
 }
 
 // GetLatestBlockHeight will fetch the latest block from chain and then return its height

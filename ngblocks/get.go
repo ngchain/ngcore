@@ -3,6 +3,7 @@ package ngblocks
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -11,6 +12,9 @@ import (
 func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
 	var tx ngtypes.Tx
 	item, err := txn.Get(append(txPrefix, hash...))
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +38,9 @@ func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
 	var b ngtypes.Block
 	key := append(blockPrefix, hash...)
 	item, err := txn.Get(key)
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get item by key %x: %s", key, err)
 	}
@@ -53,6 +60,9 @@ func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
 	var b ngtypes.Block
 	key := append(blockPrefix, utils.PackUint64LE(height)...)
 	item, err := txn.Get(key)
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get item by key %x: %s", key, err)
 	}
@@ -80,8 +90,11 @@ func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
 func GetLatestHeight(txn *badger.Txn) (uint64, error) {
 	key := append(blockPrefix, latestHeightTag...)
 	item, err := txn.Get(key)
+	if err == badger.ErrKeyNotFound {
+		return 0, err // export the keynotfound
+	}
 	if err != nil {
-		return 0, fmt.Errorf("failed to get item by key %x: %s", key, err)
+		return 0, fmt.Errorf("failed to get latest height: %s", err)
 	}
 	raw, err := item.ValueCopy(nil)
 	if err != nil {
@@ -94,8 +107,11 @@ func GetLatestHeight(txn *badger.Txn) (uint64, error) {
 func GetLatestHash(txn *badger.Txn) ([]byte, error) {
 	key := append(blockPrefix, latestHashTag...)
 	item, err := txn.Get(key)
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest hash by key %x: %s", key, err)
+		return nil, fmt.Errorf("failed to get latest hash: %s", err)
 	}
 	hash, err := item.ValueCopy(nil)
 	if err != nil {

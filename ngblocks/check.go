@@ -41,11 +41,11 @@ func blockPrevHashExists(txn *badger.Txn, height uint64, prevHash []byte) bool {
 
 	b, err := GetBlockByHash(txn, prevHash)
 	if err != nil {
-		return true
+		return false
 	}
 
-	if b.Height != height {
-		return false
+	if b.Height == height-1 {
+		return true
 	}
 
 	return false

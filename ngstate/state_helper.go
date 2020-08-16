@@ -2,15 +2,19 @@ package ngstate
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/golang/protobuf/proto"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"math/big"
 )
 
 func getAccount(txn *badger.Txn, num ngtypes.AccountNum) (*ngtypes.Account, error) {
 	item, err := txn.Get(append(accountPrefix, num.Bytes()...))
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
 	if err != nil {
 		return nil, fmt.Errorf("cannot find account: %s", err)
 	}
@@ -51,7 +55,6 @@ func setAccount(txn *badger.Txn, num ngtypes.AccountNum, account *ngtypes.Accoun
 	if err != nil {
 		return err
 	}
-
 	err = txn.Set(append(accountPrefix, num.Bytes()...), rawAccount)
 	if err != nil {
 		return fmt.Errorf("cannot set account: %s", err)
