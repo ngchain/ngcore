@@ -3,6 +3,7 @@ package ngblocks
 import (
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 const (
@@ -25,11 +26,20 @@ type BlockStore struct {
 
 var store *BlockStore
 
-// Init will return a store, but no initialization.
-func Init(db *badger.DB) {
+// Init will do all initialization for the block store.
+func Init(db *badger.DB, blocks ...*ngtypes.Block) {
 	if store == nil {
 		store = &BlockStore{
 			db,
+		}
+	}
+
+	if blocks == nil {
+		initWithGenesis()
+	} else {
+		err := initWithBlockchain(blocks...)
+		if err != nil {
+			panic(err)
 		}
 	}
 }

@@ -27,16 +27,15 @@ func TestNewConsensusManager(t *testing.T) {
 	}()
 
 	ngblocks.Init(db)
-	ngblocks.InitWithGenesis()
 
 	_ = ngp2p.NewLocalNode(52520)
 
-	err := db.View(func(txn *badger.Txn) error {
+	err := db.Update(func(txn *badger.Txn) error {
 		return ngstate.Upgrade(txn, ngtypes.GetGenesisBlock())
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	consensus.InitPoWConsensus(1, key, true)
+	consensus.InitPoWConsensus(1, key, true, db)
 }

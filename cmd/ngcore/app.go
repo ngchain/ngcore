@@ -164,18 +164,19 @@ var action = func(c *cli.Context) error {
 	}()
 
 	ngchain.Init(db)
-	ngblocks.Init(db)
+	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
+		ngblocks.Init(db)
+		// then sync
+	} else {
+		// TODO: use the new origin block to initialize the ngblocks
+	}
+
 	ngstate.InitStateFromGenesis(db)
 	ngpool.Init(db)
 
-	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
-		ngblocks.InitWithGenesis()
-		// then sync
-	}
-
 	_ = ngp2p.NewLocalNode(p2pTCPPort)
 
-	consensus.InitPoWConsensus(mining, key, isBootstrapNode)
+	consensus.InitPoWConsensus(mining, key, isBootstrapNode, db)
 	consensus.GoLoop()
 
 	rpc := jsonrpc.NewServer(rpcHost, rpcPort)

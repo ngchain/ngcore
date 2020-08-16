@@ -34,13 +34,13 @@ type PoWork struct {
 var pow *PoWork
 
 // InitPoWConsensus creates and initializes the PoW consensus.
-func InitPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBootstrapNode bool) {
+func InitPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBootstrapNode bool, db *badger.DB) {
 	pow = &PoWork{
 		RWMutex:    sync.RWMutex{},
+		syncMod:    nil,
+		minerMod:   nil,
+		db:         db,
 		PrivateKey: privateKey,
-
-		syncMod:  nil,
-		minerMod: nil,
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update

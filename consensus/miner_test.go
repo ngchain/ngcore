@@ -1,6 +1,9 @@
 package consensus_test
 
 import (
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngpool"
+	"github.com/ngchain/ngcore/ngstate"
 	"math/big"
 	"testing"
 	"time"
@@ -19,7 +22,15 @@ func TestPoWMiner(t *testing.T) {
 
 	_ = ngp2p.NewLocalNode(52520)
 	pk := secp256k1.NewPrivateKey(big.NewInt(1))
-	consensus.InitPoWConsensus(1, pk, true) // as bootstrap to avoid sync
+
+	db := storage.InitMemStorage()
+
+	ngchain.Init(db)
+	ngblocks.Init(db)
+	ngstate.InitStateFromGenesis(db)
+	ngpool.Init(db)
+
+	consensus.InitPoWConsensus(1, pk, true, db) // as bootstrap to avoid sync
 	consensus.MiningOn()
 	time.Sleep(30 * time.Second)
 	consensus.MiningOff()

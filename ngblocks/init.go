@@ -9,8 +9,8 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// InitWithGenesis will initialize the store with genesis block & vault.
-func InitWithGenesis() {
+// initWithGenesis will initialize the store with genesis block & vault.
+func initWithGenesis() {
 	if !hasGenesisBlock() {
 		log.Warnf("initializing with genesis block")
 
@@ -71,8 +71,8 @@ func hasGenesisBlock() bool {
 	return has
 }
 
-// InitWithBlockchain initialize the store by importing the external store.
-func InitWithBlockchain(blocks ...*ngtypes.Block) error {
+// initWithBlockchain initialize the store by importing the external store.
+func initWithBlockchain(blocks ...*ngtypes.Block) error {
 	/* Put start */
 	err := store.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(blocks); i++ {
