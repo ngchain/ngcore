@@ -76,7 +76,7 @@ var miningFlag = &cli.IntFlag{
 	Name: "mining",
 	Usage: "The worker number on mining. Mining starts when value is not negative. " +
 		"And when value equals to 0, use all cpu cores",
-	Value: -1,
+	Value: dafaultMiningThread,
 }
 
 var logFileFlag = &cli.StringFlag{
@@ -109,10 +109,16 @@ var action = func(c *cli.Context) error {
 		panic(err)
 	}
 
-	logging.SetupLogging(logging.Config{
-		Level: logLevel,
-		File:  c.String("log-file"),
-	})
+	logConf := logging.Config{
+		Level:  logLevel,
+		Stdout: c.String("log-file") == "",
+		File:   c.String("log-file"),
+	}
+	if len(logConf.File) > 0 {
+		fmt.Println("logging to ", logConf.File)
+	}
+
+	logging.SetupLogging(logConf)
 
 	isBootstrapNode := c.Bool("bootstrap")
 	mining := c.Int("mining")

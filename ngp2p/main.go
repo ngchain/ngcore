@@ -3,6 +3,8 @@ package ngp2p
 import (
 	"context"
 	"fmt"
+	multiplex "github.com/libp2p/go-libp2p-mplex"
+	yamux "github.com/libp2p/go-libp2p-yamux"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
@@ -42,16 +44,16 @@ func NewLocalNode(port int) *LocalNode {
 		fmt.Sprintf("/ip6/::/tcp/%d", port),
 	)
 
-	//muxers := libp2p.ChainOptions(
-	//	libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-	//	libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
-	//)
+	muxers := libp2p.ChainOptions(
+		libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
+		libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
+	)
 
 	localHost, err := libp2p.New(
 		ctx,
 		transports,
 		listenAddrs,
-		//muxers,
+		muxers,
 		libp2p.Identity(priv),
 		getPublicRouter(),
 		libp2p.NATPortMap(),
