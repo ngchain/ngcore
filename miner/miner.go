@@ -1,7 +1,8 @@
-package consensus
+package miner
 
 import (
 	"fmt"
+	logging "github.com/ipfs/go-log/v2"
 	"math/big"
 	"runtime"
 	"sync"
@@ -15,34 +16,33 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
+var log = logging.Logger("miner")
+
 // minerModule is an inner miner for proof of work
 // miner implements a internal PoW miner with multi threads(goroutines) support
-type minerModule struct {
-	pow *PoWork
-
+type Miner struct {
 	threadNum int
 	hashes    atomic.Int64
 	job       *atomic.Value
 
 	abortCh      chan struct{}
-	FoundBlockCh chan *ngtypes.Block
+	foundBlockCh chan *ngtypes.Block
 }
 
 // newMinerModule will create a local miner which works in *threadNum* threads.
 // when not mining, return a nil
-func newMinerModule(pow *PoWork, threadNum int) *minerModule {
+func NewMinerModule(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if threadNum <= 0 {
 		return nil
 	}
 
-	m := &minerModule{
-		pow:          pow,
+	m := &Miner{
 		job:          new(atomic.Value),
 		threadNum:    threadNum,
 		abortCh:      make(chan struct{}),
-		FoundBlockCh: make(chan *ngtypes.Block),
+		foundBlockCh: make(chan *ngtypes.Block),
 	}
 
 	go func() {
@@ -70,9 +70,9 @@ func newMinerModule(pow *PoWork, threadNum int) *minerModule {
 	return m
 }
 
-// Start will ignite the engine of Miner and all threads start working.
+// Start will ignite the engine of Miner and all threads Start working.
 // and can also be used as update job
-func (m *minerModule) start(job *ngtypes.Block) {
+func (m *Miner) Start(job *ngtypes.Block) {
 	if m.job.Load() != nil {
 		log.Info("mining job updeting")
 	} else {
@@ -157,8 +157,8 @@ func (m *minerModule) start(job *ngtypes.Block) {
 	randomx.ReleaseDataset(dataset)
 }
 
-// stop will stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
-func (m *minerModule) stop() {
+// Stop will Stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
+func (m *Miner) Stop() {
 	if m.job.Load() == nil {
 		return
 	}
@@ -170,9 +170,9 @@ func (m *minerModule) stop() {
 	log.Info("mining mode off")
 }
 
-func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
+func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
 	// Correct nonce found
-	m.stop()
+	m.Stop()
 
 	log.Debugf("Thread %d found nonce %x", t, nonce)
 
@@ -181,10 +181,5 @@ func (m *minerModule) found(t int, job *ngtypes.Block, nonce []byte) {
 		log.Panic(err)
 	}
 
-	err = MinedNewBlock(block)
-	if err != nil {
-		log.Warn(err) // may have "has block in same height" error here
-	}
-	// assign new job
-	m.start(GetBlockTemplate())
+	m.foundBlockCh <- block
 }

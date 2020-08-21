@@ -16,11 +16,13 @@ func (mod *syncModule) bootstrap() {
 
 	// init the store
 	var wg sync.WaitGroup
-	for _, id := range peerStore.Peers() {
+	peers := peerStore.Peers()
+	localID := ngp2p.GetLocalNode().ID()
+	for _, id := range peers {
 		wg.Add(1)
 		go func(id peer.ID) {
 			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, ngp2p.WiredProtocol)
-			if p == ngp2p.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
+			if p == ngp2p.WiredProtocol && id != localID {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Debug(err)
@@ -30,6 +32,11 @@ func (mod *syncModule) bootstrap() {
 		}(id)
 	}
 	wg.Wait()
+
+	peerNum := len(mod.store)
+	if peerNum < minDesiredPeerCount {
+		fmt.Println("lack remote peer for bootstrapping")
+	}
 
 	slice := make([]*remoteRecord, len(mod.store))
 	i := 0

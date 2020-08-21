@@ -8,8 +8,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
-	multiplex "github.com/libp2p/go-libp2p-mplex"
-	yamux "github.com/libp2p/go-libp2p-yamux"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-tcp-transport"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -44,16 +42,16 @@ func NewLocalNode(port int) *LocalNode {
 		fmt.Sprintf("/ip6/::/tcp/%d", port),
 	)
 
-	muxers := libp2p.ChainOptions(
-		libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-		libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
-	)
+	//muxers := libp2p.ChainOptions(
+	//	libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
+	//	libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
+	//)
 
 	localHost, err := libp2p.New(
 		ctx,
 		transports,
 		listenAddrs,
-		muxers,
+		//muxers,
 		libp2p.Identity(priv),
 		getPublicRouter(),
 		libp2p.NATPortMap(),

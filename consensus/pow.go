@@ -5,16 +5,16 @@ import (
 	"sync"
 
 	"github.com/dgraph-io/badger/v2"
+	logging "github.com/ipfs/go-log/v2"
+
+	"github.com/ngchain/ngcore/miner"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
-
-	"github.com/ngchain/secp256k1"
-
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/secp256k1"
 )
 
 var log = logging.Logger("pow")
@@ -24,11 +24,13 @@ type PoWork struct {
 	sync.RWMutex
 
 	syncMod  *syncModule
-	minerMod *minerModule
+	minerMod *miner.Miner
 
 	db *badger.DB
 
-	PrivateKey *secp256k1.PrivateKey
+	// for miner
+	PrivateKey   *secp256k1.PrivateKey
+	foundBlockCh chan *ngtypes.Block
 }
 
 var pow *PoWork
@@ -36,29 +38,30 @@ var pow *PoWork
 // InitPoWConsensus creates and initializes the PoW consensus.
 func InitPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBootstrapNode bool, db *badger.DB) {
 	pow = &PoWork{
-		RWMutex:    sync.RWMutex{},
-		syncMod:    nil,
-		minerMod:   nil,
-		db:         db,
-		PrivateKey: privateKey,
+		RWMutex:      sync.RWMutex{},
+		syncMod:      nil,
+		minerMod:     nil,
+		db:           db,
+		PrivateKey:   privateKey,
+		foundBlockCh: make(chan *ngtypes.Block),
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update
 	pow.syncMod = newSyncModule(pow, isBootstrapNode)
-	pow.minerMod = newMinerModule(pow, miningThread)
+	pow.minerMod = miner.NewMinerModule(miningThread, pow.foundBlockCh)
 }
 
 // MiningOff stops the pow consensus.
 func MiningOff() {
 	if pow.minerMod != nil {
-		pow.minerMod.stop()
+		pow.minerMod.Stop()
 	}
 }
 
 // MiningOn resumes the pow consensus.
 func MiningOn() {
 	if pow.minerMod != nil {
-		go pow.minerMod.start(GetBlockTemplate())
+		go pow.minerMod.Start(GetBlockTemplate())
 	}
 }
 
@@ -102,12 +105,12 @@ func GetBlockTemplate() *ngtypes.Block {
 
 // GoLoop ignites all loops
 func GoLoop() {
-	go eventLoop()
+	go pow.eventLoop()
 	go pow.syncMod.loop()
 }
 
 // channel receiver for broadcasts events
-func eventLoop() {
+func (pow *PoWork) eventLoop() {
 	for {
 		if ngp2p.GetLocalNode().OnBlock == nil || ngp2p.GetLocalNode().OnTx == nil {
 			panic("event chan is nil")
@@ -129,6 +132,15 @@ func eventLoop() {
 			if err != nil {
 				log.Warnf("failed to put new tx from p2p network: %s", err)
 			}
+
+		case newBlock := <-pow.foundBlockCh:
+			err := MinedNewBlock(newBlock)
+			if err != nil {
+				log.Warnf("error on handling the mined block: %s", err)
+			}
+
+			// assign new job
+			pow.minerMod.Start(GetBlockTemplate())
 		}
 	}
 }
