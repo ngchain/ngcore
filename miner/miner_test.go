@@ -1,24 +1,22 @@
 package miner_test
 
 import (
+	miner "github.com/ngchain/ngcore/miner"
+	"github.com/ngchain/ngcore/ngtypes"
 	"testing"
 )
 
 func TestPoWMiner(t *testing.T) {
-	//ngblocks.Init(storage.InitMemStorage())
-	//
-	//_ = ngp2p.NewLocalNode(52520)
-	//pk := secp256k1.NewPrivateKey(big.NewInt(1))
-	//
-	//db := storage.InitMemStorage()
-	//
-	//ngchain.Init(db)
-	//ngblocks.Init(db)
-	//ngstate.InitStateFromGenesis(db)
-	//ngpool.Init(db)
-	//
-	//consensus.InitPoWConsensus(1, pk, true, db) // as bootstrap to avoid sync
-	//consensus.MiningOn()
-	//time.Sleep(30 * time.Second)
-	//consensus.MiningOff()
+	block := ngtypes.GetGenesisBlock()
+
+	ch := make(chan *ngtypes.Block)
+	m := miner.NewMiner(2, ch)
+
+	m.Start(block)
+	result := <-ch
+	if err := result.CheckError(); err != nil {
+		panic(err)
+	}
+
+	m.Stop()
 }

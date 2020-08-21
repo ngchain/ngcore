@@ -1,6 +1,7 @@
 package consensus_test
 
 import (
+	"github.com/ngchain/ngcore/ngchain"
 	"testing"
 
 	"github.com/dgraph-io/badger/v2"
@@ -27,6 +28,7 @@ func TestNewConsensusManager(t *testing.T) {
 	}()
 
 	ngblocks.Init(db)
+	ngchain.Init(db)
 
 	_ = ngp2p.NewLocalNode(52520)
 

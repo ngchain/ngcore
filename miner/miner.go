@@ -29,9 +29,9 @@ type Miner struct {
 	foundBlockCh chan *ngtypes.Block
 }
 
-// newMinerModule will create a local miner which works in *threadNum* threads.
+// NewMiner will create a local miner which works in *threadNum* threads.
 // when not mining, return a nil
-func NewMinerModule(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
+func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if threadNum <= 0 {

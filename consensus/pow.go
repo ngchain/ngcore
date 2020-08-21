@@ -48,7 +48,7 @@ func InitPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBoot
 
 	// init sync before miner to prevent bootstrap sync from mining job update
 	pow.syncMod = newSyncModule(pow, isBootstrapNode)
-	pow.minerMod = miner.NewMinerModule(miningThread, pow.foundBlockCh)
+	pow.minerMod = miner.NewMiner(miningThread, pow.foundBlockCh)
 }
 
 // MiningOff stops the pow consensus.
