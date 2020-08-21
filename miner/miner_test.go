@@ -5,6 +5,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
 	"testing"
+	"time"
 )
 
 func TestPoWMiner(t *testing.T) {
@@ -15,11 +16,15 @@ func TestPoWMiner(t *testing.T) {
 	ch := make(chan *ngtypes.Block)
 	m := miner.NewMiner(2, ch)
 
+	go func() {
+		result := <-ch
+		if err := result.CheckError(); err != nil {
+			panic(err)
+		}
+	}()
+
 	m.Start(block)
-	result := <-ch
-	if err := result.CheckError(); err != nil {
-		panic(err)
-	}
+	time.Sleep(time.Minute)
 
 	m.Stop()
 }
