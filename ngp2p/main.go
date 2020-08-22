@@ -5,10 +5,11 @@ import (
 	"fmt"
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
+	"github.com/ngchain/ngcore/ngp2p/broadcast"
+	"github.com/ngchain/ngcore/ngp2p/wired"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-tcp-transport"
@@ -20,17 +21,14 @@ var log = logging.Logger("ngp2p")
 // LocalNode is the local host on p2p network
 type LocalNode struct {
 	host.Host // lib-p2p host
-	*wiredProtocol
-	*broadcastProtocol
-
-	OnBlock chan *ngtypes.Block // TODO: add queue for receiving
-	OnTx    chan *ngtypes.Tx
+	*wired.Wired
+	*broadcast.Broadcast
 }
 
 var localNode *LocalNode
 
-// NewLocalNode creates a new node with its implemented protocols.
-func NewLocalNode(port int) *LocalNode {
+// InitLocalNode creates a new node with its implemented protocols.
+func InitLocalNode(port int) {
 	ctx := context.Background()
 	priv := getP2PKey()
 
@@ -64,29 +62,18 @@ func NewLocalNode(port int) *LocalNode {
 	}
 
 	// init
-	for _, addr := range localHost.Addrs() {
-		fmt.Printf("P2P Listening on: %s/p2p/%s \n", addr.String(), localHost.ID().String())
-	}
+	fmt.Printf("P2P Listening on: /ip4/<External IP>/tcp/%d/p2p/%s \n", port, localHost.ID().String())
 
 	initMDNS(ctx, localHost)
 
 	localNode = &LocalNode{
 		// sub modules
-		Host:              rhost.Wrap(localHost, p2pDHT),
-		wiredProtocol:     nil,
-		broadcastProtocol: nil,
-
-		// events
-		OnBlock: make(chan *ngtypes.Block, 0),
-		OnTx:    make(chan *ngtypes.Tx, 0),
+		Host:      rhost.Wrap(localHost, p2pDHT),
+		Wired:     wired.NewWiredProtocol(localHost),
+		Broadcast: broadcast.NewBroadcastProtocol(localHost, make(chan *ngtypes.Block, 0), make(chan *ngtypes.Tx, 0)),
 	}
 
-	localNode.broadcastProtocol = registerBroadcaster(localNode)
-	localNode.wiredProtocol = registerWired(localNode)
-
 	activeDHT(ctx, p2pDHT, localNode)
-
-	return localNode
 }
 
 // GetLocalNode returns the initialized LocalNode in module.
@@ -96,9 +83,4 @@ func GetLocalNode() *LocalNode {
 	}
 
 	return localNode
-}
-
-// PrivKey is a helper func for getting private key from local peer id
-func (n *LocalNode) PrivKey() crypto.PrivKey {
-	return n.Peerstore().PrivKey(n.ID())
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
 
-	"github.com/ngchain/ngcore/miner"
+	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
@@ -38,16 +38,21 @@ var pow *PoWork
 // InitPoWConsensus creates and initializes the PoW consensus.
 func InitPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBootstrapNode bool, db *badger.DB) {
 	pow = &PoWork{
-		RWMutex:      sync.RWMutex{},
-		syncMod:      nil,
-		minerMod:     nil,
-		db:           db,
+		RWMutex:  sync.RWMutex{},
+		syncMod:  nil,
+		minerMod: nil,
+		db:       db,
+
 		PrivateKey:   privateKey,
 		foundBlockCh: make(chan *ngtypes.Block),
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update
-	pow.syncMod = newSyncModule(pow, isBootstrapNode)
+	pow.syncMod = newSyncModule(pow)
+	if !isBootstrapNode {
+		pow.syncMod.bootstrap()
+	}
+
 	pow.minerMod = miner.NewMiner(miningThread, pow.foundBlockCh)
 }
 
@@ -112,10 +117,6 @@ func GoLoop() {
 // channel receiver for broadcasts events
 func (pow *PoWork) eventLoop() {
 	for {
-		if ngp2p.GetLocalNode().OnBlock == nil || ngp2p.GetLocalNode().OnTx == nil {
-			panic("event chan is nil")
-		}
-
 		select {
 		case block := <-ngp2p.GetLocalNode().OnBlock:
 			err := ngchain.ApplyBlock(block)

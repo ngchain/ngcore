@@ -1,4 +1,4 @@
-package ngp2p
+package message
 
 import (
 	"bytes"
@@ -42,7 +42,7 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 		return nil, fmt.Errorf("invalid message id")
 	}
 
-	if !verifyMessage(stream.Conn().RemotePeer(), msg) {
+	if !Verify(stream.Conn().RemotePeer(), msg) {
 		return nil, fmt.Errorf("failed to verify the sign of message")
 	}
 

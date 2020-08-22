@@ -1,10 +1,12 @@
-package ngp2p
+package wired
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
+	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -14,7 +16,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream, err error) {
+func (w *Wired) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream, err error) {
 	if len(from) == 0 {
 		err := fmt.Errorf("getchain's from is nil")
 		log.Debug(err)
@@ -27,7 +29,7 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 		to = ngtypes.GetEmptyHash()
 	}
 
-	payload, err := utils.Proto.Marshal(&GetChainPayload{
+	payload, err := utils.Proto.Marshal(&message.GetChainPayload{
 		From: from,
 		To:   to,
 	})
@@ -40,13 +42,13 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 	id, _ = uuid.New().MarshalBinary()
 
 	// create message data
-	req := &Message{
-		Header:  w.node.NewHeader(id, MessageType_GETCHAIN),
+	req := &message.Message{
+		Header:  message.NewHeader(w.host, id, message.MessageType_GETCHAIN),
 		Payload: payload,
 	}
 
 	// sign the data
-	signature, err := signMessage(w.node.PrivKey(), req)
+	signature, err := message.Signature(w.host, req)
 	if err != nil {
 		err = fmt.Errorf("failed to sign pb data: %s", err)
 		log.Debug(err)
@@ -56,7 +58,7 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	stream, err = w.node.sendProtoMessage(peerID, req)
+	stream, err = message.SendProtoMessage(w.host, peerID, req)
 	if err != nil {
 		log.Debug(err)
 		return nil, nil, err
@@ -67,8 +69,10 @@ func (w *wiredProtocol) GetChain(peerID peer.ID, from [][]byte, to []byte) (id [
 	return req.Header.MessageId, stream, nil
 }
 
-func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
-	getChainPayload := &GetChainPayload{}
+func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
+	log.Debugf("Received getchain request from %s.", stream.Conn().RemotePeer())
+
+	getChainPayload := &message.GetChainPayload{}
 
 	err := utils.Proto.Unmarshal(msg.Payload, getChainPayload)
 	if err != nil {
@@ -83,16 +87,16 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 		for i := 0; i < len(getChainPayload.GetFrom()); i++ {
 			_, err := ngchain.GetBlockByHash(getChainPayload.GetFrom()[i])
 			if err != nil {
-				// failed to get block from local chain means there is a fork since this block and its prevBlock is the last common one
+				// failed to get block from local chain means there is a fork since this block and its prevBlock is the last message one
 				break
 			}
 
-			// finally fetch blocks since the last common block hash
+			// finally fetch blocks since the last message block hash
 			lastFromHash = getChainPayload.GetFrom()[i]
 		}
 	}
 
-	log.Debugf("Received getchain request from %s. Requested %x to %x", stream.Conn().RemotePeer(), lastFromHash, getChainPayload.GetTo())
+	log.Debugf("getchain requests from %x to %x", lastFromHash, getChainPayload.GetTo())
 
 	cur, err := ngchain.GetBlockByHash(lastFromHash)
 	if err != nil {
@@ -101,7 +105,7 @@ func (w *wiredProtocol) onGetChain(stream network.Stream, msg *Message) {
 	}
 
 	blocks := make([]*ngtypes.Block, 0)
-	for i := 0; i < MaxBlocks; i++ {
+	for i := 0; i < defaults.MaxBlocks; i++ {
 		if bytes.Equal(cur.Hash(), getChainPayload.GetTo()) {
 			break
 		}

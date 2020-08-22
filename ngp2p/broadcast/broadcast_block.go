@@ -1,8 +1,9 @@
-package ngp2p
+package broadcast
 
 import (
 	"context"
 	"fmt"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) error {
+func (b *Broadcast) BroadcastBlock(block *ngtypes.Block) error {
 	broadcastBlockPayload := block
 
 	raw, err := utils.Proto.Marshal(broadcastBlockPayload)
@@ -18,17 +19,17 @@ func (b *broadcastProtocol) BroadcastBlock(block *ngtypes.Block) error {
 		return fmt.Errorf("failed to sign pb data")
 	}
 
-	err = b.topics[broadcastBlockTopic].Publish(context.Background(), raw)
+	err = b.topics[defaults.BroadcastBlockTopic].Publish(context.Background(), raw)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("broadcasted block@%d: %x", block.GetHeight(), block.Hash())
+	log.Debugf("broadcast block@%d: %x", block.GetHeight(), block.Hash())
 
 	return nil
 }
 
-func (b *broadcastProtocol) onBroadcastBlock(msg *pubsub.Message) {
+func (b *Broadcast) onBroadcastBlock(msg *pubsub.Message) {
 	var broadcastBlockPayload = new(ngtypes.Block)
 
 	err := utils.Proto.Unmarshal(msg.Data, broadcastBlockPayload)
@@ -40,5 +41,5 @@ func (b *broadcastProtocol) onBroadcastBlock(msg *pubsub.Message) {
 	newBlock := broadcastBlockPayload
 	log.Debugf("received a new block broadcast@%d", newBlock.GetHeight())
 
-	b.node.OnBlock <- newBlock
+	b.OnBlock <- newBlock
 }

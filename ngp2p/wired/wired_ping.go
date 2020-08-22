@@ -1,17 +1,18 @@
-package ngp2p
+package wired
 
 import (
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHash []byte, checkpointActualDiff []byte) (id []byte,
+func (w *Wired) Ping(peerID peer.ID, origin, latest uint64, checkpointHash []byte, checkpointActualDiff []byte) (id []byte,
 	stream network.Stream) {
-	payload, err := utils.Proto.Marshal(&PingPayload{
+	payload, err := utils.Proto.Marshal(&message.PingPayload{
 		Origin:               origin,
 		Latest:               latest,
 		CheckpointHash:       checkpointHash,
@@ -25,13 +26,13 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 	id, _ = uuid.New().MarshalBinary()
 
 	// create message data
-	req := &Message{
-		Header:  w.node.NewHeader(id, MessageType_PING),
+	req := &message.Message{
+		Header:  message.NewHeader(w.host, id, message.MessageType_PING),
 		Payload: payload,
 	}
 
 	// sign the data
-	signature, err := signMessage(w.node.PrivKey(), req)
+	signature, err := message.Signature(w.host, req)
 	if err != nil {
 		log.Debugf("failed to sign pb data")
 		return nil, nil
@@ -42,7 +43,7 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 
 	log.Debugf("Sent ping to: %s was sent. Message Id: %x", peerID, req.Header.MessageId)
 
-	stream, err = w.node.sendProtoMessage(peerID, req)
+	stream, err = message.SendProtoMessage(w.host, peerID, req)
 	if err != nil {
 		log.Debugf("failed sending ping to: %s: %s", peerID, err)
 		return nil, nil
@@ -52,8 +53,9 @@ func (w *wiredProtocol) Ping(peerID peer.ID, origin, latest uint64, checkpointHa
 }
 
 // remote peer requests handler
-func (w *wiredProtocol) onPing(stream network.Stream, msg *Message) {
-	ping := &PingPayload{}
+func (w *Wired) onPing(stream network.Stream, msg *message.Message) {
+	log.Debugf("Received ping request from %s.", stream.Conn().RemotePeer())
+	ping := &message.PingPayload{}
 
 	err := utils.Proto.Unmarshal(msg.Payload, ping)
 	if err != nil {
@@ -61,10 +63,7 @@ func (w *wiredProtocol) onPing(stream network.Stream, msg *Message) {
 		return
 	}
 
-	log.Debugf("Received ping request from %s.", stream.Conn().RemotePeer())
-
 	// send pong
-
 	origin := ngchain.GetOriginBlock()
 	latest := ngchain.GetLatestBlock()
 	checkpoint := ngchain.GetLatestCheckpoint()

@@ -1,7 +1,8 @@
-package ngp2p
+package broadcast
 
 import (
 	"context"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (b *broadcastProtocol) BroadcastTx(tx *ngtypes.Tx) error {
+func (b *Broadcast) BroadcastTx(tx *ngtypes.Tx) error {
 	log.Debugf("broadcasting tx %s", tx.BS58())
 
 	raw, err := utils.Proto.Marshal(tx)
@@ -18,18 +19,18 @@ func (b *broadcastProtocol) BroadcastTx(tx *ngtypes.Tx) error {
 		return err
 	}
 
-	err = b.topics[broadcastTxTopic].Publish(context.Background(), raw)
+	err = b.topics[defaults.BroadcastTxTopic].Publish(context.Background(), raw)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
-	log.Debugf("broadcasted Tx: %s", tx.ID())
+	log.Debugf("broadcast Tx: %s", tx.ID())
 
 	return nil
 }
 
-func (b *broadcastProtocol) onBroadcastTx(msg *pubsub.Message) {
+func (b *Broadcast) onBroadcastTx(msg *pubsub.Message) {
 	var tx = &ngtypes.Tx{}
 
 	err := utils.Proto.Unmarshal(msg.Data, tx)
@@ -38,5 +39,5 @@ func (b *broadcastProtocol) onBroadcastTx(msg *pubsub.Message) {
 		return
 	}
 
-	b.node.OnTx <- tx
+	b.OnTx <- tx
 }

@@ -1,7 +1,10 @@
-package ngp2p
+package message
 
 import (
 	"context"
+	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/helpers"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -10,15 +13,15 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// sendProtoMessage is a helper method - writes a protobuf go data object to a network stream.
+// SendProtoMessage is a helper method - writes a protobuf go data object to a network stream.
 // then the stream will be returned and caller is able to read the response from it.
-func (n *LocalNode) sendProtoMessage(peerID peer.ID, data proto.Message) (network.Stream, error) {
+func SendProtoMessage(host core.Host, peerID peer.ID, data proto.Message) (network.Stream, error) {
 	raw, err := utils.Proto.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
 
-	stream, err := n.NewStream(context.Background(), peerID, WiredProtocol)
+	stream, err := host.NewStream(context.Background(), peerID, defaults.WiredProtocol)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +38,7 @@ func (n *LocalNode) sendProtoMessage(peerID peer.ID, data proto.Message) (networ
 	return stream, nil
 }
 
-func (n *LocalNode) replyToStream(stream network.Stream, data proto.Message) error {
+func ReplyToStream(stream network.Stream, data proto.Message) error {
 	raw, err := utils.Proto.Marshal(data)
 	if err != nil {
 		return err
@@ -46,10 +49,10 @@ func (n *LocalNode) replyToStream(stream network.Stream, data proto.Message) err
 	}
 
 	// close the stream and waits to read an EOF from the other side.
-	// err = helpers.FullClose(stream)
-	// if err != nil {
-	// 	return err
-	// }
+	err = helpers.FullClose(stream)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

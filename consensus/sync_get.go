@@ -2,6 +2,8 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngp2p/message"
+	"github.com/ngchain/ngcore/ngp2p/wired"
 
 	"github.com/ngchain/ngcore/ngchain"
 
@@ -22,14 +24,14 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 		return fmt.Errorf("failed to send ping, cannot get remote status from %s", peerID)
 	}
 
-	reply, err := ngp2p.ReceiveReply(id, stream)
+	reply, err := message.ReceiveReply(id, stream)
 	if err != nil {
 		return err
 	}
 
 	switch reply.Header.MessageType {
-	case ngp2p.MessageType_PONG:
-		pongPayload, err := ngp2p.DecodePongPayload(reply.Payload)
+	case message.MessageType_PONG:
+		pongPayload, err := wired.DecodePongPayload(reply.Payload)
 		if err != nil {
 			return err
 		}
@@ -40,7 +42,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 			latest: pongPayload.Latest,
 		})
 
-	case ngp2p.MessageType_REJECT:
+	case message.MessageType_REJECT:
 		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
 	default:
 		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
@@ -58,14 +60,14 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain 
 		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
 
-	reply, err := ngp2p.ReceiveReply(id, s)
+	reply, err := message.ReceiveReply(id, s)
 	if err != nil {
 		return nil, err
 	}
 
 	switch reply.Header.MessageType {
-	case ngp2p.MessageType_CHAIN:
-		chainPayload, err := ngp2p.DecodeChainPayload(reply.Payload)
+	case message.MessageType_CHAIN:
+		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to send ping: %s", err)
 		}
@@ -73,10 +75,10 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain 
 		// TODO: add support for hashes etc
 		return chainPayload.Blocks, err
 
-	case ngp2p.MessageType_REJECT:
+	case message.MessageType_REJECT:
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
 
-	case ngp2p.MessageType_NOTFOUND:
+	case message.MessageType_NOTFOUND:
 		return nil, fmt.Errorf("chain is not found in remote")
 
 	default:
@@ -91,14 +93,14 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
 
-	reply, err := ngp2p.ReceiveReply(id, s)
+	reply, err := message.ReceiveReply(id, s)
 	if err != nil {
 		return nil, err
 	}
 
 	switch reply.Header.MessageType {
-	case ngp2p.MessageType_CHAIN:
-		chainPayload, err := ngp2p.DecodeChainPayload(reply.Payload)
+	case message.MessageType_CHAIN:
+		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to send ping: %s", err)
 		}
@@ -106,10 +108,10 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		// TODO: add support for hashes etc
 		return chainPayload.Blocks, err
 
-	case ngp2p.MessageType_REJECT:
+	case message.MessageType_REJECT:
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
 
-	case ngp2p.MessageType_NOTFOUND:
+	case message.MessageType_NOTFOUND:
 		return nil, fmt.Errorf("chain is not found in remote")
 
 	default:

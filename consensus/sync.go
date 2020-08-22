@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
 	"time"
@@ -26,15 +27,11 @@ type syncModule struct {
 }
 
 // newSyncModule creates a new sync module
-func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
+func newSyncModule(pow *PoWork) *syncModule {
 	syncMod := &syncModule{
 		RWMutex: sync.RWMutex{},
 		pow:     pow,
 		store:   make(map[peer.ID]*remoteRecord),
-	}
-
-	if !isBootstrapNode {
-		syncMod.bootstrap()
 	}
 
 	latest := ngchain.GetLatestBlock()
@@ -61,8 +58,8 @@ func (mod *syncModule) loop() {
 
 		// do get status
 		for _, id := range ngp2p.GetLocalNode().Peerstore().Peers() {
-			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, ngp2p.WiredProtocol)
-			if p == ngp2p.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
+			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
+			if p == defaults.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Warn(err)

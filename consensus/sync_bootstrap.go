@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
 
@@ -21,8 +22,8 @@ func (mod *syncModule) bootstrap() {
 	for _, id := range peers {
 		wg.Add(1)
 		go func(id peer.ID) {
-			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, ngp2p.WiredProtocol)
-			if p == ngp2p.WiredProtocol && id != localID {
+			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
+			if p == defaults.WiredProtocol && id != localID {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Debug(err)

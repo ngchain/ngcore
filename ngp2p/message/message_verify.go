@@ -1,14 +1,14 @@
-package ngp2p
+package message
 
 import (
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-
 	"github.com/ngchain/ngcore/utils"
 )
 
-// verifyMessage verifies the data and sign in message
-func verifyMessage(peerID peer.ID, message *Message) bool {
+// Verify verifies the data and sign in message
+func Verify(peerID peer.ID, message *Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
 
@@ -23,8 +23,8 @@ func verifyMessage(peerID peer.ID, message *Message) bool {
 	return verifyMessageData(raw, sign, peerID, message.Header.PeerKey)
 }
 
-// sign an outgoing p2p message payload.
-func signMessage(key crypto.PrivKey, message *Message) ([]byte, error) {
+// Signature an outgoing p2p message payload.
+func Signature(host core.Host, message *Message) ([]byte, error) {
 	message.Header.Sign = nil
 
 	data, err := utils.Proto.Marshal(message)
@@ -32,13 +32,14 @@ func signMessage(key crypto.PrivKey, message *Message) ([]byte, error) {
 		return nil, err
 	}
 
+	key := host.Peerstore().PrivKey(host.ID())
 	res, err := key.Sign(data)
 
 	return res, err
 }
 
 // verifyMessageData verifies incoming p2p message data integrity.
-// it is included in verifyMessage so plz using verifyMessage.
+// it is included in Verify so plz using Verify.
 func verifyMessageData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {

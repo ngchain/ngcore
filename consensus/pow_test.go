@@ -30,7 +30,7 @@ func TestNewConsensusManager(t *testing.T) {
 	ngblocks.Init(db)
 	ngchain.Init(db)
 
-	_ = ngp2p.NewLocalNode(52520)
+	ngp2p.InitLocalNode(52520)
 
 	err := db.Update(func(txn *badger.Txn) error {
 		return ngstate.Upgrade(txn, ngtypes.GetGenesisBlock())

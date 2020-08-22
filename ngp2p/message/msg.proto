@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package pb;
-option go_package = "github.com/ngchain/ngcore/ngp2p";
+option go_package = "github.com/ngchain/ngcore/ngp2p/message";
 
 import "ngtypes/types.proto";
 

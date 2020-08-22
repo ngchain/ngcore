@@ -76,7 +76,7 @@ var miningFlag = &cli.IntFlag{
 	Name: "mining",
 	Usage: "The worker number on mining. Mining starts when value is not negative. " +
 		"And when value equals to 0, use all cpu cores",
-	Value: dafaultMiningThread,
+	Value: defaultMiningThread,
 }
 
 var logFileFlag = &cli.StringFlag{
@@ -115,7 +115,7 @@ var action = func(c *cli.Context) error {
 		File:   c.String("log-file"),
 	}
 	if len(logConf.File) > 0 {
-		fmt.Println("logging to ", logConf.File)
+		fmt.Println("logging to", logConf.File)
 	}
 
 	logging.SetupLogging(logConf)
@@ -180,7 +180,7 @@ var action = func(c *cli.Context) error {
 	ngstate.InitStateFromGenesis(db)
 	ngpool.Init(db)
 
-	_ = ngp2p.NewLocalNode(p2pTCPPort)
+	ngp2p.InitLocalNode(p2pTCPPort)
 
 	consensus.InitPoWConsensus(mining, key, isBootstrapNode, db)
 	consensus.GoLoop()

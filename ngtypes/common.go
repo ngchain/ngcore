@@ -2,7 +2,7 @@ package ngtypes
 
 import "math/big"
 
-// some common knowledge
+// some message knowledge
 
 // GetBig0 returns a new big 0.
 func GetBig0() *big.Int {

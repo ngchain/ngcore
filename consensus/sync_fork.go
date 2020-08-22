@@ -2,7 +2,7 @@ package consensus
 
 import (
 	"github.com/ngchain/ngcore/ngchain"
-	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -54,17 +54,17 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 // getBlocksSinceForkPoint gets the fork point by comparing hashes between local and remote
 func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
-	blockHashes := make([][]byte, ngp2p.MaxBlocks)
+	blockHashes := make([][]byte, defaults.MaxBlocks)
 
 	localHeight := ngchain.GetLatestBlockHeight()
 
-	chainLen := ngp2p.MaxBlocks
+	chainLen := defaults.MaxBlocks
 
-	for i := uint64(0); chainLen == ngp2p.MaxBlocks; i++ {
-		for height := localHeight - (i+1)*ngp2p.MaxBlocks; height < localHeight-i*ngp2p.MaxBlocks; height++ {
+	for i := uint64(0); chainLen == defaults.MaxBlocks; i++ {
+		for height := localHeight - (i+1)*defaults.MaxBlocks; height < localHeight-i*defaults.MaxBlocks; height++ {
 			b, _ := ngchain.GetBlockByHeight(height)
 
-			blockHashes[height-(localHeight-ngp2p.MaxBlocks)] = b.Hash()
+			blockHashes[height-(localHeight-defaults.MaxBlocks)] = b.Hash()
 		}
 
 		// requires protocol v0.0.3
