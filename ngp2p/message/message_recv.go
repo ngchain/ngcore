@@ -3,17 +3,17 @@ package message
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-msgio"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
 // ReceiveReply will receive the correct reply message from the stream
 func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
-	raw, err := ioutil.ReadAll(stream)
+	r := msgio.NewReader(stream)
+	raw, err := r.ReadMsg()
 	if err != nil {
 		return nil, err
 	}

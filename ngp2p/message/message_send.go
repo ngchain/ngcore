@@ -4,6 +4,7 @@ import (
 	"context"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/helpers"
+	"github.com/libp2p/go-msgio"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	"github.com/libp2p/go-libp2p-core/network"
@@ -15,7 +16,7 @@ import (
 
 // SendProtoMessage is a helper method - writes a protobuf go data object to a network stream.
 // then the stream will be returned and caller is able to read the response from it.
-func SendProtoMessage(host core.Host, peerID peer.ID, data proto.Message) (network.Stream, error) {
+func Send(host core.Host, peerID peer.ID, data proto.Message) (network.Stream, error) {
 	raw, err := utils.Proto.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -26,25 +27,26 @@ func SendProtoMessage(host core.Host, peerID peer.ID, data proto.Message) (netwo
 		return nil, err
 	}
 
-	if _, err = stream.Write(raw); err != nil {
+	w := msgio.NewWriter(stream)
+	if err = w.WriteMsg(raw); err != nil {
 		return nil, err
 	}
 
 	// Close stream for writing.
-	// if err := stream.Close(); err != nil {
-	// 	return nil, err
-	// }
+	if err := stream.Close(); err != nil {
+		return nil, err
+	}
 
 	return stream, nil
 }
 
-func ReplyToStream(stream network.Stream, data proto.Message) error {
+func Reply(stream network.Stream, data proto.Message) error {
 	raw, err := utils.Proto.Marshal(data)
 	if err != nil {
 		return err
 	}
 
-	if _, err = stream.Write(raw); err != nil {
+	if err = msgio.NewWriter(stream).WriteMsg(raw); err != nil {
 		return err
 	}
 

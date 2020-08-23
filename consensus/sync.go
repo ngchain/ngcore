@@ -35,8 +35,8 @@ func newSyncModule(pow *PoWork) *syncModule {
 	}
 
 	latest := ngchain.GetLatestBlock()
-	fmt.Printf("Initial sync completed, latest: %x@%d \n", latest.Hash(), latest.Height)
-	log.Warnf("Initial sync completed, latest: %x@%d", latest.Hash(), latest.Height)
+	fmt.Printf("current latest block: %x@%d \n", latest.Hash(), latest.Height)
+	log.Warnf("current latest block: %x@%d", latest.Hash(), latest.Height)
 
 	return syncMod
 }
