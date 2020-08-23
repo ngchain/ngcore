@@ -10,12 +10,12 @@ func (w *Wired) reject(uuid []byte, stream network.Stream, err error) bool {
 	log.Debugf("sending reject to %s with message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	resp := &message.Message{
-		Header:  message.NewHeader(w.host, uuid, message.MessageType_REJECT),
+		Header:  NewHeader(w.host, uuid, message.MessageType_REJECT),
 		Payload: []byte(err.Error()),
 	}
 
 	// sign the data
-	signature, err := message.Signature(w.host, resp)
+	signature, err := Signature(w.host, resp)
 	if err != nil {
 		log.Debugf("failed to sign response")
 		return false
@@ -25,7 +25,7 @@ func (w *Wired) reject(uuid []byte, stream network.Stream, err error) bool {
 	resp.Header.Sign = signature
 
 	// send the response
-	err = message.Reply(stream, resp)
+	err = Reply(stream, resp)
 	if err != nil {
 		log.Debugf("sent chain to: %s was with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false

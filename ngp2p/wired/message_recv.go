@@ -1,4 +1,4 @@
-package message
+package wired
 
 import (
 	"bytes"
@@ -6,12 +6,13 @@ import (
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-msgio"
+	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
 // ReceiveReply will receive the correct reply message from the stream
-func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
+func ReceiveReply(uuid []byte, stream network.Stream) (*message.Message, error) {
 	r := msgio.NewReader(stream)
 	raw, err := r.ReadMsg()
 	if err != nil {
@@ -23,7 +24,7 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 		return nil, err
 	}
 
-	msg := &Message{}
+	msg := &message.Message{}
 
 	err = utils.Proto.Unmarshal(raw, msg)
 	if err != nil {
@@ -34,7 +35,7 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 		return nil, fmt.Errorf("malformed response")
 	}
 
-	if msg.Header.MessageType == MessageType_INVALID {
+	if msg.Header.MessageType == message.MessageType_INVALID {
 		return nil, fmt.Errorf("invalid message type")
 	}
 

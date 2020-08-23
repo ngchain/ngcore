@@ -24,7 +24,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 		return fmt.Errorf("failed to send ping, cannot get remote status from %s", peerID)
 	}
 
-	reply, err := message.ReceiveReply(id, stream)
+	reply, err := wired.ReceiveReply(id, stream)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain 
 		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
 
-	reply, err := message.ReceiveReply(id, s)
+	reply, err := wired.ReceiveReply(id, s)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
 
-	reply, err := message.ReceiveReply(id, s)
+	reply, err := wired.ReceiveReply(id, s)
 	if err != nil {
 		return nil, err
 	}

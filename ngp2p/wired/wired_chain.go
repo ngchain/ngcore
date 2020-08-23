@@ -28,12 +28,12 @@ func (w *Wired) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Blo
 
 	// create message data
 	resp := &message.Message{
-		Header:  message.NewHeader(w.host, uuid, message.MessageType_CHAIN),
+		Header:  NewHeader(w.host, uuid, message.MessageType_CHAIN),
 		Payload: payload,
 	}
 
 	// sign the data
-	signature, err := message.Signature(w.host, resp)
+	signature, err := Signature(w.host, resp)
 	if err != nil {
 		log.Debugf("failed to sign pb data")
 		return false
@@ -42,7 +42,7 @@ func (w *Wired) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Blo
 	// add the signature to the message
 	resp.Header.Sign = signature
 
-	err = message.Reply(stream, resp)
+	err = Reply(stream, resp)
 	if err != nil {
 		log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false

@@ -1,23 +1,21 @@
-package message
+package wired
 
 import (
-	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/ngchain/ngcore/ngp2p/message"
 	"time"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var log = logging.Logger("msg")
-
 // NewHeader is a helper method: generate message data shared between all node's p2p protocols
-func NewHeader(host core.Host, msgID []byte, msgType MessageType) *Header {
+func NewHeader(host core.Host, msgID []byte, msgType message.MessageType) *message.Header {
 	peerKey, err := host.Peerstore().PubKey(host.ID()).Bytes()
 	if err != nil {
 		panic("Failed to get public key for sender from local peer store.")
 	}
 
-	return &Header{
+	return &message.Header{
 		Network:     ngtypes.NETWORK,
 		MessageId:   msgID,
 		MessageType: msgType,

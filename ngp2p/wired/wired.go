@@ -4,6 +4,7 @@ import (
 	"fmt"
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-msgio"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngp2p/message"
 
@@ -33,29 +34,23 @@ func NewWiredProtocol(host core.Host) *Wired {
 }
 
 func (w *Wired) handleStream(stream network.Stream) {
-	buf := make([]byte, 20480) // 20m
-	l, err := stream.Read(buf)
+	r := msgio.NewReader(stream)
+	raw, err := r.ReadMsg()
 	if err != nil {
 		log.Error(err)
-		return
-	}
-
-	buf = buf[:l]
-
-	if l == 0 {
 		return
 	}
 
 	// unmarshal it
 	var msg = &message.Message{}
 
-	err = utils.Proto.Unmarshal(buf, msg)
+	err = utils.Proto.Unmarshal(raw, msg)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	if !message.Verify(stream.Conn().RemotePeer(), msg) {
+	if !Verify(stream.Conn().RemotePeer(), msg) {
 		w.reject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
 		return
 	}

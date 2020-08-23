@@ -10,12 +10,12 @@ func (w *Wired) notFound(uuid []byte, stream network.Stream, blockHash []byte) b
 	log.Debugf("sending notfound to %s with message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	resp := &message.Message{
-		Header:  message.NewHeader(w.host, uuid, message.MessageType_NOTFOUND),
+		Header:  NewHeader(w.host, uuid, message.MessageType_NOTFOUND),
 		Payload: blockHash,
 	}
 
 	// sign the data
-	signature, err := message.Signature(w.host, resp)
+	signature, err := Signature(w.host, resp)
 	if err != nil {
 		log.Errorf("failed to sign response")
 		return false
@@ -25,7 +25,7 @@ func (w *Wired) notFound(uuid []byte, stream network.Stream, blockHash []byte) b
 	resp.Header.Sign = signature
 
 	// send the response
-	err = message.Reply(stream, resp)
+	err = Reply(stream, resp)
 	if err != nil {
 		log.Debugf("sent notfound to: %s with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false

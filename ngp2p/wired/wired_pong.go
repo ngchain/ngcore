@@ -23,12 +23,12 @@ func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, 
 	}
 
 	resp := &message.Message{
-		Header:  message.NewHeader(w.host, uuid, message.MessageType_PONG),
+		Header:  NewHeader(w.host, uuid, message.MessageType_PONG),
 		Payload: rawPayload,
 	}
 
 	// sign the data
-	signature, err := message.Signature(w.host, resp)
+	signature, err := Signature(w.host, resp)
 	if err != nil {
 		log.Debugf("failed to sign response")
 		return false
@@ -38,7 +38,7 @@ func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, 
 	resp.Header.Sign = signature
 
 	// send the response
-	err = message.Reply(stream, resp)
+	err = Reply(stream, resp)
 	if err != nil {
 		log.Debugf("failed sending pong to: %s: %s", stream.Conn().RemotePeer(), err)
 		return false

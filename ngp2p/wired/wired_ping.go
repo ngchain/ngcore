@@ -27,12 +27,12 @@ func (w *Wired) Ping(peerID peer.ID, origin, latest uint64, checkpointHash []byt
 
 	// create message data
 	req := &message.Message{
-		Header:  message.NewHeader(w.host, id, message.MessageType_PING),
+		Header:  NewHeader(w.host, id, message.MessageType_PING),
 		Payload: payload,
 	}
 
 	// sign the data
-	signature, err := message.Signature(w.host, req)
+	signature, err := Signature(w.host, req)
 	if err != nil {
 		log.Debugf("failed to sign pb data, %s", err)
 		return nil, nil
@@ -43,7 +43,7 @@ func (w *Wired) Ping(peerID peer.ID, origin, latest uint64, checkpointHash []byt
 
 	log.Debugf("Sent ping to: %s was sent. Message Id: %x", peerID, req.Header.MessageId)
 
-	stream, err = message.Send(w.host, peerID, req)
+	stream, err = Send(w.host, peerID, req)
 	if err != nil {
 		log.Debugf("failed sending ping to: %s: %s", peerID, err)
 		return nil, nil

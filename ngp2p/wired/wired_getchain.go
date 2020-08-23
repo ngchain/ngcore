@@ -43,12 +43,12 @@ func (w *Wired) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, s
 
 	// create message data
 	req := &message.Message{
-		Header:  message.NewHeader(w.host, id, message.MessageType_GETCHAIN),
+		Header:  NewHeader(w.host, id, message.MessageType_GETCHAIN),
 		Payload: payload,
 	}
 
 	// sign the data
-	signature, err := message.Signature(w.host, req)
+	signature, err := Signature(w.host, req)
 	if err != nil {
 		err = fmt.Errorf("failed to sign pb data: %s", err)
 		log.Debug(err)
@@ -58,7 +58,7 @@ func (w *Wired) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, s
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	stream, err = message.Send(w.host, peerID, req)
+	stream, err = Send(w.host, peerID, req)
 	if err != nil {
 		log.Debug(err)
 		return nil, nil, err

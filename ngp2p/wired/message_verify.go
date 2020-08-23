@@ -1,14 +1,15 @@
-package message
+package wired
 
 import (
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // Verify verifies the data and sign in message
-func Verify(peerID peer.ID, message *Message) bool {
+func Verify(peerID peer.ID, message *message.Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
 
@@ -24,7 +25,7 @@ func Verify(peerID peer.ID, message *Message) bool {
 }
 
 // Signature an outgoing p2p message payload.
-func Signature(host core.Host, message *Message) ([]byte, error) {
+func Signature(host core.Host, message *message.Message) ([]byte, error) {
 	message.Header.Sign = nil
 
 	data, err := utils.Proto.Marshal(message)
