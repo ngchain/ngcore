@@ -78,10 +78,11 @@ func GetLatestCheckpoint() *ngtypes.Block {
 	if err := chain.View(func(txn *badger.Txn) error {
 		for {
 			hash := b.GetPrevHash()
-			b, err := ngblocks.GetBlockByHash(txn, hash)
+			block, err := ngblocks.GetBlockByHash(txn, hash)
 			if err != nil {
 				return err
 			}
+			b = block
 
 			if b.IsHead() {
 				return nil
