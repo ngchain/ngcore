@@ -25,7 +25,7 @@ func (w *Wired) notFound(uuid []byte, stream network.Stream, blockHash []byte) b
 	resp.Header.Sign = signature
 
 	// send the response
-	err = message.ReplyToStream(stream, resp)
+	err = message.Reply(stream, resp)
 	if err != nil {
 		log.Debugf("sent notfound to: %s with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false

@@ -42,7 +42,7 @@ func (w *Wired) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Blo
 	// add the signature to the message
 	resp.Header.Sign = signature
 
-	err = message.ReplyToStream(stream, resp)
+	err = message.Reply(stream, resp)
 	if err != nil {
 		log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false

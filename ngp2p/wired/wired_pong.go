@@ -38,7 +38,7 @@ func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, 
 	resp.Header.Sign = signature
 
 	// send the response
-	err = message.ReplyToStream(stream, resp)
+	err = message.Reply(stream, resp)
 	if err != nil {
 		log.Debugf("failed sending pong to: %s: %s", stream.Conn().RemotePeer(), err)
 		return false

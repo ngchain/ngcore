@@ -17,6 +17,7 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.2.4
 	github.com/libp2p/go-libp2p-pubsub v0.3.4
 	github.com/libp2p/go-libp2p-yamux v0.2.8
+	github.com/libp2p/go-msgio v0.0.6
 	github.com/libp2p/go-tcp-transport v0.2.1
 	github.com/maoxs2/go-jsonrpc2 v0.0.0-20200715024857-a413889804df
 	github.com/mr-tron/base58 v1.2.0

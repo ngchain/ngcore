@@ -25,7 +25,7 @@ func (w *Wired) reject(uuid []byte, stream network.Stream, err error) bool {
 	resp.Header.Sign = signature
 
 	// send the response
-	err = message.ReplyToStream(stream, resp)
+	err = message.Reply(stream, resp)
 	if err != nil {
 		log.Debugf("sent chain to: %s was with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false
