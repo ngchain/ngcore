@@ -62,7 +62,11 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 
 	for i := uint64(0); chainLen == defaults.MaxBlocks; i++ {
 		for height := localHeight - (i+1)*defaults.MaxBlocks; height < localHeight-i*defaults.MaxBlocks; height++ {
-			b, _ := ngchain.GetBlockByHeight(height)
+			b, err := ngchain.GetBlockByHeight(height)
+			if err != nil {
+				// when gap is too large
+				return nil, err
+			}
 
 			blockHashes[height-(localHeight-defaults.MaxBlocks)] = b.Hash()
 		}

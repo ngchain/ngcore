@@ -25,7 +25,7 @@ var pool *TxPool
 func Init(db *badger.DB) {
 	pool = &TxPool{
 		db:    db,
-		txMap: make(map[uint64]*ngtypes.Tx, 0),
+		txMap: make(map[uint64]*ngtypes.Tx),
 	}
 }
 

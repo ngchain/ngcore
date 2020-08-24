@@ -41,7 +41,7 @@ func CheckBlock(block *ngtypes.Block) error {
 	return nil
 }
 
-func checkBlockTarget(block *ngtypes.Block, prevBlock *ngtypes.Block) error {
+func checkBlockTarget(block, prevBlock *ngtypes.Block) error {
 	correctDiff := ngtypes.GetNextDiff(prevBlock)
 	actualDiff := block.GetActualDiff()
 

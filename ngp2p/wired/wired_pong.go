@@ -7,7 +7,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash []byte, checkpointActualDiff []byte) bool {
+func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) bool {
 	log.Debugf("sending pong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &message.PongPayload{

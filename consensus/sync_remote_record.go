@@ -21,11 +21,7 @@ type remoteRecord struct {
 
 // RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
 func (r *remoteRecord) shouldSync() bool {
-	if r.latest > ngchain.GetLatestBlockHeight() {
-		return true
-	}
-
-	return false
+	return r.latest > ngchain.GetLatestBlockHeight()
 }
 
 // RULE: when forking?

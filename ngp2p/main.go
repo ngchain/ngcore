@@ -70,7 +70,7 @@ func InitLocalNode(port int) {
 		// sub modules
 		Host:      rhost.Wrap(localHost, p2pDHT),
 		Wired:     wired.NewWiredProtocol(localHost),
-		Broadcast: broadcast.NewBroadcastProtocol(localHost, make(chan *ngtypes.Block, 0), make(chan *ngtypes.Tx, 0)),
+		Broadcast: broadcast.NewBroadcastProtocol(localHost, make(chan *ngtypes.Block), make(chan *ngtypes.Tx)),
 	}
 
 	activeDHT(ctx, p2pDHT, localNode)

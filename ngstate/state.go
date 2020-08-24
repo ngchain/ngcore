@@ -2,10 +2,10 @@ package ngstate
 
 import (
 	"github.com/dgraph-io/badger/v2"
-	"github.com/golang/protobuf/proto"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 	"sync"
 )
 
@@ -58,7 +58,7 @@ func InitStateFromGenesis(db *badger.DB) {
 // initFromSheet will overwrite a state from the given sheet
 func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 	for num, account := range sheet.Accounts {
-		rawAccount, err := proto.Marshal(account)
+		rawAccount, err := utils.Proto.Marshal(account)
 		if err != nil {
 			return err
 		}

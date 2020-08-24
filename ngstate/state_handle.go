@@ -57,6 +57,9 @@ func handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 
 	participants := tx.GetParticipants()
 	balance, err := getBalance(txn, participants[0])
+	if err != nil {
+		return err
+	}
 
 	err = setBalance(txn, participants[0], new(big.Int).Add(
 		balance,

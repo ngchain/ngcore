@@ -41,7 +41,7 @@ func Signature(host core.Host, message *message.Message) ([]byte, error) {
 
 // verifyMessageData verifies incoming p2p message data integrity.
 // it is included in Verify so plz using Verify.
-func verifyMessageData(data []byte, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
+func verifyMessageData(data, signature []byte, peerID peer.ID, pubKeyData []byte) bool {
 	key, err := crypto.UnmarshalPublicKey(pubKeyData)
 	if err != nil {
 		log.Error(err, "Failed to extract key from message key data")

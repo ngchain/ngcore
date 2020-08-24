@@ -15,7 +15,7 @@ func (num AccountNum) FromBytes(b []byte) AccountNum {
 }
 
 // NewAccount receive parameters and return a new Account(class constructor.
-func NewAccount(num AccountNum, ownerAddress []byte, contract, context []byte) *Account {
+func NewAccount(num AccountNum, ownerAddress, contract, context []byte) *Account {
 	return &Account{
 		Num:      uint64(num),
 		Owner:    ownerAddress,

@@ -141,6 +141,8 @@ func (x *Block) PowHash() []byte {
 
 // ToUnsealing converts a bare block to an unsealing block.
 func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
+	b := proto.Clone(x).(*Block)
+
 	if txsWithGen[0].GetType() != TxType_GENERATE {
 		return nil, fmt.Errorf("first tx shall be a generate")
 	}
@@ -151,8 +153,8 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 		}
 	}
 
-	x.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
-	x.Txs = txsWithGen
+	b.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
+	b.Txs = txsWithGen
 
 	return x, nil
 }
