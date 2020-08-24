@@ -2,9 +2,10 @@ package vm_test
 
 import (
 	"fmt"
-	"github.com/bytecodealliance/wasmtime-go"
-	"github.com/ngchain/ngcore/vm"
 	"testing"
+
+	"github.com/bytecodealliance/wasmtime-go"
+	"github.com/ngchain/ngcore/hive/vm"
 )
 
 func TestNewWasmVM(t *testing.T) {
@@ -28,7 +29,7 @@ func TestNewWasmVM(t *testing.T) {
 		panic(err)
 	}
 
-	contract, err := vm.NewWasmVM(wasm, []byte{})
+	contract, err := vm.NewWasmVM(wasm)
 	if err != nil {
 		panic(err)
 	}

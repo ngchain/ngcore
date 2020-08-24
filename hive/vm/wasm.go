@@ -24,7 +24,7 @@ type WasmVM struct {
 }
 
 // NewWasmVM creates a new Wasm
-func NewWasmVM(contract, context []byte) (*WasmVM, error) {
+func NewWasmVM(contract []byte) (*WasmVM, error) {
 	store := wasmtime.NewStore(engine)
 	module, err := wasmtime.NewModule(engine, contract)
 	if err != nil {
@@ -35,7 +35,6 @@ func NewWasmVM(contract, context []byte) (*WasmVM, error) {
 		store:    store,
 		module:   module,
 		instance: nil,
-		context:  context,
 	}, nil
 }
 
