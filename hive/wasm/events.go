@@ -1,9 +1,9 @@
-package vm
+package wasm
 
 import "github.com/ngchain/ngcore/ngtypes"
 
 // call me when applying new block
-func (vm *WasmVM) OnNewBlock(block *ngtypes.Block) {
+func (vm *VM) OnNewBlock(block *ngtypes.Block) {
 	ext := vm.instance.GetExport("onBlock")
 	if ext == nil {
 		return
@@ -25,7 +25,7 @@ func (vm *WasmVM) OnNewBlock(block *ngtypes.Block) {
 }
 
 // call me when applying new tx
-func (vm *WasmVM) OnNewTx(tx *ngtypes.Tx) {
+func (vm *VM) OnNewTx(tx *ngtypes.Tx) {
 	ext := vm.instance.GetExport("onTx")
 	if ext == nil {
 		return

@@ -6,6 +6,7 @@ require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
 	github.com/bytecodealliance/wasmtime-go v0.19.0
 	github.com/cbergoon/merkletree v0.2.0
+	github.com/coreos/etcd v3.3.10+incompatible
 	github.com/dgraph-io/badger/v2 v2.2007.1
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1

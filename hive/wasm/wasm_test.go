@@ -1,15 +1,14 @@
-package vm_test
+package wasm_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/bytecodealliance/wasmtime-go"
-	"github.com/ngchain/ngcore/hive/vm"
+	"github.com/ngchain/ngcore/hive/wasm"
 )
 
 func TestNewWasmVM(t *testing.T) {
-	wasm, err := wasmtime.Wat2Wasm(`
+	raw, err := wasmtime.Wat2Wasm(`
 	(module
 		(import "" "hello" (func $hello))
 		(func (export "_start")
@@ -29,15 +28,13 @@ func TestNewWasmVM(t *testing.T) {
 		panic(err)
 	}
 
-	contract, err := vm.NewWasmVM(wasm)
+	contract, err := wasm.NewVM(raw)
 	if err != nil {
 		panic(err)
 	}
 
-	item := wasmtime.WrapFunc(contract.GetStore(), func() {
-		fmt.Println("Hello from Go!")
-	})
-	err = contract.Instantiate(item.AsExtern())
+	contract.InitBuiltInImports()
+	err = contract.Instantiate()
 	if err != nil {
 		panic(err)
 	}

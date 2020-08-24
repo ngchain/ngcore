@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/bytecodealliance/wasmtime-go"
-	"github.com/ngchain/ngcore/hive/vm"
+	"github.com/ngchain/ngcore/hive/wasm"
 )
 
 // temporarily stop HTTP wasm design -> avoid legal issue on copyright and uncensored media
@@ -23,19 +23,19 @@ type Manager struct {
 	engine *wasmtime.Engine // for backend app
 
 	srcs map[uint64][]byte
-	vms  map[uint64]*vm.WasmVM
+	vms  map[uint64]*wasm.VM
 }
 
 // InitVMManager creates a new manager of wasm VM
 func InitVMManager() {
 	vmManager = &Manager{
-		vms: map[uint64]*vm.WasmVM{},
+		vms: map[uint64]*wasm.VM{},
 	}
 }
 
 // CreateVM creates a new wasm vm
-func CreateVM(num uint64, contract []byte) (*vm.WasmVM, error) {
-	vm, err := vm.NewWasmVM(contract)
+func CreateVM(num uint64, contract []byte) (*wasm.VM, error) {
+	vm, err := wasm.NewVM(contract)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func CreateVM(num uint64, contract []byte) (*vm.WasmVM, error) {
 	return vm, nil
 }
 
-func GetVM(num uint64) (*vm.WasmVM, error) {
+func GetVM(num uint64) (*wasm.VM, error) {
 	vmManager.RLock()
 	vm, exists := vmManager.vms[num]
 	vmManager.RUnlock()

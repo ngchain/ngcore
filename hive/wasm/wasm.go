@@ -1,4 +1,4 @@
-package vm
+package wasm
 
 import (
 	"sync"
@@ -13,32 +13,36 @@ var engine = wasmtime.NewEngine()
 
 // WasmVM is a vm based on wasmer, exec wasm commands
 // TODO: Update me after experiment WASI tests
-type WasmVM struct {
+type VM struct {
 	sync.RWMutex
 
+	num uint64
+
+	linker   *wasmtime.Linker
 	store    *wasmtime.Store
 	module   *wasmtime.Module
 	instance *wasmtime.Instance
-
-	context []byte // the liner memory
 }
 
 // NewWasmVM creates a new Wasm
-func NewWasmVM(contract []byte) (*WasmVM, error) {
+func NewVM(contract []byte) (*VM, error) {
 	store := wasmtime.NewStore(engine)
 	module, err := wasmtime.NewModule(engine, contract)
 	if err != nil {
 		return nil, err
 	}
 
-	return &WasmVM{
+	linker := wasmtime.NewLinker(store)
+
+	return &VM{
 		store:    store,
 		module:   module,
 		instance: nil,
+		linker:   linker,
 	}, nil
 }
 
-func (vm *WasmVM) GetStore() *wasmtime.Store {
+func (vm *VM) GetStore() *wasmtime.Store {
 	vm.RLock()
 	store := vm.store
 	vm.RUnlock()
@@ -46,7 +50,7 @@ func (vm *WasmVM) GetStore() *wasmtime.Store {
 	return store
 }
 
-func (vm *WasmVM) GetModule() *wasmtime.Module {
+func (vm *VM) GetModule() *wasmtime.Module {
 	vm.RLock()
 	module := vm.module
 	vm.RUnlock()
@@ -56,8 +60,8 @@ func (vm *WasmVM) GetModule() *wasmtime.Module {
 
 const MaxLen = 1 << 32 // 2GB
 
-func (vm *WasmVM) Instantiate(imports ...*wasmtime.Extern) error {
-	instance, err := wasmtime.NewInstance(vm.store, vm.module, imports)
+func (vm *VM) Instantiate() error {
+	instance, err := vm.linker.Instantiate(vm.module)
 	if err != nil {
 		return err
 	}
@@ -72,13 +76,12 @@ func (vm *WasmVM) Instantiate(imports ...*wasmtime.Extern) error {
 	if length >= MaxLen {
 		length = MaxLen // avoid panic
 	}
-	vm.context = (*[MaxLen]byte)(mem.Data())[:length:length] // UnsafeData()
 
 	vm.Unlock()
 	return nil
 }
 
-func (vm *WasmVM) Start() {
+func (vm *VM) Start() {
 	vm.RLock()
 	defer vm.RUnlock()
 
