@@ -10,7 +10,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *Wired) Ping(peerID peer.ID, origin, latest uint64, checkpointHash []byte, checkpointActualDiff []byte) (id []byte,
+func (w *Wired) Ping(peerID peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) (id []byte,
 	stream network.Stream) {
 	payload, err := utils.Proto.Marshal(&message.PingPayload{
 		Origin:               origin,

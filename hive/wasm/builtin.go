@@ -12,12 +12,15 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (vm *VM) InitBuiltInImports() {
-	vm.linker.Define("ng", "getNum", wasmtime.WrapFunc(vm.store, func() int64 {
+func (vm *VM) InitBuiltInImports() error {
+	err := vm.linker.Define("ng", "getNum", wasmtime.WrapFunc(vm.store, func() int64 {
 		return int64(vm.num)
 	}).AsExtern())
+	if err != nil {
+		return err
+	}
 
-	vm.linker.Define("ng", "createTx", wasmtime.NewFunc(vm.store,
+	err = vm.linker.Define("ng", "createTx", wasmtime.NewFunc(vm.store,
 		wasmtime.NewFuncType(
 			[]*wasmtime.ValType{
 				wasmtime.NewValType(wasmtime.KindI32),
@@ -95,4 +98,9 @@ func (vm *VM) InitBuiltInImports() {
 			}, nil
 		}).AsExtern(),
 	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

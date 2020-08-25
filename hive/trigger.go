@@ -7,7 +7,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func triggerOnNewBlock(block *ngtypes.Block) {
+func TriggerOnNewBlock(block *ngtypes.Block) {
 	var wg sync.WaitGroup
 	for _, vm := range vmManager.vms {
 		wg.Add(1)
@@ -19,7 +19,7 @@ func triggerOnNewBlock(block *ngtypes.Block) {
 	wg.Wait()
 }
 
-func triggerOnNewTx(tx *ngtypes.Tx) {
+func TriggerOnNewTx(tx *ngtypes.Tx) {
 	var wg sync.WaitGroup
 	for _, vm := range vmManager.vms {
 		wg.Add(1)
@@ -30,3 +30,6 @@ func triggerOnNewTx(tx *ngtypes.Tx) {
 	}
 	wg.Done()
 }
+
+// TODO: add more events
+// func TriggerOnNewAccount(account *ngtypes.Account) {}

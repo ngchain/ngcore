@@ -11,7 +11,7 @@ var log = logging.Logger("wasm")
 
 var engine = wasmtime.NewEngine()
 
-// WasmVM is a vm based on wasmer, exec wasm commands
+// VM is a vm based on wasmtime, which acts as a sandbox env to exec native func
 // TODO: Update me after experiment WASI tests
 type VM struct {
 	sync.RWMutex
@@ -24,7 +24,7 @@ type VM struct {
 	instance *wasmtime.Instance
 }
 
-// NewWasmVM creates a new Wasm
+// NewVM creates a new Wasm
 func NewVM(contract []byte) (*VM, error) {
 	store := wasmtime.NewStore(engine)
 	module, err := wasmtime.NewModule(engine, contract)
@@ -85,7 +85,7 @@ func (vm *VM) Start() {
 	vm.RLock()
 	defer vm.RUnlock()
 
-	start := vm.instance.GetExport("_start") // run the wasm's main func, _start is same to WASI's main
+	start := vm.instance.GetExport("main") // run the wasm's main func, _start is same to WASI's main
 	_, err := start.Func().Call()
 	if err != nil {
 		log.Error(err)

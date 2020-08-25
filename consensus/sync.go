@@ -108,7 +108,7 @@ func (mod *syncModule) doSync(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	fmt.Printf("start syncing with remote node %s ", record.id)
+	fmt.Printf("start syncing with remote node %s \n", record.id)
 	log.Warnf("start syncing with remote node %s", record.id)
 
 	// get chain
