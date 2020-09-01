@@ -1,19 +1,37 @@
 package wasm_test
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/bytecodealliance/wasmtime-go"
+	"github.com/ngchain/ngcore/ngblocks"
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p"
+
+	"github.com/ngchain/ngcore/ngpool"
+	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/storage"
+
 	"github.com/ngchain/ngcore/hive/wasm"
 )
 
 func TestNewWasmVM(t *testing.T) {
-	raw, err := wasmtime.Wat2Wasm(``) // TODO: implement a mvp
+	// requires the consensus here
+	db := storage.InitMemStorage()
+	ngpool.Init(db)
+	ngblocks.Init(db)
+	ngchain.Init(db)
+	ngstate.InitStateFromGenesis(db)
+	ngp2p.InitLocalNode(52520)
+
+	f, _ := os.Open("test/contract.wasm")
+	raw, err := ioutil.ReadAll(f) // TODO: implement a mvp
 	if err != nil {
 		panic(err)
 	}
 
-	contract, err := wasm.NewVM(raw)
+	contract, err := wasm.NewVM(500, raw)
 	if err != nil {
 		panic(err)
 	}
@@ -28,5 +46,5 @@ func TestNewWasmVM(t *testing.T) {
 		panic(err)
 	}
 
-	contract.Start()
+	contract.Start() // will receive error but main thread wont panic
 }

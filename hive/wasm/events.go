@@ -4,7 +4,7 @@ import "github.com/ngchain/ngcore/ngtypes"
 
 // call me when applying new block
 func (vm *VM) OnNewBlock(block *ngtypes.Block) {
-	ext := vm.instance.GetExport("onBlock")
+	ext := vm.instance.GetExport("on_block")
 	if ext == nil {
 		return
 	}
@@ -26,7 +26,7 @@ func (vm *VM) OnNewBlock(block *ngtypes.Block) {
 
 // call me when applying new tx
 func (vm *VM) OnNewTx(tx *ngtypes.Tx) {
-	ext := vm.instance.GetExport("onTx")
+	ext := vm.instance.GetExport("on_tx")
 	if ext == nil {
 		return
 	}

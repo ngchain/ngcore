@@ -35,7 +35,7 @@ func InitVMManager() {
 
 // CreateVM creates a new wasm vm
 func CreateVM(num uint64, contract []byte) (*wasm.VM, error) {
-	vm, err := wasm.NewVM(contract)
+	vm, err := wasm.NewVM(num, contract)
 	if err != nil {
 		return nil, err
 	}

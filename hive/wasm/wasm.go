@@ -25,7 +25,7 @@ type VM struct {
 }
 
 // NewVM creates a new Wasm
-func NewVM(contract []byte) (*VM, error) {
+func NewVM(num uint64, contract []byte) (*VM, error) {
 	store := wasmtime.NewStore(engine)
 	module, err := wasmtime.NewModule(engine, contract)
 	if err != nil {
@@ -35,10 +35,12 @@ func NewVM(contract []byte) (*VM, error) {
 	linker := wasmtime.NewLinker(store)
 
 	return &VM{
+		RWMutex:  sync.RWMutex{},
+		num:      num,
+		linker:   linker,
 		store:    store,
 		module:   module,
 		instance: nil,
-		linker:   linker,
 	}, nil
 }
 
