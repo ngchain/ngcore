@@ -4,10 +4,11 @@ import (
 	"sync"
 
 	"github.com/ngchain/ngcore/hive/wasm"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func TriggerOnNewBlock(block *ngtypes.Block) {
+func triggerOnBlock(block *ngtypes.Block) {
 	var wg sync.WaitGroup
 	for _, vm := range vmManager.vms {
 		wg.Add(1)
@@ -19,16 +20,10 @@ func TriggerOnNewBlock(block *ngtypes.Block) {
 	wg.Wait()
 }
 
-func TriggerOnNewTx(tx *ngtypes.Tx) {
-	var wg sync.WaitGroup
-	for _, vm := range vmManager.vms {
-		wg.Add(1)
-		go func(vm *wasm.VM) {
-			vm.OnNewTx(tx)
-			wg.Done()
-		}(vm)
+func triggerOnTx(tx *ngtypes.Tx) {
+	for _, addr := range tx.Participants {
+		
 	}
-	wg.Done()
 }
 
 // TODO: add more events

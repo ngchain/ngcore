@@ -22,7 +22,7 @@ type Manager struct {
 	server http.Server      // for frontend app
 	engine *wasmtime.Engine // for backend app
 
-	srcs map[uint64][]byte
+	srcs map[string][]uint64
 	vms  map[uint64]*wasm.VM
 }
 
@@ -57,3 +57,21 @@ func GetVM(num uint64) (*wasm.VM, error) {
 
 	return vm, nil
 }
+
+func Subscribe(blockCh chan *ngtypes.Block, txCh chan *ngtypes.Tx) {
+	for {
+		select {
+		case block := <-blockCh:
+			triggerOnBlock(block)
+		case tx := <-txCh:
+			switch tx.Type {
+			case ngtypes.TxType_ASSIGN, ngtypes.TxType_APPEND:
+				updateVM(tx.Convener)
+			case ngtypes.TxType_TRANSACTION:
+				triggerOnTx(tx)
+			}
+		}
+	}
+}
+
+
