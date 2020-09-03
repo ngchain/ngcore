@@ -1,13 +1,13 @@
 package wasm
 
 import (
+	"github.com/ngchain/ngcore/ngtypes"
+	"strconv"
 	"sync"
 
 	"github.com/bytecodealliance/wasmtime-go"
 	logging "github.com/ipfs/go-log/v2"
 )
-
-var log = logging.Logger("wasm")
 
 var engine = wasmtime.NewEngine()
 
@@ -16,18 +16,20 @@ var engine = wasmtime.NewEngine()
 type VM struct {
 	sync.RWMutex
 
-	num uint64
+	self *ngtypes.Account
 
 	linker   *wasmtime.Linker
 	store    *wasmtime.Store
 	module   *wasmtime.Module
 	instance *wasmtime.Instance
+
+	logger *logging.ZapEventLogger
 }
 
 // NewVM creates a new Wasm
-func NewVM(num uint64, contract []byte) (*VM, error) {
+func NewVM(account *ngtypes.Account) (*VM, error) {
 	store := wasmtime.NewStore(engine)
-	module, err := wasmtime.NewModule(engine, contract)
+	module, err := wasmtime.NewModule(engine, account.Contract)
 	if err != nil {
 		return nil, err
 	}
@@ -36,11 +38,12 @@ func NewVM(num uint64, contract []byte) (*VM, error) {
 
 	return &VM{
 		RWMutex:  sync.RWMutex{},
-		num:      num,
+		self:     account,
 		linker:   linker,
 		store:    store,
 		module:   module,
 		instance: nil,
+		logger:   logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
 	}, nil
 }
 
@@ -90,6 +93,6 @@ func (vm *VM) Start() {
 	start := vm.instance.GetExport("main") // run the wasm's main func, _start is same to WASI's main
 	_, err := start.Func().Call()
 	if err != nil {
-		log.Error(err)
+		vm.logger.Error(err)
 	}
 }

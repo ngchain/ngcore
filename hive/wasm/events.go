@@ -1,6 +1,8 @@
 package wasm
 
-import "github.com/ngchain/ngcore/ngtypes"
+import (
+	"github.com/ngchain/ngcore/ngtypes"
+)
 
 // call me when applying new block
 func (vm *VM) OnNewBlock(block *ngtypes.Block) {
@@ -16,11 +18,11 @@ func (vm *VM) OnNewBlock(block *ngtypes.Block) {
 
 	ok, err := f.Call(block)
 	if err != nil {
-		log.Error(err)
+		vm.logger.Error(err)
 	}
 
 	if !(ok.(bool)) {
-		log.Error("fail on calling onBlock")
+		vm.logger.Error("fail on calling onBlock")
 	}
 }
 
@@ -38,10 +40,10 @@ func (vm *VM) OnNewTx(tx *ngtypes.Tx) {
 
 	ok, err := f.Call(tx)
 	if err != nil {
-		log.Error(err)
+		vm.logger.Error(err)
 	}
 
 	if !(ok.(bool)) {
-		log.Error("fail on calling onTx")
+		vm.logger.Error("fail on calling onTx")
 	}
 }
