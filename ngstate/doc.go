@@ -1,4 +1,9 @@
-// Package ngstate provides a status manager which controls all accounts and balance
-// besides that, the manager can do generating current sheet for generating block/sync
-// and get initialization from an external sheet.
+// Package ngstate provides a global account status manager which controls all accounts and balance
+// besides that, the manager can do generating current sheet for fasy sync
+//
+// ngstate can get init from genesis sheet or remote sheet.
+//
+// To use ngstate, dev should init these modules first
+// - ngblocks
+// - storage
 package ngstate
