@@ -10,7 +10,7 @@ func (num AccountNum) Bytes() []byte {
 	return b
 }
 
-func (num AccountNum) FromBytes(b []byte) AccountNum {
+func NewNumFromBytes(b []byte) AccountNum {
 	return AccountNum(binary.LittleEndian.Uint64(b))
 }
 

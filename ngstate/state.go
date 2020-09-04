@@ -12,8 +12,9 @@ import (
 var log = logging.Logger("sheet")
 
 var (
-	accountPrefix = []byte("u:")
-	addressPrefix = []byte("a:")
+	numToAccountPrefix   = []byte("nu:")
+	addrTobBalancePrefix = []byte("ab:")
+	addrToNumPrefix      = []byte("an:")
 )
 
 var state *State
@@ -63,14 +64,14 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 			return err
 		}
 
-		err = txn.Set(append(accountPrefix, ngtypes.AccountNum(num).Bytes()...), rawAccount)
+		err = txn.Set(append(numToAccountPrefix, ngtypes.AccountNum(num).Bytes()...), rawAccount)
 		if err != nil {
 			return err
 		}
 	}
 
 	for addr, balance := range sheet.Anonymous {
-		err := txn.Set(append(addressPrefix, addr...), balance)
+		err := txn.Set(append(addrTobBalancePrefix, addr...), balance)
 		if err != nil {
 			return err
 		}
@@ -85,11 +86,11 @@ func Regenerate() error {
 	regenerateLock.Lock()
 	defer regenerateLock.Unlock()
 
-	err := state.DropPrefix(addressPrefix)
+	err := state.DropPrefix(addrTobBalancePrefix)
 	if err != nil {
 		return err
 	}
-	err = state.DropPrefix(accountPrefix)
+	err = state.DropPrefix(numToAccountPrefix)
 	if err != nil {
 		return err
 	}

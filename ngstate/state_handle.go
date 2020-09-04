@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
+	"github.com/ngchain/ngcore/hive"
 	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -98,7 +99,14 @@ func handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 
 	newAccount := ngtypes.NewAccount(ngtypes.AccountNum(binary.LittleEndian.Uint64(tx.GetExtra())), tx.GetParticipants()[0], nil, nil)
 
-	err = setAccount(txn, ngtypes.AccountNum(newAccount.Num), newAccount)
+	num := ngtypes.AccountNum(newAccount.Num)
+	err = setAccount(txn, num, newAccount)
+	if err != nil {
+		return err
+	}
+
+	// write ownership
+	err = setOwnership(txn, participants[0], num)
 	if err != nil {
 		return err
 	}
@@ -107,7 +115,7 @@ func handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 }
 
 func handleLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccount(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -142,11 +150,17 @@ func handleLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
+	// remove ownership
+	err = delOwnership(txn, convener.Owner)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccount(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -192,6 +206,30 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		if err != nil {
 			return err
 		}
+
+		if addrHasAccount(txn, participants[i]) {
+			num, err := getAccountNumByAddr(txn, participants[i])
+			if err != nil {
+				return err
+			}
+
+			account, err := getAccountByNum(txn, num)
+			if err != nil {
+				return err
+			}
+
+			vm, err := hive.NewVM(txn, account)
+			if err != nil {
+				return err
+			}
+
+			err = vm.InitBuiltInImports()
+			if err != nil {
+				return err
+			}
+
+			vm.Call(tx)
+		}
 	}
 
 	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
@@ -199,14 +237,11 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	// DO NOT handle extra
-	// TODO: call vm's tx listener
-
 	return nil
 }
 
 func handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccount(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -250,7 +285,7 @@ func handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 }
 
 func handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccount(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}

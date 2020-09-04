@@ -62,7 +62,7 @@ func CheckTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 // checkGenerate checks the generate tx
 func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx) error {
 
-	item, err := txn.Get(append(accountPrefix, ngtypes.AccountNum(generateTx.GetConvener()).Bytes()...))
+	item, err := txn.Get(append(numToAccountPrefix, ngtypes.AccountNum(generateTx.GetConvener()).Bytes()...))
 	if err != nil {
 		return fmt.Errorf("cannot find convener: %s", err)
 	}
@@ -107,9 +107,14 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for register")
 	}
 
+	// check existing ownership
+	if addrHasAccount(txn, payerAddr) {
+		return fmt.Errorf("one address cannot repeat registering accounts")
+	}
+
 	// check newAccountNum
 	newAccountNum := binary.LittleEndian.Uint64(registerTx.GetExtra())
-	if accountExists(txn, ngtypes.AccountNum(newAccountNum)) {
+	if accountNumExists(txn, ngtypes.AccountNum(newAccountNum)) {
 		return fmt.Errorf("failed to register account@%d, account is already used by others", newAccountNum)
 	}
 
@@ -118,7 +123,7 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 
 // checkLogout checks logout tx
 func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
-	convener, err := getAccount(txn, ngtypes.AccountNum(logoutTx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(logoutTx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -144,7 +149,7 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 
 // checkTransaction checks normal transaction tx
 func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
-	convener, err := getAccount(txn, ngtypes.AccountNum(transactionTx.Convener))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(transactionTx.Convener))
 	if err != nil {
 		return err
 	}
@@ -170,7 +175,7 @@ func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
 
 // checkAssign checks assign tx
 func checkAssign(txn *badger.Txn, assignTx *ngtypes.Tx) error {
-	convener, err := getAccount(txn, ngtypes.AccountNum(assignTx.Convener))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(assignTx.Convener))
 	if err != nil {
 		return err
 	}
@@ -197,7 +202,7 @@ func checkAssign(txn *badger.Txn, assignTx *ngtypes.Tx) error {
 
 // checkAppend checks append tx
 func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
-	convener, err := getAccount(txn, ngtypes.AccountNum(appendTx.Convener))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(appendTx.Convener))
 	if err != nil {
 		return err
 	}

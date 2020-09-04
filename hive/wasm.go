@@ -1,6 +1,7 @@
-package wasm
+package hive
 
 import (
+	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
 	"strconv"
 	"sync"
@@ -17,6 +18,7 @@ type VM struct {
 	sync.RWMutex
 
 	self *ngtypes.Account
+	txn  *badger.Txn
 
 	linker   *wasmtime.Linker
 	store    *wasmtime.Store
@@ -27,7 +29,7 @@ type VM struct {
 }
 
 // NewVM creates a new Wasm
-func NewVM(account *ngtypes.Account) (*VM, error) {
+func NewVM(txn *badger.Txn, account *ngtypes.Account) (*VM, error) {
 	store := wasmtime.NewStore(engine)
 	module, err := wasmtime.NewModule(engine, account.Contract)
 	if err != nil {
@@ -39,6 +41,7 @@ func NewVM(account *ngtypes.Account) (*VM, error) {
 	return &VM{
 		RWMutex:  sync.RWMutex{},
 		self:     account,
+		txn:      txn,
 		linker:   linker,
 		store:    store,
 		module:   module,
@@ -84,15 +87,4 @@ func (vm *VM) Instantiate() error {
 
 	vm.Unlock()
 	return nil
-}
-
-func (vm *VM) Start() {
-	vm.RLock()
-	defer vm.RUnlock()
-
-	start := vm.instance.GetExport("main") // run the wasm's main func, _start is same to WASI's main
-	_, err := start.Func().Call()
-	if err != nil {
-		vm.logger.Error(err)
-	}
 }

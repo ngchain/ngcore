@@ -26,7 +26,7 @@ func ToSheet() *ngtypes.Sheet {
 
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
-		for it.Seek(accountPrefix); it.ValidForPrefix(accountPrefix); it.Next() {
+		for it.Seek(numToAccountPrefix); it.ValidForPrefix(numToAccountPrefix); it.Next() {
 			item := it.Item()
 			rawAccount, err := item.ValueCopy(nil)
 			if err != nil {
@@ -44,7 +44,7 @@ func ToSheet() *ngtypes.Sheet {
 
 		it = txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
-		for it.Seek(addressPrefix); it.ValidForPrefix(addressPrefix); it.Next() {
+		for it.Seek(addrTobBalancePrefix); it.ValidForPrefix(addrTobBalancePrefix); it.Next() {
 			item := it.Item()
 			addr := item.KeyCopy(nil)
 			rawBalance, err := item.ValueCopy(nil)
@@ -69,7 +69,7 @@ func GetBalanceByNum(num uint64) (*big.Int, error) {
 	var balance *big.Int
 
 	err := state.View(func(txn *badger.Txn) error {
-		account, err := getAccount(txn, ngtypes.AccountNum(num))
+		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func AccountIsRegistered(num uint64) bool {
 	var exists = true // block register action by default
 
 	_ = state.View(func(txn *badger.Txn) error {
-		exists = accountExists(txn, ngtypes.AccountNum(num))
+		exists = accountNumExists(txn, ngtypes.AccountNum(num))
 
 		return nil
 	})
@@ -125,7 +125,7 @@ func AccountIsRegistered(num uint64) bool {
 // GetAccountByNum returns an ngtypes.Account obj by the account's number
 func GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
 	err = state.View(func(txn *badger.Txn) error {
-		account, err = getAccount(txn, ngtypes.AccountNum(num))
+		account, err = getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
 			return err
 		}
@@ -145,7 +145,7 @@ func GetAccountsByAddress(address ngtypes.Address) ([]*ngtypes.Account, error) {
 	err := state.View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
-		for it.Seek(accountPrefix); it.ValidForPrefix(accountPrefix); it.Next() {
+		for it.Seek(numToAccountPrefix); it.ValidForPrefix(numToAccountPrefix); it.Next() {
 			item := it.Item()
 			rawAccount, err := item.ValueCopy(nil)
 			if err != nil {
