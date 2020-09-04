@@ -1,11 +1,10 @@
-package hive
+package ngstate
 
 import (
 	"reflect"
 	"unsafe"
 
 	"github.com/bytecodealliance/wasmtime-go"
-	"github.com/ngchain/ngcore/ngstate"
 )
 
 func (vm *VM) InitBuiltInImports() error {
@@ -60,7 +59,7 @@ func initSelfImports(vm *VM) error {
 func initCoinImports(vm *VM) error {
 	err := vm.linker.Define("coin", "transfer", wasmtime.WrapFunc(
 		vm.store, func(to, value int64) int32 {
-			err := ngstate.VMTransfer(vm.txn, vm.self.Num, uint64(to), uint64(value))
+			err := VMTransfer(vm.txn, vm.self.Num, uint64(to), uint64(value))
 			if err != nil {
 				vm.logger.Error(err)
 				return -1

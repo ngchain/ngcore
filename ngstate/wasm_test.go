@@ -1,8 +1,8 @@
-package hive_test
+package ngstate_test
 
 import (
 	"github.com/dgraph-io/badger/v2"
-	"github.com/ngchain/ngcore/hive"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"io/ioutil"
 	"math/big"
@@ -23,7 +23,7 @@ func TestNewWasmVM(t *testing.T) {
 	}
 
 	_ = db.Update(func(txn *badger.Txn) error {
-		contract, err := hive.NewVM(txn, ngtypes.NewAccount(500, nil, raw, nil))
+		contract, err := ngstate.NewVM(txn, ngtypes.NewAccount(500, nil, raw, nil))
 		if err != nil {
 			panic(err)
 		}

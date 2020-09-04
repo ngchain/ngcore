@@ -1,4 +1,4 @@
-package hive
+package ngstate
 
 import (
 	"github.com/ngchain/ngcore/ngtypes"

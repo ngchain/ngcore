@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
-	"github.com/ngchain/ngcore/hive"
 	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -218,7 +217,7 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 				return err
 			}
 
-			vm, err := hive.NewVM(txn, account)
+			vm, err := NewVM(txn, account)
 			if err != nil {
 				return err
 			}
