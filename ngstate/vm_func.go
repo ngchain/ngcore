@@ -7,7 +7,7 @@ import (
 	"math/big"
 )
 
-func VMTransfer(txn *badger.Txn, from, to, value uint64) error {
+func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
 	bigValue := new(big.Int).SetUint64(value)
 
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(from))

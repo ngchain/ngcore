@@ -59,10 +59,10 @@ func initSelfImports(vm *VM) error {
 func initCoinImports(vm *VM) error {
 	err := vm.linker.Define("coin", "transfer", wasmtime.WrapFunc(
 		vm.store, func(to, value int64) int32 {
-			err := VMTransfer(vm.txn, vm.self.Num, uint64(to), uint64(value))
+			err := vmTransfer(vm.txn, vm.self.Num, uint64(to), uint64(value))
 			if err != nil {
 				vm.logger.Error(err)
-				return -1
+				return 0
 			}
 
 			return 1
