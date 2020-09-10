@@ -1,6 +1,7 @@
 # BUILDER
 FROM golang:latest as builder
 
+# Uncomment me if you are in China
 ARG goproxy=https://goproxy.io
 ENV GOPROXY ${goproxy}
 

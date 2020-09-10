@@ -1,4 +1,4 @@
-# NgCore
+# ngCore
 <p align="center" style="text-align: center">
 <img width="400" height="400" src="./resources/NG.svg"/>
 <br/>
@@ -44,6 +44,8 @@ https://goreportcard.com/report/github.com/ngchain/ngcore)
 
 go version >= 1.14
 
+**NOTICE**: go build on Windows you should use `-buildmode=exe` flag (go version >= 1.15) 
+
 ## Build
 
 ### Go
@@ -61,13 +63,13 @@ go build ./cmd/ngcore
 ./ngcore
 
 # ngwallet is a rpc client in dart for ngin's daemon
-./ngwallet newtx -to 1567464132546, 7563212343 -value 1NG, 0.1NG  
+./ngwallet newtx -to 15674, 756 -value 1NG, 0.1NG  
 ```
 
-If you wanna start mining(proof of work), try `--mining` flag
+If you wanna start mining(proof of work), try `--mining <Thread Num>` flag
 
 ```bash
-./ngcore --mining
+./ngcore --mining 0 # zero means using all available cores
 ```
 
 You can view more flags and options with `--help` flag
@@ -82,20 +84,24 @@ git clone https://github.com/ngchain/ngcore && cd ngcore
 sudo docker build . -t ngcore:alpine
 
 # Run as a bootstrap node
-sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --bootstrap true
+sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore --bootstrap true
 
 # Run as a mining node, 0 means using all cpu cores, --in-mem will disable writing into disk and make the miner lighter
-sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore:alpine --mining 0 --in-mem
+sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore --mining 0 --in-mem
 ```
 
 ## Run a NGIN Forknet
 
-1. Modify the Version & NetworkID in `./ngtypes/defaults.go` and `./ngp2p/methods.go`
+It's so easy to run a independent PoW chain on ngCore codebase.
 
-2. Generate a new genesis key, a sign for genesis generate tx, and genesis block nonce (with `ngcore gen` tool)
+1. Modify the NetworkID, GenesisAddress in `./ngtypes/defaults.go` and `./ngp2p/defaults.go`
 
-3. Run a bootstrap node with `--bootstrap` flag (without mining)
+2. Generate a new sign for genesis generate tx, and genesis block nonce (with `ngcore gen` tool)
 
-4. Write the bootstrap node to bootstrapNodes in `./ngp2p/bootstraps.go`
+3. Run more than 2 bootstrap node with `--bootstrap` flag (without mining)
+
+4. Write the bootstrap node to bootstrapNodes in `./ngp2p/bootstrap_nodes.go`
 
 5. Run a mining node with `--mining 0` flag
+
+6. Enjoy your fascinating PoW chain
