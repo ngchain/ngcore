@@ -72,3 +72,8 @@ var (
 	MicroNGSymbol     = "μNG"
 	OneBlockBigReward = new(big.Int).Mul(NG, big.NewInt(OneBlockNG)) // 10NG
 )
+
+// GetEmptyHash return an empty hash
+func GetEmptyHash() []byte {
+	return make([]byte, HashSize)
+}

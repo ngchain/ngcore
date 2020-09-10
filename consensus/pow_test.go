@@ -1,14 +1,18 @@
 package consensus_test
 
 import (
+	"github.com/ngchain/ngcore/ngchain"
 	"testing"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/ngchain/ngcore/storage"
 
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 func TestNewConsensusManager(t *testing.T) {
@@ -23,16 +27,17 @@ func TestNewConsensusManager(t *testing.T) {
 		}
 	}()
 
-	chain := storage.NewChain(db)
-	chain.InitWithGenesis()
+	ngblocks.Init(db)
+	ngchain.Init(db)
 
-	_ = ngp2p.NewLocalNode(52520)
+	ngp2p.InitLocalNode(52520)
 
-	m := ngstate.GetStateManager()
-	err := m.UpgradeState(ngtypes.GetGenesisBlock())
+	err := db.Update(func(txn *badger.Txn) error {
+		return ngstate.Upgrade(txn, ngtypes.GetGenesisBlock())
+	})
 	if err != nil {
 		panic(err)
 	}
 
-	_ = consensus.NewPoWConsensus(1, key, true)
+	consensus.InitPoWConsensus(1, key, true, db)
 }

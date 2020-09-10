@@ -63,6 +63,7 @@ __debug_bin
 #Debug
 env/*
 **/.ngdb
+**/ngdb
 *.log
 
 #Binary

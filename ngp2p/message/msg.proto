@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "github.com/ngchain/ngcore/ngp2p/message";
+
+import "ngtypes/types.proto";
+
+/* enums */
+enum MessageType {
+    INVALID = 0;
+
+    // basic messages
+    PING = 1;
+    PONG = 2;
+    REJECT = 3;
+    NOTFOUND = 4;
+
+    // chain
+    GETCHAIN = 10;
+    CHAIN = 11;
+}
+
+enum ChainType {
+  Invalid = 0;
+  Blocks = 1;
+  Headers = 2;
+  Hashes = 3;
+}
+
+/* common */
+message Header {
+  ngtypes.NetworkType network = 1;
+  bytes message_id = 2;
+  MessageType message_type = 3;
+
+  int64 timestamp = 4;
+
+  bytes peer_key = 5; // act as the node ID
+  bytes sign = 6;
+}
+
+message Message {
+  Header header = 1;
+  bytes payload = 2;
+}
+
+/* wired */
+message PingPayload {
+  uint64 origin = 1;
+  uint64 latest = 2;
+  bytes checkpoint_hash = 3;
+  bytes checkpoint_actual_diff = 4;
+}
+
+message PongPayload {
+  uint64 origin = 1;
+  uint64 latest = 2;
+  bytes checkpoint_hash = 3;
+  bytes checkpoint_actual_diff = 4;
+}
+
+message GetChainPayload {
+  ChainType type = 1;
+  repeated bytes from = 2; // beginning hashes
+  bytes to = 3; // ending hash
+}
+
+message ChainPayload {
+  repeated bytes hashes = 1;
+  repeated ngtypes.Block blocks = 2;
+}
+
+// fast-sync for state
+// support checkpoint height only
+// when fast-sync: 1. sync to latest checkpoint 2. sync to latest checkpoint state 3. sync the remaining blocks 4. update local state
+message GetSheetPayload {
+  uint64 checkpoint_height = 1; // required
+  bytes checkpoint_hash = 2; // required
+}
+
+message SheetPayload {
+  ngtypes.Sheet sheet = 2;
+}

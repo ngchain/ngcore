@@ -3,7 +3,6 @@ FROM golang:latest as builder
 
 ARG goproxy=https://goproxy.io
 ENV GOPROXY ${goproxy}
-ENV CHINA ${in_china}
 
 COPY . /build
 WORKDIR /build

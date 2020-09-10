@@ -2,12 +2,14 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
 
+	"github.com/ngchain/ngcore/ngchain"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/storage"
 )
 
 func (mod *syncModule) bootstrap() {
@@ -15,11 +17,13 @@ func (mod *syncModule) bootstrap() {
 
 	// init the store
 	var wg sync.WaitGroup
-	for _, id := range peerStore.Peers() {
+	peers := peerStore.Peers()
+	localID := ngp2p.GetLocalNode().ID()
+	for _, id := range peers {
 		wg.Add(1)
 		go func(id peer.ID) {
-			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, ngp2p.WiredProtocol)
-			if p == ngp2p.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
+			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
+			if p == defaults.WiredProtocol && id != localID {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Debug(err)
@@ -29,6 +33,11 @@ func (mod *syncModule) bootstrap() {
 		}(id)
 	}
 	wg.Wait()
+
+	peerNum := len(mod.store)
+	if peerNum < minDesiredPeerCount {
+		fmt.Println("lack remote peer for bootstrapping")
+	}
 
 	slice := make([]*remoteRecord, len(mod.store))
 	i := 0
@@ -69,14 +78,14 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	log.Warnf("Start initial syncing with remote node %s", record.id)
 
 	// get chain
-	for storage.GetChain().GetLatestBlockHeight() < record.latest {
+	for ngchain.GetLatestBlockHeight() < record.latest {
 		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = GetPoWConsensus().ApplyBlock(chain[i])
+			err = ngchain.ApplyBlock(chain[i])
 			if err != nil {
 				return err
 			}

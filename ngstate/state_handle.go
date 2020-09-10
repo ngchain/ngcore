@@ -3,51 +3,42 @@ package ngstate
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/dgraph-io/badger/v2"
 	"math/big"
-
-	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // HandleTxs will apply the tx into the state if tx is VALID
-func (s *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
-	err = s.CheckTxs(txs...)
-	if err != nil {
-		return err
-	}
-
-	s.Lock()
-	defer s.Unlock()
-
+func HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.GetType() {
 		case ngtypes.TxType_INVALID:
 			return fmt.Errorf("invalid tx")
 		case ngtypes.TxType_GENERATE:
-			if err := s.handleGenerate(tx); err != nil {
+			if err := handleGenerate(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_REGISTER:
-			if err := s.handleRegister(tx); err != nil {
+			if err := handleRegister(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_LOGOUT:
-			if err := s.handleLogout(tx); err != nil {
+			if err := handleLogout(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_TRANSACTION:
-			if err := s.handleTransaction(tx); err != nil {
+			if err := handleTransaction(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_ASSIGN: // assign tx
-			if err := s.handleAssign(tx); err != nil {
+			if err := handleAssign(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_APPEND: // append tx
-			if err := s.handleAppend(tx); err != nil {
+			if err := handleAppend(txn, tx); err != nil {
 				return err
 			}
 		default:
@@ -58,34 +49,22 @@ func (s *State) HandleTxs(txs ...*ngtypes.Tx) (err error) {
 	return nil
 }
 
-func (s *State) handleGenerate(tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := s.accounts[tx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	if err := utils.Proto.Unmarshal(rawConvener, convener); err != nil {
-		return err
-	}
-
+func handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	publicKey := ngtypes.Address(tx.GetParticipants()[0]).PubKey()
 	if err := tx.Verify(publicKey); err != nil {
 		return err
 	}
 
 	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := s.anonymous[base58.FastBase58Encoding(participants[0])]
-	if !exists {
-		rawParticipantBalance = ngtypes.GetBig0Bytes()
+	balance, err := getBalance(txn, participants[0])
+	if err != nil {
+		return err
 	}
 
-	s.anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Add(
-		new(big.Int).SetBytes(rawParticipantBalance),
+	err = setBalance(txn, participants[0], new(big.Int).Add(
+		balance,
 		new(big.Int).SetBytes(tx.GetValues()[0]),
-	).Bytes()
-
-	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	))
 	if err != nil {
 		return err
 	}
@@ -93,19 +72,8 @@ func (s *State) handleGenerate(tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func (s *State) handleRegister(tx *ngtypes.Tx) (err error) {
+func handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
-	rawConvener, exists := s.accounts[tx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawConvener, convener)
-	if err != nil {
-		return err
-	}
-
 	publicKey := ngtypes.Address(tx.GetParticipants()[0]).PubKey()
 	if err = tx.Verify(publicKey); err != nil {
 		return err
@@ -114,31 +82,30 @@ func (s *State) handleRegister(tx *ngtypes.Tx) (err error) {
 	totalExpense := new(big.Int).SetBytes(tx.GetFee())
 
 	participants := tx.GetParticipants()
-	bs58Addr := base58.FastBase58Encoding(participants[0])
-	rawParticipantBalance, exists := s.anonymous[bs58Addr]
-	if !exists {
-		rawParticipantBalance = ngtypes.GetBig0Bytes()
-	}
-
-	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
-		return fmt.Errorf("balance is insufficient for register")
-	}
-	s.anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
-		new(big.Int).SetBytes(rawParticipantBalance),
-		totalExpense,
-	).Bytes()
-
-	newAccount := ngtypes.NewAccount(binary.LittleEndian.Uint64(tx.GetExtra()), tx.GetParticipants()[0], nil, nil)
-	if _, exists := s.accounts[newAccount.Num]; exists {
-		return fmt.Errorf("failed to register account@%d", newAccount.Num)
-	}
-
-	s.accounts[newAccount.Num], err = utils.Proto.Marshal(newAccount)
+	balance, err := getBalance(txn, participants[0])
 	if err != nil {
 		return err
 	}
 
-	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	if balance.Cmp(totalExpense) < 0 {
+		return fmt.Errorf("balance is insufficient for register")
+	}
+
+	err = setBalance(txn, participants[0], new(big.Int).Sub(balance, totalExpense))
+	if err != nil {
+		return err
+	}
+
+	newAccount := ngtypes.NewAccount(ngtypes.AccountNum(binary.LittleEndian.Uint64(tx.GetExtra())), tx.GetParticipants()[0], nil, nil)
+
+	num := ngtypes.AccountNum(newAccount.Num)
+	err = setAccount(txn, num, newAccount)
+	if err != nil {
+		return err
+	}
+
+	// write ownership
+	err = setOwnership(txn, participants[0], num)
 	if err != nil {
 		return err
 	}
@@ -146,14 +113,8 @@ func (s *State) handleRegister(tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func (s *State) handleLogout(tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := s.accounts[tx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawConvener, convener)
+func handleLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -165,49 +126,40 @@ func (s *State) handleLogout(tx *ngtypes.Tx) (err error) {
 
 	totalExpense := new(big.Int).SetBytes(tx.GetFee())
 
-	participants := tx.GetParticipants()
-	rawParticipantBalance, exists := s.anonymous[base58.FastBase58Encoding(participants[0])]
-	if !exists {
-		rawParticipantBalance = ngtypes.GetBig0Bytes()
-	}
-
-	if new(big.Int).SetBytes(rawParticipantBalance).Cmp(totalExpense) < 0 {
-		return fmt.Errorf("balance is insufficient for logout")
-	}
-	s.anonymous[base58.FastBase58Encoding(participants[0])] = new(big.Int).Sub(
-		new(big.Int).SetBytes(rawParticipantBalance),
-		totalExpense,
-	).Bytes()
-
-	rawAccount, exists := s.accounts[binary.LittleEndian.Uint64(tx.GetExtra())]
-	if !exists {
-		return fmt.Errorf("trying to logout an unregistered account")
-	}
-
-	delAccount := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawAccount, delAccount)
+	balance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
 	}
 
-	if _, exists := s.accounts[delAccount.Num]; !exists {
-
-		return fmt.Errorf("failed to delete account@%d", delAccount.Num)
+	if err = tx.Verify(pk); err != nil {
+		return err
 	}
 
-	delete(s.accounts, delAccount.Num)
+	if balance.Cmp(totalExpense) < 0 {
+		return fmt.Errorf("balance is insufficient for logout")
+	}
+
+	err = setBalance(txn, convener.Owner, new(big.Int).Sub(balance, totalExpense))
+	if err != nil {
+		return err
+	}
+
+	err = delAccount(txn, ngtypes.AccountNum(convener.Num))
+	if err != nil {
+		return err
+	}
+
+	// remove ownership
+	err = delOwnership(txn, convener.Owner)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *State) handleTransaction(tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := s.accounts[tx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawConvener, convener)
+func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -226,51 +178,70 @@ func (s *State) handleTransaction(tx *ngtypes.Tx) (err error) {
 	fee := new(big.Int).SetBytes(tx.GetFee())
 	totalExpense := new(big.Int).Add(fee, totalValue)
 
-	rawConvenerBalance, exists := s.anonymous[base58.FastBase58Encoding(convener.Owner)]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convenerBalance := new(big.Int).SetBytes(rawConvenerBalance)
-	if convenerBalance.Cmp(totalExpense) < 0 {
-		return fmt.Errorf("balance is insufficient for transaction")
-	}
-
-	s.anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, totalExpense).Bytes()
-
-	participants := tx.GetParticipants()
-	for i := range participants {
-		var rawParticipantBalance []byte
-		rawParticipantBalance, exists = s.anonymous[base58.FastBase58Encoding(participants[i])]
-		if !exists {
-			rawParticipantBalance = ngtypes.GetBig0Bytes()
-		}
-
-		s.anonymous[base58.FastBase58Encoding(participants[i])] = new(big.Int).Add(
-			new(big.Int).SetBytes(rawParticipantBalance),
-			new(big.Int).SetBytes(tx.GetValues()[i]),
-		).Bytes()
-	}
-
-	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	convenerBalance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
 	}
 
-	// DO NOT handle extra
-	// TODO: call vm's tx listener
+	if convenerBalance.Cmp(totalExpense) < 0 {
+		return fmt.Errorf("balance is insufficient for transaction")
+	}
+	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, totalExpense))
+	if err != nil {
+		return err
+	}
+
+	participants := tx.GetParticipants()
+	for i := range participants {
+		participantBalance, err := getBalance(txn, participants[i])
+		if err != nil {
+			return err
+		}
+
+		err = setBalance(txn, participants[i], new(big.Int).Add(
+			participantBalance,
+			new(big.Int).SetBytes(tx.GetValues()[i]),
+		))
+		if err != nil {
+			return err
+		}
+
+		// TODO: uncomment when new engine done
+		//if addrHasAccount(txn, participants[i]) {
+		//	num, err := getAccountNumByAddr(txn, participants[i])
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	account, err := getAccountByNum(txn, num)
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	vm, err := NewVM(txn, account)
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	err = vm.InitBuiltInImports()
+		//	if err != nil {
+		//		return err
+		//	}
+		//
+		//	vm.Call(tx)
+		//}
+	}
+
+	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *State) handleAssign(tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := s.accounts[tx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawConvener, convener)
+func handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -288,22 +259,24 @@ func (s *State) handleAssign(tx *ngtypes.Tx) (err error) {
 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 
-	rawConvenerBalance, exists := s.anonymous[base58.FastBase58Encoding(convener.Owner)]
-	if !exists {
-		return fmt.Errorf("account balance does not exist")
+	convenerBalance, err := getBalance(txn, convener.Owner)
+	if err != nil {
+		return err
 	}
 
-	convenerBalance := new(big.Int).SetBytes(rawConvenerBalance)
 	if convenerBalance.Cmp(fee) < 0 {
 		return fmt.Errorf("balance is insufficient for assign")
 	}
 
-	s.anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
+	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, fee))
+	if err != nil {
+		return err
+	}
 
 	// assign the extra bytes
 	convener.Contract = tx.GetExtra()
 
-	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
 	if err != nil {
 		return err
 	}
@@ -311,14 +284,8 @@ func (s *State) handleAssign(tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func (s *State) handleAppend(tx *ngtypes.Tx) (err error) {
-	rawConvener, exists := s.accounts[tx.GetConvener()]
-	if !exists {
-		return fmt.Errorf("account does not exist")
-	}
-
-	convener := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawConvener, convener)
+func handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
 	}
@@ -336,26 +303,24 @@ func (s *State) handleAppend(tx *ngtypes.Tx) (err error) {
 
 	fee := new(big.Int).SetBytes(tx.GetFee())
 
-	rawConvenerBalance, exists := s.anonymous[base58.FastBase58Encoding(convener.Owner)]
-	if !exists {
-		return fmt.Errorf("account balance does not exist")
-	}
-
-	convenerBalance := new(big.Int).SetBytes(rawConvenerBalance)
-	if convenerBalance.Cmp(fee) < 0 {
-		return fmt.Errorf("balance is insufficient for append")
-	}
-
-	s.anonymous[base58.FastBase58Encoding(convener.Owner)] = new(big.Int).Sub(convenerBalance, fee).Bytes()
-
-	// append the extra bytes
-	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
-	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	convenerBalance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
 	}
 
-	s.accounts[tx.GetConvener()], err = utils.Proto.Marshal(convener)
+	if convenerBalance.Cmp(fee) < 0 {
+		return fmt.Errorf("balance is insufficient for assign")
+	}
+
+	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, fee))
+	if err != nil {
+		return err
+	}
+
+	// append the extra bytes
+	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
+
+	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
 	if err != nil {
 		return err
 	}

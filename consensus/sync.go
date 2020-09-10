@@ -2,14 +2,20 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/ngchain/ngcore/ngchain"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p"
-	"github.com/ngchain/ngcore/storage"
+)
+
+const (
+	minDesiredPeerCount = 3 // TODO: add peer num requirement, avoid mining alone
 )
 
 // syncModule is a submodule to the pow, managing the sync of blocks
@@ -21,20 +27,16 @@ type syncModule struct {
 }
 
 // newSyncModule creates a new sync module
-func newSyncModule(pow *PoWork, isBootstrapNode bool) *syncModule {
+func newSyncModule(pow *PoWork) *syncModule {
 	syncMod := &syncModule{
 		RWMutex: sync.RWMutex{},
 		pow:     pow,
 		store:   make(map[peer.ID]*remoteRecord),
 	}
 
-	if !isBootstrapNode {
-		syncMod.bootstrap()
-	}
-
-	latest := storage.GetChain().GetLatestBlock()
-	fmt.Printf("Initial sync completed, latest: %x@%d \n", latest.Hash(), latest.Height)
-	log.Warnf("Initial sync completed, latest: %x@%d", latest.Hash(), latest.Height)
+	latest := ngchain.GetLatestBlock()
+	fmt.Printf("current latest block: %x@%d \n", latest.Hash(), latest.Height)
+	log.Warnf("current latest block: %x@%d", latest.Hash(), latest.Height)
 
 	return syncMod
 }
@@ -56,8 +58,8 @@ func (mod *syncModule) loop() {
 
 		// do get status
 		for _, id := range ngp2p.GetLocalNode().Peerstore().Peers() {
-			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, ngp2p.WiredProtocol)
-			if p == ngp2p.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
+			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
+			if p == defaults.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Warn(err)
@@ -98,7 +100,7 @@ func (mod *syncModule) loop() {
 		}
 
 		// after sync
-		pow.MiningOn()
+		MiningOn()
 	}
 }
 
@@ -106,17 +108,18 @@ func (mod *syncModule) doSync(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
+	fmt.Printf("start syncing with remote node %s \n", record.id)
 	log.Warnf("start syncing with remote node %s", record.id)
 
 	// get chain
-	for storage.GetChain().GetLatestBlockHeight() < record.latest {
+	for ngchain.GetLatestBlockHeight() < record.latest {
 		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = GetPoWConsensus().ApplyBlock(chain[i])
+			err = ngchain.ApplyBlock(chain[i])
 			if err != nil {
 				return err
 			}

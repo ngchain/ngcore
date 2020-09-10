@@ -14,6 +14,11 @@ type Consensus interface {
 	CommitState(State) (State, error)
 }
 
+// OpBatch is an abstract OpBatch interface
+type OpBatch interface {
+	ToUnsealing(...Op) error
+}
+
 // Op is an abstract operation interface
 type Op interface {
 }

@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ngchain/ngcore/ngchain"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 type remoteRecord struct {
@@ -20,11 +21,7 @@ type remoteRecord struct {
 
 // RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
 func (r *remoteRecord) shouldSync() bool {
-	if r.latest > storage.GetChain().GetLatestBlockHeight() {
-		return true
-	}
-
-	return false
+	return r.latest > ngchain.GetLatestBlockHeight()
 }
 
 // RULE: when forking?
@@ -32,10 +29,10 @@ func (r *remoteRecord) shouldSync() bool {
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
 // TODO: add a cap for forking
 func (r *remoteRecord) shouldFork() bool {
-	cp := storage.GetChain().GetLatestCheckpoint()
+	cp := ngchain.GetLatestCheckpoint()
 	cpHash := cp.Hash()
 
-	h := storage.GetChain().GetLatestBlockHeight()
+	h := ngchain.GetLatestBlockHeight()
 
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
 		r.latest > h &&

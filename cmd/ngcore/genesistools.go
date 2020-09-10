@@ -66,12 +66,12 @@ func getGenesisToolsCommand() *cli.Command {
 			b := ngtypes.GetGenesisBlock()
 			if err := b.CheckError(); err != nil {
 				fmt.Printf("Current genesis block is invalid, use the generate tx above to re-calc nonce...  \n")
-				b, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
+				unsealing, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
 				if err != nil {
 					fmt.Print(err)
 				}
 
-				genBlockNonce(b)
+				genBlockNonce(unsealing)
 			} else {
 				fmt.Printf("Genesis block is healthy \n")
 			}

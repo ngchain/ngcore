@@ -33,11 +33,11 @@ func init() {
 	accounts := make(map[uint64]*Account)
 
 	for i := uint64(0); i <= 100; i++ {
-		accounts[i] = GetGenesisStyleAccount(i)
+		accounts[i] = GetGenesisStyleAccount(AccountNum(i))
 	}
 
 	GenesisSheet = &Sheet{
-		PrevBlockHash: nil,
+		PrevBlockHash: make([]byte, HashSize),
 		Accounts:      accounts,
 		Anonymous: map[string][]byte{
 			GenesisAddress.String(): GetBig0Bytes(),

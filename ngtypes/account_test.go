@@ -24,7 +24,7 @@ func TestNewAccount(t *testing.T) {
 
 	randUint64 := fastrand.Uint64n(math.MaxUint64)
 	acc := ngtypes.NewAccount(
-		randUint64,
+		ngtypes.AccountNum(randUint64),
 		utils.PublicKey2Bytes(*privateKey.PubKey()),
 		// big.NewInt(0),
 		nil,

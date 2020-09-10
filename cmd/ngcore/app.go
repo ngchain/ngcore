@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngpool"
+	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/storage"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -17,9 +21,9 @@ import (
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 var strictModeFlag = &cli.BoolFlag{
@@ -72,7 +76,7 @@ var miningFlag = &cli.IntFlag{
 	Name: "mining",
 	Usage: "The worker number on mining. Mining starts when value is not negative. " +
 		"And when value equals to 0, use all cpu cores",
-	Value: -1,
+	Value: defaultMiningThread,
 }
 
 var logFileFlag = &cli.StringFlag{
@@ -105,10 +109,16 @@ var action = func(c *cli.Context) error {
 		panic(err)
 	}
 
-	logging.SetupLogging(logging.Config{
-		Level: logLevel,
-		File:  c.String("log-file"),
-	})
+	logConf := logging.Config{
+		Level:  logLevel,
+		Stdout: c.String("log-file") == "",
+		File:   c.String("log-file"),
+	}
+	if len(logConf.File) > 0 {
+		fmt.Println("logging to", logConf.File)
+	}
+
+	logging.SetupLogging(logConf)
 
 	isBootstrapNode := c.Bool("bootstrap")
 	mining := c.Int("mining")
@@ -143,7 +153,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
-	fmt.Printf("Use address: %s to receive mining rewards \n", string(base58.FastBase58Encoding(ngtypes.NewAddress(key))))
+	fmt.Printf("Use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
 
 	var db *badger.DB
 	if inMem {
@@ -151,6 +161,7 @@ var action = func(c *cli.Context) error {
 	} else {
 		db = storage.InitStorage(dbFolder)
 	}
+
 	defer func() {
 		err = db.Close()
 		if err != nil {
@@ -158,16 +169,22 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	chain := storage.NewChain(db)
-	if isStrictMode && chain.GetLatestBlockHeight() == 0 {
-		chain.InitWithGenesis()
+	ngp2p.InitLocalNode(p2pTCPPort)
+
+	ngchain.Init(db)
+	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
+		ngblocks.Init(db)
 		// then sync
+	} else {
+		// TODO: use the new origin block to initialize the ngblocks
+		ngblocks.Init(db)
 	}
 
-	_ = ngp2p.NewLocalNode(p2pTCPPort)
+	ngstate.InitStateFromGenesis(db)
+	ngpool.Init(db)
 
-	pow := consensus.NewPoWConsensus(mining, key, isBootstrapNode)
-	pow.GoLoop()
+	consensus.InitPoWConsensus(mining, key, isBootstrapNode, db)
+	consensus.GoLoop()
 
 	rpc := jsonrpc.NewServer(rpcHost, rpcPort)
 	go rpc.Serve()

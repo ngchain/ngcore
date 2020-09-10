@@ -13,6 +13,6 @@ const (
 	defaultRPCPort      = 52521
 	defaultLogLevel     = "WARN"
 	defaultLogFile      = "ngcore.log"
-	dafaultMiningThread = -1
-	defaultDBFolder     = ".ngdb"
+	defaultMiningThread = -1
+	defaultDBFolder     = "ngdb"
 )

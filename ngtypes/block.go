@@ -47,6 +47,7 @@ func (x *Block) IsGenesis() bool {
 }
 
 // GetPoWRawHeader will return a complete raw for block hash.
+// When nonce is not nil, the RawHeader will use the nonce param not the x.Nonce.
 func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 	//lenRaw := 1 + // network size
 	//	HeightSize+
@@ -140,6 +141,8 @@ func (x *Block) PowHash() []byte {
 
 // ToUnsealing converts a bare block to an unsealing block.
 func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
+	b := proto.Clone(x).(*Block)
+
 	if txsWithGen[0].GetType() != TxType_GENERATE {
 		return nil, fmt.Errorf("first tx shall be a generate")
 	}
@@ -150,8 +153,8 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 		}
 	}
 
-	x.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
-	x.Txs = txsWithGen
+	b.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
+	b.Txs = txsWithGen
 
 	return x, nil
 }
