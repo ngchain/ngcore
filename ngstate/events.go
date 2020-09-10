@@ -4,7 +4,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// call me when applying new tx
+// Call when applying new tx
 func (vm *VM) Call(tx *ngtypes.Tx) {
 	vm.RLock()
 	defer vm.RUnlock()

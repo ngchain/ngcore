@@ -7,16 +7,20 @@ import (
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
+// InitBuiltInImports will bind go's host func with the contract module
 func (vm *VM) InitBuiltInImports() error {
-	if err := initLogImports(vm); err != nil {
+	err := initLogImports(vm)
+	if err != nil {
 		return err
 	}
 
-	if err := initSelfImports(vm); err != nil {
+	err = initSelfImports(vm)
+	if err != nil {
 		return err
 	}
 
-	if err := initCoinImports(vm); err != nil {
+	err = initCoinImports(vm)
+	if err != nil {
 		return err
 	}
 

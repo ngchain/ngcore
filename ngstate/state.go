@@ -1,12 +1,13 @@
 package ngstate
 
 import (
+	"sync"
+
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"sync"
 )
 
 var log = logging.Logger("sheet")
@@ -26,6 +27,7 @@ type State struct {
 	*badger.DB
 }
 
+// InitStateDB will initialize the state in the given db, with the sheet data
 func InitStateDB(db *badger.DB, sheet *ngtypes.Sheet) {
 	state = &State{db}
 	err := state.Update(func(txn *badger.Txn) error {
@@ -36,6 +38,7 @@ func InitStateDB(db *badger.DB, sheet *ngtypes.Sheet) {
 	}
 }
 
+// InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
 func InitStateFromGenesis(db *badger.DB) {
 	state = &State{db}
 	err := state.Update(func(txn *badger.Txn) error {
@@ -82,6 +85,7 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 
 var regenerateLock sync.Mutex
 
+// Regenerate works for doing fork and remove all    
 func Regenerate() error {
 	regenerateLock.Lock()
 	defer regenerateLock.Unlock()

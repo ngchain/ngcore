@@ -1,10 +1,11 @@
 package ngstate
 
 import (
-	"github.com/dgraph-io/badger/v2"
-	"github.com/ngchain/ngcore/ngtypes"
 	"strconv"
 	"sync"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/ngchain/ngcore/ngtypes"
 
 	"github.com/bytecodealliance/wasmtime-go"
 	logging "github.com/ipfs/go-log/v2"
@@ -50,24 +51,25 @@ func NewVM(txn *badger.Txn, account *ngtypes.Account) (*VM, error) {
 	}, nil
 }
 
-func (vm *VM) GetStore() *wasmtime.Store {
-	vm.RLock()
-	store := vm.store
-	vm.RUnlock()
+// func (vm *VM) GetStore() *wasmtime.Store {
+// 	vm.RLock()
+// 	store := vm.store
+// 	vm.RUnlock()
+// 	return store
+// }
 
-	return store
-}
+// func (vm *VM) GetModule() *wasmtime.Module {
+// 	vm.RLock()
+// 	module := vm.module
+// 	vm.RUnlock()
+// 	return module
+// }
 
-func (vm *VM) GetModule() *wasmtime.Module {
-	vm.RLock()
-	module := vm.module
-	vm.RUnlock()
-
-	return module
-}
-
+// MaxLen is the maximum length of one module
 const MaxLen = 1 << 32 // 2GB
 
+// Instantiate will generate a runable instance from thr module
+// before Instantiate, the caller should run Init
 func (vm *VM) Instantiate() error {
 	instance, err := vm.linker.Instantiate(vm.module)
 	if err != nil {
@@ -77,13 +79,6 @@ func (vm *VM) Instantiate() error {
 	vm.Lock()
 
 	vm.instance = instance
-
-	// init context
-	mem := vm.instance.GetExport("memory").Memory()
-	length := mem.DataSize()
-	if length >= MaxLen {
-		length = MaxLen // avoid panic
-	}
 
 	vm.Unlock()
 	return nil
