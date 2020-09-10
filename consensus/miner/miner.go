@@ -2,11 +2,12 @@ package miner
 
 import (
 	"fmt"
-	logging "github.com/ipfs/go-log/v2"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/go-randomx"
 
@@ -18,7 +19,7 @@ import (
 
 var log = logging.Logger("miner")
 
-// minerModule is an inner miner for proof of work
+// Miner is an inner miner for proof of work
 // miner implements a internal PoW miner with multi threads(goroutines) support
 type Miner struct {
 	threadNum int

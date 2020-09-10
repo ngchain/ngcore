@@ -2,6 +2,7 @@ package wired
 
 import (
 	"context"
+
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -13,7 +14,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// SendProtoMessage is a helper method - writes a protobuf go data object to a network stream.
+// Send is a helper method - writes a protobuf go data object to a network stream.
 // then the stream will be returned and caller is able to read the response from it.
 func Send(host core.Host, peerID peer.ID, data proto.Message) (network.Stream, error) {
 	raw, err := utils.Proto.Marshal(data)
