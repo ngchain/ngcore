@@ -2,6 +2,7 @@ package wired
 
 import (
 	"fmt"
+
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-msgio"
@@ -24,13 +25,15 @@ func NewWiredProtocol(host core.Host) *Wired {
 		host: host,
 	}
 
+	return w
+}
+
+func (w *Wired) GoServe() {
 	// register handler
-	host.SetStreamHandler(defaults.WiredProtocol, func(stream network.Stream) {
+	w.host.SetStreamHandler(defaults.WiredProtocol, func(stream network.Stream) {
 		log.Debugf("handling new stream from %s", stream.Conn().RemotePeer())
 		go w.handleStream(stream)
 	})
-
-	return w
 }
 
 func (w *Wired) handleStream(stream network.Stream) {

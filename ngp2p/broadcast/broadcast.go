@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
@@ -60,10 +61,12 @@ func NewBroadcastProtocol(node core.Host, blockCh chan *ngtypes.Block, txCh chan
 		panic(err)
 	}
 
+	return b
+}
+
+func (b *Broadcast) GoServe() {
 	go b.blockListener(b.subscriptions[defaults.BroadcastBlockTopic])
 	go b.txListener(b.subscriptions[defaults.BroadcastTxTopic])
-
-	return b
 }
 
 func (b *Broadcast) blockListener(sub *pubsub.Subscription) {

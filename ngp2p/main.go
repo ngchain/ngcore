@@ -3,6 +3,7 @@ package ngp2p
 import (
 	"context"
 	"fmt"
+
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/ngchain/ngcore/ngp2p/broadcast"
@@ -74,6 +75,11 @@ func InitLocalNode(port int) {
 	}
 
 	activeDHT(ctx, p2pDHT, localNode)
+}
+
+func GoServe() {
+	localNode.Wired.GoServe()
+	localNode.Broadcast.GoServe()
 }
 
 // GetLocalNode returns the initialized LocalNode in module.

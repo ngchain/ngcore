@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngchain"
-	"github.com/ngchain/ngcore/ngpool"
-	"github.com/ngchain/ngcore/ngstate"
-	"github.com/ngchain/ngcore/storage"
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"strings"
 	"time"
+
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngpool"
+	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/storage"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
@@ -169,8 +170,6 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	ngp2p.InitLocalNode(p2pTCPPort)
-
 	ngchain.Init(db)
 	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
 		ngblocks.Init(db)
@@ -179,6 +178,9 @@ var action = func(c *cli.Context) error {
 		// TODO: use the new origin block to initialize the ngblocks
 		ngblocks.Init(db)
 	}
+
+	ngp2p.InitLocalNode(p2pTCPPort)
+	ngp2p.GoServe()
 
 	ngstate.InitStateFromGenesis(db)
 	ngpool.Init(db)

@@ -66,7 +66,8 @@ func MiningOff() {
 // MiningOn resumes the pow consensus.
 func MiningOn() {
 	if pow.minerMod != nil {
-		go pow.minerMod.Start(GetBlockTemplate())
+		newBlock := GetBlockTemplate()
+		go pow.minerMod.Start(newBlock)
 	}
 }
 
@@ -141,7 +142,8 @@ func (pow *PoWork) eventLoop() {
 			}
 
 			// assign new job
-			pow.minerMod.Start(GetBlockTemplate())
+			blockTemplate := GetBlockTemplate()
+			pow.minerMod.Start(blockTemplate)
 		}
 	}
 }

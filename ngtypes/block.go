@@ -156,7 +156,7 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	b.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
 	b.Txs = txsWithGen
 
-	return x, nil
+	return b, nil
 }
 
 // ToSealed converts an unsealing block to a sealed block.
