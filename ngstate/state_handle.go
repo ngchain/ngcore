@@ -207,29 +207,31 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		}
 
 		// TODO: uncomment when new engine done
-		//if addrHasAccount(txn, participants[i]) {
-		//	num, err := getAccountNumByAddr(txn, participants[i])
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	account, err := getAccountByNum(txn, num)
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	vm, err := NewVM(txn, account)
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	err = vm.InitBuiltInImports()
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	vm.Call(tx)
-		//}
+		if addrHasAccount(txn, participants[i]) {
+			num, err := getAccountNumByAddr(txn, participants[i])
+			if err != nil {
+				return err
+			}
+
+			account, err := getAccountByNum(txn, num)
+			if err != nil {
+				return err
+			}
+
+			vm, err := NewVM(txn, account) // todo: optimize me
+			if err != nil {
+				return err
+			}
+
+			err = vm.InitBuiltInImports()
+			if err != nil {
+				return err
+			}
+
+			ins, err := vm.Instantiate()
+
+			vm.Call(ins, tx)
+		}
 	}
 
 	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)

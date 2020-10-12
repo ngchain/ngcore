@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
-	github.com/bytecodealliance/wasmtime-go v0.19.0
+	github.com/c0mm4nd/wasman v0.0.0-20201012050300-917ccc54564d
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.1
 	github.com/golang/protobuf v1.4.2

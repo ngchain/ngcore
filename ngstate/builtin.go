@@ -1,10 +1,9 @@
 package ngstate
 
 import (
+	"github.com/c0mm4nd/wasman"
 	"reflect"
 	"unsafe"
-
-	"github.com/bytecodealliance/wasmtime-go"
 )
 
 // InitBuiltInImports will bind go's host func with the contract module
@@ -28,13 +27,15 @@ func (vm *VM) InitBuiltInImports() error {
 }
 
 func initLogImports(vm *VM) error {
-	err := vm.linker.Define("log", "debug", wasmtime.WrapFunc(vm.store, func(ptr int32, l int32) {
-		message := *(*string)(unsafe.Pointer(&reflect.StringHeader{
-			Data: uintptr(ptr),
-			Len:  int(l),
-		}))
-		vm.logger.Debug(message)
-	}).AsExtern())
+	err := vm.linker.DefineAdvancedFunc("log", "debug", func(ins *wasman.Instance) interface{} {
+		return func(ptr int32, l int32) {
+			message := *(*string)(unsafe.Pointer(&reflect.StringHeader{
+				Data: uintptr(ptr),
+				Len:  int(l),
+			}))
+			vm.logger.Debug(message)
+		}
+	})
 	if err != nil {
 		return err
 	}
@@ -43,16 +44,20 @@ func initLogImports(vm *VM) error {
 }
 
 func initSelfImports(vm *VM) error {
-	err := vm.linker.Define("self", "get_num", wasmtime.WrapFunc(vm.store, func() int64 {
-		return int64(vm.self.Num)
-	}).AsExtern())
+	err := vm.linker.DefineAdvancedFunc("self", "get_num", func(ins *wasman.Instance) interface{} {
+		return func() int64 {
+			return int64(vm.self.Num)
+		}
+	})
 	if err != nil {
 		return err
 	}
 
-	err = vm.linker.Define("self", "get_owner", wasmtime.WrapFunc(vm.store, func() int64 {
-		return int64(vm.self.Num)
-	}).AsExtern())
+	err = vm.linker.DefineAdvancedFunc("self", "get_owner", func(ins *wasman.Instance) interface{} {
+		return func() int64 {
+			return int64(vm.self.Num)
+		}
+	})
 	if err != nil {
 		return err
 	}
@@ -61,8 +66,8 @@ func initSelfImports(vm *VM) error {
 }
 
 func initCoinImports(vm *VM) error {
-	err := vm.linker.Define("coin", "transfer", wasmtime.WrapFunc(
-		vm.store, func(to, value int64) int32 {
+	err := vm.linker.DefineAdvancedFunc("coin", "transfer", func(ins *wasman.Instance) interface{} {
+		return func(to, value int64) int32 {
 			err := vmTransfer(vm.txn, vm.self.Num, uint64(to), uint64(value))
 			if err != nil {
 				vm.logger.Error(err)
@@ -70,8 +75,8 @@ func initCoinImports(vm *VM) error {
 			}
 
 			return 1
-		}).AsExtern(),
-	)
+		}
+	})
 	if err != nil {
 		return err
 	}

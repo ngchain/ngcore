@@ -1,17 +1,17 @@
 package ngstate
 
 import (
+	"bytes"
+	"github.com/c0mm4nd/wasman"
+	"github.com/c0mm4nd/wasman/config"
 	"strconv"
 	"sync"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
 
-	"github.com/bytecodealliance/wasmtime-go"
 	logging "github.com/ipfs/go-log/v2"
 )
-
-var engine = wasmtime.NewEngine()
 
 // VM is a vm based on wasmtime, which acts as a sandbox env to exec native func
 // TODO: Update me after experiment WASI tests
@@ -21,65 +21,42 @@ type VM struct {
 	self *ngtypes.Account
 	txn  *badger.Txn
 
-	linker   *wasmtime.Linker
-	store    *wasmtime.Store
-	module   *wasmtime.Module
-	instance *wasmtime.Instance
+	linker *wasman.Linker
+	module *wasman.Module
 
 	logger *logging.ZapEventLogger
 }
 
 // NewVM creates a new Wasm
+// call me when a assign or append tx
 func NewVM(txn *badger.Txn, account *ngtypes.Account) (*VM, error) {
-	store := wasmtime.NewStore(engine)
-	module, err := wasmtime.NewModule(engine, account.Contract)
+	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewBuffer(account.Contract))
 	if err != nil {
 		return nil, err
 	}
 
-	linker := wasmtime.NewLinker(store)
+	linker := wasman.NewLinker(config.LinkerConfig{}) // TODO: add external modules
 
 	return &VM{
-		RWMutex:  sync.RWMutex{},
-		self:     account,
-		txn:      txn,
-		linker:   linker,
-		store:    store,
-		module:   module,
-		instance: nil,
-		logger:   logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
+		RWMutex: sync.RWMutex{},
+		self:    account,
+		txn:     txn,
+		linker:  linker,
+		module:  module,
+		logger:  logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
 	}, nil
 }
-
-// func (vm *VM) GetStore() *wasmtime.Store {
-// 	vm.RLock()
-// 	store := vm.store
-// 	vm.RUnlock()
-// 	return store
-// }
-
-// func (vm *VM) GetModule() *wasmtime.Module {
-// 	vm.RLock()
-// 	module := vm.module
-// 	vm.RUnlock()
-// 	return module
-// }
 
 // MaxLen is the maximum length of one module
 const MaxLen = 1 << 32 // 2GB
 
 // Instantiate will generate a runable instance from thr module
 // before Instantiate, the caller should run Init
-func (vm *VM) Instantiate() error {
+func (vm *VM) Instantiate() (*wasman.Instance, error) {
 	instance, err := vm.linker.Instantiate(vm.module)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	vm.Lock()
-
-	vm.instance = instance
-
-	vm.Unlock()
-	return nil
+	return instance, nil
 }

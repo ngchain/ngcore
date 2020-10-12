@@ -48,8 +48,8 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 h1:R8vQdOQdZ9Y3
 github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtEyQwv5/p4Mg4C0fgbePVuGr935/5ddU9Z3TmDRY=
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
-github.com/bytecodealliance/wasmtime-go v0.19.0 h1:WFz3dLCZNjgi3xNGbSKuK/dSzH5lLkbUjrhUejoKsio=
-github.com/bytecodealliance/wasmtime-go v0.19.0/go.mod h1:q320gUxqyI8yB+ZqRuaJOEnGkAnHh6WtJjMaT2CW4wI=
+github.com/c0mm4nd/wasman v0.0.0-20201012050300-917ccc54564d h1:nwzgfNFhh+NAdkoYxZ2gTfLv5OmOW6cudsOxRLR/pJ8=
+github.com/c0mm4nd/wasman v0.0.0-20201012050300-917ccc54564d/go.mod h1:IJRXJa3GeMbD5Oo14goLaer661oiI6SC0LU7fxNle6g=
 github.com/cbergoon/merkletree v0.2.0 h1:Bttqr3OuoiZEo4ed1L7fTasHka9II+BF9fhBfbNEEoQ=
 github.com/cbergoon/merkletree v0.2.0/go.mod h1:5c15eckUgiucMGDOCanvalj/yJnD+KAZj1qyJtRW5aM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
