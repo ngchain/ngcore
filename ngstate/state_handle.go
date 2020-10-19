@@ -206,7 +206,6 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 			return err
 		}
 
-		// TODO: uncomment when new engine done
 		if addrHasAccount(txn, participants[i]) {
 			num, err := getAccountNumByAddr(txn, participants[i])
 			if err != nil {
@@ -228,9 +227,9 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 				return err
 			}
 
-			ins, err := vm.Instantiate()
+			ins, err := vm.Instantiate(tx)
 
-			vm.Call(ins, tx)
+			vm.CallOnTx(ins)
 		}
 	}
 

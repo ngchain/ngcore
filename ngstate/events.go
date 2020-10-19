@@ -2,11 +2,10 @@ package ngstate
 
 import (
 	"github.com/c0mm4nd/wasman"
-	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// Call when applying new tx
-func (vm *VM) Call(ins *wasman.Instance, tx *ngtypes.Tx) {
+// CallOnTx when applying new tx
+func (vm *VM) CallOnTx(ins *wasman.Instance) {
 	vm.RLock()
 	defer vm.RUnlock()
 

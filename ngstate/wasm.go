@@ -18,8 +18,9 @@ import (
 type VM struct {
 	sync.RWMutex
 
-	self *ngtypes.Account
-	txn  *badger.Txn
+	caller *ngtypes.Tx
+	self   *ngtypes.Account
+	txn    *badger.Txn
 
 	linker *wasman.Linker
 	module *wasman.Module
@@ -52,7 +53,9 @@ const MaxLen = 1 << 32 // 2GB
 
 // Instantiate will generate a runable instance from thr module
 // before Instantiate, the caller should run Init
-func (vm *VM) Instantiate() (*wasman.Instance, error) {
+func (vm *VM) Instantiate(tx *ngtypes.Tx) (*wasman.Instance, error) {
+	vm.caller = tx
+
 	instance, err := vm.linker.Instantiate(vm.module)
 	if err != nil {
 		return nil, err

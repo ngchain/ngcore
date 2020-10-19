@@ -85,7 +85,7 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 
 var regenerateLock sync.Mutex
 
-// Regenerate works for doing fork and remove all    
+// Regenerate works for doing fork and remove all
 func Regenerate() error {
 	regenerateLock.Lock()
 	defer regenerateLock.Unlock()
