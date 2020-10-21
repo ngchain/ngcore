@@ -212,15 +212,7 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 				return err
 			}
 
-			account, err := getAccountByNum(txn, num)
-			if err != nil {
-				return err
-			}
-
-			vm, err := NewVM(txn, account) // todo: optimize me
-			if err != nil {
-				return err
-			}
+			vm := state.vms[num]
 
 			err = vm.InitBuiltInImports()
 			if err != nil {
@@ -276,6 +268,17 @@ func handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 
 	// assign the extra bytes
 	convener.Contract = tx.GetExtra()
+	account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	if err != nil {
+		return err
+	}
+
+	vm, err := NewVM(txn, account)
+	if err != nil {
+		return err
+	}
+
+	state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
 	if err != nil {
@@ -320,6 +323,17 @@ func handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 
 	// append the extra bytes
 	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
+	account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	if err != nil {
+		return err
+	}
+
+	vm, err := NewVM(txn, account)
+	if err != nil {
+		return err
+	}
+
+	state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
 	if err != nil {

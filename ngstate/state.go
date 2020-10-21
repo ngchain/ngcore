@@ -25,11 +25,15 @@ var state *State
 //  init (S0,S0)  -->   (S0,S1)  -->    (S1, S2)
 type State struct {
 	*badger.DB
+	vms map[ngtypes.AccountNum]*VM
 }
 
 // InitStateDB will initialize the state in the given db, with the sheet data
 func InitStateDB(db *badger.DB, sheet *ngtypes.Sheet) {
-	state = &State{db}
+	state = &State{
+		DB:  db,
+		vms: make(map[ngtypes.AccountNum]*VM),
+	}
 	err := state.Update(func(txn *badger.Txn) error {
 		return initFromSheet(txn, sheet)
 	})
@@ -40,7 +44,10 @@ func InitStateDB(db *badger.DB, sheet *ngtypes.Sheet) {
 
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
 func InitStateFromGenesis(db *badger.DB) {
-	state = &State{db}
+	state = &State{
+		DB:  db,
+		vms: make(map[ngtypes.AccountNum]*VM),
+	}
 	err := state.Update(func(txn *badger.Txn) error {
 		err := initFromSheet(txn, ngtypes.GenesisSheet)
 		if err != nil {
