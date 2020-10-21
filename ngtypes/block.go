@@ -195,7 +195,7 @@ func (x *Block) GetActualDiff() *big.Int {
 // then you need to add txs and seal with the correct N.
 func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
 	return &Block{
-		Network:       NETWORK,
+		Network:       Network,
 		Height:        height,
 		Timestamp:     time.Now().Unix(),
 		PrevBlockHash: prevBlockHash,
@@ -210,7 +210,7 @@ func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
 
 // CheckError will check the errors in block inner fields.
 func (x *Block) CheckError() error {
-	if x.Network != NETWORK {
+	if x.Network != Network {
 		return fmt.Errorf("block's network id is incorrect")
 	}
 
@@ -275,7 +275,7 @@ func GetGenesisBlock() *Block {
 		copy(nonce, genesisBlockNonce.Bytes())
 
 		genesisBlock = &Block{
-			Network:   NETWORK,
+			Network:   Network,
 			Height:    0,
 			Timestamp: GenesisTimestamp,
 

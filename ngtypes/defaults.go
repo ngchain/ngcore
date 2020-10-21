@@ -9,7 +9,6 @@ import (
 // FIXME: before init network should manually init PK & Sign
 // use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
-	NETWORK                  = NetworkType_TESTNET
 	GenesisAddressBase58     = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
 	GenesisGenerateTxSignHex = "bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d"
 	GenesisBlockNonceHex     = "e81f86c132a0aada"
@@ -17,6 +16,7 @@ const (
 
 // decoded genesis variables
 var (
+	Network                   = NetworkType_TESTNET // can be changed by arg FIXME: set to mainnet when releasing
 	GenesisAddress, _         = NewAddressFromBS58(GenesisAddressBase58)
 	GenesisGenerateTxSign, _  = hex.DecodeString(GenesisGenerateTxSignHex)
 	genesisBlockNonceBytes, _ = hex.DecodeString(GenesisBlockNonceHex)

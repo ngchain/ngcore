@@ -47,7 +47,7 @@ func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 }
 
 func (s *Server) getNetworkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	network, err := utils.JSON.Marshal(ngtypes.NETWORK.String())
+	network, err := utils.JSON.Marshal(ngtypes.Network.String())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

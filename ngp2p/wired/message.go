@@ -16,7 +16,7 @@ func NewHeader(host core.Host, msgID []byte, msgType message.MessageType) *messa
 	}
 
 	return &message.Header{
-		Network:     ngtypes.NETWORK,
+		Network:     ngtypes.Network,
 		MessageId:   msgID,
 		MessageType: msgType,
 		Timestamp:   time.Now().Unix(),

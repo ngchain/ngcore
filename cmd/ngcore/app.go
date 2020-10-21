@@ -56,6 +56,16 @@ var isBootstrapFlag = &cli.BoolFlag{
 	Usage: "Enable starting local node as a bootstrap peer",
 }
 
+var testNetFlag = &cli.BoolFlag{
+	Name:  "testnet",
+	Usage: "Run node on the test network",
+}
+
+var regTestNetFlag = &cli.BoolFlag{
+	Name:  "reg-testnet",
+	Usage: "Run node on the regression test network",
+}
+
 var profileFlag = &cli.BoolFlag{
 	Name:  "profile",
 	Usage: "Enable writing cpu profile to the file",
@@ -127,15 +137,23 @@ var action = func(c *cli.Context) error {
 		mining = runtime.NumCPU()
 	}
 
-	isStrictMode := isBootstrapNode || c.Bool("strict")
-	p2pTCPPort := c.Int("p2p-port")
-	rpcHost := c.String("rpc-host")
-	rpcPort := c.Int("rpc-port")
-	keyPass := c.String("key-pass")
-	keyFile := c.String("key-file")
-	withProfile := c.Bool("profile")
-	inMem := c.Bool("in-mem")
-	dbFolder := c.String("db-folder")
+	isStrictMode := isBootstrapNode || c.Bool(strictModeFlag.Name)
+	p2pTCPPort := c.Int(p2pTCPPortFlag.Name)
+	rpcHost := c.String(rpcHostFlag.Name)
+	rpcPort := c.Int(rpcPortFlag.Name)
+	keyPass := c.String(keyPassFlag.Name)
+	keyFile := c.String(keyFileFlag.Name)
+	withProfile := c.Bool(profileFlag.Name)
+	inMem := c.Bool(inMemFlag.Name)
+	dbFolder := c.String(dbFolderFlag.Name)
+
+	if c.Bool(testNetFlag.Name) {
+		ngtypes.Network = ngtypes.NetworkType_TESTNET
+	}
+
+	if c.Bool(regTestNetFlag.Name) {
+		ngtypes.Network = ngtypes.NetworkType_ZERONET // use zero net as the regression test network
+	}
 
 	if withProfile {
 		var f *os.File

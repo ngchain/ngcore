@@ -25,6 +25,8 @@ func main() {
 		keyFileFlag, keyPassFlag,
 		logLevelFlag, logFileFlag,
 		inMemFlag, dbFolderFlag,
+
+		testNetFlag, regTestNetFlag,
 	}
 
 	app.Commands = []*cli.Command{
