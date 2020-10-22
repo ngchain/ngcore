@@ -1,8 +1,8 @@
 # ngCore
-<p align="center" style="text-align: center">
-<img width="400" height="400" src="./resources/NG.svg"/>
+<p style="text-align: center">
+<img alt="NG" width="400" height="400" src="./resources/NG.svg"/>
 <br/>
-<b>NgCore:</b> Brand-new golang daemon implement of Ngin Network Node
+<b>ngcore:</b> Brand-new golang daemon implement of Ngin Network Node
 </p>
 
 ## What is NGIN?
@@ -89,10 +89,10 @@ git clone https://github.com/ngchain/ngcore && cd ngcore
 sudo docker build . -t ngcore:alpine
 
 # Run as a bootstrap node
-sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore --bootstrap true
+sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --bootstrap true
 
 # Run as a mining node, 0 means using all cpu cores, --in-mem will disable writing into disk and make the miner lighter
-sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore --mining 0 --in-mem
+sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --mining 0 --in-mem
 ```
 
 ## Run a NGIN Forknet
