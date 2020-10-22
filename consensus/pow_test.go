@@ -2,9 +2,9 @@ package consensus_test
 
 import (
 	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngpool"
 	"testing"
 
-	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/storage"
 
 	"github.com/ngchain/ngcore/consensus"
@@ -27,17 +27,18 @@ func TestNewConsensusManager(t *testing.T) {
 		}
 	}()
 
-	ngblocks.Init(db)
-	ngchain.Init(db)
+	net := ngtypes.NetworkType_ZERONET
+	store := ngblocks.Init(db, net)
+	state := ngstate.InitStateFromGenesis(db, net)
+	chain := ngchain.Init(db, net, store, nil)
+	pool := ngpool.Init(db, chain)
 
-	ngp2p.InitLocalNode(52520)
+	ngp2p.InitLocalNode(net, 52520, chain)
 
-	err := db.Update(func(txn *badger.Txn) error {
-		return ngstate.Upgrade(txn, ngtypes.GetGenesisBlock())
+	consensus.InitPoWConsensus(db, chain, pool, state, consensus.PoWorkConfig{
+		Network:                     net,
+		DisableConnectingBootstraps: true,
+		MiningThread:                1,
+		PrivateKey:                  key,
 	})
-	if err != nil {
-		panic(err)
-	}
-
-	consensus.InitPoWConsensus(1, key, true, db)
 }

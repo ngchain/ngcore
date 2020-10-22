@@ -4,13 +4,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *Wired) Ping(peerID peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) (id []byte,
+func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) (id []byte,
 	stream network.Stream) {
 	payload, err := utils.Proto.Marshal(&message.PingPayload{
 		Origin:               origin,
@@ -27,7 +26,7 @@ func (w *Wired) Ping(peerID peer.ID, origin, latest uint64, checkpointHash, chec
 
 	// create message data
 	req := &message.Message{
-		Header:  NewHeader(w.host, id, message.MessageType_PING),
+		Header:  NewHeader(w.host, w.network, id, message.MessageType_PING),
 		Payload: payload,
 	}
 
@@ -59,13 +58,13 @@ func (w *Wired) onPing(stream network.Stream, msg *message.Message) {
 
 	err := utils.Proto.Unmarshal(msg.Payload, ping)
 	if err != nil {
-		w.reject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.MessageId, stream, err)
 		return
 	}
 
-	// send pong
-	origin := ngchain.GetOriginBlock()
-	latest := ngchain.GetLatestBlock()
-	checkpoint := ngchain.GetLatestCheckpoint()
-	w.pong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), checkpoint.Hash(), checkpoint.GetActualDiff().Bytes())
+	// send sendPong
+	origin := w.chain.GetOriginBlock()
+	latest := w.chain.GetLatestBlock()
+	checkpoint := w.chain.GetLatestCheckpoint()
+	w.sendPong(msg.Header.MessageId, stream, origin.GetHeight(), latest.GetHeight(), checkpoint.Hash(), checkpoint.GetActualDiff().Bytes())
 }

@@ -10,11 +10,11 @@ import (
 )
 
 // initWithGenesis will initialize the store with genesis block & vault.
-func initWithGenesis() {
-	if !hasGenesisBlock() {
+func (store *BlockStore) initWithGenesis() {
+	if !store.hasGenesisBlock(store.Network) {
 		log.Warnf("initializing with genesis block")
 
-		block := ngtypes.GetGenesisBlock()
+		block := ngtypes.GetGenesisBlock(store.Network)
 
 		if err := store.Update(func(txn *badger.Txn) error {
 			hash := block.Hash()
@@ -44,7 +44,7 @@ func initWithGenesis() {
 }
 
 // hasGenesisBlock checks whether the genesis vault is in db.
-func hasGenesisBlock() bool {
+func (store *BlockStore) hasGenesisBlock(network ngtypes.NetworkType) bool {
 	var has = false
 
 	if err := store.View(func(txn *badger.Txn) error {
@@ -59,7 +59,7 @@ func hasGenesisBlock() bool {
 		if hash != nil {
 			has = true
 		}
-		if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash()) {
+		if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash(network)) {
 			panic("wrong genesis block in db")
 		}
 
@@ -72,7 +72,7 @@ func hasGenesisBlock() bool {
 }
 
 // initWithBlockchain initialize the store by importing the external store.
-func initWithBlockchain(blocks ...*ngtypes.Block) error {
+func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
 	/* Put start */
 	err := store.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(blocks); i++ {

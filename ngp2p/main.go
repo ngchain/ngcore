@@ -3,6 +3,7 @@ package ngp2p
 import (
 	"context"
 	"fmt"
+	"github.com/ngchain/ngcore/ngchain"
 
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
@@ -22,6 +23,8 @@ var log = logging.Logger("ngp2p")
 // LocalNode is the local host on p2p network
 type LocalNode struct {
 	host.Host // lib-p2p host
+	network   ngtypes.NetworkType
+
 	*wired.Wired
 	*broadcast.Broadcast
 }
@@ -29,7 +32,7 @@ type LocalNode struct {
 var localNode *LocalNode
 
 // InitLocalNode creates a new node with its implemented protocols.
-func InitLocalNode(port int) {
+func InitLocalNode(network ngtypes.NetworkType, port int, chain *ngchain.Chain) {
 	ctx := context.Background()
 	priv := getP2PKey()
 
@@ -70,7 +73,8 @@ func InitLocalNode(port int) {
 	localNode = &LocalNode{
 		// sub modules
 		Host:      rhost.Wrap(localHost, p2pDHT),
-		Wired:     wired.NewWiredProtocol(localHost),
+		network:   network,
+		Wired:     wired.NewWiredProtocol(localHost, network, chain),
 		Broadcast: broadcast.NewBroadcastProtocol(localHost, make(chan *ngtypes.Block), make(chan *ngtypes.Tx)),
 	}
 

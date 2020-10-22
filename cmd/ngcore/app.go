@@ -147,12 +147,13 @@ var action = func(c *cli.Context) error {
 	inMem := c.Bool(inMemFlag.Name)
 	dbFolder := c.String(dbFolderFlag.Name)
 
+	var network = ngtypes.NetworkType_TESTNET
 	if c.Bool(testNetFlag.Name) {
-		ngtypes.Network = ngtypes.NetworkType_TESTNET
+		network = ngtypes.NetworkType_TESTNET
 	}
 
 	if c.Bool(regTestNetFlag.Name) {
-		ngtypes.Network = ngtypes.NetworkType_ZERONET // use zero net as the regression test network
+		network = ngtypes.NetworkType_ZERONET // use zero net as the regression test network
 	}
 
 	if withProfile {
@@ -188,25 +189,37 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	ngchain.Init(db)
-	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
-		ngblocks.Init(db)
+	var store *ngblocks.BlockStore
+	if isStrictMode {
+		store = ngblocks.Init(db, network)
 		// then sync
 	} else {
 		// TODO: use the new origin block to initialize the ngblocks
-		ngblocks.Init(db)
+		store = ngblocks.Init(db, network)
 	}
+	state := ngstate.InitStateFromGenesis(db, network)
 
-	ngp2p.InitLocalNode(p2pTCPPort)
+	chain := ngchain.Init(db, network, store, state)
+
+	ngp2p.InitLocalNode(network, p2pTCPPort, chain)
 	ngp2p.GoServe()
 
-	ngstate.InitStateFromGenesis(db)
-	ngpool.Init(db)
+	pool := ngpool.Init(db, chain)
 
-	consensus.InitPoWConsensus(mining, key, isBootstrapNode, db)
-	consensus.GoLoop()
+	pow := consensus.InitPoWConsensus(
+		db,
+		chain,
+		pool,
+		state,
+		consensus.PoWorkConfig{
+			Network:                     network,
+			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.NetworkType_ZERONET,
+			MiningThread:                mining,
+			PrivateKey:                  key,
+		})
+	pow.GoLoop()
 
-	rpc := jsonrpc.NewServer(rpcHost, rpcPort)
+	rpc := jsonrpc.NewServer(rpcHost, rpcPort, pow)
 	go rpc.Serve()
 
 	// notify the exit events

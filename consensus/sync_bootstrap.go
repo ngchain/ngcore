@@ -6,8 +6,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ngchain/ngcore/ngchain"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngchain/ngcore/ngp2p"
 )
@@ -52,8 +50,9 @@ func (mod *syncModule) bootstrap() {
 	})
 
 	// initial sync
+	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	for _, r := range slice {
-		if r.shouldSync() {
+		if r.shouldSync(latestHeight) {
 			err := mod.doInit(r)
 			if err != nil {
 				panic(err)
@@ -78,14 +77,14 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	log.Warnf("Start initial syncing with remote node %s", record.id)
 
 	// get chain
-	for ngchain.GetLatestBlockHeight() < record.latest {
+	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
 		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = ngchain.ApplyBlock(chain[i])
+			err = mod.pow.Chain.ApplyBlock(chain[i])
 			if err != nil {
 				return err
 			}

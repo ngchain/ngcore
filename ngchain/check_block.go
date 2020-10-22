@@ -9,7 +9,7 @@ import (
 )
 
 // CheckBlock checks block before putting into chain.
-func CheckBlock(block *ngtypes.Block) error {
+func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 	if block.IsGenesis() {
 		return nil
 	}
@@ -20,8 +20,8 @@ func CheckBlock(block *ngtypes.Block) error {
 	}
 
 	prevHash := block.GetPrevHash()
-	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash()) {
-		prevBlock, err := GetBlockByHash(prevHash)
+	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash(chain.Network)) {
+		prevBlock, err := chain.GetBlockByHash(prevHash)
 		if err != nil {
 			return err
 		}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngstate"
 	"math/big"
 
@@ -13,10 +12,10 @@ import (
 )
 
 // PutNewTxFromLocal puts tx from local(rpc) into txpool.
-func PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
+func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 	log.Debugf("putting new tx %x from rpc", tx.Hash())
 
-	err = PutTx(tx)
+	err = pool.PutTx(tx)
 	if err != nil {
 		return err
 	}
@@ -30,10 +29,10 @@ func PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 }
 
 // PutNewTxFromRemote puts tx from local(rpc) into txpool.
-func PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
+func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 	log.Debugf("putting new tx %x from p2p", tx.Hash())
 
-	err = PutTx(tx)
+	err = pool.PutTx(tx)
 	if err != nil {
 		return err
 	}
@@ -43,7 +42,7 @@ func PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 
 // PutTx puts txs from network(p2p) or RPC into txpool, should check error before putting.
 // TODO: implement me
-func PutTx(tx *ngtypes.Tx) error {
+func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 	pool.Lock()
 	defer pool.Unlock()
 
@@ -58,7 +57,7 @@ func PutTx(tx *ngtypes.Tx) error {
 		return err
 	}
 
-	latestBlock := ngchain.GetLatestBlock()
+	latestBlock := pool.chain.GetLatestBlock()
 
 	if !bytes.Equal(tx.PrevBlockHash, latestBlock.PrevBlockHash) {
 		return fmt.Errorf("tx %x does not belong to current State, found %x, require %x",

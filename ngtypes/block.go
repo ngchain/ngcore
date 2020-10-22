@@ -43,7 +43,7 @@ func (x *Block) IsTail() bool {
 
 // IsGenesis will check whether the Block is the genesis block.
 func (x *Block) IsGenesis() bool {
-	return bytes.Equal(x.Hash(), GetGenesisBlockHash())
+	return bytes.Equal(x.Hash(), GetGenesisBlockHash(x.Network))
 }
 
 // GetPoWRawHeader will return a complete raw for block hash.
@@ -193,9 +193,9 @@ func (x *Block) GetActualDiff() *big.Int {
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
+func NewBareBlock(network NetworkType, height uint64, prevBlockHash []byte, diff *big.Int) *Block {
 	return &Block{
-		Network:       Network,
+		Network:       network,
 		Height:        height,
 		Timestamp:     time.Now().Unix(),
 		PrevBlockHash: prevBlockHash,
@@ -210,9 +210,10 @@ func NewBareBlock(height uint64, prevBlockHash []byte, diff *big.Int) *Block {
 
 // CheckError will check the errors in block inner fields.
 func (x *Block) CheckError() error {
-	if x.Network != Network {
-		return fmt.Errorf("block's network id is incorrect")
-	}
+	//if x.Network != Network {
+	//	return fmt.Errorf("block's network id is incorrect")
+	//}
+	// TODO: do network check on consensus
 
 	if len(x.PrevBlockHash) != HashSize {
 		return fmt.Errorf("block%d's PrevBlockHash length is incorrect", x.GetHeight())
@@ -265,17 +266,17 @@ func (x *Block) GetPrevHash() []byte {
 var genesisBlock *Block
 
 // GetGenesisBlock will return a complete sealed GenesisBlock.
-func GetGenesisBlock() *Block {
+func GetGenesisBlock(network NetworkType) *Block {
 	if genesisBlock == nil {
 		txs := []*Tx{
-			GetGenesisGenerateTx(),
+			GetGenesisGenerateTx(network),
 		}
 
 		nonce := make([]byte, NonceSize)
-		copy(nonce, genesisBlockNonce.Bytes())
+		copy(nonce, GetGenesisBlockNonce(network))
 
 		genesisBlock = &Block{
-			Network:   Network,
+			Network:   network,
 			Height:    0,
 			Timestamp: GenesisTimestamp,
 
@@ -293,9 +294,9 @@ func GetGenesisBlock() *Block {
 
 var genesisBlockHash []byte
 
-func GetGenesisBlockHash() []byte {
+func GetGenesisBlockHash(network NetworkType) []byte {
 	if genesisBlockHash == nil {
-		genesisBlockHash = GetGenesisBlock().Hash()
+		genesisBlockHash = GetGenesisBlock(network).Hash()
 	}
 
 	return genesisBlockHash

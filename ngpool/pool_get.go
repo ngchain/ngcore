@@ -7,7 +7,7 @@ import (
 )
 
 // GetPack will gives a sorted TxTire.
-func GetPack() *ngtypes.TxTrie {
+func (pool *TxPool) GetPack() *ngtypes.TxTrie {
 	txs := make([]*ngtypes.Tx, 0)
 	accountNums := make([]uint64, 0)
 

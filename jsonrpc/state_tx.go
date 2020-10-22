@@ -3,15 +3,12 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ngchain/ngcore/ngchain"
-	"github.com/ngchain/ngcore/ngpool"
 	"math/big"
 	"reflect"
 
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 
-	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/secp256k1"
@@ -44,7 +41,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = ngpool.PutNewTxFromLocal(tx)
+	err = s.pow.Pool.PutNewTxFromLocal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -146,7 +143,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 			}
 		case float64:
 			accountID := uint64(p)
-			account, err := ngstate.GetAccountByNum(accountID)
+			account, err := s.pow.State.GetAccountByNum(accountID)
 			if err != nil {
 				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -172,8 +169,9 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_TRANSACTION,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		participants,
 		values,
@@ -212,8 +210,9 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_REGISTER,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		1,
 		[][]byte{
 			params.Owner,
@@ -261,8 +260,9 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_LOGOUT,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,
@@ -308,8 +308,9 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_ASSIGN,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,
@@ -355,8 +356,9 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_APPEND,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,

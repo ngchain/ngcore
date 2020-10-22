@@ -9,18 +9,14 @@ import (
 // FIXME: before init network should manually init PK & Sign
 // use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
-	GenesisAddressBase58     = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
-	GenesisGenerateTxSignHex = "bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d"
-	GenesisBlockNonceHex     = "e81f86c132a0aada"
+	GenesisAddressBase58 = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
 )
 
 // decoded genesis variables
 var (
-	Network                   = NetworkType_TESTNET // can be changed by arg FIXME: set to mainnet when releasing
-	GenesisAddress, _         = NewAddressFromBS58(GenesisAddressBase58)
-	GenesisGenerateTxSign, _  = hex.DecodeString(GenesisGenerateTxSignHex)
-	genesisBlockNonceBytes, _ = hex.DecodeString(GenesisBlockNonceHex)
-	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)
+	//Network                   = NetworkType_TESTNET // can be changed by arg FIXME: set to mainnet when releasing
+	GenesisAddress, _ = NewAddressFromBS58(GenesisAddressBase58)
+	AvailableNetworks = []NetworkType{NetworkType_ZERONET, NetworkType_TESTNET}
 )
 
 // PoW const
@@ -76,4 +72,34 @@ var (
 // GetEmptyHash return an empty hash
 func GetEmptyHash() []byte {
 	return make([]byte, HashSize)
+}
+
+func GetGenesisGenerateTxSignature(network NetworkType) []byte {
+	switch network {
+	case NetworkType_ZERONET:
+		genesisGenerateTxSign, _ := hex.DecodeString("2f06927456808d85ef71c6ff35d1cbacf6dfafabb1a8f0155716361735413c4f917ee3438be130f505e43c8d3ce64442d32878df4113d496c2f6f2c51aae7e2d")
+		return genesisGenerateTxSign
+	case NetworkType_TESTNET:
+		genesisGenerateTxSign, _ := hex.DecodeString("bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d")
+		return genesisGenerateTxSign
+	case NetworkType_MAINNET:
+		panic("not ready for mainnet")
+	default:
+		panic("unknown network")
+	}
+}
+
+func GetGenesisBlockNonce(network NetworkType) []byte {
+	switch network {
+	case NetworkType_ZERONET:
+		genesisBlockNonce, _ := hex.DecodeString("52ef544b2f8fe12f")
+		return genesisBlockNonce
+	case NetworkType_TESTNET:
+		genesisBlockNonce, _ := hex.DecodeString("4530ef8acd530abc")
+		return genesisBlockNonce
+	case NetworkType_MAINNET:
+		panic("not ready for mainnet")
+	default:
+		panic("unknown network")
+	}
 }

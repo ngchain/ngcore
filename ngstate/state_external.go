@@ -12,7 +12,7 @@ import (
 )
 
 // ToSheet will conclude a sheet which has all status of all accounts & keys(if balance not nil)
-func ToSheet() *ngtypes.Sheet {
+func (state *State) ToSheet() *ngtypes.Sheet {
 	var prevBlockHash []byte
 	accounts := make(map[uint64]*ngtypes.Account)
 	anonymous := make(map[string][]byte)
@@ -65,7 +65,7 @@ func ToSheet() *ngtypes.Sheet {
 }
 
 // GetBalanceByNum get the balance of account by the account's num
-func GetBalanceByNum(num uint64) (*big.Int, error) {
+func (state *State) GetBalanceByNum(num uint64) (*big.Int, error) {
 	var balance *big.Int
 
 	err := state.View(func(txn *badger.Txn) error {
@@ -90,7 +90,7 @@ func GetBalanceByNum(num uint64) (*big.Int, error) {
 }
 
 // GetBalanceByAddress get the balance of account by the account's address
-func GetBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
+func (state *State) GetBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	var balance *big.Int
 
 	err := state.View(func(txn *badger.Txn) error {
@@ -110,7 +110,7 @@ func GetBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 }
 
 // AccountIsRegistered checks whether the account is registered in state
-func AccountIsRegistered(num uint64) bool {
+func (state *State) AccountIsRegistered(num uint64) bool {
 	var exists = true // block register action by default
 
 	_ = state.View(func(txn *badger.Txn) error {
@@ -123,7 +123,7 @@ func AccountIsRegistered(num uint64) bool {
 }
 
 // GetAccountByNum returns an ngtypes.Account obj by the account's number
-func GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
+func (state *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
 	err = state.View(func(txn *badger.Txn) error {
 		account, err = getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
@@ -140,7 +140,7 @@ func GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
 
 // GetAccountsByAddress returns an ngtypes.Account obj by the account's address
 // this is a heavy action, so dont called by any internal part like p2p and consensus
-func GetAccountsByAddress(address ngtypes.Address) ([]*ngtypes.Account, error) {
+func (state *State) GetAccountsByAddress(address ngtypes.Address) ([]*ngtypes.Account, error) {
 	accounts := make([]*ngtypes.Account, 0)
 	err := state.View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)

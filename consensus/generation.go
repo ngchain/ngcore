@@ -3,8 +3,6 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/ngchain/ngcore/ngchain"
-
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -13,8 +11,9 @@ import (
 func (pow *PoWork) createGenerateTx(extraData []byte) *ngtypes.Tx {
 	addr := ngtypes.NewAddress(pow.PrivateKey)
 	gen := ngtypes.NewUnsignedTx(
+		pow.Network,
 		ngtypes.TxType_GENERATE,
-		ngchain.GetLatestBlockHash(),
+		pow.Chain.GetLatestBlockHash(),
 		0,
 		[][]byte{addr},
 		[]*big.Int{ngtypes.OneBlockBigReward},

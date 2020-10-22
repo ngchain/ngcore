@@ -2,6 +2,8 @@ package wired
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngtypes"
 
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
@@ -17,12 +19,17 @@ var log = logging.Logger("wired")
 
 // Wired type
 type Wired struct {
-	host core.Host // local host
+	network ngtypes.NetworkType
+	host    core.Host // local host
+
+	chain *ngchain.Chain
 }
 
-func NewWiredProtocol(host core.Host) *Wired {
+func NewWiredProtocol(host core.Host, network ngtypes.NetworkType, chain *ngchain.Chain) *Wired {
 	w := &Wired{
-		host: host,
+		network: network,
+		host:    host,
+		chain:   chain,
 	}
 
 	return w
@@ -54,7 +61,7 @@ func (w *Wired) handleStream(stream network.Stream) {
 	}
 
 	if !Verify(stream.Conn().RemotePeer(), msg) {
-		w.reject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
+		w.sendReject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
 		return
 	}
 

@@ -3,7 +3,6 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"github.com/maoxs2/go-jsonrpc2"
-	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -16,7 +15,7 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = consensus.MinedNewBlock(&block)
+	err = s.pow.MinedNewBlock(&block)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -26,7 +25,7 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	blockTemplate := consensus.GetBlockTemplate()
+	blockTemplate := s.pow.GetBlockTemplate()
 
 	raw, err := utils.JSON.Marshal(blockTemplate)
 	if err != nil {
@@ -43,7 +42,7 @@ type getWorkReply struct {
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	blockTemplate := consensus.GetBlockTemplate()
+	blockTemplate := s.pow.GetBlockTemplate()
 
 	rawBlock, err := utils.Proto.Marshal(blockTemplate)
 	if err != nil {
@@ -100,7 +99,7 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	block.Nonce = nonce
 
-	err = consensus.MinedNewBlock(&block)
+	err = s.pow.MinedNewBlock(&block)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

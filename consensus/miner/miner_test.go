@@ -9,7 +9,7 @@ import (
 )
 
 func TestPoWMiner(t *testing.T) {
-	block := ngtypes.GetGenesisBlock()
+	block := ngtypes.GetGenesisBlock(ngtypes.NetworkType_TESTNET)
 
 	block.Difficulty = big.NewInt(100).Bytes() // lower for avoid timeout
 

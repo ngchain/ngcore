@@ -1,17 +1,18 @@
 package consensus
 
 import (
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
-	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // detectFork detection ignites the forking in local node
 // then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one)
 func (mod *syncModule) detectFork() (shouldFork bool, remote *remoteRecord) {
+	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
+	latestCheckPoint := mod.pow.Chain.GetLatestCheckpoint()
+
 	for _, r := range mod.store {
-		if r.shouldFork() {
+		if r.shouldFork(latestCheckPoint, latestHeight) {
 			return true, r
 		}
 	}
@@ -22,17 +23,17 @@ func (mod *syncModule) detectFork() (shouldFork bool, remote *remoteRecord) {
 // force local chain be same as the remote record
 // fork is a danger operation so all msg are warn level
 func (mod *syncModule) doFork(record *remoteRecord) error {
-	pow.Lock()
-	defer pow.Unlock()
+	mod.pow.Lock()
+	defer mod.pow.Unlock()
 
-	log.Warnf("start forking chain from remote node %s, height: %d", record.id, record.latest)
+	log.Warnf("start forking Chain from remote node %s, height: %d", record.id, record.latest)
 	chain, err := mod.getBlocksSinceForkPoint(record)
 	if err != nil {
 		return err
 	}
 
 	log.Warnf("have got the fork point: block@%d", chain[0].Height)
-	err = ngchain.ForceApplyBlocks(chain)
+	err = mod.pow.Chain.ForceApplyBlocks(chain)
 	if err != nil {
 		return err
 	}
@@ -42,7 +43,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 	// 2. download the state from remote(maybe unreliable)
 	// 3. flash back(require remove logout and assign tx)
 	// Currently choose the No.1
-	err = ngstate.Regenerate()
+	err = mod.pow.State.Regenerate()
 	if err != nil {
 		return err
 	}
@@ -56,13 +57,13 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 	blocks := make([]*ngtypes.Block, 0)
 	blockHashes := make([][]byte, defaults.MaxBlocks)
 
-	localHeight := ngchain.GetLatestBlockHeight()
+	localHeight := mod.pow.Chain.GetLatestBlockHeight()
 
 	chainLen := defaults.MaxBlocks
 
 	for i := uint64(0); chainLen == defaults.MaxBlocks; i++ {
 		for height := localHeight - (i+1)*defaults.MaxBlocks; height < localHeight-i*defaults.MaxBlocks; height++ {
-			b, err := ngchain.GetBlockByHeight(height)
+			b, err := mod.pow.Chain.GetBlockByHeight(height)
 			if err != nil {
 				// when gap is too large
 				return nil, err

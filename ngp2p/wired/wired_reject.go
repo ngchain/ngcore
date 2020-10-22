@@ -5,12 +5,12 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/message"
 )
 
-// reject will reply reject message to remote node.
-func (w *Wired) reject(uuid []byte, stream network.Stream, err error) bool {
-	log.Debugf("sending reject to %s with message id: %x...", stream.Conn().RemotePeer(), uuid)
+// sendReject will reply sendReject message to remote node.
+func (w *Wired) sendReject(uuid []byte, stream network.Stream, err error) bool {
+	log.Debugf("sending sendReject to %s with message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	resp := &message.Message{
-		Header:  NewHeader(w.host, uuid, message.MessageType_REJECT),
+		Header:  NewHeader(w.host, w.network, uuid, message.MessageType_REJECT),
 		Payload: []byte(err.Error()),
 	}
 
@@ -27,11 +27,11 @@ func (w *Wired) reject(uuid []byte, stream network.Stream, err error) bool {
 	// send the response
 	err = Reply(stream, resp)
 	if err != nil {
-		log.Debugf("sent chain to: %s was with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("sent sendChain to: %s was with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false
 	}
 
-	log.Debugf("sent chain to: %s with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("sent sendChain to: %s with message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }

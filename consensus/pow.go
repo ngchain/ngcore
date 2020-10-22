@@ -23,66 +23,81 @@ var log = logging.Logger("pow")
 type PoWork struct {
 	sync.RWMutex
 
+	PoWorkConfig
+
 	syncMod  *syncModule
 	minerMod *miner.Miner
+
+	Chain *ngchain.Chain
+	Pool  *ngpool.TxPool
+	State *ngstate.State
 
 	db *badger.DB
 
 	// for miner
-	PrivateKey   *secp256k1.PrivateKey
 	foundBlockCh chan *ngtypes.Block
 }
 
-var pow *PoWork
+type PoWorkConfig struct {
+	Network                     ngtypes.NetworkType
+	DisableConnectingBootstraps bool
+	MiningThread                int
+	PrivateKey                  *secp256k1.PrivateKey
+}
 
 // InitPoWConsensus creates and initializes the PoW consensus.
-func InitPoWConsensus(miningThread int, privateKey *secp256k1.PrivateKey, isBootstrapNode bool, db *badger.DB) {
-	pow = &PoWork{
-		RWMutex:  sync.RWMutex{},
-		syncMod:  nil,
-		minerMod: nil,
-		db:       db,
+func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, state *ngstate.State, config PoWorkConfig) *PoWork {
+	pow := &PoWork{
+		RWMutex:      sync.RWMutex{},
+		PoWorkConfig: config,
+		syncMod:      nil,
+		minerMod:     nil,
+		Chain:        chain,
+		Pool:         pool,
+		State:        state,
+		db:           db,
 
-		PrivateKey:   privateKey,
 		foundBlockCh: make(chan *ngtypes.Block),
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update
 	pow.syncMod = newSyncModule(pow)
-	if !isBootstrapNode {
+	if !pow.DisableConnectingBootstraps {
 		pow.syncMod.bootstrap()
 	}
 
-	pow.minerMod = miner.NewMiner(miningThread, pow.foundBlockCh)
+	pow.minerMod = miner.NewMiner(pow.MiningThread, pow.foundBlockCh)
+
+	return pow
 }
 
 // MiningOff stops the pow consensus.
-func MiningOff() {
+func (pow *PoWork) MiningOff() {
 	if pow.minerMod != nil {
 		pow.minerMod.Stop()
 	}
 }
 
 // MiningOn resumes the pow consensus.
-func MiningOn() {
+func (pow *PoWork) MiningOn() {
 	if pow.minerMod != nil {
-		newBlock := GetBlockTemplate()
+		newBlock := pow.GetBlockTemplate()
 		go pow.minerMod.Start(newBlock)
 	}
 }
 
 // MiningUpdate updates the mining work
-func MiningUpdate() {
-	MiningOff()
-	MiningOn()
+func (pow *PoWork) MiningUpdate() {
+	pow.MiningOff()
+	pow.MiningOn()
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
-func GetBlockTemplate() *ngtypes.Block {
+func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	pow.RLock()
 	defer pow.RUnlock()
 
-	currentBlock := ngchain.GetLatestBlock()
+	currentBlock := pow.Chain.GetLatestBlock()
 
 	currentBlockHash := currentBlock.Hash()
 
@@ -90,6 +105,7 @@ func GetBlockTemplate() *ngtypes.Block {
 	newHeight := currentBlock.Height + 1
 
 	newBareBlock := ngtypes.NewBareBlock(
+		pow.Network,
 		newHeight,
 		currentBlockHash,
 		newDiff,
@@ -98,7 +114,7 @@ func GetBlockTemplate() *ngtypes.Block {
 	var extraData []byte // FIXME
 
 	Gen := pow.createGenerateTx(extraData)
-	txs := ngpool.GetPack().Txs
+	txs := pow.Pool.GetPack().Txs
 	txsWithGen := append([]*ngtypes.Tx{Gen}, txs...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
@@ -110,7 +126,7 @@ func GetBlockTemplate() *ngtypes.Block {
 }
 
 // GoLoop ignites all loops
-func GoLoop() {
+func (pow *PoWork) GoLoop() {
 	go pow.eventLoop()
 	go pow.syncMod.loop()
 }
@@ -120,40 +136,40 @@ func (pow *PoWork) eventLoop() {
 	for {
 		select {
 		case block := <-ngp2p.GetLocalNode().OnBlock:
-			err := ngchain.ApplyBlock(block)
+			err := pow.Chain.ApplyBlock(block)
 			if err != nil {
 				log.Warnf("failed to put new block from p2p network: %s", err)
 				continue
 			}
 
 			// update miner work
-			go MiningUpdate()
+			go pow.MiningUpdate()
 
 		case tx := <-ngp2p.GetLocalNode().OnTx:
-			err := ngpool.PutTx(tx)
+			err := pow.Pool.PutTx(tx)
 			if err != nil {
 				log.Warnf("failed to put new tx from p2p network: %s", err)
 			}
 
 		case newBlock := <-pow.foundBlockCh:
-			err := MinedNewBlock(newBlock)
+			err := pow.MinedNewBlock(newBlock)
 			if err != nil {
 				log.Warnf("error on handling the mined block: %s", err)
 			}
 
 			// assign new job
-			blockTemplate := GetBlockTemplate()
+			blockTemplate := pow.GetBlockTemplate()
 			pow.minerMod.Start(blockTemplate)
 		}
 	}
 }
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
-func MinedNewBlock(block *ngtypes.Block) error {
+func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	// check block first
 	err := pow.db.Update(func(txn *badger.Txn) error {
 		// check block first
-		if err := ngchain.CheckBlock(block); err != nil {
+		if err := pow.Chain.CheckBlock(block); err != nil {
 			return err
 		}
 
@@ -163,7 +179,7 @@ func MinedNewBlock(block *ngtypes.Block) error {
 			return err
 		}
 
-		err = ngstate.Upgrade(txn, block) // handle Block Txs inside
+		err = pow.State.Upgrade(txn, block) // handle Block Txs inside
 		if err != nil {
 			return err
 		}

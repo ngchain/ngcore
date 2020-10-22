@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ngchain/ngcore/ngchain"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p"
@@ -34,7 +32,7 @@ func newSyncModule(pow *PoWork) *syncModule {
 		store:   make(map[peer.ID]*remoteRecord),
 	}
 
-	latest := ngchain.GetLatestBlock()
+	latest := pow.Chain.GetLatestBlock()
 	fmt.Printf("current latest block: %x@%d \n", latest.Hash(), latest.Height)
 	log.Warnf("current latest block: %x@%d", latest.Hash(), latest.Height)
 
@@ -81,8 +79,10 @@ func (mod *syncModule) loop() {
 			return slice[i].lastChatTime > slice[j].lastChatTime
 		})
 
+		latestHeight := mod.pow.Chain.GetLatestBlockHeight()
+
 		for _, r := range slice {
-			if r.shouldSync() {
+			if r.shouldSync(latestHeight) {
 				err := mod.doSync(r)
 				if err != nil {
 					log.Warnf("do sync failed: %s", err)
@@ -100,7 +100,7 @@ func (mod *syncModule) loop() {
 		}
 
 		// after sync
-		MiningOn()
+		mod.pow.MiningOn()
 	}
 }
 
@@ -112,14 +112,14 @@ func (mod *syncModule) doSync(record *remoteRecord) error {
 	log.Warnf("start syncing with remote node %s", record.id)
 
 	// get chain
-	for ngchain.GetLatestBlockHeight() < record.latest {
+	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
 		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = ngchain.ApplyBlock(chain[i])
+			err = mod.pow.Chain.ApplyBlock(chain[i])
 			if err != nil {
 				return err
 			}

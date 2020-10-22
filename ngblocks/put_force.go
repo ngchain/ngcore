@@ -9,7 +9,7 @@ import (
 
 // ForcePutNewBlock puts a block into db regardless of local store check
 // should check block self before putting
-func ForcePutNewBlock(block *ngtypes.Block) error {
+func (store *BlockStore) ForcePutNewBlock(block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
 	}

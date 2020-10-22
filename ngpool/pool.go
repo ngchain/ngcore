@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngtypes"
 	"sync"
 )
@@ -17,20 +18,24 @@ type TxPool struct {
 	sync.Mutex
 
 	db    *badger.DB
+	chain *ngchain.Chain
+
 	txMap map[uint64]*ngtypes.Tx // priority first
 }
 
-var pool *TxPool
-
-func Init(db *badger.DB) {
-	pool = &TxPool{
+func Init(db *badger.DB, chain *ngchain.Chain) *TxPool {
+	pool := &TxPool{
+		Mutex: sync.Mutex{},
 		db:    db,
+		chain: chain,
 		txMap: make(map[uint64]*ngtypes.Tx),
 	}
+
+	return pool
 }
 
 // IsInPool checks one tx is in pool or not. TODO: export it into rpc.
-func IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) {
+func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) {
 	for _, txInQueue := range pool.txMap {
 		if bytes.Equal(txInQueue.Hash(), txHash) {
 			return true, txInQueue

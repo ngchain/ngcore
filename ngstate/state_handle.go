@@ -11,34 +11,34 @@ import (
 )
 
 // HandleTxs will apply the tx into the state if tx is VALID
-func HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
+func (state *State) HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.GetType() {
 		case ngtypes.TxType_INVALID:
 			return fmt.Errorf("invalid tx")
 		case ngtypes.TxType_GENERATE:
-			if err := handleGenerate(txn, tx); err != nil {
+			if err := state.handleGenerate(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_REGISTER:
-			if err := handleRegister(txn, tx); err != nil {
+			if err := state.handleRegister(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_LOGOUT:
-			if err := handleLogout(txn, tx); err != nil {
+			if err := state.handleLogout(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_TRANSACTION:
-			if err := handleTransaction(txn, tx); err != nil {
+			if err := state.handleTransaction(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_ASSIGN: // assign tx
-			if err := handleAssign(txn, tx); err != nil {
+			if err := state.handleAssign(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.TxType_APPEND: // append tx
-			if err := handleAppend(txn, tx); err != nil {
+			if err := state.handleAppend(txn, tx); err != nil {
 				return err
 			}
 		default:
@@ -49,7 +49,7 @@ func HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 	return nil
 }
 
-func handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	publicKey := ngtypes.Address(tx.GetParticipants()[0]).PubKey()
 	if err := tx.Verify(publicKey); err != nil {
 		return err
@@ -72,7 +72,7 @@ func handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
 	publicKey := ngtypes.Address(tx.GetParticipants()[0]).PubKey()
 	if err = tx.Verify(publicKey); err != nil {
@@ -113,7 +113,7 @@ func handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func handleLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
@@ -158,7 +158,7 @@ func handleLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
@@ -233,7 +233,7 @@ func handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
@@ -288,7 +288,7 @@ func handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
 		return err
