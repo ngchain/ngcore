@@ -30,7 +30,7 @@ func NewServer(host string, port int, pow *consensus.PoWork) *Server {
 
 // Serve will make the server running
 func (s *Server) Serve() {
-	fmt.Printf("JSON RPC listening on: %s \n", s.Addr)
+	log.Warnf("JSON RPC listening on: %s \n", s.Addr)
 	err := s.ListenAndServe()
 	if err != nil {
 		panic(err)

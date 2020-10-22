@@ -132,11 +132,11 @@ func RecoverLocalKey(filename, password, privateKey string) *secp256k1.PrivateKe
 // PrintKeysAndAddress will print the **privateKey and its publicKey** to the console.
 func PrintKeysAndAddress(privateKey *secp256k1.PrivateKey) {
 	rawPrivateKey := privateKey.Serialize() // its D
-	fmt.Println("Private Key: ", base58.FastBase58Encoding(rawPrivateKey))
+	fmt.Println("private key: ", base58.FastBase58Encoding(rawPrivateKey))
 
 	bPubKey := utils.PublicKey2Bytes(*privateKey.PubKey())
-	fmt.Println("Public Key: ", base58.FastBase58Encoding(bPubKey))
+	fmt.Println("public key: ", base58.FastBase58Encoding(bPubKey))
 
 	address := ngtypes.NewAddress(privateKey)
-	fmt.Println("Address: ", base58.FastBase58Encoding(address))
+	fmt.Println("address: ", base58.FastBase58Encoding(address))
 }

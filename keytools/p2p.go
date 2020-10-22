@@ -1,67 +1,68 @@
-package ngp2p
+package keytools
 
 import (
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
 func readKeyFromFile(filename string) crypto.PrivKey {
 	keyFile, err := os.Open(filepath.Clean(filename))
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	raw, err := ioutil.ReadAll(keyFile)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	_ = keyFile.Close()
 
 	priv, err := crypto.UnmarshalPrivateKey(raw)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return priv
 }
 
-// TODO:  migrate p2p keys into keytools
-func getP2PKey() crypto.PrivKey {
+func GetP2PKey(path string) crypto.PrivKey {
 	// read from db / file
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	path := filepath.Join(home, ".ngkeys")
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err := os.Mkdir(path, os.ModePerm)
+	if path == "" {
+		home, err := os.UserHomeDir()
 		if err != nil {
 			panic(err)
 		}
+
+		path = filepath.Join(home, ".ngkeys")
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			err := os.Mkdir(path, os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		path = filepath.Join(path, "ngp2p.key")
 	}
 
-	path = filepath.Join(path, "ngp2p.key")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		priv, _, err := crypto.GenerateKeyPair(crypto.Secp256k1, 256)
 		if err != nil {
-			log.Panic(err)
+			panic(err)
 		}
 
 		raw, err := crypto.MarshalPrivateKey(priv)
 		if err != nil {
-			log.Panic(err)
+			panic(err)
 		}
 
-		log.Info("creating bootstrap key")
+		//log.Info("creating bootstrap key")
 
 		f, err := os.Create(path)
 		if err != nil {
-			log.Panic(err)
+			panic(err)
 		}
 
 		_, _ = f.Write(raw)

@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
@@ -33,7 +32,7 @@ func (mod *syncModule) bootstrap() {
 
 	peerNum := len(mod.store)
 	if peerNum < minDesiredPeerCount {
-		fmt.Println("lack remote peer for bootstrapping")
+		log.Warnf("lack remote peer for bootstrapping")
 	}
 
 	slice := make([]*remoteRecord, len(mod.store))
@@ -72,7 +71,6 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	fmt.Printf("Start initial syncing with remote node: %s\n", record.id)
 	log.Warnf("Start initial syncing with remote node %s", record.id)
 
 	// get chain

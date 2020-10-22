@@ -48,10 +48,7 @@ func NewVM(txn *badger.Txn, account *ngtypes.Account) (*VM, error) {
 	}, nil
 }
 
-// MaxLen is the maximum length of one module
-const MaxLen = 1 << 32 // 2GB
-
-// Instantiate will generate a runable instance from thr module
+// Instantiate will generate a runnable instance from thr module
 // before Instantiate, the caller should run Init
 func (vm *VM) Instantiate(tx *ngtypes.Tx) (*wasman.Instance, error) {
 	vm.caller = tx

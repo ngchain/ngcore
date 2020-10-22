@@ -194,8 +194,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash := block.Hash()
-	fmt.Printf("Mined a new Block: %x@%d \n", hash, block.GetHeight())
-	log.Warnf("Mined a new Block: %x@%d", hash, block.GetHeight())
+	log.Warnf("mined a new block: %x@%d", hash, block.GetHeight())
 
 	err = pow.LocalNode.BroadcastBlock(block)
 	if err != nil {

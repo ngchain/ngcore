@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
@@ -36,7 +35,6 @@ func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	}
 
 	latest := pow.Chain.GetLatestBlock()
-	fmt.Printf("current latest block: %x@%d \n", latest.Hash(), latest.Height)
 	log.Warnf("current latest block: %x@%d", latest.Hash(), latest.Height)
 
 	return syncMod
@@ -111,7 +109,6 @@ func (mod *syncModule) doSync(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	fmt.Printf("start syncing with remote node %s \n", record.id)
 	log.Warnf("start syncing with remote node %s", record.id)
 
 	// get chain

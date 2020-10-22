@@ -46,9 +46,9 @@ func getGenesisToolsCommand() *cli.Command {
 			}
 
 			raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
-			fmt.Printf("Genesis PublicKey: %s \n", raw)
+			fmt.Printf("genesis public key: %s \n", raw)
 
-			fmt.Printf("Genesis Address: %s \n", ngtypes.NewAddress(localKey).String())
+			fmt.Printf("genesis Address: %s \n", ngtypes.NewAddress(localKey).String())
 
 			for _, network := range ngtypes.AvailableNetworks {
 				fmt.Printf("checking %s\n", network)

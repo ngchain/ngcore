@@ -71,7 +71,7 @@ var profileFlag = &cli.BoolFlag{
 	Usage: "Enable writing cpu profile to the file",
 }
 
-var keyFileFlag = &cli.StringFlag{
+var keyFileNameFlag = &cli.StringFlag{
 	Name:  "key-file",
 	Usage: "The filename to the key",
 	Value: "",
@@ -83,24 +83,17 @@ var keyPassFlag = &cli.StringFlag{
 	Value: "",
 }
 
+var p2pKeyFilePathFlag = &cli.StringFlag{
+	Name:  "p2p-key",
+	Usage: "The file path to the p2p key",
+	Value: "",
+}
+
 var miningFlag = &cli.IntFlag{
 	Name: "mining",
 	Usage: "The worker number on mining. Mining starts when value is not negative. " +
 		"And when value equals to 0, use all cpu cores",
 	Value: defaultMiningThread,
-}
-
-var logFileFlag = &cli.StringFlag{
-	Name:  "log-file",
-	Value: defaultLogFile,
-	Usage: "Enable save the log into the file",
-}
-
-var logLevelFlag = &cli.StringFlag{
-	Name:  "log-level",
-	Value: defaultLogLevel,
-	Usage: "Enable displaying logs which are equal or higher to the level. " +
-		"Values can be ERROR, WARN, INFO or DEBUG",
 }
 
 var inMemFlag = &cli.BoolFlag{
@@ -114,23 +107,9 @@ var dbFolderFlag = &cli.StringFlag{
 	Value: defaultDBFolder,
 }
 
+var log = logging.Logger("main")
+
 var action = func(c *cli.Context) error {
-	logLevel, err := logging.LevelFromString(c.String("log-level"))
-	if err != nil {
-		panic(err)
-	}
-
-	logConf := logging.Config{
-		Level:  logLevel,
-		Stdout: c.String("log-file") == "",
-		File:   c.String("log-file"),
-	}
-	if len(logConf.File) > 0 {
-		fmt.Println("logging to", logConf.File)
-	}
-
-	logging.SetupLogging(logConf)
-
 	isBootstrapNode := c.Bool("bootstrap")
 	mining := c.Int("mining")
 	if mining == 0 {
@@ -142,7 +121,8 @@ var action = func(c *cli.Context) error {
 	rpcHost := c.String(rpcHostFlag.Name)
 	rpcPort := c.Int(rpcPortFlag.Name)
 	keyPass := c.String(keyPassFlag.Name)
-	keyFile := c.String(keyFileFlag.Name)
+	keyFile := c.String(keyFileNameFlag.Name)
+	p2pKeyFilePath := c.String(p2pKeyFilePathFlag.Name)
 	withProfile := c.Bool(profileFlag.Name)
 	inMem := c.Bool(inMemFlag.Name)
 	dbFolder := c.String(dbFolderFlag.Name)
@@ -158,6 +138,7 @@ var action = func(c *cli.Context) error {
 
 	if withProfile {
 		var f *os.File
+		var err error
 
 		f, err = os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
 		if err != nil {
@@ -173,7 +154,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
-	fmt.Printf("Use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
+	log.Warnf("use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
 
 	var db *badger.DB
 	if inMem {
@@ -183,7 +164,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	defer func() {
-		err = db.Close()
+		err := db.Close()
 		if err != nil {
 			panic(err)
 		}
@@ -202,6 +183,7 @@ var action = func(c *cli.Context) error {
 	chain := ngchain.Init(db, network, store, state)
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
+		P2PKeyFilePath:   p2pKeyFilePath,
 		Network:          network,
 		Port:             p2pTCPPort,
 		DisableDiscovery: network == ngtypes.NetworkType_ZERONET,
@@ -221,7 +203,8 @@ var action = func(c *cli.Context) error {
 			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.NetworkType_ZERONET,
 			MiningThread:                mining,
 			PrivateKey:                  key,
-		})
+		},
+	)
 	pow.GoLoop()
 
 	rpc := jsonrpc.NewServer(rpcHost, rpcPort, pow)

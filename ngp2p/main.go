@@ -3,6 +3,7 @@ package ngp2p
 import (
 	"context"
 	"fmt"
+	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngchain"
 
 	multiplex "github.com/libp2p/go-libp2p-mplex"
@@ -31,6 +32,7 @@ type LocalNode struct {
 }
 
 type P2PConfig struct {
+	P2PKeyFilePath   string
 	Network          ngtypes.NetworkType
 	Port             int
 	DisableDiscovery bool
@@ -39,7 +41,7 @@ type P2PConfig struct {
 // InitLocalNode creates a new node with its implemented protocols.
 func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
 	ctx := context.Background()
-	priv := getP2PKey()
+	priv := keytools.GetP2PKey(config.P2PKeyFilePath)
 
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),
@@ -71,7 +73,7 @@ func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
 	}
 
 	// init
-	fmt.Printf("P2P Listening on: /ip4/<External IP>/tcp/%d/p2p/%s \n", config.Port, localHost.ID().String())
+	log.Warnf("P2P Listening on: /ip4/<External IP>/tcp/%d/p2p/%s \n", config.Port, localHost.ID().String())
 
 	localNode := &LocalNode{
 		// sub modules

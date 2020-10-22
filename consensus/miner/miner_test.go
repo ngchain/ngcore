@@ -1,7 +1,7 @@
 package miner_test
 
 import (
-	miner "github.com/ngchain/ngcore/consensus/miner"
+	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
 	"testing"

@@ -14,7 +14,9 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	})
 
 	// p2p
-	httpHandler.RegisterJsonRpcHandleFunc("addNode", s.addPeerFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("addNode", s.addPeerFunc) // keep this alia
+	httpHandler.RegisterJsonRpcHandleFunc("addPeer", s.addPeerFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("getNodes", s.getPeersFunc) // keep this alia
 	httpHandler.RegisterJsonRpcHandleFunc("getPeers", s.getPeersFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getNetwork", s.getNetworkFunc)
 
