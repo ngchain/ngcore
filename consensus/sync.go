@@ -21,15 +21,18 @@ type syncModule struct {
 	sync.RWMutex
 	pow *PoWork
 
-	store map[peer.ID]*remoteRecord
+	localNode *ngp2p.LocalNode
+	store     map[peer.ID]*remoteRecord
 }
 
 // newSyncModule creates a new sync module
-func newSyncModule(pow *PoWork) *syncModule {
+func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	syncMod := &syncModule{
 		RWMutex: sync.RWMutex{},
-		pow:     pow,
-		store:   make(map[peer.ID]*remoteRecord),
+
+		pow:       pow,
+		localNode: localNode,
+		store:     make(map[peer.ID]*remoteRecord),
 	}
 
 	latest := pow.Chain.GetLatestBlock()
@@ -55,9 +58,9 @@ func (mod *syncModule) loop() {
 		log.Infof("checking sync status")
 
 		// do get status
-		for _, id := range ngp2p.GetLocalNode().Peerstore().Peers() {
-			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
-			if p == defaults.WiredProtocol && id != ngp2p.GetLocalNode().ID() {
+		for _, id := range mod.localNode.Peerstore().Peers() {
+			p, _ := mod.localNode.Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
+			if p == defaults.WiredProtocol && id != mod.localNode.ID() {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Warn(err)

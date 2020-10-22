@@ -28,9 +28,10 @@ type PoWork struct {
 	syncMod  *syncModule
 	minerMod *miner.Miner
 
-	Chain *ngchain.Chain
-	Pool  *ngpool.TxPool
-	State *ngstate.State
+	Chain     *ngchain.Chain
+	Pool      *ngpool.TxPool
+	State     *ngstate.State
+	LocalNode *ngp2p.LocalNode
 
 	db *badger.DB
 
@@ -46,7 +47,7 @@ type PoWorkConfig struct {
 }
 
 // InitPoWConsensus creates and initializes the PoW consensus.
-func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, state *ngstate.State, config PoWorkConfig) *PoWork {
+func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
 	pow := &PoWork{
 		RWMutex:      sync.RWMutex{},
 		PoWorkConfig: config,
@@ -55,13 +56,15 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 		Chain:        chain,
 		Pool:         pool,
 		State:        state,
-		db:           db,
+		LocalNode:    localNode,
+
+		db: db,
 
 		foundBlockCh: make(chan *ngtypes.Block),
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update
-	pow.syncMod = newSyncModule(pow)
+	pow.syncMod = newSyncModule(pow, localNode)
 	if !pow.DisableConnectingBootstraps {
 		pow.syncMod.bootstrap()
 	}
@@ -135,7 +138,7 @@ func (pow *PoWork) GoLoop() {
 func (pow *PoWork) eventLoop() {
 	for {
 		select {
-		case block := <-ngp2p.GetLocalNode().OnBlock:
+		case block := <-pow.LocalNode.OnBlock:
 			err := pow.Chain.ApplyBlock(block)
 			if err != nil {
 				log.Warnf("failed to put new block from p2p network: %s", err)
@@ -145,7 +148,7 @@ func (pow *PoWork) eventLoop() {
 			// update miner work
 			go pow.MiningUpdate()
 
-		case tx := <-ngp2p.GetLocalNode().OnTx:
+		case tx := <-pow.LocalNode.OnTx:
 			err := pow.Pool.PutTx(tx)
 			if err != nil {
 				log.Warnf("failed to put new tx from p2p network: %s", err)
@@ -194,7 +197,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	fmt.Printf("Mined a new Block: %x@%d \n", hash, block.GetHeight())
 	log.Warnf("Mined a new Block: %x@%d", hash, block.GetHeight())
 
-	err = ngp2p.GetLocalNode().BroadcastBlock(block)
+	err = pow.LocalNode.BroadcastBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to broadcast the new mined block")
 	}

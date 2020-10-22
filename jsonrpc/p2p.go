@@ -7,7 +7,6 @@ import (
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -36,7 +35,7 @@ func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = ngp2p.GetLocalNode().Connect(context.Background(), *targetInfo)
+	err = s.pow.LocalNode.Connect(context.Background(), *targetInfo)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -56,7 +55,7 @@ func (s *Server) getNetworkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 }
 
 func (s *Server) getPeersFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	raw, err := utils.JSON.Marshal(ngp2p.GetLocalNode().Peerstore().PeersWithAddrs())
+	raw, err := utils.JSON.Marshal(s.pow.LocalNode.Peerstore().PeersWithAddrs())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

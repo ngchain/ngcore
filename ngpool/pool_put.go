@@ -7,7 +7,6 @@ import (
 	"github.com/ngchain/ngcore/ngstate"
 	"math/big"
 
-	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -20,7 +19,7 @@ func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	err = ngp2p.GetLocalNode().BroadcastTx(tx)
+	err = pool.localNode.BroadcastTx(tx)
 	if err != nil {
 		return err
 	}

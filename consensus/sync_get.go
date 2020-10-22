@@ -7,7 +7,6 @@ import (
 
 	core "github.com/libp2p/go-libp2p-core"
 
-	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -17,7 +16,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	latest := mod.pow.Chain.GetLatestBlock()
 	cp := mod.pow.Chain.GetLatestCheckpoint()
 
-	id, stream := ngp2p.GetLocalNode().SendPing(peerID, origin.GetHeight(), latest.GetHeight(), cp.Hash(), cp.GetActualDiff().Bytes())
+	id, stream := mod.localNode.SendPing(peerID, origin.GetHeight(), latest.GetHeight(), cp.Hash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
 		return fmt.Errorf("failed to send ping, cannot get remote status from %s", peerID)
 	}
@@ -53,7 +52,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain []*ngtypes.Block, err error) {
 	latestHash := mod.pow.Chain.GetLatestBlockHash()
 
-	id, s, err := ngp2p.GetLocalNode().SendGetChain(peerID, [][]byte{latestHash}, nil)
+	id, s, err := mod.localNode.SendGetChain(peerID, [][]byte{latestHash}, nil)
 	if s == nil {
 		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
@@ -77,7 +76,7 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain 
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
 
 	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("Chain is not found in remote")
+		return nil, fmt.Errorf("chain is not found in remote")
 
 	default:
 		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
@@ -86,7 +85,7 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain 
 
 // getRemoteChain just get the remote status from remote
 func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.Block, err error) {
-	id, s, err := ngp2p.GetLocalNode().SendGetChain(peerID, from, to)
+	id, s, err := mod.localNode.SendGetChain(peerID, from, to)
 	if s == nil {
 		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}
@@ -110,7 +109,7 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
 
 	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("Chain is not found in remote")
+		return nil, fmt.Errorf("chain is not found in remote")
 
 	default:
 		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)

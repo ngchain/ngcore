@@ -201,16 +201,21 @@ var action = func(c *cli.Context) error {
 
 	chain := ngchain.Init(db, network, store, state)
 
-	ngp2p.InitLocalNode(network, p2pTCPPort, chain)
-	ngp2p.GoServe()
+	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
+		Network:          network,
+		Port:             p2pTCPPort,
+		DisableDiscovery: network == ngtypes.NetworkType_ZERONET,
+	})
+	localNode.GoServe()
 
-	pool := ngpool.Init(db, chain)
+	pool := ngpool.Init(db, chain, localNode)
 
 	pow := consensus.InitPoWConsensus(
 		db,
 		chain,
 		pool,
 		state,
+		localNode,
 		consensus.PoWorkConfig{
 			Network:                     network,
 			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.NetworkType_ZERONET,

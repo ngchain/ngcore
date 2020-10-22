@@ -20,7 +20,8 @@ type Server struct {
 func NewServer(host string, port int, pow *consensus.PoWork) *Server {
 	s := &Server{
 		Server: nil,
-		pow:    pow,
+
+		pow: pow,
 	}
 
 	s.Server = jsonrpc2http.NewServer(fmt.Sprintf("%s:%d", host, port), newHTTPHandler(s))

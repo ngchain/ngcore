@@ -31,11 +31,15 @@ func TestNewConsensusManager(t *testing.T) {
 	store := ngblocks.Init(db, net)
 	state := ngstate.InitStateFromGenesis(db, net)
 	chain := ngchain.Init(db, net, store, nil)
-	pool := ngpool.Init(db, chain)
 
-	ngp2p.InitLocalNode(net, 52520, chain)
+	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
+		Network:          net,
+		Port:             52520,
+		DisableDiscovery: true,
+	})
+	pool := ngpool.Init(db, chain, localNode)
 
-	consensus.InitPoWConsensus(db, chain, pool, state, consensus.PoWorkConfig{
+	consensus.InitPoWConsensus(db, chain, pool, state, localNode, consensus.PoWorkConfig{
 		Network:                     net,
 		DisableConnectingBootstraps: true,
 		MiningThread:                1,

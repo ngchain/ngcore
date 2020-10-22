@@ -24,15 +24,20 @@ var log = logging.Logger("ngp2p")
 type LocalNode struct {
 	host.Host // lib-p2p host
 	network   ngtypes.NetworkType
+	P2PConfig P2PConfig
 
 	*wired.Wired
 	*broadcast.Broadcast
 }
 
-var localNode *LocalNode
+type P2PConfig struct {
+	Network          ngtypes.NetworkType
+	Port             int
+	DisableDiscovery bool
+}
 
 // InitLocalNode creates a new node with its implemented protocols.
-func InitLocalNode(network ngtypes.NetworkType, port int, chain *ngchain.Chain) {
+func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
 	ctx := context.Background()
 	priv := getP2PKey()
 
@@ -42,8 +47,8 @@ func InitLocalNode(network ngtypes.NetworkType, port int, chain *ngchain.Chain) 
 	)
 
 	listenAddrs := libp2p.ListenAddrStrings(
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
-		fmt.Sprintf("/ip6/::/tcp/%d", port),
+		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", config.Port),
+		fmt.Sprintf("/ip6/::/tcp/%d", config.Port),
 	)
 
 	muxers := libp2p.ChainOptions(
@@ -66,31 +71,25 @@ func InitLocalNode(network ngtypes.NetworkType, port int, chain *ngchain.Chain) 
 	}
 
 	// init
-	fmt.Printf("P2P Listening on: /ip4/<External IP>/tcp/%d/p2p/%s \n", port, localHost.ID().String())
+	fmt.Printf("P2P Listening on: /ip4/<External IP>/tcp/%d/p2p/%s \n", config.Port, localHost.ID().String())
 
-	initMDNS(ctx, localHost)
-
-	localNode = &LocalNode{
+	localNode := &LocalNode{
 		// sub modules
 		Host:      rhost.Wrap(localHost, p2pDHT),
-		network:   network,
-		Wired:     wired.NewWiredProtocol(localHost, network, chain),
+		network:   config.Network,
+		Wired:     wired.NewWiredProtocol(localHost, config.Network, chain),
 		Broadcast: broadcast.NewBroadcastProtocol(localHost, make(chan *ngtypes.Block), make(chan *ngtypes.Tx)),
 	}
 
-	activeDHT(ctx, p2pDHT, localNode)
-}
-
-func GoServe() {
-	localNode.Wired.GoServe()
-	localNode.Broadcast.GoServe()
-}
-
-// GetLocalNode returns the initialized LocalNode in module.
-func GetLocalNode() *LocalNode {
-	if localNode == nil {
-		panic("localNode is closed")
+	if !config.DisableDiscovery {
+		initMDNS(ctx, localHost)
+		activeDHT(ctx, p2pDHT, localNode)
 	}
 
 	return localNode
+}
+
+func (localNode *LocalNode) GoServe() {
+	localNode.Wired.GoServe()
+	localNode.Broadcast.GoServe()
 }
