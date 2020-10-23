@@ -2,8 +2,9 @@ package message_test
 
 import (
 	"encoding/hex"
-	"github.com/ngchain/ngcore/ngp2p/message"
 	"testing"
+
+	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/ngchain/ngcore/utils"
 )

@@ -2,8 +2,9 @@ package ngstate
 
 import (
 	"bytes"
-	"github.com/dgraph-io/badger/v2"
 	"math/big"
+
+	"github.com/dgraph-io/badger/v2"
 
 	"github.com/mr-tron/base58"
 

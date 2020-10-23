@@ -1,10 +1,11 @@
 package keytools
 
 import (
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
 func readKeyFromFile(filename string) crypto.PrivKey {

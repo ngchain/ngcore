@@ -3,6 +3,7 @@ package ngp2p
 import (
 	"context"
 	"fmt"
+
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngchain"
 
@@ -32,7 +33,7 @@ type LocalNode struct {
 }
 
 type P2PConfig struct {
-	P2PKeyFilePath   string
+	P2PKeyFile       string
 	Network          ngtypes.NetworkType
 	Port             int
 	DisableDiscovery bool
@@ -41,7 +42,7 @@ type P2PConfig struct {
 // InitLocalNode creates a new node with its implemented protocols.
 func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
 	ctx := context.Background()
-	priv := keytools.GetP2PKey(config.P2PKeyFilePath)
+	priv := keytools.GetP2PKey(config.P2PKeyFile)
 
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),

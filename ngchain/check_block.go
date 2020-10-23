@@ -3,6 +3,7 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"

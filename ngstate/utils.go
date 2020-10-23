@@ -3,6 +3,7 @@ package ngstate
 import "C"
 import (
 	"fmt"
+
 	"github.com/c0mm4nd/wasman"
 )
 

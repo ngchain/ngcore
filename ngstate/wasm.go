@@ -2,10 +2,11 @@ package ngstate
 
 import (
 	"bytes"
-	"github.com/c0mm4nd/wasman"
-	"github.com/c0mm4nd/wasman/config"
 	"strconv"
 	"sync"
+
+	"github.com/c0mm4nd/wasman"
+	"github.com/c0mm4nd/wasman/config"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"

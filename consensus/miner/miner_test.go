@@ -1,11 +1,12 @@
 package miner_test
 
 import (
-	"github.com/ngchain/ngcore/consensus/miner"
-	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ngchain/ngcore/consensus/miner"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func TestPoWMiner(t *testing.T) {

@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngp2p/wired"
 

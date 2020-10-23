@@ -72,7 +72,7 @@ var profileFlag = &cli.BoolFlag{
 }
 
 var keyFileNameFlag = &cli.StringFlag{
-	Name:  "key-file",
+	Name:  "keyfile",
 	Usage: "The filename to the key",
 	Value: "",
 }
@@ -83,7 +83,7 @@ var keyPassFlag = &cli.StringFlag{
 	Value: "",
 }
 
-var p2pKeyFilePathFlag = &cli.StringFlag{
+var p2pKeyFileFlag = &cli.StringFlag{
 	Name:  "p2p-key",
 	Usage: "The file path to the p2p key",
 	Value: "",
@@ -122,7 +122,7 @@ var action = func(c *cli.Context) error {
 	rpcPort := c.Int(rpcPortFlag.Name)
 	keyPass := c.String(keyPassFlag.Name)
 	keyFile := c.String(keyFileNameFlag.Name)
-	p2pKeyFilePath := c.String(p2pKeyFilePathFlag.Name)
+	p2pKeyFile := c.String(p2pKeyFileFlag.Name)
 	withProfile := c.Bool(profileFlag.Name)
 	inMem := c.Bool(inMemFlag.Name)
 	dbFolder := c.String(dbFolderFlag.Name)
@@ -183,7 +183,7 @@ var action = func(c *cli.Context) error {
 	chain := ngchain.Init(db, network, store, state)
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
-		P2PKeyFilePath:   p2pKeyFilePath,
+		P2PKeyFile:       p2pKeyFile,
 		Network:          network,
 		Port:             p2pTCPPort,
 		DisableDiscovery: network == ngtypes.NetworkType_ZERONET,

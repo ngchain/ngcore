@@ -2,6 +2,7 @@ package wired
 
 import (
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngtypes"
 

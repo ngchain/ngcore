@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngp2p/message"
 

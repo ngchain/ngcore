@@ -2,9 +2,10 @@ package ngstate
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
-	"math/big"
 )
 
 func vmTransfer(txn *badger.Txn, from, to, value uint64) error {

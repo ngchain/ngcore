@@ -1,9 +1,10 @@
 package consensus_test
 
 import (
+	"testing"
+
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngpool"
-	"testing"
 
 	"github.com/ngchain/ngcore/storage"
 

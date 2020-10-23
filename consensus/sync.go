@@ -1,10 +1,11 @@
 package consensus
 
 import (
-	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 

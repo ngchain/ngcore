@@ -3,9 +3,10 @@ package ngpool
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngstate"
-	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )

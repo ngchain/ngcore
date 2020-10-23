@@ -1,6 +1,5 @@
 package ngstate
 
-import "C"
 import (
 	"github.com/c0mm4nd/wasman"
 )

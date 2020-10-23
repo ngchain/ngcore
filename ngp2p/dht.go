@@ -2,8 +2,9 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sync"
+
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 

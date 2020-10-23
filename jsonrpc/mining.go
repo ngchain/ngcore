@@ -2,6 +2,7 @@ package jsonrpc
 
 import (
 	"encoding/hex"
+
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
