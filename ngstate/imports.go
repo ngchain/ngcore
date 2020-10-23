@@ -22,13 +22,18 @@ func (vm *VM) InitBuiltInImports() error {
 		return err
 	}
 
+	err = initTxImports(vm)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func initLogImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("log", "debug", func(ins *wasman.Instance) interface{} {
-		return func(ptr uint32) {
-			message := strFromPtr(ins, ptr)
+		return func(ptr uint32, size uint32) {
+			message := string(ins.Memory.Value[ptr : ptr+size])
 			vm.logger.Debug(message) // TODO: turn off me by default
 		}
 	})
