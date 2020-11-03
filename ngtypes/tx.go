@@ -173,7 +173,7 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 }
 
 // CheckGenerate does a self check for generate tx
-func (x *Tx) CheckGenerate() error {
+func (x *Tx) CheckGenerate(blockHeight uint64) error {
 	if x == nil {
 		return errors.New("generate is missing header")
 	}
@@ -186,7 +186,7 @@ func (x *Tx) CheckGenerate() error {
 		return fmt.Errorf("generate should have same len with participants")
 	}
 
-	if !bytes.Equal(x.TotalExpenditure().Bytes(), OneBlockBigReward.Bytes()) {
+	if !bytes.Equal(x.TotalExpenditure().Bytes(), GetBlockReward(blockHeight).Bytes()) {
 		return fmt.Errorf("wrong block reward")
 	}
 
@@ -225,7 +225,7 @@ func (x *Tx) CheckRegister() error {
 		return fmt.Errorf("register should have only one 0 value")
 	}
 
-	if new(big.Int).SetBytes(x.GetFee()).Cmp(OneBlockBigReward) < 0 {
+	if new(big.Int).SetBytes(x.GetFee()).Cmp(RegisterFee) < 0 {
 		return fmt.Errorf("register should have at least 10NG(one block reward) fee")
 	}
 
@@ -390,7 +390,7 @@ func GetGenesisGenerateTx(network NetworkType) *Tx {
 		Convener:      0,
 		Participants:  [][]byte{GenesisAddress},
 		Fee:           GetBig0().Bytes(),
-		Values:        BigIntsToBytesList([]*big.Int{OneBlockBigReward}),
+		Values:        BigIntsToBytesList([]*big.Int{GetBlockReward(0)}),
 		Extra:         nil,
 		Sign:          nil,
 	}

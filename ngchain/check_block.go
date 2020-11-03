@@ -33,7 +33,7 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 	}
 
 	err := chain.View(func(txn *badger.Txn) error {
-		return ngstate.CheckTxs(txn, block.Txs...)
+		return ngstate.CheckBlockTxs(txn, block)
 	})
 	if err != nil {
 		return err

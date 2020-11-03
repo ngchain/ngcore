@@ -27,7 +27,7 @@ func GetNextDiff(tailBlock *Block) *big.Int {
 
 	period := (tailBlock.Height + 1) / 1000
 	if (tailBlock.Height+1)%1000 == 0 && period > 10 {
-		delta.Exp(GetBig2(), new(big.Int).SetUint64(period), nil)
+		delta.Exp(Big2, new(big.Int).SetUint64(period), nil)
 		diff.Add(diff, delta)
 	}
 

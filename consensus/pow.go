@@ -116,9 +116,9 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 
 	var extraData []byte // FIXME
 
-	Gen := pow.createGenerateTx(extraData)
+	genTx := pow.createGenerateTx(newHeight, extraData)
 	txs := pow.Pool.GetPack().Txs
-	txsWithGen := append([]*ngtypes.Tx{Gen}, txs...)
+	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
 	if err != nil {

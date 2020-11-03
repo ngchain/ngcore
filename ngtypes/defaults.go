@@ -57,20 +57,18 @@ const (
 
 // Unit const
 const (
-	FloatNG    = 1000000.0
-	mega       = 1000000
-	OneBlockNG = 10
+	FloatNG = 1_000_000_000_000_000_000_000.0
+	zetta   = 1_000_000_000_000_000_000_000
 )
 
-// Units variables
+// Units variables:
+//https://en.wikipedia.org/wiki/Unit_prefix
+//https://en.wikipedia.org/wiki/Metric_prefix
 var (
-	MegaNG            = new(big.Int).Mul(NG, big.NewInt(mega))
-	MegaNGSymbol      = "MNG"
-	NG                = new(big.Int).SetUint64(mega)
-	NGSymbol          = "NG"
-	MicroNG           = GetBig1()
-	MicroNGSymbol     = "μNG"
-	OneBlockBigReward = new(big.Int).Mul(NG, big.NewInt(OneBlockNG)) // 10NG
+	NG            = new(big.Int).SetUint64(zetta)
+	NGSymbol      = "NG"
+	zeptoNG       = Big1
+	zeptoNGSymbol = "zNG"
 )
 
 // GetEmptyHash return an empty hash

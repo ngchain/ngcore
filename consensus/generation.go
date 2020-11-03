@@ -8,7 +8,7 @@ import (
 
 // createGenerateTx will create a generate Tx for new Block.
 // generate Tx is disallowed to edit external so use more local var
-func (pow *PoWork) createGenerateTx(extraData []byte) *ngtypes.Tx {
+func (pow *PoWork) createGenerateTx(height uint64, extraData []byte) *ngtypes.Tx {
 	addr := ngtypes.NewAddress(pow.PrivateKey)
 	gen := ngtypes.NewUnsignedTx(
 		pow.Network,
@@ -16,7 +16,7 @@ func (pow *PoWork) createGenerateTx(extraData []byte) *ngtypes.Tx {
 		pow.Chain.GetLatestBlockHash(),
 		0,
 		[][]byte{addr},
-		[]*big.Int{ngtypes.OneBlockBigReward},
+		[]*big.Int{ngtypes.GetBlockReward(height)},
 		ngtypes.GetBig0(),
 		extraData,
 	)

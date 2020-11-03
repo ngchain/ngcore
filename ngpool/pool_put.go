@@ -47,7 +47,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 	defer pool.Unlock()
 
 	err := pool.db.View(func(txn *badger.Txn) error {
-		if err := ngstate.CheckTxs(txn, tx); err != nil {
+		if err := ngstate.CheckTx(txn, tx); err != nil {
 			return fmt.Errorf("malformed tx, rejected: %v", err)
 		}
 

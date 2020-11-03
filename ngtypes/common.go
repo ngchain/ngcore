@@ -14,12 +14,8 @@ func GetBig0Bytes() []byte {
 	return big.NewInt(0).Bytes()
 }
 
-// GetBig1 returns a new big 1.
-func GetBig1() *big.Int {
-	return big.NewInt(1)
-}
+// Big1 returns a big 1.
+var Big1 = big.NewInt(1)
 
-// GetBig2 returns a new big 2.
-func GetBig2() *big.Int {
-	return big.NewInt(2)
-}
+// Big2 returns a big 2.
+var Big2 = big.NewInt(2)
