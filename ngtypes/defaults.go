@@ -57,18 +57,18 @@ const (
 
 // Unit const
 const (
-	FloatNG = 1_000_000_000_000_000_000_000.0
-	zetta   = 1_000_000_000_000_000_000_000
+	FloatNG = 1_000_000_000_000_000_000.0
+	pico    = 1_000_000_000_000_000_000 // 10^(-18)
 )
 
 // Units variables:
 //https://en.wikipedia.org/wiki/Unit_prefix
 //https://en.wikipedia.org/wiki/Metric_prefix
 var (
-	NG            = new(big.Int).SetUint64(zetta)
-	NGSymbol      = "NG"
-	zeptoNG       = Big1
-	zeptoNGSymbol = "zNG"
+	NG           = new(big.Int).SetUint64(pico)
+	NGSymbol     = "NG"
+	picoNG       = Big1
+	picoNGSymbol = "pNG"
 )
 
 // GetEmptyHash return an empty hash
