@@ -10,6 +10,7 @@ import (
 // generate Tx is disallowed to edit external so use more local var
 func (pow *PoWork) createGenerateTx(height uint64, extraData []byte) *ngtypes.Tx {
 	addr := ngtypes.NewAddress(pow.PrivateKey)
+	fee := big.NewInt(0)
 	gen := ngtypes.NewUnsignedTx(
 		pow.Network,
 		ngtypes.TxType_GENERATE,
@@ -17,7 +18,7 @@ func (pow *PoWork) createGenerateTx(height uint64, extraData []byte) *ngtypes.Tx
 		0,
 		[][]byte{addr},
 		[]*big.Int{ngtypes.GetBlockReward(height)},
-		ngtypes.GetBig0(),
+		fee,
 		extraData,
 	)
 

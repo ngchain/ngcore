@@ -217,7 +217,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		[][]byte{
 			params.Owner,
 		},
-		[]*big.Int{ngtypes.GetBig0()},
+		[]*big.Int{big.NewInt(0)},
 		new(big.Int).Mul(ngtypes.NG, big.NewInt(10)),
 		utils.PackUint64LE(params.Num),
 	)

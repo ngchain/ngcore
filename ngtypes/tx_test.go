@@ -21,7 +21,7 @@ func TestDeserialize(t *testing.T) {
 		0,
 		[][]byte{ngtypes.GenesisAddress},
 		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
-		ngtypes.GetBig0(),
+		big.NewInt(0),
 		nil,
 	)
 
@@ -44,8 +44,8 @@ func TestTransaction_Signature(t *testing.T) {
 		nil,
 		1,
 		[][]byte{ngtypes.GenesisAddress},
-		[]*big.Int{ngtypes.GetBig0()},
-		ngtypes.GetBig0(),
+		[]*big.Int{big.NewInt(0)},
+		big.NewInt(0),
 		nil,
 	)
 	priv1, _ := secp256k1.GeneratePrivateKey()

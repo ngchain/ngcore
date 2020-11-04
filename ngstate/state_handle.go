@@ -171,7 +171,7 @@ func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err erro
 		return err
 	}
 
-	totalValue := ngtypes.GetBig0()
+	totalValue := big.NewInt(0)
 	for i := range tx.GetValues() {
 		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
 	}
@@ -246,7 +246,7 @@ func (state *State) handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	totalValue := ngtypes.GetBig0()
+	totalValue := big.NewInt(0)
 	for i := range tx.GetValues() {
 		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
 	}
@@ -301,7 +301,7 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	totalValue := ngtypes.GetBig0()
+	totalValue := big.NewInt(0)
 	for i := range tx.GetValues() {
 		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
 	}

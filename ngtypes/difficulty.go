@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var big2 = big.NewInt(2)
+
 // GetNextDiff is a helper to get next pow block Diff field.
 func GetNextDiff(tailBlock *Block) *big.Int {
 	diff := new(big.Int).SetBytes(tailBlock.GetDifficulty())
@@ -27,7 +29,7 @@ func GetNextDiff(tailBlock *Block) *big.Int {
 
 	period := (tailBlock.Height + 1) / 1000
 	if (tailBlock.Height+1)%1000 == 0 && period > 10 {
-		delta.Exp(Big2, new(big.Int).SetUint64(period), nil)
+		delta.Exp(big2, new(big.Int).SetUint64(period), nil)
 		diff.Add(diff, delta)
 	}
 

@@ -67,7 +67,7 @@ const (
 var (
 	NG           = new(big.Int).SetUint64(pico)
 	NGSymbol     = "NG"
-	picoNG       = Big1
+	picoNG       = big.NewInt(1)
 	picoNGSymbol = "pNG"
 )
 
