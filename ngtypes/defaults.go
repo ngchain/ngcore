@@ -9,7 +9,7 @@ import (
 // FIXME: before init network should manually init PK & Sign
 // use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
-	GenesisAddressBase58 = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
+	GenesisAddressBase58 = "QVSdpMLFwUtECb3SxgLt8YeQwkHGmzh5ZexjGCUB2E5koFhJ"
 )
 
 // decoded genesis variables
@@ -79,10 +79,10 @@ func GetEmptyHash() []byte {
 func GetGenesisGenerateTxSignature(network NetworkType) []byte {
 	switch network {
 	case NetworkType_ZERONET:
-		genesisGenerateTxSign, _ := hex.DecodeString("2f06927456808d85ef71c6ff35d1cbacf6dfafabb1a8f0155716361735413c4f917ee3438be130f505e43c8d3ce64442d32878df4113d496c2f6f2c51aae7e2d")
+		genesisGenerateTxSign, _ := hex.DecodeString("c79d434e9070edaea3e1c5cb59c7c19e5c777a0a6130a5997a634962ce86d8fd0af94408853ff856b5fcc88bf76c3383d43ce1134da7c93a877960bb1b53caa6")
 		return genesisGenerateTxSign
 	case NetworkType_TESTNET:
-		genesisGenerateTxSign, _ := hex.DecodeString("bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d")
+		genesisGenerateTxSign, _ := hex.DecodeString("75179201d03e7c66703cf4570b2e1e6ae23caa1fd545fdac9f28dcb6433d5a2c4b48fbfcc0b4e996e446212b65cb39c94e3ec2f18fc8d16baffada7d5a9e9301")
 		return genesisGenerateTxSign
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")
@@ -94,10 +94,10 @@ func GetGenesisGenerateTxSignature(network NetworkType) []byte {
 func GetGenesisBlockNonce(network NetworkType) []byte {
 	switch network {
 	case NetworkType_ZERONET:
-		genesisBlockNonce, _ := hex.DecodeString("52ef544b2f8fe12f")
+		genesisBlockNonce, _ := hex.DecodeString("26cab897baa3cd74")
 		return genesisBlockNonce
 	case NetworkType_TESTNET:
-		genesisBlockNonce, _ := hex.DecodeString("4530ef8acd530abc")
+		genesisBlockNonce, _ := hex.DecodeString("bfded3fdcf6b5b91")
 		return genesisBlockNonce
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")
