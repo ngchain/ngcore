@@ -14,7 +14,6 @@ const (
 
 // decoded genesis variables
 var (
-	//Network                   = NetworkType_TESTNET // can be changed by arg FIXME: set to mainnet when releasing
 	GenesisAddress, _ = NewAddressFromBS58(GenesisAddressBase58)
 	AvailableNetworks = []NetworkType{NetworkType_ZERONET, NetworkType_TESTNET}
 )
@@ -33,9 +32,6 @@ var (
 	// Max Value of Target
 	MaxTarget = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
-
-	// GenesisTimestamp must be the time chain started, or the difficulty algo wont work
-	GenesisTimestamp = time.Date(2020, time.July, 28, 14, 0, 0, 0, time.UTC).Unix()
 )
 
 // Maximum sizes
@@ -99,6 +95,22 @@ func GetGenesisBlockNonce(network NetworkType) []byte {
 	case NetworkType_TESTNET:
 		genesisBlockNonce, _ := hex.DecodeString("bfded3fdcf6b5b91")
 		return genesisBlockNonce
+	case NetworkType_MAINNET:
+		panic("not ready for mainnet")
+	default:
+		panic("unknown network")
+	}
+}
+
+// GenesisTimestamp must be the time chain started, or the difficulty algo wont work
+// FIXME: should be the time network starts
+func GetGenesisTimestamp(network NetworkType) int64 {
+	switch network {
+	case NetworkType_ZERONET:
+		y, m, _ := time.Now().Date()
+		return time.Date(y, m, 1, 0, 0, 0, 0, time.UTC).Unix() // first day of the month by default
+	case NetworkType_TESTNET:
+		return time.Date(2020, time.July, 28, 14, 0, 0, 0, time.UTC).Unix()
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")
 	default:

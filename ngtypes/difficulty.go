@@ -14,7 +14,7 @@ func GetNextDiff(tailBlock *Block) *big.Int {
 		return diff
 	}
 
-	elapsed := tailBlock.Timestamp - GenesisTimestamp
+	elapsed := tailBlock.Timestamp - GetGenesisTimestamp(tailBlock.Network)
 	elapsed = elapsed - int64(tailBlock.GetHeight())*int64(TargetTime/time.Second)
 	delta := new(big.Int)
 	if elapsed < int64(TargetTime/time.Second)*(-2) {

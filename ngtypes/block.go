@@ -278,7 +278,7 @@ func GetGenesisBlock(network NetworkType) *Block {
 		genesisBlock = &Block{
 			Network:   network,
 			Height:    0,
-			Timestamp: GenesisTimestamp,
+			Timestamp: GetGenesisTimestamp(network),
 
 			PrevBlockHash: make([]byte, HashSize),
 			TrieHash:      NewTxTrie(txs).TrieRoot(),
