@@ -75,10 +75,10 @@ func GetEmptyHash() []byte {
 func GetGenesisGenerateTxSignature(network NetworkType) []byte {
 	switch network {
 	case NetworkType_ZERONET:
-		genesisGenerateTxSign, _ := hex.DecodeString("c79d434e9070edaea3e1c5cb59c7c19e5c777a0a6130a5997a634962ce86d8fd0af94408853ff856b5fcc88bf76c3383d43ce1134da7c93a877960bb1b53caa6")
+		genesisGenerateTxSign, _ := hex.DecodeString("1aca22bb998d0bea643f75c126b8be259839aa4c2c13829d737c57c8f20371edbc7014a79e2af97e8119c92fcc9f4642c5f42639cad59429fbc4336ee8dcc858")
 		return genesisGenerateTxSign
 	case NetworkType_TESTNET:
-		genesisGenerateTxSign, _ := hex.DecodeString("75179201d03e7c66703cf4570b2e1e6ae23caa1fd545fdac9f28dcb6433d5a2c4b48fbfcc0b4e996e446212b65cb39c94e3ec2f18fc8d16baffada7d5a9e9301")
+		genesisGenerateTxSign, _ := hex.DecodeString("5ca0c8099874dd61b4ebbfb6e984f5f1e7f6287d1093f05d3ed973a5fb3f3352bf7fc3c78d93dcaf077f98602338445e4187ae5f225a2d79ff9b36ec8c61b98a")
 		return genesisGenerateTxSign
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")
@@ -90,10 +90,10 @@ func GetGenesisGenerateTxSignature(network NetworkType) []byte {
 func GetGenesisBlockNonce(network NetworkType) []byte {
 	switch network {
 	case NetworkType_ZERONET:
-		genesisBlockNonce, _ := hex.DecodeString("26cab897baa3cd74")
+		genesisBlockNonce, _ := hex.DecodeString("c800120f3ae9a2fc")
 		return genesisBlockNonce
 	case NetworkType_TESTNET:
-		genesisBlockNonce, _ := hex.DecodeString("bfded3fdcf6b5b91")
+		genesisBlockNonce, _ := hex.DecodeString("60d7b5f66cd09909")
 		return genesisBlockNonce
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")
@@ -107,8 +107,7 @@ func GetGenesisBlockNonce(network NetworkType) []byte {
 func GetGenesisTimestamp(network NetworkType) int64 {
 	switch network {
 	case NetworkType_ZERONET:
-		y, m, _ := time.Now().Date()
-		return time.Date(y, m, 1, 0, 0, 0, 0, time.UTC).Unix() // first day of the month by default
+		return time.Date(2020, time.October, 24, 0, 0, 0, 0, time.UTC).Unix()
 	case NetworkType_TESTNET:
 		return time.Date(2020, time.July, 28, 14, 0, 0, 0, time.UTC).Unix()
 	case NetworkType_MAINNET:

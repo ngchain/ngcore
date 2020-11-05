@@ -263,30 +263,23 @@ func (x *Block) GetPrevHash() []byte {
 	return x.GetPrevBlockHash()
 }
 
-var genesisBlock *Block
-
 // GetGenesisBlock will return a complete sealed GenesisBlock.
 func GetGenesisBlock(network NetworkType) *Block {
-	if genesisBlock == nil {
-		txs := []*Tx{
-			GetGenesisGenerateTx(network),
-		}
+	txs := []*Tx{
+		GetGenesisGenerateTx(network),
+	}
 
-		nonce := make([]byte, NonceSize)
-		copy(nonce, GetGenesisBlockNonce(network))
+	genesisBlock := &Block{
+		Network:   network,
+		Height:    0,
+		Timestamp: GetGenesisTimestamp(network),
 
-		genesisBlock = &Block{
-			Network:   network,
-			Height:    0,
-			Timestamp: GetGenesisTimestamp(network),
+		PrevBlockHash: make([]byte, HashSize),
+		TrieHash:      NewTxTrie(txs).TrieRoot(),
 
-			PrevBlockHash: make([]byte, HashSize),
-			TrieHash:      NewTxTrie(txs).TrieRoot(),
-
-			Difficulty: minimumBigDifficulty.Bytes(), // this is a number, dont put any padding on
-			Nonce:      nonce,
-			Txs:        txs,
-		}
+		Difficulty: minimumBigDifficulty.Bytes(), // this is a number, dont put any padding on
+		Nonce:      GetGenesisBlockNonce(network),
+		Txs:        txs,
 	}
 
 	return genesisBlock
