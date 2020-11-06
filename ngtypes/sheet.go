@@ -3,7 +3,6 @@ package ngtypes
 import (
 	"github.com/ngchain/ngcore/utils"
 	"golang.org/x/crypto/sha3"
-	"math/big"
 )
 
 // NewSheet gets the rows from db and return the sheet for transport/saving.
@@ -40,8 +39,6 @@ func init() {
 	GenesisSheet = &Sheet{
 		PrevBlockHash: make([]byte, HashSize),
 		Accounts:      accounts,
-		Anonymous: map[string][]byte{
-			GenesisAddress.String(): big.NewInt(0).Bytes(),
-		},
+		Anonymous:     GenesisBalances,
 	}
 }

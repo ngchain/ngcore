@@ -30,3 +30,5 @@ require (
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
 	google.golang.org/protobuf v1.25.0
 )
+
+replace github.com/ipfs/go-log/v2 v2.1.1 => github.com/ngchain/go-log/v2 v2.1.2-0.20201105165714-a4fff85de0e0

@@ -285,12 +285,6 @@ func GetGenesisBlock(network NetworkType) *Block {
 	return genesisBlock
 }
 
-var genesisBlockHash []byte
-
 func GetGenesisBlockHash(network NetworkType) []byte {
-	if genesisBlockHash == nil {
-		genesisBlockHash = GetGenesisBlock(network).Hash()
-	}
-
-	return genesisBlockHash
+	return GetGenesisBlock(network).Hash()
 }

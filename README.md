@@ -60,8 +60,8 @@ go build ./cmd/ngcore
 
 ```bash
 # dircetly run the binary
-export GOLOG_FILE = ngcore.log # disable stderr output and write to the ngcore.log file
-export GOLOG_LOG_LEVEL = debug # print more logs
+export GOLOG_FILE=ngcore.log # disable stderr output and write to the ngcore.log file
+export GOLOG_LOG_LEVEL=debug # print more logs
 ./ngcore
 
 # ngwallet is a rpc client in dart for ngin's daemon, see
