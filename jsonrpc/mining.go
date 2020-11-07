@@ -2,6 +2,9 @@ package jsonrpc
 
 import (
 	"encoding/hex"
+	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -109,9 +112,13 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }
 
+type switchMiningParams struct {
+	Mode string `json:"mode"`
+}
+
 // switchMiningFunc provides the switch on built-in block mining
 func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params bool
+	var params switchMiningParams
 
 	err := utils.JSON.Unmarshal(msg.Params, &params)
 	if err != nil {
@@ -119,10 +126,23 @@ func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	if params {
-		s.pow.MiningOn()
-	} else {
-		s.pow.MiningOff()
+	mode := strings.ToLower(strings.TrimSpace(params.Mode))
+	switch mode {
+	case "on":
+		s.pow.SwitchMiningOn()
+	case "off":
+		s.pow.SwitchMiningOff()
+	default:
+		workerNum, err := strconv.ParseInt(mode, 10, 64)
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+
+		s.pow.UpdateMiningThread(int(workerNum))
+		s.pow.SwitchMiningOn()
+
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("invalid mode")))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)

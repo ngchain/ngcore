@@ -74,25 +74,33 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 	return pow
 }
 
-// MiningOff stops the pow consensus.
-func (pow *PoWork) MiningOff() {
+// SwitchMiningOff stops the pow consensus.
+func (pow *PoWork) SwitchMiningOff() {
 	if pow.minerMod != nil {
 		pow.minerMod.Stop()
 	}
 }
 
-// MiningOn resumes the pow consensus.
-func (pow *PoWork) MiningOn() {
+// SwitchMiningOn resumes the pow consensus
+//this won't work when the former job unfinished
+func (pow *PoWork) SwitchMiningOn() {
 	if pow.minerMod != nil {
 		newBlock := pow.GetBlockTemplate()
-		go pow.minerMod.Start(newBlock)
+		go pow.minerMod.Mine(newBlock) // when there was an old one started, this will directly return
 	}
 }
 
-// MiningUpdate updates the mining work
-func (pow *PoWork) MiningUpdate() {
-	pow.MiningOff()
-	pow.MiningOn()
+// UpdateMiningJob updates the mining work
+func (pow *PoWork) UpdateMiningJob() {
+	pow.SwitchMiningOff()
+	pow.SwitchMiningOn()
+}
+
+// SwitchMiningOn resumes the pow consensus.
+func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
+	if pow.minerMod != nil {
+		pow.minerMod.ThreadNum = newThreadNum
+	}
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
@@ -146,7 +154,7 @@ func (pow *PoWork) eventLoop() {
 			}
 
 			// update miner work
-			go pow.MiningUpdate()
+			go pow.UpdateMiningJob()
 
 		case tx := <-pow.LocalNode.OnTx:
 			err := pow.Pool.PutTx(tx)
@@ -162,7 +170,7 @@ func (pow *PoWork) eventLoop() {
 
 			// assign new job
 			blockTemplate := pow.GetBlockTemplate()
-			pow.minerMod.Start(blockTemplate)
+			pow.minerMod.Mine(blockTemplate)
 		}
 	}
 }

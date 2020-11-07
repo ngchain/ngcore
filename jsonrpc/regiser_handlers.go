@@ -51,7 +51,7 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler.RegisterJsonRpcHandleFunc("switchMining", s.switchMiningFunc)
 
 	// utils
-	httpHandler.RegisterJsonRpcHandleFunc("getAddress", s.getAddressFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("publicKeyToAddress", s.publicKeyToAddressFunc)
 
 	return httpHandler
 }

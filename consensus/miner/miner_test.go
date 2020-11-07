@@ -24,7 +24,7 @@ func TestPoWMiner(t *testing.T) {
 		}
 	}()
 
-	m.Start(block)
+	m.Mine(block)
 	time.Sleep(time.Minute)
 
 	m.Stop()

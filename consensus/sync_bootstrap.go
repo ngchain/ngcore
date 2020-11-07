@@ -73,7 +73,7 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	log.Warnf("Start initial syncing with remote node %s", record.id)
+	log.Warnf("Mine initial syncing with remote node %s", record.id)
 
 	// get chain
 	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
