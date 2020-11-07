@@ -117,7 +117,27 @@ func initAccountImports(vm *VM) error {
 		return err
 	}
 
-	//TODO: write to Acc.Context when num is self
+	//TODO:  write to Context when num is self
+	//err = vm.linker.DefineAdvancedFunc("account", "write_context", func(ins *wasman.Instance) interface{} {
+	//	return func(accountNum uint64, ptr uint32) uint32 {
+	//		acc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(accountNum))
+	//		if err != nil {
+	//			vm.logger.Error(err)
+	//			return 0
+	//		}
+	//
+	//		l, err := cp(ins, ptr, acc.Context)
+	//		if err != nil {
+	//			vm.logger.Error(err)
+	//			return 0
+	//		}
+	//
+	//		return l
+	//	}
+	//})
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }

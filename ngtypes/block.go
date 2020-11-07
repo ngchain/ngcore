@@ -213,7 +213,7 @@ func (x *Block) CheckError() error {
 	//if x.Network != Network {
 	//	return fmt.Errorf("block's network id is incorrect")
 	//}
-	// TODO: do network check on consensus
+	// DONE: do network check on consensus
 
 	if len(x.PrevBlockHash) != HashSize {
 		return fmt.Errorf("block%d's PrevBlockHash length is incorrect", x.GetHeight())

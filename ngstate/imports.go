@@ -33,7 +33,9 @@ func initLogImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("log", "debug", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32, size uint32) {
 			message := string(ins.Memory.Value[ptr : ptr+size])
-			vm.logger.Debug(message) // TODO: turn off me by default
+			// TODO: turn off debug by default
+			// RULE: add --vm-debug <AccountNum1>,<AccountNum2> to enable debug
+			vm.logger.Debug(message)
 		}
 	})
 	if err != nil {

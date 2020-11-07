@@ -32,7 +32,7 @@ func getAccountByNum(txn *badger.Txn, num ngtypes.AccountNum) (*ngtypes.Account,
 	return acc, nil
 }
 
-// TODO: make sure num/addr = 1/1
+// DONE: make sure num/addr = 1/1
 func getAccountNumByAddr(txn *badger.Txn, addr ngtypes.Address) (ngtypes.AccountNum, error) {
 	item, err := txn.Get(append(addrToNumPrefix, addr...))
 	if err == badger.ErrKeyNotFound {

@@ -41,7 +41,6 @@ func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 }
 
 // PutTx puts txs from network(p2p) or RPC into txpool, should check error before putting.
-// TODO: implement me
 func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 	pool.Lock()
 	defer pool.Unlock()

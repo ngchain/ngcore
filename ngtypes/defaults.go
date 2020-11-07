@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// FIXME: before init network should manually init PK & Sign
+// FIXME: before initializing new network, should manually init PK & Sign
 // use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
 	GenesisAddressBase58 = "QVSdpMLFwUtECb3SxgLt8YeQwkHGmzh5ZexjGCUB2E5koFhJ"
@@ -109,7 +109,7 @@ func GetGenesisTimestamp(network NetworkType) int64 {
 	case NetworkType_ZERONET:
 		return time.Date(2020, time.October, 24, 0, 0, 0, 0, time.UTC).Unix()
 	case NetworkType_TESTNET:
-		return time.Date(2020, time.July, 28, 14, 0, 0, 0, time.UTC).Unix()
+		return time.Date(2020, time.November, 11, 11, 11, 11, 11, time.UTC).Unix()
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")
 	default:

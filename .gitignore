@@ -67,4 +67,4 @@ env/*
 *.log
 
 #Binary
-./ngcore
+/ngcore

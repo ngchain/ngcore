@@ -34,6 +34,7 @@ func (mod *syncModule) bootstrap() {
 	peerNum := len(mod.store)
 	if peerNum < minDesiredPeerCount {
 		log.Warnf("lack remote peer for bootstrapping")
+		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor fork
 	}
 
 	slice := make([]*remoteRecord, len(mod.store))

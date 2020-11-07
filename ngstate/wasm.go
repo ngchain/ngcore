@@ -15,7 +15,6 @@ import (
 )
 
 // VM is a vm based on wasmtime, which acts as a sandbox env to exec native func
-// TODO: Update me after experiment WASI tests
 type VM struct {
 	sync.RWMutex
 
