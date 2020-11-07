@@ -93,7 +93,7 @@ func GetGenesisBlockNonce(network NetworkType) []byte {
 		genesisBlockNonce, _ := hex.DecodeString("c800120f3ae9a2fc")
 		return genesisBlockNonce
 	case NetworkType_TESTNET:
-		genesisBlockNonce, _ := hex.DecodeString("60d7b5f66cd09909")
+		genesisBlockNonce, _ := hex.DecodeString("115c488d6d09dc41")
 		return genesisBlockNonce
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")

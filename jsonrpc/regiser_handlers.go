@@ -48,6 +48,7 @@ func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
 	httpHandler.RegisterJsonRpcHandleFunc("getBlockTemplate", s.getBlockTemplateFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("getWork", s.getWorkFunc)
 	httpHandler.RegisterJsonRpcHandleFunc("submitWork", s.submitWorkFunc)
+	httpHandler.RegisterJsonRpcHandleFunc("switchMining", s.switchMiningFunc)
 
 	// utils
 	httpHandler.RegisterJsonRpcHandleFunc("getAddress", s.getAddressFunc)

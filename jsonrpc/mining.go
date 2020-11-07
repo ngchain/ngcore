@@ -108,3 +108,22 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }
+
+// switchMiningFunc provides the switch on built-in block mining
+func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params bool
+
+	err := utils.JSON.Unmarshal(msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	if params {
+		s.pow.MiningOn()
+	} else {
+		s.pow.MiningOff()
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
+}
