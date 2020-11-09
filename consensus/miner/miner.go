@@ -42,8 +42,9 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 
 	m := &Miner{
 		Started:      atomic.NewBool(false),
-		job:          new(atomic.Value),
 		ThreadNum:    threadNum,
+		hashes:       atomic.NewInt64(0),
+		job:          new(atomic.Value),
 		abortCh:      make(chan struct{}),
 		foundBlockCh: foundBlockCh,
 	}
