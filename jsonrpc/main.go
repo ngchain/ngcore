@@ -3,8 +3,8 @@ package jsonrpc
 import (
 	"fmt"
 
+	"github.com/c0mm4nd/go-jsonrpc2/jsonrpc2http"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/maoxs2/go-jsonrpc2/jsonrpc2http"
 	"github.com/ngchain/ngcore/consensus"
 )
 
@@ -25,7 +25,14 @@ func NewServer(host string, port int, pow *consensus.PoWork) *Server {
 		pow: pow,
 	}
 
-	s.Server = jsonrpc2http.NewServer(fmt.Sprintf("%s:%d", host, port), newHTTPHandler(s))
+	s.Server = jsonrpc2http.NewServer(jsonrpc2http.ServerConfig{
+		Addr:    fmt.Sprintf("%s:%d", host, port),
+		Handler: nil,
+		Logger:  log,
+	})
+
+	registerHTTPHandler(s)
+
 	return s
 }
 

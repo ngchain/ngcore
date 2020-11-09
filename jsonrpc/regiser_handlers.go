@@ -1,57 +1,52 @@
 package jsonrpc
 
 import (
-	"github.com/maoxs2/go-jsonrpc2"
-	"github.com/maoxs2/go-jsonrpc2/jsonrpc2http"
+	"github.com/c0mm4nd/go-jsonrpc2"
 )
 
-// newHTTPHandler will create a jsonrpc2http.HTTPHandler struct and register jsonrpc functions onto it.
-func newHTTPHandler(s *Server) *jsonrpc2http.HTTPHandler {
-	httpHandler := jsonrpc2http.NewHTTPHandler()
-
-	httpHandler.RegisterJsonRpcHandleFunc("ping", func(message *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+// registerHTTPHandler will register jsonrpc functions onto the Server.
+func registerHTTPHandler(s *Server) {
+	s.RegisterJsonRpcHandleFunc("ping", func(message *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 		return jsonrpc2.NewJsonRpcSuccess(message.ID, []byte("pong"))
 	})
 
 	// p2p
-	httpHandler.RegisterJsonRpcHandleFunc("addNode", s.addPeerFunc) // keep this alia
-	httpHandler.RegisterJsonRpcHandleFunc("addPeer", s.addPeerFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getNodes", s.getPeersFunc) // keep this alia
-	httpHandler.RegisterJsonRpcHandleFunc("getPeers", s.getPeersFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getNetwork", s.getNetworkFunc)
+	s.RegisterJsonRpcHandleFunc("addNode", s.addPeerFunc) // keep this alia
+	s.RegisterJsonRpcHandleFunc("addPeer", s.addPeerFunc)
+	s.RegisterJsonRpcHandleFunc("getNodes", s.getPeersFunc) // keep this alia
+	s.RegisterJsonRpcHandleFunc("getPeers", s.getPeersFunc)
+	s.RegisterJsonRpcHandleFunc("getNetwork", s.getNetworkFunc)
 
 	// chain
-	httpHandler.RegisterJsonRpcHandleFunc("getLatestBlockHeight", s.getLatestBlockHeightFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getLatestBlockHash", s.getLatestBlockHashFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getLatestBlock", s.getLatestBlockFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHeight", s.getBlockByHeightFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getBlockByHash", s.getBlockByHashFunc)
+	s.RegisterJsonRpcHandleFunc("getLatestBlockHeight", s.getLatestBlockHeightFunc)
+	s.RegisterJsonRpcHandleFunc("getLatestBlockHash", s.getLatestBlockHashFunc)
+	s.RegisterJsonRpcHandleFunc("getLatestBlock", s.getLatestBlockFunc)
+	s.RegisterJsonRpcHandleFunc("getBlockByHeight", s.getBlockByHeightFunc)
+	s.RegisterJsonRpcHandleFunc("getBlockByHash", s.getBlockByHashFunc)
 
-	httpHandler.RegisterJsonRpcHandleFunc("getTxByHash", s.getTxByHashFunc)
+	s.RegisterJsonRpcHandleFunc("getTxByHash", s.getTxByHashFunc)
 
 	// state
-	httpHandler.RegisterJsonRpcHandleFunc("sendTx", s.sendTxFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("signTx", s.signTxFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("genRegister", s.genRegisterFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("genLogout", s.genLogoutFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("genTransaction", s.genTransactionFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("genAssign", s.genAssignFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("genAppend", s.genAppendFunc)
+	s.RegisterJsonRpcHandleFunc("sendTx", s.sendTxFunc)
+	s.RegisterJsonRpcHandleFunc("signTx", s.signTxFunc)
+	s.RegisterJsonRpcHandleFunc("genRegister", s.genRegisterFunc)
+	s.RegisterJsonRpcHandleFunc("genLogout", s.genLogoutFunc)
+	s.RegisterJsonRpcHandleFunc("genTransaction", s.genTransactionFunc)
+	s.RegisterJsonRpcHandleFunc("genAssign", s.genAssignFunc)
+	s.RegisterJsonRpcHandleFunc("genAppend", s.genAppendFunc)
 
-	httpHandler.RegisterJsonRpcHandleFunc("getAccountsByAddress", s.getAccountsByAddressFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getAccountByNum", s.getAccountByNumFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getBalanceByNum", s.getBalanceByNumFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.getBalanceByAddressFunc)
+	s.RegisterJsonRpcHandleFunc("getAccountsByAddress", s.getAccountsByAddressFunc)
+	s.RegisterJsonRpcHandleFunc("getAccountByNum", s.getAccountByNumFunc)
+	s.RegisterJsonRpcHandleFunc("getBalanceByNum", s.getBalanceByNumFunc)
+	s.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.getBalanceByAddressFunc)
 
 	// mining
-	httpHandler.RegisterJsonRpcHandleFunc("submitBlock", s.submitBlockFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getBlockTemplate", s.getBlockTemplateFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("getWork", s.getWorkFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("submitWork", s.submitWorkFunc)
-	httpHandler.RegisterJsonRpcHandleFunc("switchMining", s.switchMiningFunc)
+	s.RegisterJsonRpcHandleFunc("submitBlock", s.submitBlockFunc)
+	s.RegisterJsonRpcHandleFunc("getBlockTemplate", s.getBlockTemplateFunc)
+	s.RegisterJsonRpcHandleFunc("getWork", s.getWorkFunc)
+	s.RegisterJsonRpcHandleFunc("submitWork", s.submitWorkFunc)
+	s.RegisterJsonRpcHandleFunc("switchMining", s.switchMiningFunc)
 
 	// utils
-	httpHandler.RegisterJsonRpcHandleFunc("publicKeyToAddress", s.publicKeyToAddressFunc)
-
-	return httpHandler
+	s.RegisterJsonRpcHandleFunc("publicKeyToAddress", s.publicKeyToAddressFunc)
 }

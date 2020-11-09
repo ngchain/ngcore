@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
+	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20201108085815-32da445365da
 	github.com/c0mm4nd/wasman v0.0.0-20201014131632-77fad4c28570
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.2
@@ -19,7 +20,6 @@ require (
 	github.com/libp2p/go-libp2p-yamux v0.3.0
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/libp2p/go-tcp-transport v0.2.1
-	github.com/maoxs2/go-jsonrpc2 v0.0.0-20200715024857-a413889804df
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/ngchain/go-randomx v0.1.7

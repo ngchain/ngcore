@@ -3,8 +3,8 @@ package jsonrpc
 import (
 	"context"
 
+	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/maoxs2/go-jsonrpc2"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/utils"
@@ -17,7 +17,7 @@ type addPeerParams struct {
 func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params addPeerParams
 
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -41,7 +41,7 @@ func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte{})
 }
 
 func (s *Server) getNetworkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
