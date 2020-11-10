@@ -41,7 +41,7 @@ func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte{})
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }
 
 func (s *Server) getNetworkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {

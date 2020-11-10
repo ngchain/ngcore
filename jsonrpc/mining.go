@@ -145,5 +145,5 @@ func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("invalid mode")))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte{})
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }
