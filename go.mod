@@ -22,7 +22,7 @@ require (
 	github.com/libp2p/go-tcp-transport v0.2.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.3.1
-	github.com/ngchain/go-randomx v0.1.8
+	github.com/ngchain/go-randomx v0.1.9
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/urfave/cli/v2 v2.2.0
