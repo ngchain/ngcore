@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 
 	"github.com/dgraph-io/badger/v2"
@@ -69,7 +70,7 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 		pow.syncMod.bootstrap()
 	}
 
-	pow.minerMod = miner.NewMiner(pow.MiningThread, pow.foundBlockCh)
+	pow.minerMod = miner.NewMiner(config.MiningThread, pow.foundBlockCh)
 
 	return pow
 }
@@ -82,7 +83,7 @@ func (pow *PoWork) SwitchMiningOff() {
 }
 
 // SwitchMiningOn resumes the pow consensus
-//this won't work when the former job unfinished
+// this won't work when the former job unfinished
 func (pow *PoWork) SwitchMiningOn() {
 	if pow.minerMod != nil {
 		newBlock := pow.GetBlockTemplate()
@@ -100,7 +101,18 @@ func (pow *PoWork) UpdateMiningJob() {
 func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
 	if pow.minerMod != nil {
 		pow.minerMod.ThreadNum = newThreadNum
+		return
 	}
+
+	if newThreadNum < 0 {
+		pow.SwitchMiningOff()
+	}
+
+	if newThreadNum == 0 {
+		newThreadNum = runtime.NumCPU()
+	}
+
+	pow.minerMod = miner.NewMiner(newThreadNum, pow.foundBlockCh)
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.

@@ -2,11 +2,11 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -141,8 +141,6 @@ func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 
 		s.pow.UpdateMiningThread(int(workerNum))
 		s.pow.SwitchMiningOn()
-
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("invalid mode")))
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
