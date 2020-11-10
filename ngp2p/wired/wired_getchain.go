@@ -58,7 +58,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	stream, err = Send(w.host, peerID, req)
+	stream, err = Send(w.host, w.protocolID, peerID, req)
 	if err != nil {
 		log.Debug(err)
 		return nil, nil, err

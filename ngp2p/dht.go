@@ -4,7 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/libp2p/go-libp2p-core/protocol"
+
 	"github.com/ngchain/ngcore/ngp2p/defaults"
+	"github.com/ngchain/ngcore/ngtypes"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -19,10 +22,14 @@ import (
 
 var p2pDHT *dht.IpfsDHT
 
-func getPublicRouter() libp2p.Option {
+func getPublicRouter(network ngtypes.NetworkType) libp2p.Option {
 	return libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		var err error
-		p2pDHT, err = dht.New(context.Background(), h, dht.Mode(dht.ModeAutoServer), dht.ProtocolExtension(defaults.DHTProtocolExtension))
+		p2pDHT, err = dht.New(
+			context.Background(), h,
+			dht.Mode(dht.ModeAutoServer),
+			dht.ProtocolExtension(
+				protocol.ID(defaults.GetDHTProtocolExtension(network))))
 		return p2pDHT, err
 	})
 }

@@ -3,6 +3,8 @@ package wired
 import (
 	"fmt"
 
+	"github.com/libp2p/go-libp2p-core/protocol"
+
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngtypes"
 
@@ -23,6 +25,8 @@ type Wired struct {
 	network ngtypes.NetworkType
 	host    core.Host // local host
 
+	protocolID protocol.ID
+
 	chain *ngchain.Chain
 }
 
@@ -30,15 +34,22 @@ func NewWiredProtocol(host core.Host, network ngtypes.NetworkType, chain *ngchai
 	w := &Wired{
 		network: network,
 		host:    host,
-		chain:   chain,
+
+		protocolID: protocol.ID(defaults.GetWiredProtocol(network)),
+
+		chain: chain,
 	}
 
 	return w
 }
 
+func (w *Wired) GetWiredProtocol() protocol.ID {
+	return w.protocolID
+}
+
 func (w *Wired) GoServe() {
 	// register handler
-	w.host.SetStreamHandler(defaults.WiredProtocol, func(stream network.Stream) {
+	w.host.SetStreamHandler(w.protocolID, func(stream network.Stream) {
 		log.Debugf("handling new stream from %s", stream.Conn().RemotePeer())
 		go w.handleStream(stream)
 	})

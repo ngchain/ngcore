@@ -42,7 +42,7 @@ func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, 
 
 	log.Debugf("Sent ping to: %s was sent. Message Id: %x", peerID, req.Header.MessageId)
 
-	stream, err = Send(w.host, peerID, req)
+	stream, err = Send(w.host, w.protocolID, peerID, req)
 	if err != nil {
 		log.Debugf("failed sending ping to: %s: %s", peerID, err)
 		return nil, nil

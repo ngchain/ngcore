@@ -533,8 +533,8 @@ github.com/multiformats/go-varint v0.0.6 h1:gk85QWKxh3TazbLxED/NlDVv8+q+ReFJk7Y2
 github.com/multiformats/go-varint v0.0.6/go.mod h1:3Ls8CIEsrijN6+B7PbrXRPxHRPuXSrVKRY101jdMZYE=
 github.com/ngchain/go-log/v2 v2.1.2-0.20201105165714-a4fff85de0e0 h1:3YqpjCoa4xsj67xPntdqeiMDQvciiAT9gyYdNV35nJ4=
 github.com/ngchain/go-log/v2 v2.1.2-0.20201105165714-a4fff85de0e0/go.mod h1:2v2nsGfZsvvAJz13SyFzf9ObaqwHiHxsPLEHntrv9KM=
-github.com/ngchain/go-randomx v0.1.7 h1:9ppF8Vo/Go2IwAieAmcknBJr0SBkWb/YSCje9tT1iQg=
-github.com/ngchain/go-randomx v0.1.7/go.mod h1:QJ9rcWc8+ne1PQeLKQ19d30ZMTSJJRwdX8WOtZWDXE4=
+github.com/ngchain/go-randomx v0.1.9 h1:lhlNvImRRu1zUdZv4cJLJluwHQKLtZw4BuhkMGOZ9EU=
+github.com/ngchain/go-randomx v0.1.9/go.mod h1:QJ9rcWc8+ne1PQeLKQ19d30ZMTSJJRwdX8WOtZWDXE4=
 github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd h1:LjR/p1Hkb5pkTD/w91NaryPQ9jwwQCryy6zykNOA8jA=
 github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd/go.mod h1:XXY4uh1KXKSk99qZTJQIEuuQ3jEC9laiOzasDoj3Luo=
 github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484 h1:lGRDHtHjkdX8LulFVOvP3rO3d2ngVMM1eQvODpkMDRc=

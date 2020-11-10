@@ -7,8 +7,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-msgio"
-	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/utils"
@@ -16,13 +16,13 @@ import (
 
 // Send is a helper method - writes a protobuf go data object to a network stream.
 // then the stream will be returned and caller is able to read the response from it.
-func Send(host core.Host, peerID peer.ID, data proto.Message) (network.Stream, error) {
+func Send(host core.Host, protocolID protocol.ID, peerID peer.ID, data proto.Message) (network.Stream, error) {
 	raw, err := utils.Proto.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
 
-	stream, err := host.NewStream(context.Background(), peerID, defaults.WiredProtocol)
+	stream, err := host.NewStream(context.Background(), peerID, protocolID)
 	if err != nil {
 		return nil, err
 	}

@@ -65,7 +65,7 @@ func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
 		listenAddrs,
 		muxers,
 		libp2p.Identity(priv),
-		getPublicRouter(),
+		getPublicRouter(config.Network),
 		libp2p.NATPortMap(),
 		libp2p.EnableAutoRelay(),
 	)
@@ -81,7 +81,7 @@ func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
 		Host:      rhost.Wrap(localHost, p2pDHT),
 		network:   config.Network,
 		Wired:     wired.NewWiredProtocol(localHost, config.Network, chain),
-		Broadcast: broadcast.NewBroadcastProtocol(localHost, make(chan *ngtypes.Block), make(chan *ngtypes.Tx)),
+		Broadcast: broadcast.NewBroadcastProtocol(localHost, config.Network, make(chan *ngtypes.Block), make(chan *ngtypes.Tx)),
 	}
 
 	if !config.DisableDiscovery {

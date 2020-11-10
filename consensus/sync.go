@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ngchain/ngcore/ngp2p/defaults"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p"
@@ -58,8 +56,8 @@ func (mod *syncModule) loop() {
 
 		// do get status
 		for _, id := range mod.localNode.Peerstore().Peers() {
-			p, _ := mod.localNode.Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
-			if p == defaults.WiredProtocol && id != mod.localNode.ID() {
+			p, _ := mod.localNode.Peerstore().FirstSupportedProtocol(id, string(mod.localNode.GetWiredProtocol()))
+			if p == string(mod.localNode.GetWiredProtocol()) && id != mod.localNode.ID() {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Warn(err)
