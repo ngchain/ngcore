@@ -6,21 +6,16 @@ import (
 	"time"
 )
 
-// FIXME: before init network should manually init PK & Sign
+// FIXME: before initializing new network, should manually init PK & Sign
 // use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
-	NETWORK                  = NetworkType_TESTNET
-	GenesisAddressBase58     = "Jqc3bB6vtsDSfeuewG2fskvCkEXcpqGz9u2h4P4wFWsPDe7g"
-	GenesisGenerateTxSignHex = "bbef197b1c74a762390bf37a7e17830e0e845239937dece90c09d64a9e82a3e8b683ad41ebb6a879c14cbf2e8070c3b1b5cbd1c32da2fcc0a4a637d572858a8d"
-	GenesisBlockNonceHex     = "e81f86c132a0aada"
+	GenesisAddressBase58 = "QVSdpMLFwUtECb3SxgLt8YeQwkHGmzh5ZexjGCUB2E5koFhJ"
 )
 
 // decoded genesis variables
 var (
-	GenesisAddress, _         = NewAddressFromBS58(GenesisAddressBase58)
-	GenesisGenerateTxSign, _  = hex.DecodeString(GenesisGenerateTxSignHex)
-	genesisBlockNonceBytes, _ = hex.DecodeString(GenesisBlockNonceHex)
-	genesisBlockNonce         = new(big.Int).SetBytes(genesisBlockNonceBytes)
+	GenesisAddress, _ = NewAddressFromBS58(GenesisAddressBase58)
+	AvailableNetworks = []NetworkType{NetworkType_ZERONET, NetworkType_TESTNET}
 )
 
 // PoW const
@@ -37,13 +32,10 @@ var (
 	// Max Value of Target
 	MaxTarget = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
-
-	// GenesisTimestamp must be the time chain started, or the difficulty algo wont work
-	GenesisTimestamp = time.Date(2020, time.July, 28, 14, 0, 0, 0, time.UTC).Unix()
 )
 
 // Maximum sizes
-var (
+const (
 	// !NO MAX LIMITATION!
 	//BlockMaxTxsSize = 1 << 25 // 32M
 	TxMaxExtraSize = 1 << 20 // if more than 1m, extra should be separated ot multi append
@@ -53,27 +45,74 @@ var (
 	HashSize = 32
 	// The length of a nonce bytes
 	NonceSize = 8 // nonce uses 8 bytes
+
+	// some for tx
+	AddressSize   = 35
+	SignatureSize = 64 // signature uses 64 bytes, R 32 & S 32
 )
 
 // Unit const
 const (
-	FloatNG    = 1000000.0
-	mega       = 1000000
-	OneBlockNG = 10
+	FloatNG = 1_000_000_000_000_000_000.0
+	pico    = 1_000_000_000_000_000_000 // 10^(-18)
 )
 
-// Units variables
+// Units variables:
+//https://en.wikipedia.org/wiki/Unit_prefix
+//https://en.wikipedia.org/wiki/Metric_prefix
 var (
-	MegaNG            = new(big.Int).Mul(NG, big.NewInt(mega))
-	MegaNGSymbol      = "MNG"
-	NG                = new(big.Int).SetUint64(mega)
-	NGSymbol          = "NG"
-	MicroNG           = GetBig1()
-	MicroNGSymbol     = "μNG"
-	OneBlockBigReward = new(big.Int).Mul(NG, big.NewInt(OneBlockNG)) // 10NG
+	NG           = new(big.Int).SetUint64(pico)
+	NGSymbol     = "NG"
+	picoNG       = big.NewInt(1)
+	picoNGSymbol = "pNG"
 )
 
 // GetEmptyHash return an empty hash
 func GetEmptyHash() []byte {
 	return make([]byte, HashSize)
+}
+
+func GetGenesisGenerateTxSignature(network NetworkType) []byte {
+	switch network {
+	case NetworkType_ZERONET:
+		genesisGenerateTxSign, _ := hex.DecodeString("1aca22bb998d0bea643f75c126b8be259839aa4c2c13829d737c57c8f20371edbc7014a79e2af97e8119c92fcc9f4642c5f42639cad59429fbc4336ee8dcc858")
+		return genesisGenerateTxSign
+	case NetworkType_TESTNET:
+		genesisGenerateTxSign, _ := hex.DecodeString("5ca0c8099874dd61b4ebbfb6e984f5f1e7f6287d1093f05d3ed973a5fb3f3352bf7fc3c78d93dcaf077f98602338445e4187ae5f225a2d79ff9b36ec8c61b98a")
+		return genesisGenerateTxSign
+	case NetworkType_MAINNET:
+		panic("not ready for mainnet")
+	default:
+		panic("unknown network")
+	}
+}
+
+func GetGenesisBlockNonce(network NetworkType) []byte {
+	switch network {
+	case NetworkType_ZERONET:
+		genesisBlockNonce, _ := hex.DecodeString("c800120f3ae9a2fc")
+		return genesisBlockNonce
+	case NetworkType_TESTNET:
+		genesisBlockNonce, _ := hex.DecodeString("115c488d6d09dc41")
+		return genesisBlockNonce
+	case NetworkType_MAINNET:
+		panic("not ready for mainnet")
+	default:
+		panic("unknown network")
+	}
+}
+
+// GenesisTimestamp must be the time chain started, or the difficulty algo wont work
+// FIXME: should be the time network starts
+func GetGenesisTimestamp(network NetworkType) int64 {
+	switch network {
+	case NetworkType_ZERONET:
+		return time.Date(2020, time.October, 24, 0, 0, 0, 0, time.UTC).Unix()
+	case NetworkType_TESTNET:
+		return time.Date(2020, time.November, 11, 11, 11, 11, 11, time.UTC).Unix()
+	case NetworkType_MAINNET:
+		panic("not ready for mainnet")
+	default:
+		panic("unknown network")
+	}
 }

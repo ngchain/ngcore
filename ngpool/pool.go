@@ -2,10 +2,13 @@ package ngpool
 
 import (
 	"bytes"
+	"sync"
+
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
-	"sync"
 )
 
 var log = logging.Logger("ngpool")
@@ -18,19 +21,26 @@ type TxPool struct {
 
 	db    *badger.DB
 	txMap map[uint64]*ngtypes.Tx // priority first
+
+	chain     *ngchain.Chain
+	localNode *ngp2p.LocalNode
 }
 
-var pool *TxPool
-
-func Init(db *badger.DB) {
-	pool = &TxPool{
+func Init(db *badger.DB, chain *ngchain.Chain, localNode *ngp2p.LocalNode) *TxPool {
+	pool := &TxPool{
+		Mutex: sync.Mutex{},
 		db:    db,
 		txMap: make(map[uint64]*ngtypes.Tx),
+
+		chain:     chain,
+		localNode: localNode,
 	}
+
+	return pool
 }
 
-// IsInPool checks one tx is in pool or not. TODO: export it into rpc.
-func IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) {
+// IsInPool checks one tx is in pool or not.
+func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) {
 	for _, txInQueue := range pool.txMap {
 		if bytes.Equal(txInQueue.Hash(), txHash) {
 			return true, txInQueue

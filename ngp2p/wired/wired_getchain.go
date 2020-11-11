@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ngchain/ngcore/ngchain"
+
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngp2p/message"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *Wired) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream, err error) {
+func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream, err error) {
 	if len(from) == 0 {
 		err := fmt.Errorf("getchain's from is nil")
 		log.Debug(err)
@@ -43,7 +43,7 @@ func (w *Wired) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, s
 
 	// create message data
 	req := &message.Message{
-		Header:  NewHeader(w.host, id, message.MessageType_GETCHAIN),
+		Header:  NewHeader(w.host, w.network, id, message.MessageType_GETCHAIN),
 		Payload: payload,
 	}
 
@@ -58,7 +58,7 @@ func (w *Wired) GetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, s
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	stream, err = Send(w.host, peerID, req)
+	stream, err = Send(w.host, w.protocolID, peerID, req)
 	if err != nil {
 		log.Debug(err)
 		return nil, nil, err
@@ -76,18 +76,18 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 
 	err := utils.Proto.Unmarshal(msg.Payload, getChainPayload)
 	if err != nil {
-		w.reject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.MessageId, stream, err)
 		return
 	}
 
-	lastFromHash := ngtypes.GetGenesisBlockHash()
+	lastFromHash := ngtypes.GetGenesisBlockHash(w.network)
 
 	if len(getChainPayload.GetFrom()) != 0 {
 		// do hashes check first
 		for i := 0; i < len(getChainPayload.GetFrom()); i++ {
-			_, err := ngchain.GetBlockByHash(getChainPayload.GetFrom()[i])
+			_, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[i])
 			if err != nil {
-				// failed to get block from local chain means there is a fork since this block and its prevBlock is the last message one
+				// failed to get block from local sendChain means there is a fork since this block and its prevBlock is the last message one
 				break
 			}
 
@@ -98,9 +98,9 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 
 	log.Debugf("getchain requests from %x to %x", lastFromHash, getChainPayload.GetTo())
 
-	cur, err := ngchain.GetBlockByHash(lastFromHash)
+	cur, err := w.chain.GetBlockByHash(lastFromHash)
 	if err != nil {
-		w.reject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.MessageId, stream, err)
 		return
 	}
 
@@ -111,16 +111,16 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		}
 
 		nextHeight := cur.GetHeight() + 1
-		cur, err = ngchain.GetBlockByHeight(nextHeight)
+		cur, err = w.chain.GetBlockByHeight(nextHeight)
 		if err != nil {
-			log.Debugf("local chain is missing block@%d: %s", nextHeight, err)
+			log.Debugf("local sendChain is missing block@%d: %s", nextHeight, err)
 			break
 		}
 
 		blocks = append(blocks, cur)
 	}
 
-	w.chain(msg.Header.MessageId, stream, blocks...)
+	w.sendChain(msg.Header.MessageId, stream, blocks...)
 }
 
 func fmtFromField(from [][]byte) string {

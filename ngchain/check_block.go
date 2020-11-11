@@ -3,13 +3,14 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // CheckBlock checks block before putting into chain.
-func CheckBlock(block *ngtypes.Block) error {
+func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 	if block.IsGenesis() {
 		return nil
 	}
@@ -20,8 +21,8 @@ func CheckBlock(block *ngtypes.Block) error {
 	}
 
 	prevHash := block.GetPrevHash()
-	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash()) {
-		prevBlock, err := GetBlockByHash(prevHash)
+	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash(chain.Network)) {
+		prevBlock, err := chain.GetBlockByHash(prevHash)
 		if err != nil {
 			return err
 		}
@@ -32,7 +33,7 @@ func CheckBlock(block *ngtypes.Block) error {
 	}
 
 	err := chain.View(func(txn *badger.Txn) error {
-		return ngstate.CheckTxs(txn, block.Txs...)
+		return ngstate.CheckBlockTxs(txn, block)
 	})
 	if err != nil {
 		return err

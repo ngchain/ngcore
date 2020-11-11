@@ -1,15 +1,16 @@
 package miner_test
 
 import (
-	miner "github.com/ngchain/ngcore/consensus/miner"
-	"github.com/ngchain/ngcore/ngtypes"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ngchain/ngcore/consensus/miner"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func TestPoWMiner(t *testing.T) {
-	block := ngtypes.GetGenesisBlock()
+	block := ngtypes.GetGenesisBlock(ngtypes.NetworkType_TESTNET)
 
 	block.Difficulty = big.NewInt(100).Bytes() // lower for avoid timeout
 
@@ -23,7 +24,7 @@ func TestPoWMiner(t *testing.T) {
 		}
 	}()
 
-	m.Start(block)
+	m.Mine(block)
 	time.Sleep(time.Minute)
 
 	m.Stop()

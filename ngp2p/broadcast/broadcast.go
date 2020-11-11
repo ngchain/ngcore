@@ -15,8 +15,12 @@ type Broadcast struct {
 	PubSub *pubsub.PubSub
 	node   core.Host
 
+	network       ngtypes.NetworkType
 	topics        map[string]*pubsub.Topic
 	subscriptions map[string]*pubsub.Subscription
+
+	blockTopic string
+	txTopic    string
 
 	OnBlock chan *ngtypes.Block
 	OnTx    chan *ngtypes.Tx
@@ -24,16 +28,21 @@ type Broadcast struct {
 
 var log = logging.Logger("bcast")
 
-func NewBroadcastProtocol(node core.Host, blockCh chan *ngtypes.Block, txCh chan *ngtypes.Tx) *Broadcast {
+func NewBroadcastProtocol(node core.Host, network ngtypes.NetworkType, blockCh chan *ngtypes.Block, txCh chan *ngtypes.Tx) *Broadcast {
 	var err error
 
 	b := &Broadcast{
 		PubSub:        nil,
 		node:          node,
+		network:       network,
 		topics:        make(map[string]*pubsub.Topic),
 		subscriptions: make(map[string]*pubsub.Subscription),
-		OnBlock:       blockCh,
-		OnTx:          txCh,
+
+		blockTopic: defaults.GetBroadcastBlockTopic(network),
+		txTopic:    defaults.GetBroadcastTxTopic(network),
+
+		OnBlock: blockCh,
+		OnTx:    txCh,
 	}
 
 	b.PubSub, err = pubsub.NewFloodSub(context.Background(), node)
@@ -41,22 +50,22 @@ func NewBroadcastProtocol(node core.Host, blockCh chan *ngtypes.Block, txCh chan
 		panic(err)
 	}
 
-	b.topics[defaults.BroadcastBlockTopic], err = b.PubSub.Join(defaults.BroadcastBlockTopic)
+	b.topics[b.blockTopic], err = b.PubSub.Join(b.blockTopic)
 	if err != nil {
 		panic(err)
 	}
 
-	b.subscriptions[defaults.BroadcastBlockTopic], err = b.topics[defaults.BroadcastBlockTopic].Subscribe()
+	b.subscriptions[b.blockTopic], err = b.topics[b.blockTopic].Subscribe()
 	if err != nil {
 		panic(err)
 	}
 
-	b.topics[defaults.BroadcastTxTopic], err = b.PubSub.Join(defaults.BroadcastTxTopic)
+	b.topics[b.txTopic], err = b.PubSub.Join(b.txTopic)
 	if err != nil {
 		panic(err)
 	}
 
-	b.subscriptions[defaults.BroadcastTxTopic], err = b.topics[defaults.BroadcastTxTopic].Subscribe()
+	b.subscriptions[b.txTopic], err = b.topics[b.txTopic].Subscribe()
 	if err != nil {
 		panic(err)
 	}
@@ -65,8 +74,8 @@ func NewBroadcastProtocol(node core.Host, blockCh chan *ngtypes.Block, txCh chan
 }
 
 func (b *Broadcast) GoServe() {
-	go b.blockListener(b.subscriptions[defaults.BroadcastBlockTopic])
-	go b.txListener(b.subscriptions[defaults.BroadcastTxTopic])
+	go b.blockListener(b.subscriptions[b.blockTopic])
+	go b.txListener(b.subscriptions[b.txTopic])
 }
 
 func (b *Broadcast) blockListener(sub *pubsub.Subscription) {

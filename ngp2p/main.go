@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngchain"
+
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/ngchain/ngcore/ngp2p/broadcast"
@@ -22,16 +25,24 @@ var log = logging.Logger("ngp2p")
 // LocalNode is the local host on p2p network
 type LocalNode struct {
 	host.Host // lib-p2p host
+	network   ngtypes.NetworkType
+	P2PConfig P2PConfig
+
 	*wired.Wired
 	*broadcast.Broadcast
 }
 
-var localNode *LocalNode
+type P2PConfig struct {
+	P2PKeyFile       string
+	Network          ngtypes.NetworkType
+	Port             int
+	DisableDiscovery bool
+}
 
 // InitLocalNode creates a new node with its implemented protocols.
-func InitLocalNode(port int) {
+func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
 	ctx := context.Background()
-	priv := getP2PKey()
+	priv := keytools.GetP2PKey(config.P2PKeyFile)
 
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),
@@ -39,8 +50,8 @@ func InitLocalNode(port int) {
 	)
 
 	listenAddrs := libp2p.ListenAddrStrings(
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
-		fmt.Sprintf("/ip6/::/tcp/%d", port),
+		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", config.Port),
+		fmt.Sprintf("/ip6/::/tcp/%d", config.Port),
 	)
 
 	muxers := libp2p.ChainOptions(
@@ -54,7 +65,7 @@ func InitLocalNode(port int) {
 		listenAddrs,
 		muxers,
 		libp2p.Identity(priv),
-		getPublicRouter(),
+		getPublicRouter(config.Network),
 		libp2p.NATPortMap(),
 		libp2p.EnableAutoRelay(),
 	)
@@ -63,30 +74,25 @@ func InitLocalNode(port int) {
 	}
 
 	// init
-	fmt.Printf("P2P Listening on: /ip4/<External IP>/tcp/%d/p2p/%s \n", port, localHost.ID().String())
+	log.Warnf("P2P Listening on: /ip4/<External IP>/tcp/%d/p2p/%s \n", config.Port, localHost.ID().String())
 
-	initMDNS(ctx, localHost)
-
-	localNode = &LocalNode{
+	localNode := &LocalNode{
 		// sub modules
 		Host:      rhost.Wrap(localHost, p2pDHT),
-		Wired:     wired.NewWiredProtocol(localHost),
-		Broadcast: broadcast.NewBroadcastProtocol(localHost, make(chan *ngtypes.Block), make(chan *ngtypes.Tx)),
+		network:   config.Network,
+		Wired:     wired.NewWiredProtocol(localHost, config.Network, chain),
+		Broadcast: broadcast.NewBroadcastProtocol(localHost, config.Network, make(chan *ngtypes.Block), make(chan *ngtypes.Tx)),
 	}
 
-	activeDHT(ctx, p2pDHT, localNode)
-}
-
-func GoServe() {
-	localNode.Wired.GoServe()
-	localNode.Broadcast.GoServe()
-}
-
-// GetLocalNode returns the initialized LocalNode in module.
-func GetLocalNode() *LocalNode {
-	if localNode == nil {
-		panic("localNode is closed")
+	if !config.DisableDiscovery {
+		initMDNS(ctx, localHost)
+		activeDHT(ctx, p2pDHT, localNode)
 	}
 
 	return localNode
+}
+
+func (localNode *LocalNode) GoServe() {
+	localNode.Wired.GoServe()
+	localNode.Broadcast.GoServe()
 }

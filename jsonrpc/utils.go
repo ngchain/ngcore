@@ -3,7 +3,7 @@ package jsonrpc
 import (
 	"math/big"
 
-	"github.com/maoxs2/go-jsonrpc2"
+	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -20,10 +20,10 @@ type getAddressReply struct {
 	Address ngtypes.Address
 }
 
-// getAddressFunc helps client to get the schnorr publickey of private keys
-func (s *Server) getAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+// publicKeyToAddressFunc helps client to get the schnorr publickey of private keys
+func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params getAddressParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

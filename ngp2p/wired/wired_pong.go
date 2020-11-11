@@ -7,8 +7,8 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) bool {
-	log.Debugf("sending pong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
+func (w *Wired) sendPong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) bool {
+	log.Debugf("sending sendPong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &message.PongPayload{
 		Origin:               origin,
@@ -23,7 +23,7 @@ func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, 
 	}
 
 	resp := &message.Message{
-		Header:  NewHeader(w.host, uuid, message.MessageType_PONG),
+		Header:  NewHeader(w.host, w.network, uuid, message.MessageType_PONG),
 		Payload: rawPayload,
 	}
 
@@ -40,11 +40,11 @@ func (w *Wired) pong(uuid []byte, stream network.Stream, origin, latest uint64, 
 	// send the response
 	err = Reply(stream, resp)
 	if err != nil {
-		log.Debugf("failed sending pong to: %s: %s", stream.Conn().RemotePeer(), err)
+		log.Debugf("failed sending sendPong to: %s: %s", stream.Conn().RemotePeer(), err)
 		return false
 	}
 
-	log.Debugf("sent pong to: %s with message id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("sent sendPong to: %s with message id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }

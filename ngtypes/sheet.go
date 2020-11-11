@@ -39,8 +39,6 @@ func init() {
 	GenesisSheet = &Sheet{
 		PrevBlockHash: make([]byte, HashSize),
 		Accounts:      accounts,
-		Anonymous: map[string][]byte{
-			GenesisAddress.String(): GetBig0Bytes(),
-		},
+		Anonymous:     GenesisBalances,
 	}
 }

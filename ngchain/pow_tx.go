@@ -8,7 +8,7 @@ import (
 )
 
 // GetTxByHash gets the tx with hash from db, so the tx must be applied.
-func GetTxByHash(hash []byte) (*ngtypes.Tx, error) {
+func (chain *Chain) GetTxByHash(hash []byte) (*ngtypes.Tx, error) {
 	var tx = &ngtypes.Tx{}
 
 	if err := chain.View(func(txn *badger.Txn) error {

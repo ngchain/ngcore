@@ -15,12 +15,13 @@ import (
 // TestDeserialize test unsigned transaction whether it is possible to deserialize.
 func TestDeserialize(t *testing.T) {
 	tx := ngtypes.NewUnsignedTx(
+		ngtypes.NetworkType_TESTNET,
 		ngtypes.TxType_GENERATE,
 		nil,
 		0,
 		[][]byte{ngtypes.GenesisAddress},
 		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
-		ngtypes.GetBig0(),
+		big.NewInt(0),
 		nil,
 	)
 
@@ -38,12 +39,13 @@ func TestDeserialize(t *testing.T) {
 // TestTransaction_Signature test generated Key pair.
 func TestTransaction_Signature(t *testing.T) {
 	o := ngtypes.NewUnsignedTx(
+		ngtypes.NetworkType_TESTNET,
 		0,
 		nil,
 		1,
 		[][]byte{ngtypes.GenesisAddress},
-		[]*big.Int{ngtypes.GetBig0()},
-		ngtypes.GetBig0(),
+		[]*big.Int{big.NewInt(0)},
+		big.NewInt(0),
 		nil,
 	)
 	priv1, _ := secp256k1.GeneratePrivateKey()
@@ -61,31 +63,36 @@ func TestTransaction_Signature(t *testing.T) {
 }
 
 func TestGetGenesisGenerate(t *testing.T) {
-	gg := ngtypes.GetGenesisGenerateTx()
-	if err := gg.Verify(ngtypes.Address(gg.GetParticipants()[0]).PubKey()); err != nil {
-		t.Log(err)
-		t.Fail()
+	for _, net := range ngtypes.AvailableNetworks {
+		gg := ngtypes.GetGenesisGenerateTx(net)
+		if err := gg.Verify(ngtypes.Address(gg.GetParticipants()[0]).PubKey()); err != nil {
+			t.Log(err)
+			t.Fail()
+		}
 	}
+
 }
 
 func TestTxJSON(t *testing.T) {
-	tx1 := ngtypes.GetGenesisGenerateTx()
-	jsonTx, err := utils.JSON.Marshal(tx1)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	for _, net := range ngtypes.AvailableNetworks {
+		tx1 := ngtypes.GetGenesisGenerateTx(net)
+		jsonTx, err := utils.JSON.Marshal(tx1)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
-	t.Log(string(jsonTx))
+		t.Log(string(jsonTx))
 
-	tx2 := &ngtypes.Tx{}
-	err = utils.JSON.Unmarshal(jsonTx, &tx2)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+		tx2 := &ngtypes.Tx{}
+		err = utils.JSON.Unmarshal(jsonTx, &tx2)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 
-	if !proto.Equal(tx1, tx2) {
-		t.Error("tx 2 is different from 1")
+		if !proto.Equal(tx1, tx2) {
+			t.Error("tx 2 is different from 1")
+		}
 	}
 }

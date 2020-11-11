@@ -3,15 +3,12 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ngchain/ngcore/ngchain"
-	"github.com/ngchain/ngcore/ngpool"
 	"math/big"
 	"reflect"
 
-	"github.com/maoxs2/go-jsonrpc2"
+	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 
-	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/secp256k1"
@@ -25,7 +22,7 @@ type sendTxParams struct {
 func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params sendTxParams
 
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -44,7 +41,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = ngpool.PutNewTxFromLocal(tx)
+	err = s.pow.Pool.PutNewTxFromLocal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -67,7 +64,7 @@ type signTxParams struct {
 // signTxFunc receives the Proto encoded bytes of unsigned Tx and return the Proto encoded bytes of signed Tx
 func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params signTxParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -129,7 +126,7 @@ type genTransactionParams struct {
 // all genTx should reply protobuf encoded bytes
 func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genTransactionParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -146,7 +143,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 			}
 		case float64:
 			accountID := uint64(p)
-			account, err := ngstate.GetAccountByNum(accountID)
+			account, err := s.pow.State.GetAccountByNum(accountID)
 			if err != nil {
 				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -172,8 +169,9 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_TRANSACTION,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		participants,
 		values,
@@ -205,20 +203,21 @@ type genRegisterParams struct {
 
 func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genRegisterParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_REGISTER,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		1,
 		[][]byte{
 			params.Owner,
 		},
-		[]*big.Int{ngtypes.GetBig0()},
+		[]*big.Int{big.NewInt(0)},
 		new(big.Int).Mul(ngtypes.NG, big.NewInt(10)),
 		utils.PackUint64LE(params.Num),
 	)
@@ -246,7 +245,7 @@ type genLogoutParams struct {
 
 func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genLogoutParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -261,8 +260,9 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_LOGOUT,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,
@@ -293,7 +293,7 @@ type genAssignParams struct {
 
 func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genAssignParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -308,8 +308,9 @@ func (s *Server) genAssignFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_ASSIGN,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,
@@ -340,7 +341,7 @@ type genAppendParams struct {
 
 func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genAppendParams
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -355,8 +356,9 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	}
 
 	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
 		ngtypes.TxType_APPEND,
-		ngchain.GetLatestBlockHash(),
+		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
 		nil,

@@ -18,36 +18,43 @@ var (
 	addrToNumPrefix      = []byte("an:")
 )
 
-var state *State
-
 // State is a global set of account & txs status
 // (nil) --> B0(Prev: S0) --> B1(Prev: S1) -> B2(Prev: S2)
 //  init (S0,S0)  -->   (S0,S1)  -->    (S1, S2)
 type State struct {
 	*badger.DB
+	vms map[ngtypes.AccountNum]*VM
 }
 
-// InitStateDB will initialize the state in the given db, with the sheet data
-func InitStateDB(db *badger.DB, sheet *ngtypes.Sheet) {
-	state = &State{db}
+// InitStateFromSheet will initialize the state in the given db, with the sheet data
+func InitStateFromSheet(db *badger.DB, sheet *ngtypes.Sheet) *State {
+	state := &State{
+		DB:  db,
+		vms: make(map[ngtypes.AccountNum]*VM),
+	}
 	err := state.Update(func(txn *badger.Txn) error {
 		return initFromSheet(txn, sheet)
 	})
 	if err != nil {
 		panic(err)
 	}
+
+	return state
 }
 
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
-func InitStateFromGenesis(db *badger.DB) {
-	state = &State{db}
+func InitStateFromGenesis(db *badger.DB, network ngtypes.NetworkType) *State {
+	state := &State{
+		DB:  db,
+		vms: make(map[ngtypes.AccountNum]*VM),
+	}
 	err := state.Update(func(txn *badger.Txn) error {
 		err := initFromSheet(txn, ngtypes.GenesisSheet)
 		if err != nil {
 			return err
 		}
 
-		err = Upgrade(txn, ngtypes.GetGenesisBlock())
+		err = state.Upgrade(txn, ngtypes.GetGenesisBlock(network))
 		if err != nil {
 			return err
 		}
@@ -57,6 +64,8 @@ func InitStateFromGenesis(db *badger.DB) {
 	if err != nil {
 		panic(err)
 	}
+
+	return state
 }
 
 // initFromSheet will overwrite a state from the given sheet
@@ -85,8 +94,8 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 
 var regenerateLock sync.Mutex
 
-// Regenerate works for doing fork and remove all    
-func Regenerate() error {
+// Regenerate works for doing fork and remove all
+func (state *State) Regenerate() error {
 	regenerateLock.Lock()
 	defer regenerateLock.Unlock()
 
@@ -111,7 +120,7 @@ func Regenerate() error {
 				return err
 			}
 
-			err = Upgrade(txn, b)
+			err = state.Upgrade(txn, b)
 			if err != nil {
 				return err
 			}
@@ -127,8 +136,8 @@ func Regenerate() error {
 }
 
 // Upgrade will apply block's txs on current state
-func Upgrade(txn *badger.Txn, block *ngtypes.Block) error {
-	err := HandleTxs(txn, block.Txs...)
+func (state *State) Upgrade(txn *badger.Txn, block *ngtypes.Block) error {
+	err := state.HandleTxs(txn, block.Txs...)
 	if err != nil {
 		return err
 	}

@@ -1,30 +1,18 @@
 package ngstate
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/c0mm4nd/wasman"
 )
 
-// Call when applying new tx
-func (vm *VM) Call(tx *ngtypes.Tx) {
+// CallOnTx when applying new tx
+func (vm *VM) CallOnTx(ins *wasman.Instance) {
 	vm.RLock()
 	defer vm.RUnlock()
 
-	export := vm.instance.GetExport("main") // main's params should be ( i64)
-	if export == nil {
-		return
-	}
+	// TODO: add tx into the external modules
 
-	f := export.Func()
-	if f == nil {
-		return
-	}
-
-	ok, err := f.Call(tx)
+	_, _, err := ins.CallExportedFunc("main") // main's params should be ( i64)
 	if err != nil {
 		vm.logger.Error(err)
-	}
-
-	if !(ok.(bool)) {
-		vm.logger.Error("failed on call")
 	}
 }

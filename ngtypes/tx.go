@@ -25,10 +25,10 @@ var (
 )
 
 // NewUnsignedTx will return an unsigned tx, must using Signature().
-func NewUnsignedTx(txType TxType, prevBlockHash []byte, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, extraData []byte) *Tx {
+func NewUnsignedTx(network NetworkType, txType TxType, prevBlockHash []byte, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, extraData []byte) *Tx {
 
 	return &Tx{
-		Network:       NETWORK,
+		Network:       network,
 		Type:          txType,
 		PrevBlockHash: prevBlockHash,
 		Convener:      convener,
@@ -47,9 +47,10 @@ func (x *Tx) IsSigned() bool {
 
 // Verify helps verify the transaction whether signed by the public key owner.
 func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
-	if x.Network != NETWORK {
-		return fmt.Errorf("tx's network id is incorrect")
-	}
+	//if x.Network != Network {
+	//	return fmt.Errorf("tx's network id is incorrect")
+	//}
+	// TODO: do network check on consensus
 
 	if x.Sign == nil {
 		return fmt.Errorf("unsigned transaction")
@@ -172,7 +173,7 @@ func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
 }
 
 // CheckGenerate does a self check for generate tx
-func (x *Tx) CheckGenerate() error {
+func (x *Tx) CheckGenerate(blockHeight uint64) error {
 	if x == nil {
 		return errors.New("generate is missing header")
 	}
@@ -185,11 +186,11 @@ func (x *Tx) CheckGenerate() error {
 		return fmt.Errorf("generate should have same len with participants")
 	}
 
-	if !bytes.Equal(x.TotalExpenditure().Bytes(), OneBlockBigReward.Bytes()) {
-		return fmt.Errorf("wrong block reward")
+	if !(x.TotalExpenditure().Cmp(GetBlockReward(blockHeight)) == 0) {
+		return fmt.Errorf("wrong block reward: expect %s but value is %s", GetBlockReward(blockHeight), x.TotalExpenditure())
 	}
 
-	if !bytes.Equal(x.GetFee(), GetBig0Bytes()) {
+	if !bytes.Equal(x.GetFee(), big.NewInt(0).Bytes()) {
 		return fmt.Errorf("generate's fee should be ZERO")
 	}
 
@@ -220,11 +221,11 @@ func (x *Tx) CheckRegister() error {
 		return fmt.Errorf("register should have only one value")
 	}
 
-	if !bytes.Equal(x.GetValues()[0], GetBig0Bytes()) {
+	if !bytes.Equal(x.GetValues()[0], big.NewInt(0).Bytes()) {
 		return fmt.Errorf("register should have only one 0 value")
 	}
 
-	if new(big.Int).SetBytes(x.GetFee()).Cmp(OneBlockBigReward) < 0 {
+	if new(big.Int).SetBytes(x.GetFee()).Cmp(RegisterFee) < 0 {
 		return fmt.Errorf("register should have at least 10NG(one block reward) fee")
 	}
 
@@ -372,7 +373,7 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 
 // TotalExpenditure helps calculate the total expenditure which the tx caller should pay
 func (x *Tx) TotalExpenditure() *big.Int {
-	total := GetBig0()
+	total := big.NewInt(0)
 
 	for i := range x.Values {
 		total.Add(total, new(big.Int).SetBytes(x.Values[i]))
@@ -381,18 +382,19 @@ func (x *Tx) TotalExpenditure() *big.Int {
 	return new(big.Int).Add(new(big.Int).SetBytes(x.Fee), total)
 }
 
-func GetGenesisGenerateTx() *Tx {
-	ggtx := NewUnsignedTx(
-		TxType_GENERATE,
-		nil,
-		0,
-		[][]byte{GenesisAddress},
-		[]*big.Int{OneBlockBigReward},
-		GetBig0(),
-		nil,
-	)
+func GetGenesisGenerateTx(network NetworkType) *Tx {
+	ggtx := &Tx{
+		Network:       network,
+		Type:          TxType_GENERATE,
+		PrevBlockHash: nil,
+		Convener:      0,
+		Participants:  [][]byte{GenesisAddress},
+		Fee:           big.NewInt(0).Bytes(),
+		Values:        BigIntsToBytesList([]*big.Int{GetBlockReward(0)}),
+		Extra:         nil,
+		Sign:          nil,
+	}
 
-	ggtx.Sign = GenesisGenerateTxSign
-
+	ggtx.Sign = GetGenesisGenerateTxSignature(network)
 	return ggtx
 }

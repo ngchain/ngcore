@@ -35,7 +35,7 @@ package ngstate_test
 //			big.NewInt(0),
 //			nil,
 //		)
-//		contract.Call(fakeTx) // will receive error but main thread wont panic
+//		contract.CallOnTx(fakeTx) // will receive error but main thread wont panic
 //
 //		return nil
 //	})

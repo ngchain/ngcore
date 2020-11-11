@@ -1,10 +1,17 @@
 # ChangeLog
 
-## v0.0.18
+## v0.0.19
 
 - TODO: add fast-sync mode
 - TODO: add GetSheet and Sheet p2p message
-- TODO: add storage for the state
+- DONE: support multi-network
+- DONE: add regression testnet
+
+## v0.0.18
+
+- DONE: add storage for the state
+- DONE: use wasm vm & imports bindings
+- DONE: change wasm engine
 
 ## v0.0.17
 

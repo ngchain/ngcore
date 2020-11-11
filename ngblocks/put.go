@@ -2,6 +2,7 @@ package ngblocks
 
 import (
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -9,6 +10,7 @@ import (
 
 // PutNewBlock puts a new block into db and updates the tags.
 // should check block before putting
+// dev should continue upgrading the state after PutNewBlock
 func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 	if block == nil {
 		return fmt.Errorf("block is nil")
@@ -39,10 +41,7 @@ func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 		return err
 	}
 
-	// TODO: continue upgrade the state
-
 	return nil
-
 }
 
 func PutTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {

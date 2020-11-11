@@ -1,29 +1,24 @@
 package consensus
 
 import (
-	"fmt"
-	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"sort"
 	"sync"
 
-	"github.com/ngchain/ngcore/ngchain"
-
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/ngchain/ngcore/ngp2p"
 )
 
 func (mod *syncModule) bootstrap() {
-	peerStore := ngp2p.GetLocalNode().Peerstore()
+	peerStore := mod.localNode.Peerstore()
 
 	// init the store
 	var wg sync.WaitGroup
 	peers := peerStore.Peers()
-	localID := ngp2p.GetLocalNode().ID()
+	localID := mod.localNode.ID()
 	for _, id := range peers {
 		wg.Add(1)
 		go func(id peer.ID) {
-			p, _ := ngp2p.GetLocalNode().Peerstore().FirstSupportedProtocol(id, defaults.WiredProtocol)
-			if p == defaults.WiredProtocol && id != localID {
+			p, _ := mod.localNode.Peerstore().FirstSupportedProtocol(id, string(mod.localNode.GetWiredProtocol()))
+			if p == string(mod.localNode.GetWiredProtocol()) && id != localID {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Debug(err)
@@ -36,7 +31,8 @@ func (mod *syncModule) bootstrap() {
 
 	peerNum := len(mod.store)
 	if peerNum < minDesiredPeerCount {
-		fmt.Println("lack remote peer for bootstrapping")
+		log.Warnf("lack remote peer for bootstrapping")
+		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor fork
 	}
 
 	slice := make([]*remoteRecord, len(mod.store))
@@ -52,8 +48,9 @@ func (mod *syncModule) bootstrap() {
 	})
 
 	// initial sync
+	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	for _, r := range slice {
-		if r.shouldSync() {
+		if r.shouldSync(latestHeight) {
 			err := mod.doInit(r)
 			if err != nil {
 				panic(err)
@@ -74,18 +71,17 @@ func (mod *syncModule) doInit(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	fmt.Printf("Start initial syncing with remote node: %s\n", record.id)
-	log.Warnf("Start initial syncing with remote node %s", record.id)
+	log.Warnf("Mine initial syncing with remote node %s", record.id)
 
 	// get chain
-	for ngchain.GetLatestBlockHeight() < record.latest {
+	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
 		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < len(chain); i++ {
-			err = ngchain.ApplyBlock(chain[i])
+			err = mod.pow.Chain.ApplyBlock(chain[i])
 			if err != nil {
 				return err
 			}

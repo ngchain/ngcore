@@ -2,8 +2,11 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"github.com/maoxs2/go-jsonrpc2"
-	"github.com/ngchain/ngcore/consensus"
+	"strconv"
+	"strings"
+
+	"github.com/c0mm4nd/go-jsonrpc2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -11,12 +14,12 @@ import (
 func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var block ngtypes.Block
 
-	err := utils.JSON.Unmarshal(msg.Params, &block)
+	err := utils.JSON.Unmarshal(*msg.Params, &block)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = consensus.MinedNewBlock(&block)
+	err = s.pow.MinedNewBlock(&block)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -26,7 +29,7 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	blockTemplate := consensus.GetBlockTemplate()
+	blockTemplate := s.pow.GetBlockTemplate()
 
 	raw, err := utils.JSON.Marshal(blockTemplate)
 	if err != nil {
@@ -43,7 +46,7 @@ type getWorkReply struct {
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	blockTemplate := consensus.GetBlockTemplate()
+	blockTemplate := s.pow.GetBlockTemplate()
 
 	rawBlock, err := utils.Proto.Marshal(blockTemplate)
 	if err != nil {
@@ -73,7 +76,7 @@ type submitWorkParams struct {
 func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params submitWorkParams
 
-	err := utils.JSON.Unmarshal(msg.Params, &params)
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -100,10 +103,44 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	block.Nonce = nonce
 
-	err = consensus.MinedNewBlock(&block)
+	err = s.pow.MinedNewBlock(&block)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
+}
+
+type switchMiningParams struct {
+	Mode string `json:"mode"`
+}
+
+// switchMiningFunc provides the switch on built-in block mining
+func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params switchMiningParams
+
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	mode := strings.ToLower(strings.TrimSpace(params.Mode))
+	switch mode {
+	case "on":
+		s.pow.SwitchMiningOn()
+	case "off":
+		s.pow.SwitchMiningOff()
+	default:
+		workerNum, err := strconv.ParseInt(mode, 10, 64)
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+
+		s.pow.UpdateMiningThread(int(workerNum))
+		s.pow.SwitchMiningOn()
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)

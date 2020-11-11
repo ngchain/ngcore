@@ -1,7 +1,6 @@
 package miner
 
 import (
-	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -22,15 +21,17 @@ var log = logging.Logger("miner")
 // Miner is an inner miner for proof of work
 // miner implements a internal PoW miner with multi threads(goroutines) support
 type Miner struct {
-	threadNum int
-	hashes    atomic.Int64
+	Started *atomic.Bool
+
+	ThreadNum int
+	hashes    *atomic.Int64
 	job       *atomic.Value
 
 	abortCh      chan struct{}
 	foundBlockCh chan *ngtypes.Block
 }
 
-// NewMiner will create a local miner which works in *threadNum* threads.
+// NewMiner will create a local miner which works in *ThreadNum* threads.
 // when not mining, return a nil
 func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -40,8 +41,10 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	}
 
 	m := &Miner{
+		Started:      atomic.NewBool(false),
+		ThreadNum:    threadNum,
+		hashes:       atomic.NewInt64(0),
 		job:          new(atomic.Value),
-		threadNum:    threadNum,
 		abortCh:      make(chan struct{}),
 		foundBlockCh: foundBlockCh,
 	}
@@ -60,7 +63,7 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 
 				if m.job.Load() != nil {
 					current, _ := m.job.Load().(*ngtypes.Block)
-					fmt.Printf("Total hashrate: %d h/s, height: %d, diff: %d \n", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
+					log.Warnf("Total hashrate: %d h/s, height: %d, diff: %d \n", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
 				}
 
 				m.hashes.Sub(hashes)
@@ -71,16 +74,16 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	return m
 }
 
-// Start will ignite the engine of Miner and all threads Start working.
-// and can also be used as update job
-func (m *Miner) Start(job *ngtypes.Block) {
-	if m.job.Load() != nil {
-		log.Info("mining job updeting")
-	} else {
-		log.Info("mining mod on")
+// Mine will ignite the engine of Miner and all threads Mine working.
+func (m *Miner) Mine(job *ngtypes.Block) {
+	if m.Started.Load() {
+		return // make Mine threadsafe
 	}
 
+	m.Started.Toggle()
+
 	m.job.Store(job)
+	log.Info("mining on job: block@%d diff: %s", job.Height, new(big.Int).SetBytes(job.Difficulty).String())
 
 	m.abortCh = make(chan struct{})
 	once := new(sync.Once)
@@ -111,7 +114,7 @@ func (m *Miner) Start(job *ngtypes.Block) {
 	wg.Wait()
 
 	var miningWG sync.WaitGroup
-	for threadID := 0; threadID < m.threadNum; threadID++ {
+	for threadID := 0; threadID < m.ThreadNum; threadID++ {
 		miningWG.Add(1)
 		go func(threadID int) {
 			defer miningWG.Done()
@@ -156,6 +159,8 @@ func (m *Miner) Start(job *ngtypes.Block) {
 
 	randomx.ReleaseCache(cache)
 	randomx.ReleaseDataset(dataset)
+
+	m.Started.Toggle()
 }
 
 // Stop will Stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.

@@ -8,13 +8,13 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// chain will send peer the specific vault's chain, which's len is not must be full BlockCheckRound num
-func (w *Wired) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
+// sendChain will send peer the specific vault's sendChain, which's len is not must be full BlockCheckRound num
+func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
 	if len(blocks) == 0 {
 		return false
 	}
 
-	log.Debugf("replying chain to %s. Message id: %x, chain from block@%d to",
+	log.Debugf("replying sendChain to %s. Message id: %x, sendChain from block@%d to",
 		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight(), blocks[len(blocks)-1].GetHeight(),
 	)
 
@@ -28,7 +28,7 @@ func (w *Wired) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Blo
 
 	// create message data
 	resp := &message.Message{
-		Header:  NewHeader(w.host, uuid, message.MessageType_CHAIN),
+		Header:  NewHeader(w.host, w.network, uuid, message.MessageType_CHAIN),
 		Payload: payload,
 	}
 
@@ -44,11 +44,11 @@ func (w *Wired) chain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Blo
 
 	err = Reply(stream, resp)
 	if err != nil {
-		log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("sendChain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 		return false
 	}
 
-	log.Debugf("chain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("sendChain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }

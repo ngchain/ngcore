@@ -5,12 +5,12 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/message"
 )
 
-// notFound will reply notFound message to remote node.
-func (w *Wired) notFound(uuid []byte, stream network.Stream, blockHash []byte) bool {
+// sendNotFound will reply sendNotFound message to remote node.
+func (w *Wired) sendNotFound(uuid []byte, stream network.Stream, blockHash []byte) bool {
 	log.Debugf("sending notfound to %s with message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	resp := &message.Message{
-		Header:  NewHeader(w.host, uuid, message.MessageType_NOTFOUND),
+		Header:  NewHeader(w.host, w.network, uuid, message.MessageType_NOTFOUND),
 		Payload: blockHash,
 	}
 

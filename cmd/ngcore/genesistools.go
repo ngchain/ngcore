@@ -46,34 +46,38 @@ func getGenesisToolsCommand() *cli.Command {
 			}
 
 			raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
-			fmt.Printf("Genesis PublicKey: %s \n", raw)
+			fmt.Printf("genesis public key: %s \n", raw)
 
-			fmt.Printf("Genesis Address: %s \n", ngtypes.NewAddress(localKey).String())
+			fmt.Printf("genesis Address: %s \n", ngtypes.NewAddress(localKey).String())
 
-			gtx := ngtypes.GetGenesisGenerateTx()
-			if err := gtx.CheckGenerate(); err != nil {
-				fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing... \n", gtx.Sign, err)
-				err = gtx.Signature(localKey)
-				if err != nil {
-					panic(err)
+			for _, network := range ngtypes.AvailableNetworks {
+				fmt.Printf("checking %s\n", network)
+
+				gtx := ngtypes.GetGenesisGenerateTx(network)
+				if err := gtx.CheckGenerate(0); err != nil {
+					fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing... \n", gtx.Sign, err)
+					err = gtx.Signature(localKey)
+					if err != nil {
+						panic(err)
+					}
+
+					fmt.Printf("Genesis Generate Tx Sign: %x \n", gtx.Sign)
+				} else {
+					fmt.Printf("Genesis block's generate tx is healthy \n")
 				}
 
-				fmt.Printf("Genesis Generate Tx Sign: %x \n", gtx.Sign)
-			} else {
-				fmt.Printf("Genesis block's generate tx is healthy \n")
-			}
+				b := ngtypes.GetGenesisBlock(network)
+				if err := b.CheckError(); err != nil {
+					fmt.Printf("Current genesis block is invalid, err: %s, use the generate tx above to re-calc nonce...  \n", err)
+					unsealing, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
+					if err != nil {
+						fmt.Print(err)
+					}
 
-			b := ngtypes.GetGenesisBlock()
-			if err := b.CheckError(); err != nil {
-				fmt.Printf("Current genesis block is invalid, use the generate tx above to re-calc nonce...  \n")
-				unsealing, err := b.ToUnsealing([]*ngtypes.Tx{gtx})
-				if err != nil {
-					fmt.Print(err)
+					genBlockNonce(unsealing)
+				} else {
+					fmt.Printf("Genesis block is healthy \n")
 				}
-
-				genBlockNonce(unsealing)
-			} else {
-				fmt.Printf("Genesis block is healthy \n")
 			}
 
 			return nil
@@ -85,9 +89,11 @@ func getGenesisToolsCommand() *cli.Command {
 		Flags:       nil,
 		Description: "check genesis blocks and generateTx and re-generate them if error occurs",
 		Action: func(context *cli.Context) error {
-			b := ngtypes.GetGenesisBlock()
-			jsonBlock, _ := utils.JSON.MarshalToString(b)
-			fmt.Println(jsonBlock)
+			for _, network := range ngtypes.AvailableNetworks {
+				b := ngtypes.GetGenesisBlock(network)
+				jsonBlock, _ := utils.JSON.MarshalToString(b)
+				fmt.Println(jsonBlock)
+			}
 
 			return nil
 		},

@@ -22,24 +22,24 @@ var (
 // TODO: Add DAG support to extend the capacity of store
 type BlockStore struct {
 	*badger.DB
+	Network ngtypes.NetworkType
 }
 
-var store *BlockStore
-
 // Init will do all initialization for the block store.
-func Init(db *badger.DB, blocks ...*ngtypes.Block) {
-	if store == nil {
-		store = &BlockStore{
-			db,
-		}
+func Init(db *badger.DB, network ngtypes.NetworkType, blocks ...*ngtypes.Block) *BlockStore {
+	store := &BlockStore{
+		DB:      db,
+		Network: network,
 	}
 
 	if blocks == nil {
-		initWithGenesis()
+		store.initWithGenesis()
 	} else {
-		err := initWithBlockchain(blocks...)
+		err := store.initWithBlockchain(blocks...)
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	return store
 }

@@ -2,7 +2,6 @@ package broadcast
 
 import (
 	"context"
-	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
@@ -19,7 +18,7 @@ func (b *Broadcast) BroadcastTx(tx *ngtypes.Tx) error {
 		return err
 	}
 
-	err = b.topics[defaults.BroadcastTxTopic].Publish(context.Background(), raw)
+	err = b.topics[b.txTopic].Publish(context.Background(), raw)
 	if err != nil {
 		log.Error(err)
 		return err

@@ -1,8 +1,8 @@
 # ngCore
-<p align="center" style="text-align: center">
-<img width="400" height="400" src="./resources/NG.svg"/>
+<p style="text-align: center">
+<img alt="NG" width="400" height="400" src="./resources/NG.svg"/>
 <br/>
-<b>NgCore:</b> Brand-new golang daemon implement of Ngin Network Node
+<b>ngcore:</b> Brand-new golang daemon implement of Ngin Network Node
 </p>
 
 ## What is NGIN?
@@ -60,10 +60,15 @@ go build ./cmd/ngcore
 
 ```bash
 # dircetly run the binary
+export GOLOG_FILE=ngcore.log # disable stderr output and write to the ngcore.log file
+export GOLOG_LOG_LEVEL=debug # print more logs
 ./ngcore
 
-# ngwallet is a rpc client in dart for ngin's daemon
-./ngwallet newtx -to 15674, 756 -value 1NG, 0.1NG  
+# ngwallet is a rpc client in dart for ngin's daemon, see
+./ngwallet newTransactionTx --privateKey AccJrTFPWtgtTmqB2rXiV59ikKmqDcCrH1SDYzwDDS7U --convener 12526 \
+    --participants 6fik2RLRB6vv5ypkjCyTVeVBmYUaDG78WFfctyY1tYCDfJLH,65231,CXDuTYveU2WsTpB5rUFavJQehGbSNoNi7i75gPUpMndjBWH6 \ # 3 participants, can be addr or account
+    --values 1.1,2.3,999 # 3 values
+    --extra deadbeef # hex encoded string
 ```
 
 If you wanna start mining(proof of work), try `--mining <Thread Num>` flag
@@ -84,10 +89,10 @@ git clone https://github.com/ngchain/ngcore && cd ngcore
 sudo docker build . -t ngcore:alpine
 
 # Run as a bootstrap node
-sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore --bootstrap true
+sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --bootstrap true
 
 # Run as a mining node, 0 means using all cpu cores, --in-mem will disable writing into disk and make the miner lighter
-sudo docker run -p 52520:52520 -p 52521:52521 -v ~/.ngcore:/workdir ngcore --mining 0 --in-mem
+sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --mining 0 --in-mem
 ```
 
 ## Run a NGIN Forknet

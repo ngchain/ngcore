@@ -56,13 +56,23 @@ var isBootstrapFlag = &cli.BoolFlag{
 	Usage: "Enable starting local node as a bootstrap peer",
 }
 
+var testNetFlag = &cli.BoolFlag{
+	Name:  "testnet",
+	Usage: "Run node on the test network",
+}
+
+var regTestNetFlag = &cli.BoolFlag{
+	Name:  "reg-testnet",
+	Usage: "Run node on the regression test network",
+}
+
 var profileFlag = &cli.BoolFlag{
 	Name:  "profile",
 	Usage: "Enable writing cpu profile to the file",
 }
 
-var keyFileFlag = &cli.StringFlag{
-	Name:  "key-file",
+var keyFileNameFlag = &cli.StringFlag{
+	Name:  "keyfile",
 	Usage: "The filename to the key",
 	Value: "",
 }
@@ -73,24 +83,17 @@ var keyPassFlag = &cli.StringFlag{
 	Value: "",
 }
 
+var p2pKeyFileFlag = &cli.StringFlag{
+	Name:  "p2p-key",
+	Usage: "The file path to the p2p key",
+	Value: "",
+}
+
 var miningFlag = &cli.IntFlag{
 	Name: "mining",
 	Usage: "The worker number on mining. Mining starts when value is not negative. " +
 		"And when value equals to 0, use all cpu cores",
 	Value: defaultMiningThread,
-}
-
-var logFileFlag = &cli.StringFlag{
-	Name:  "log-file",
-	Value: defaultLogFile,
-	Usage: "Enable save the log into the file",
-}
-
-var logLevelFlag = &cli.StringFlag{
-	Name:  "log-level",
-	Value: defaultLogLevel,
-	Usage: "Enable displaying logs which are equal or higher to the level. " +
-		"Values can be ERROR, WARN, INFO or DEBUG",
 }
 
 var inMemFlag = &cli.BoolFlag{
@@ -104,41 +107,38 @@ var dbFolderFlag = &cli.StringFlag{
 	Value: defaultDBFolder,
 }
 
+var log = logging.Logger("main")
+
 var action = func(c *cli.Context) error {
-	logLevel, err := logging.LevelFromString(c.String("log-level"))
-	if err != nil {
-		panic(err)
-	}
-
-	logConf := logging.Config{
-		Level:  logLevel,
-		Stdout: c.String("log-file") == "",
-		File:   c.String("log-file"),
-	}
-	if len(logConf.File) > 0 {
-		fmt.Println("logging to", logConf.File)
-	}
-
-	logging.SetupLogging(logConf)
-
 	isBootstrapNode := c.Bool("bootstrap")
 	mining := c.Int("mining")
 	if mining == 0 {
 		mining = runtime.NumCPU()
 	}
 
-	isStrictMode := isBootstrapNode || c.Bool("strict")
-	p2pTCPPort := c.Int("p2p-port")
-	rpcHost := c.String("rpc-host")
-	rpcPort := c.Int("rpc-port")
-	keyPass := c.String("key-pass")
-	keyFile := c.String("key-file")
-	withProfile := c.Bool("profile")
-	inMem := c.Bool("in-mem")
-	dbFolder := c.String("db-folder")
+	isStrictMode := isBootstrapNode || c.Bool(strictModeFlag.Name)
+	p2pTCPPort := c.Int(p2pTCPPortFlag.Name)
+	rpcHost := c.String(rpcHostFlag.Name)
+	rpcPort := c.Int(rpcPortFlag.Name)
+	keyPass := c.String(keyPassFlag.Name)
+	keyFile := c.String(keyFileNameFlag.Name)
+	p2pKeyFile := c.String(p2pKeyFileFlag.Name)
+	withProfile := c.Bool(profileFlag.Name)
+	inMem := c.Bool(inMemFlag.Name)
+	dbFolder := c.String(dbFolderFlag.Name)
+
+	var network = ngtypes.NetworkType_TESTNET
+	if c.Bool(testNetFlag.Name) {
+		network = ngtypes.NetworkType_TESTNET
+	}
+
+	if c.Bool(regTestNetFlag.Name) {
+		network = ngtypes.NetworkType_ZERONET // use zero net as the regression test network
+	}
 
 	if withProfile {
 		var f *os.File
+		var err error
 
 		f, err = os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
 		if err != nil {
@@ -154,7 +154,7 @@ var action = func(c *cli.Context) error {
 	}
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
-	fmt.Printf("Use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
+	log.Warnf("use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
 
 	var db *badger.DB
 	if inMem {
@@ -164,31 +164,50 @@ var action = func(c *cli.Context) error {
 	}
 
 	defer func() {
-		err = db.Close()
+		err := db.Close()
 		if err != nil {
 			panic(err)
 		}
 	}()
 
-	ngchain.Init(db)
-	if isStrictMode && ngchain.GetLatestBlockHeight() == 0 {
-		ngblocks.Init(db)
+	var store *ngblocks.BlockStore
+	if isStrictMode {
+		store = ngblocks.Init(db, network)
 		// then sync
 	} else {
 		// TODO: use the new origin block to initialize the ngblocks
-		ngblocks.Init(db)
+		store = ngblocks.Init(db, network)
 	}
+	state := ngstate.InitStateFromGenesis(db, network)
 
-	ngp2p.InitLocalNode(p2pTCPPort)
-	ngp2p.GoServe()
+	chain := ngchain.Init(db, network, store, state)
 
-	ngstate.InitStateFromGenesis(db)
-	ngpool.Init(db)
+	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
+		P2PKeyFile:       p2pKeyFile,
+		Network:          network,
+		Port:             p2pTCPPort,
+		DisableDiscovery: network == ngtypes.NetworkType_ZERONET,
+	})
+	localNode.GoServe()
 
-	consensus.InitPoWConsensus(mining, key, isBootstrapNode, db)
-	consensus.GoLoop()
+	pool := ngpool.Init(db, chain, localNode)
 
-	rpc := jsonrpc.NewServer(rpcHost, rpcPort)
+	pow := consensus.InitPoWConsensus(
+		db,
+		chain,
+		pool,
+		state,
+		localNode,
+		consensus.PoWorkConfig{
+			Network:                     network,
+			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.NetworkType_ZERONET,
+			MiningThread:                mining,
+			PrivateKey:                  key,
+		},
+	)
+	pow.GoLoop()
+
+	rpc := jsonrpc.NewServer(rpcHost, rpcPort, pow)
 	go rpc.Serve()
 
 	// notify the exit events

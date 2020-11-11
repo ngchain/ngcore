@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ngchain/ngcore/ngchain"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -20,31 +18,30 @@ type remoteRecord struct {
 }
 
 // RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
-func (r *remoteRecord) shouldSync() bool {
-	return r.latest > ngchain.GetLatestBlockHeight()
+func (r *remoteRecord) shouldSync(latestHeight uint64) bool {
+	return r.latest > latestHeight //ngchain.GetLatestBlockHeight()
 }
 
 // RULE: when forking?
 // Situation #1: remote height is higher than local, AND checkpoint is on higher level
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
 // TODO: add a cap for forking
-func (r *remoteRecord) shouldFork() bool {
-	cp := ngchain.GetLatestCheckpoint()
-	cpHash := cp.Hash()
-
-	h := ngchain.GetLatestBlockHeight()
+func (r *remoteRecord) shouldFork(latestCheckPoint *ngtypes.Block, latestHeight uint64) bool {
+	//latestCheckPoint := ngchain.GetLatestCheckpoint()
+	cpHash := latestCheckPoint.Hash()
+	//latestHeight := ngchain.GetLatestBlockHeight()
 
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
-		r.latest > h &&
-		r.latest/ngtypes.BlockCheckRound > h/ngtypes.BlockCheckRound {
+		r.latest > latestHeight &&
+		r.latest/ngtypes.BlockCheckRound > latestHeight/ngtypes.BlockCheckRound {
 		return true
 	}
 
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
-		r.latest > h &&
-		r.latest/ngtypes.BlockCheckRound == h/ngtypes.BlockCheckRound &&
+		r.latest > latestHeight &&
+		r.latest/ngtypes.BlockCheckRound == latestHeight/ngtypes.BlockCheckRound &&
 		r.checkpointActualDiff != nil &&
-		r.checkpointActualDiff.Cmp(cp.GetActualDiff()) > 0 {
+		r.checkpointActualDiff.Cmp(latestCheckPoint.GetActualDiff()) > 0 {
 		return true
 	}
 

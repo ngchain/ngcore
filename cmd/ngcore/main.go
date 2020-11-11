@@ -18,13 +18,15 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		strictModeFlag,
-		p2pTCPPortFlag,
+		p2pTCPPortFlag, p2pKeyFileFlag,
 		rpcHostFlag, rpcPortFlag,
 		miningFlag,
 		isBootstrapFlag, profileFlag,
-		keyFileFlag, keyPassFlag,
-		logLevelFlag, logFileFlag,
+		keyFileNameFlag, keyPassFlag,
+
 		inMemFlag, dbFolderFlag,
+
+		testNetFlag, regTestNetFlag,
 	}
 
 	app.Commands = []*cli.Command{
