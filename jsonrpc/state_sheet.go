@@ -6,12 +6,12 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-type getAccountsByAddressParams struct {
+type getAccountByAddressParams struct {
 	Address string `json:"address"`
 }
 
-func (s *Server) getAccountsByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params getAccountsByAddressParams
+func (s *Server) getAccountByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getAccountByAddressParams
 
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
@@ -24,17 +24,13 @@ func (s *Server) getAccountsByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	accounts, err := s.pow.State.GetAccountsByAddress(addr)
+	account, err := s.pow.State.GetAccountByAddress(addr)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	result := make([]uint64, len(accounts))
-	for i := range accounts {
-		result[i] = accounts[i].Num
-	}
 
-	raw, err := utils.JSON.Marshal(result)
+	raw, err := utils.JSON.Marshal(account)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

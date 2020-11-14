@@ -1,5 +1,9 @@
 # ChangeLog
 
+## v0.0.20
+
+- DONE: fix bugs
+
 ## v0.0.19
 
 - TODO: add fast-sync mode

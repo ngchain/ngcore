@@ -139,10 +139,10 @@ func (state *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err e
 	return account, nil
 }
 
-// GetAccountsByAddress returns an ngtypes.Account obj by the account's address
+// GetAccountByAddress returns an ngtypes.Account obj by the account's address
 // this is a heavy action, so dont called by any internal part like p2p and consensus
-func (state *State) GetAccountsByAddress(address ngtypes.Address) ([]*ngtypes.Account, error) {
-	accounts := make([]*ngtypes.Account, 0)
+func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Account, error) {
+	var account *ngtypes.Account
 	err := state.View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
@@ -153,14 +153,15 @@ func (state *State) GetAccountsByAddress(address ngtypes.Address) ([]*ngtypes.Ac
 				return err
 			}
 
-			var account ngtypes.Account
-			err = utils.Proto.Unmarshal(rawAccount, &account)
+			var acc ngtypes.Account
+			err = utils.Proto.Unmarshal(rawAccount, &acc)
 			if err != nil {
 				return err
 			}
 
-			if bytes.Equal(address, account.Owner) {
-				accounts = append(accounts, &account)
+			if bytes.Equal(address, acc.Owner) {
+				account = &acc
+				return nil
 			}
 		}
 
@@ -170,5 +171,5 @@ func (state *State) GetAccountsByAddress(address ngtypes.Address) ([]*ngtypes.Ac
 		return nil, err
 	}
 
-	return accounts, nil
+	return account, nil
 }
