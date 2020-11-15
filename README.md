@@ -64,11 +64,10 @@ export GOLOG_FILE=ngcore.log # disable stderr output and write to the ngcore.log
 export GOLOG_LOG_LEVEL=debug # print more logs
 ./ngcore
 
-# ngwallet is a rpc client in dart for ngin's daemon, see
-./ngwallet newTransactionTx --privateKey AccJrTFPWtgtTmqB2rXiV59ikKmqDcCrH1SDYzwDDS7U --convener 12526 \
-    --participants 6fik2RLRB6vv5ypkjCyTVeVBmYUaDG78WFfctyY1tYCDfJLH,65231,CXDuTYveU2WsTpB5rUFavJQehGbSNoNi7i75gPUpMndjBWH6 \ # 3 participants, can be addr or account
-    --values 1.1,2.3,999 # 3 values
-    --extra deadbeef # hex encoded string
+# ngwallet is a rpc client in dart for ngin's daemon, see https://github.com/ngchain/ngwallet-dart
+./ngwallet register 10086
+./ngwallet transact 10010 1.5 # send 1.5 NG to account 10010
+./ngwallet transact QfUnsE4CNgnpVS4oC4WEYH8u7WWAs8AwMrFBknWWqGSYwBXU 1.5 # send 1.5 NG to address QfUn...
 ```
 
 If you wanna start mining(proof of work), try `--mining <Thread Num>` flag
@@ -97,11 +96,11 @@ sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ng
 
 ## Run a NGIN Forknet
 
-It's so easy to run a independent PoW chain on ngCore codebase.
+It's so easy to run an independent PoW chain on ngCore codebase.
 
-1. Modify the NetworkID, GenesisAddress in `./ngtypes/defaults.go` and `./ngp2p/defaults.go`
+1. Modify the `GenesisAddressBase58` in `./ngtypes/defaults.go` and `protocolVersion` in `./ngp2p/defaults/defaults.go`
 
-2. Generate a new sign for genesis generate tx, and genesis block nonce (with `ngcore gen` tool)
+2. Generate a new signature for genesis generate tx, and genesis block's nonce (with `ngcore gentools` toolset)
 
 3. Run more than 2 bootstrap node with `--bootstrap` flag (without mining)
 
