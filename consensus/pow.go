@@ -137,7 +137,7 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	var extraData []byte // FIXME
 
 	genTx := pow.createGenerateTx(newHeight, extraData)
-	txs := pow.Pool.GetPack().Txs
+	txs := pow.Pool.GetPack(currentBlockHash).Txs
 	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
 
 	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
@@ -215,6 +215,8 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 
 	hash := block.Hash()
 	log.Warnf("mined a new block: %x@%d", hash, block.GetHeight())
+
+	pow.Pool.Reset()
 
 	err = pow.LocalNode.BroadcastBlock(block)
 	if err != nil {

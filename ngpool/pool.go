@@ -49,3 +49,8 @@ func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) 
 
 	return false, nil
 }
+
+// IsInPool checks one tx is in pool or not.
+func (pool *TxPool) Reset() {
+	pool.txMap = make(map[uint64]*ngtypes.Tx)
+}
