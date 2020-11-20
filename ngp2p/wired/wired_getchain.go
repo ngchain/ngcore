@@ -80,31 +80,39 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		return
 	}
 
-	lastFromHash := ngtypes.GetGenesisBlockHash(w.network)
+	if len(getChainPayload.GetFrom()) == 0 {
+		w.sendReject(msg.Header.MessageId, stream, err)
+		return
+	}
 
-	if len(getChainPayload.GetFrom()) != 0 {
-		// do hashes check first
-		for i := 0; i < len(getChainPayload.GetFrom()); i++ {
-			_, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[i])
-			if err != nil {
-				// failed to get block from local sendChain means there is a fork since this block and its prevBlock is the last message one
-				break
-			}
+	var forkpointIndex int
+	// do hashes check first
+	for forkpointIndex < len(getChainPayload.GetFrom()) {
+		_, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[forkpointIndex])
+		if err != nil {
+			// failed to get the block from local chain means
+			// there is a fork since this block(aka fork point)
+			// and its prevBlock is the last same one
+			break
+		}
 
-			// finally fetch blocks since the last message block hash
-			lastFromHash = getChainPayload.GetFrom()[i]
+		forkpointIndex++
+		if forkpointIndex == len(getChainPayload.GetFrom()) {
+			forkpointIndex = -1 // not found forkpoint, return all
 		}
 	}
 
-	log.Debugf("getchain requests from %x to %x", lastFromHash, getChainPayload.GetTo())
+	lastFromHashIndex := forkpointIndex + 1
 
-	cur, err := w.chain.GetBlockByHash(lastFromHash)
+	log.Debugf("getchain requests from %x to %x", getChainPayload.GetFrom()[lastFromHashIndex], getChainPayload.GetTo())
+
+	cur, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[lastFromHashIndex])
 	if err != nil {
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return
 	}
 
-	blocks := make([]*ngtypes.Block, 0)
+	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
 	for i := 0; i < defaults.MaxBlocks; i++ {
 		if bytes.Equal(cur.Hash(), getChainPayload.GetTo()) {
 			break
@@ -113,7 +121,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		nextHeight := cur.GetHeight() + 1
 		cur, err = w.chain.GetBlockByHeight(nextHeight)
 		if err != nil {
-			log.Debugf("local sendChain is missing block@%d: %s", nextHeight, err)
+			log.Debugf("local chain lacks block@%d: %s", nextHeight, err)
 			break
 		}
 

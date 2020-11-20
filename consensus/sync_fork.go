@@ -59,35 +59,45 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
 
-	chainLen := defaults.MaxBlocks
-	maxRound := localHeight / defaults.MaxBlocks
+	ptr := localHeight
 
 	// when the chainLen (the len of returned chain) is not equal to defaults.MaxBlocks, means it has reach the latest height
-	for round := uint64(0); chainLen == defaults.MaxBlocks; round++ {
-		if round > maxRound {
-			panic("need to re-download the chain")
+	for {
+		if ptr == 0 {
+			panic("cannot fork: completely different chains!")
 		}
 
-		fromHeight := localHeight - (round+1)*defaults.MaxBlocks
+		roundHashes := uint64(defaults.MaxBlocks)
+		if ptr < defaults.MaxBlocks {
+			roundHashes = ptr
+		}
+
+		ptr -= roundHashes
 
 		// get local hashes as params
-		for h:=fromHeight; h < localHeight-round*defaults.MaxBlocks; h++ {
+		for h := ptr + 1; h <= ptr+roundHashes; h++ {
 			b, err := mod.pow.Chain.GetBlockByHeight(h)
 			if err != nil {
 				// when gap is too large
 				return nil, err
 			}
 
-			blockHashes[h-fromHeight] = b.Hash() // panic here
+			blockHashes[h-ptr] = b.Hash() // panic here
 		}
 
-		chain, err := mod.getRemoteChain(record.id, blockHashes, nil)
+		to := blockHashes[len(blockHashes)-1]
+
+		// the to param shouldnt be nil or empty hash here
+		// if nil, the len of returned chain will be default.MaxBlocks forever
+		chain, err := mod.getRemoteChain(record.id, blockHashes, to)
 		if err != nil {
 			return nil, err
 		}
 
-		chainLen = len(chain)
 		blocks = append(chain, blocks...)
+		if uint64(len(chain)) != roundHashes {
+			break
+		}
 	}
 
 	return blocks, nil
