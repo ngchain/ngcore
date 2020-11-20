@@ -2,6 +2,7 @@ package wired
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
@@ -69,6 +70,12 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 	return req.Header.MessageId, stream, nil
 }
 
+// RULE:
+// request [[from a...from b]...to]
+// 1. if to is nil, fork mode on
+// 2. check all hashes in db and try to find existing one(samepoint)
+// 3. if none, return nil
+// 3. if index==0,return everything back
 func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 	log.Debugf("Received getchain request from %s.", stream.Conn().RemotePeer())
 
@@ -85,48 +92,87 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		return
 	}
 
-	var forkpointIndex int
-	// do hashes check first
-	for forkpointIndex < len(getChainPayload.GetFrom()) {
-		_, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[forkpointIndex])
-		if err != nil {
-			// failed to get the block from local chain means
-			// there is a fork since this block(aka fork point)
-			// and its prevBlock is the last same one
-			break
-		}
+	log.Debugf("getchain requests from %x to %x", getChainPayload.GetFrom()[0], getChainPayload.GetTo())
 
-		forkpointIndex++
-		if forkpointIndex == len(getChainPayload.GetFrom()) {
-			forkpointIndex = -1
-			break // not found forkpoint, return all
-		}
-	}
-
-	lastFromHashIndex := forkpointIndex + 1
-
-	log.Debugf("getchain requests from %x to %x", getChainPayload.GetFrom()[lastFromHashIndex], getChainPayload.GetTo())
-
-	cur, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[lastFromHashIndex])
+	// init cur
+	cur, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[0])
 	if err != nil {
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return
 	}
 
 	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
-	for i := 0; i < defaults.MaxBlocks; i++ {
-		if bytes.Equal(cur.Hash(), getChainPayload.GetTo()) {
-			break
+
+	// run fork mode
+	if len(getChainPayload.GetTo()) == 16 || bytes.Equal(getChainPayload.GetTo(), ngtypes.GetEmptyHash()) {
+		var samepointIndex int
+		// do hashes check first
+		for samepointIndex < len(getChainPayload.GetFrom()) {
+			_, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[samepointIndex])
+			if err == nil {
+				// err == nil means found the samepoint
+				break
+			}
+
+			samepointIndex++
 		}
 
-		nextHeight := cur.GetHeight() + 1
-		cur, err = w.chain.GetBlockByHeight(nextHeight)
+		if samepointIndex == len(getChainPayload.GetFrom()) {
+			// not found samepoint, return nil
+			from := binary.LittleEndian.Uint64(getChainPayload.GetTo()[0:8])
+			to := binary.LittleEndian.Uint64(getChainPayload.GetTo()[8:16])
+			for blockHeight := from; blockHeight <= to; blockHeight++ {
+				cur, err = w.chain.GetBlockByHeight(blockHeight)
+				if err != nil {
+					err := fmt.Errorf("local chain lacks block@%d: %s", blockHeight, err)
+					log.Debug(err)
+					w.sendReject(msg.Header.MessageId, stream, err)
+					return
+				}
+
+				blocks = append(blocks, cur)
+			}
+
+			w.sendChain(msg.Header.MessageId, stream, blocks...)
+			return
+		}
+
+		// not include this point
+		cur, err = w.chain.GetBlockByHash(getChainPayload.GetFrom()[samepointIndex])
 		if err != nil {
-			log.Debugf("local chain lacks block@%d: %s", nextHeight, err)
-			break
+			w.sendReject(msg.Header.MessageId, stream, err)
+			return
 		}
 
-		blocks = append(blocks, cur)
+		for i := 0; i < len(getChainPayload.GetFrom())-samepointIndex; i++ {
+			blockHeight := cur.GetHeight() + 1
+			cur, err = w.chain.GetBlockByHeight(blockHeight)
+			if err != nil {
+				err := fmt.Errorf("local chain lacks block@%d: %s", blockHeight, err)
+				log.Debug(err)
+				w.sendReject(msg.Header.MessageId, stream, err)
+				return
+			}
+
+			blocks = append(blocks, cur)
+		}
+	} else if len(getChainPayload.GetTo()) == 32 {
+		// fetch mode
+		for i := 0; i < defaults.MaxBlocks; i++ {
+			// never reach To
+			if bytes.Equal(cur.Hash(), getChainPayload.GetTo()) {
+				break
+			}
+
+			nextHeight := cur.GetHeight() + 1
+			cur, err = w.chain.GetBlockByHeight(nextHeight)
+			if err != nil {
+				log.Debugf("local chain lacks block@%d: %s", nextHeight, err)
+				break
+			}
+
+			blocks = append(blocks, cur)
+		}
 	}
 
 	w.sendChain(msg.Header.MessageId, stream, blocks...)

@@ -1,8 +1,11 @@
 package consensus
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // detectFork detection ignites the forking in local node
@@ -74,8 +77,10 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 
 		ptr -= roundHashes
 
+		var from = ptr + 1
+		var to = ptr + roundHashes
 		// get local hashes as params
-		for h := ptr + 1; h <= ptr+roundHashes; h++ {
+		for h := from; h <= to; h++ {
 			b, err := mod.pow.Chain.GetBlockByHeight(h)
 			if err != nil {
 				// when gap is too large
@@ -85,17 +90,25 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 			blockHashes[h-ptr] = b.Hash() // panic here
 		}
 
-		to := blockHashes[len(blockHashes)-1]
-
-		// the to param shouldnt be nil or empty hash here
-		// if nil, the len of returned chain will be default.MaxBlocks forever
-		chain, err := mod.getRemoteChain(record.id, blockHashes, to)
+		// to == nil means fork mode
+		chain, err := mod.getRemoteChain(record.id, blockHashes, bytes.Join([][]byte{utils.PackUint64LE(from), utils.PackUint64LE(to)}, nil))
 		if err != nil {
 			return nil, err
 		}
+		if chain == nil {
+			// chain == nil means all hashes are matched
+			localChain := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
+			for i := range blockHashes {
+				block, err := mod.pow.Chain.GetBlockByHash(blockHashes[i])
+				if err != nil {
+					return nil, fmt.Errorf("failed on constructing local chain: %s", err)
+				}
+				localChain = append(localChain, block)
+			}
 
-		blocks = append(chain, blocks...)
-		if uint64(len(chain)) != roundHashes {
+			blocks = append(localChain, blocks...)
+		} else {
+			blocks = append(chain, blocks...)
 			break
 		}
 	}
