@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -85,7 +86,7 @@ func (mod *syncModule) loop() {
 			if r.shouldSync(latestHeight) {
 				err := mod.doSync(r)
 				if err != nil {
-					log.Warnf("do sync failed: %s", err)
+					log.Warnf("do sync failed: %s, maybe require forking", err)
 				}
 			}
 		}
@@ -108,7 +109,7 @@ func (mod *syncModule) doSync(record *remoteRecord) error {
 	mod.Lock()
 	defer mod.Unlock()
 
-	log.Warnf("start syncing with remote node %s", record.id)
+	log.Warnf("start syncing with remote node %s, target height %d", record.id, record.latest)
 
 	// get chain
 	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
@@ -120,7 +121,7 @@ func (mod *syncModule) doSync(record *remoteRecord) error {
 		for i := 0; i < len(chain); i++ {
 			err = mod.pow.Chain.ApplyBlock(chain[i])
 			if err != nil {
-				return err
+				return fmt.Errorf("failed on applying block@%d: %s", chain[i].Height, err)
 			}
 		}
 	}

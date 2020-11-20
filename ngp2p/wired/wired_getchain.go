@@ -64,7 +64,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 		return nil, nil, err
 	}
 
-	log.Debugf("getchain to: %s was sent. Message Id: %x, request blocks: %d to %d", peerID, req.Header.MessageId, fmtFromField(from), to)
+	log.Debugf("getchain to: %s was sent. Message Id: %x, request blocks: %s to %s", peerID, req.Header.MessageId, fmtFromField(from), string(to))
 
 	return req.Header.MessageId, stream, nil
 }

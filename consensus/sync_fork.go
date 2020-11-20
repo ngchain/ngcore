@@ -26,7 +26,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 	mod.pow.Lock()
 	defer mod.pow.Unlock()
 
-	log.Warnf("start forking Chain from remote node %s, height: %d", record.id, record.latest)
+	log.Warnf("start forking Chain from remote node %s, target height: %d", record.id, record.latest)
 	chain, err := mod.getBlocksSinceForkPoint(record)
 	if err != nil {
 		return err
@@ -55,31 +55,32 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 // getBlocksSinceForkPoint gets the fork point by comparing hashes between local and remote
 func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
-	blockHashes := make([][]byte, 0, defaults.MaxBlocks)
+	blockHashes := make([][]byte, defaults.MaxBlocks)
 
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
 
 	chainLen := defaults.MaxBlocks
+	maxRound := localHeight / defaults.MaxBlocks
 
 	// when the chainLen (the len of returned chain) is not equal to defaults.MaxBlocks, means it has reach the latest height
-	for i := uint64(0); chainLen == defaults.MaxBlocks; i++ {
-		var height uint64 // default 0
-		if localHeight > (i+1)*defaults.MaxBlocks {
-			height = localHeight - (i+1)*defaults.MaxBlocks
+	for round := uint64(0); chainLen == defaults.MaxBlocks; round++ {
+		if round > maxRound {
+			panic("need to re-download the chain")
 		}
 
+		fromHeight := localHeight - (round+1)*defaults.MaxBlocks
+
 		// get local hashes as params
-		for ; height < localHeight-i*defaults.MaxBlocks; height++ {
-			b, err := mod.pow.Chain.GetBlockByHeight(height)
+		for h:=fromHeight; h < localHeight-round*defaults.MaxBlocks; h++ {
+			b, err := mod.pow.Chain.GetBlockByHeight(h)
 			if err != nil {
 				// when gap is too large
 				return nil, err
 			}
 
-			blockHashes = append(blockHashes, b.Hash()) // panic here
+			blockHashes[h-fromHeight] = b.Hash() // panic here
 		}
 
-		// requires protocol v0.0.3
 		chain, err := mod.getRemoteChain(record.id, blockHashes, nil)
 		if err != nil {
 			return nil, err
