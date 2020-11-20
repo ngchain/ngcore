@@ -118,7 +118,7 @@ jobs:
           name=${GITHUB_REF:10}
         fi
         echo ::set-output name=val::$name
-        echo ::set-env name=TAG::$name
+        echo name=TAG::$name >> $GITHUB_ENV
       id: tagname
 
     # ... and if this was an actual push (tag or `master`) then we publish a
