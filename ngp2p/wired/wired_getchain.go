@@ -98,7 +98,8 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 
 		forkpointIndex++
 		if forkpointIndex == len(getChainPayload.GetFrom()) {
-			forkpointIndex = -1 // not found forkpoint, return all
+			forkpointIndex = -1
+			break // not found forkpoint, return all
 		}
 	}
 
