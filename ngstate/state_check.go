@@ -109,12 +109,12 @@ func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) 
 
 	item, err := txn.Get(append(numToAccountPrefix, ngtypes.AccountNum(generateTx.GetConvener()).Bytes()...))
 	if err != nil {
-		return fmt.Errorf("cannot find convener: %s", err)
+		return fmt.Errorf("cannot find convener %d: %s", generateTx.GetConvener(), err)
 	}
 
 	rawConvener, err := item.ValueCopy(nil)
 	if err != nil {
-		return fmt.Errorf("cannot get convener account: %s", err)
+		return fmt.Errorf("cannot get convener account %d: %s", generateTx.GetConvener(), err)
 	}
 
 	convener := new(ngtypes.Account)

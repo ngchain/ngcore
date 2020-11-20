@@ -55,21 +55,28 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 // getBlocksSinceForkPoint gets the fork point by comparing hashes between local and remote
 func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
-	blockHashes := make([][]byte, defaults.MaxBlocks)
+	blockHashes := make([][]byte, 0, defaults.MaxBlocks)
 
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
 
 	chainLen := defaults.MaxBlocks
 
+	// when the chainLen (the len of returned chain) is not equal to defaults.MaxBlocks, means it has reach the latest height
 	for i := uint64(0); chainLen == defaults.MaxBlocks; i++ {
-		for height := localHeight - (i+1)*defaults.MaxBlocks; height < localHeight-i*defaults.MaxBlocks; height++ {
+		var height uint64 // default 0
+		if localHeight > (i+1)*defaults.MaxBlocks {
+			height = localHeight - (i+1)*defaults.MaxBlocks
+		}
+
+		// get local hashes as params
+		for ; height < localHeight-i*defaults.MaxBlocks; height++ {
 			b, err := mod.pow.Chain.GetBlockByHeight(height)
 			if err != nil {
 				// when gap is too large
 				return nil, err
 			}
 
-			blockHashes[height-(localHeight-defaults.MaxBlocks)] = b.Hash()
+			blockHashes = append(blockHashes, b.Hash()) // panic here
 		}
 
 		// requires protocol v0.0.3
