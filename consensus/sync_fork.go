@@ -87,7 +87,7 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 				return nil, err
 			}
 
-			blockHashes[h-ptr] = b.Hash() // panic here
+			blockHashes[h-ptr-1] = b.Hash()
 		}
 
 		// to == nil means fork mode
