@@ -109,6 +109,11 @@ func (state *State) Regenerate() error {
 	}
 
 	err = state.Update(func(txn *badger.Txn) error {
+		err := initFromSheet(txn, ngtypes.GenesisSheet)
+		if err != nil {
+			return err
+		}
+
 		latestHeight, err := ngblocks.GetLatestHeight(txn)
 		if err != nil {
 			return err

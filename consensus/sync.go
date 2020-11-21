@@ -113,7 +113,7 @@ func (mod *syncModule) doSync(record *remoteRecord) error {
 
 	// get chain
 	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
-		chain, err := mod.getRemoteChainFromLocalLatest(record.id)
+		chain, err := mod.getRemoteChainFromLocalLatest(record)
 		if err != nil {
 			return err
 		}

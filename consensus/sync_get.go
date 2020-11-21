@@ -50,10 +50,10 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 }
 
 // getRemoteChainFromLocalLatest just get the remote status from remote
-func (mod *syncModule) getRemoteChainFromLocalLatest(peerID core.PeerID) (chain []*ngtypes.Block, err error) {
+func (mod *syncModule) getRemoteChainFromLocalLatest(record *remoteRecord) (chain []*ngtypes.Block, err error) {
 	latestHash := mod.pow.Chain.GetLatestBlockHash()
 
-	id, s, err := mod.localNode.SendGetChain(peerID, [][]byte{latestHash}, nil)
+	id, s, err := mod.localNode.SendGetChain(record.id, [][]byte{latestHash}, nil) // nil means get MaxBlocks number blocks
 	if s == nil {
 		return nil, fmt.Errorf("failed to send getchain: %s", err)
 	}

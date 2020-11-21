@@ -72,10 +72,16 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 
 // RULE:
 // request [[from a...from b]...to]
-// 1. if to is nil, fork mode on
-// 2. check all hashes in db and try to find existing one(samepoint)
-// 3. if none, return nil
+// if to is nil, fork mode on
+//
+// fork mode:
+// 1. check all hashes in db and try to find existing one(samepoint)
+// 2. if none, return nil
 // 3. if index==0,return everything back
+//
+// sync mode:
+// parse request to [[peerHeight], to]
+// return [peerHeight+1, ..., to]
 func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 	log.Debugf("Received getchain request from %s.", stream.Conn().RemotePeer())
 

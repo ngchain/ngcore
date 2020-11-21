@@ -3,10 +3,10 @@ package ngstate
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/ngchain/ngcore/utils"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 // CheckBlockTxs will check all requirements for txs in block
@@ -124,7 +124,7 @@ func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) 
 	}
 
 	// check structure and key
-	if err = generateTx.CheckGenerate(blockHeight); err != nil {
+	if err := generateTx.CheckGenerate(blockHeight); err != nil {
 		return err
 	}
 
