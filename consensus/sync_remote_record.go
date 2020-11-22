@@ -17,11 +17,6 @@ type remoteRecord struct {
 	lastChatTime         int64
 }
 
-// RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
-func (r *remoteRecord) shouldSync(latestHeight uint64) bool {
-	return r.latest > latestHeight //ngchain.GetLatestBlockHeight()
-}
-
 // RULE: when forking?
 // Situation #1: remote height is higher than local, AND checkpoint is on higher level
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)

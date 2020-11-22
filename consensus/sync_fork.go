@@ -8,19 +8,19 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// detectFork detection ignites the forking in local node
+// MustFork detection ignites the forking in local node
 // then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one)
-func (mod *syncModule) detectFork() (shouldFork bool, remote *remoteRecord) {
+func (mod *syncModule) MustFork(slice []*remoteRecord) *remoteRecord {
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	latestCheckPoint := mod.pow.Chain.GetLatestCheckpoint()
 
-	for _, r := range mod.store {
+	for _, r := range slice {
 		if r.shouldFork(latestCheckPoint, latestHeight) {
-			return true, r
+			return r
 		}
 	}
 
-	return false, nil
+	return nil
 }
 
 // force local chain be same as the remote record

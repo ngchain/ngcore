@@ -72,6 +72,9 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 
 	pow.minerMod = miner.NewMiner(config.MiningThread, pow.foundBlockCh)
 
+	// run reporter
+	go pow.reportLoop()
+
 	return pow
 }
 

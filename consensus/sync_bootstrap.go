@@ -46,24 +46,31 @@ func (mod *syncModule) bootstrap() {
 	sort.SliceStable(slice, func(i, j int) bool {
 		return slice[i].lastChatTime > slice[j].lastChatTime
 	})
+	sort.SliceStable(slice, func(i, j int) bool {
+		return slice[i].latest > slice[j].latest
+	})
 
-	// initial sync
-	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
-	for _, r := range slice {
-		if r.shouldSync(latestHeight) {
-			err := mod.doInit(r)
+	// catch error
+	var err error
+	{
+		// initial sync
+		if r := mod.MustSync(slice); r != nil {
+			err = mod.doSync(r)
 			if err != nil {
-				panic(err)
+				log.Errorf("syncing is failed: %s", err)
+			}
+		}
+
+		// then check fork
+		if r := mod.MustFork(slice); r != nil {
+			err = mod.doFork(r) // can overwrite err
+			if err != nil {
+				log.Errorf("forking is failed: %s", err)
 			}
 		}
 	}
-
-	// then check fork
-	if shouldFork, r := mod.detectFork(); shouldFork {
-		err := mod.doFork(r) // temporarily stuck here
-		if err != nil {
-			log.Errorf("forking is failed: %s", err)
-		}
+	if err != nil {
+		panic(err)
 	}
 }
 
