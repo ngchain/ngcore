@@ -12,7 +12,7 @@ message Account {
 }
 
 enum NetworkType {
-  ZERONET = 0; // zero is INVALID: TODO: Add rule to block/tx check
+  ZERONET = 0; // ZERONET acts as the regression testnet
   TESTNET = 1; // TESTNET uses odd number
   MAINNET = 2; // MAINNET uses even number
   // TEST_FUTURE = 3;
@@ -27,12 +27,10 @@ message Block {
 
   bytes prev_block_hash = 4;
   bytes trie_hash = 5;
-  // bytes prev_sheet_hash = 6; // the hash of sheet before block txs
-
+  
   bytes difficulty = 7; // diff = maxTarget / Big(header_hash)
   bytes nonce = 8;
 
-  // Sheet prev_sheet = 9; // can be nil, the sheet before block txs
   repeated Tx txs = 10; // miner should build the generate tx by themselves
 }
 

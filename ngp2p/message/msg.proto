@@ -18,6 +18,10 @@ enum MessageType {
     // chain
     GETCHAIN = 10;
     CHAIN = 11;
+
+    // chain
+    GETSHEET = 12;
+    SHEET = 13;
 }
 
 enum ChainType {
