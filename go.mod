@@ -4,11 +4,11 @@ go 1.14
 
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
-	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20201108085815-32da445365da
-	github.com/c0mm4nd/wasman v0.0.0-20201014131632-77fad4c28570
+	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20201108125605-132876e6541e
+	github.com/c0mm4nd/wasman v0.0.0-20201023051902-3f585a486d39
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.1.2
 	github.com/ipfs/go-log/v2 v2.1.1
 	github.com/json-iterator/go v1.1.10
@@ -25,9 +25,10 @@ require (
 	github.com/ngchain/go-randomx v0.1.9
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
-	github.com/urfave/cli/v2 v2.2.0
+	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/atomic v1.7.0
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+	go.uber.org/zap v1.16.0 // indirect
+	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9
 	google.golang.org/protobuf v1.25.0
 )
 
