@@ -120,3 +120,17 @@ func GetLatestHash(txn *badger.Txn) ([]byte, error) {
 
 	return hash, nil
 }
+
+func GetLatestBlock(txn *badger.Txn) (*ngtypes.Block, error) {
+	hash, err := GetLatestHash(txn)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := GetBlockByHash(txn, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}

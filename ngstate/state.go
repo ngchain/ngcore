@@ -23,6 +23,7 @@ var (
 //  init (S0,S0)  -->   (S0,S1)  -->    (S1, S2)
 type State struct {
 	*badger.DB
+	*SnapshotManager
 	vms map[ngtypes.AccountNum]*VM
 }
 
