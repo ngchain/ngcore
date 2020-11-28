@@ -63,7 +63,7 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 
 				if m.job.Load() != nil {
 					current, _ := m.job.Load().(*ngtypes.Block)
-					log.Warnf("Total hashrate: %d h/s, height: %d, diff: %d \n", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
+					log.Warnf("Total hashrate: %d h/s, height: %d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
 				}
 
 				m.hashes.Sub(hashes)

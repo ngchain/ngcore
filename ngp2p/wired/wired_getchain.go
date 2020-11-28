@@ -110,7 +110,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
 
 	// run fork mode
-	if len(getChainPayload.GetTo()) == 16 || bytes.Equal(getChainPayload.GetTo(), ngtypes.GetEmptyHash()) {
+	if len(getChainPayload.GetTo()) == 16 {
 		var samepointIndex int
 		// do hashes check first
 		for samepointIndex < len(getChainPayload.GetFrom()) {
