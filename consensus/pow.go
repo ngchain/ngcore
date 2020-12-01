@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
@@ -127,19 +128,22 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 
 	currentBlockHash := currentBlock.Hash()
 
-	newDiff := ngtypes.GetNextDiff(currentBlock)
-	newHeight := currentBlock.Height + 1
+	blockTime := time.Now().Unix()
+
+	blockHeight := currentBlock.Height + 1
+	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock)
 
 	newBareBlock := ngtypes.NewBareBlock(
 		pow.Network,
-		newHeight,
+		blockHeight,
+		blockTime,
 		currentBlockHash,
 		newDiff,
 	)
 
 	var extraData []byte // FIXME
 
-	genTx := pow.createGenerateTx(newHeight, extraData)
+	genTx := pow.createGenerateTx(blockHeight, extraData)
 	txs := pow.Pool.GetPack(currentBlockHash).Txs
 	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
 

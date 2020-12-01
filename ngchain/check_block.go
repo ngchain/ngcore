@@ -3,6 +3,7 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngstate"
@@ -43,11 +44,17 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 }
 
 func checkBlockTarget(block, prevBlock *ngtypes.Block) error {
-	correctDiff := ngtypes.GetNextDiff(prevBlock)
+	correctDiff := ngtypes.GetNextDiff(block.Height, block.Timestamp, prevBlock)
+	blockDiff := new(big.Int).SetBytes(block.Difficulty)
 	actualDiff := block.GetActualDiff()
 
-	if actualDiff.Cmp(correctDiff) < 0 {
+	if blockDiff.Cmp(correctDiff) != 0 {
 		return fmt.Errorf("wrong block diff for block@%d, diff in block: %x shall be %x",
+			block.GetHeight(), blockDiff, correctDiff)
+	}
+
+	if actualDiff.Cmp(correctDiff) < 0 {
+		return fmt.Errorf("wrong block diff for block@%d, actual diff in block: %x shall be large than %x",
 			block.GetHeight(), actualDiff, correctDiff)
 	}
 

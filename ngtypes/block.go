@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/go-randomx"
 	"math/big"
 	"runtime"
 	"sync"
-	"time"
-
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/go-randomx"
 
 	"google.golang.org/protobuf/proto"
 
@@ -193,11 +191,11 @@ func (x *Block) GetActualDiff() *big.Int {
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(network NetworkType, height uint64, prevBlockHash []byte, diff *big.Int) *Block {
+func NewBareBlock(network NetworkType, height uint64, blockTime int64, prevBlockHash []byte, diff *big.Int) *Block {
 	return &Block{
 		Network:       network,
 		Height:        height,
-		Timestamp:     time.Now().Unix(),
+		Timestamp:     blockTime,
 		PrevBlockHash: prevBlockHash,
 		TrieHash:      make([]byte, HashSize),
 
