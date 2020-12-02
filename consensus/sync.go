@@ -84,20 +84,24 @@ func (mod *syncModule) loop() {
 			return slice[i].latest > slice[j].latest
 		})
 
-		if r := mod.MustSync(slice); r != nil {
-			err := mod.doSync(r)
-			if err != nil {
-				log.Warnf("do sync failed: %s, maybe require forking", err)
+		var err error
+		{
+			if r := mod.MustSync(slice); r != nil {
+				err = mod.doSync(r)
+				if err != nil {
+					log.Warnf("do sync failed: %s, maybe require forking", err)
+				}
 			}
-		}
 
-		// do fork check after sync check
-		if r := mod.MustFork(slice); r != nil {
-			err := mod.doFork(r)
-			if err != nil {
-				log.Errorf("forking is failed: %s", err)
+			// do fork check after sync check
+			if r := mod.MustFork(slice); r != nil {
+				err = mod.doFork(r)
+				if err != nil {
+					log.Errorf("forking is failed: %s", err)
+					r.recordFailure()
+				}
+				continue
 			}
-			continue
 		}
 
 		// after sync

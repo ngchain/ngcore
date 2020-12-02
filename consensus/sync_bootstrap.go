@@ -66,6 +66,7 @@ func (mod *syncModule) bootstrap() {
 			err = mod.doFork(r) // can overwrite err
 			if err != nil {
 				log.Errorf("forking is failed: %s", err)
+				r.recordFailure()
 			}
 		}
 	}
