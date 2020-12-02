@@ -128,7 +128,7 @@ func (mod *syncModule) MustSync(slice []*remoteRecord) []*remoteRecord {
 		}
 	}
 
-	return nil
+	return ret
 }
 
 func (mod *syncModule) doSync(record *remoteRecord) error {

@@ -21,7 +21,7 @@ func (mod *syncModule) MustFork(slice []*remoteRecord) []*remoteRecord {
 		}
 	}
 
-	return nil
+	return ret
 }
 
 // force local chain be same as the remote record
