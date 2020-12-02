@@ -10,13 +10,14 @@ import (
 
 // MustFork detection ignites the forking in local node
 // then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one)
-func (mod *syncModule) MustFork(slice []*remoteRecord) *remoteRecord {
+func (mod *syncModule) MustFork(slice []*remoteRecord) []*remoteRecord {
+	var ret = make([]*remoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	latestCheckPoint := mod.pow.Chain.GetLatestCheckpoint()
 
 	for _, r := range slice {
 		if r.shouldFork(latestCheckPoint, latestHeight) {
-			return r
+			ret = append(ret, r)
 		}
 	}
 

@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes"
 	"sort"
 	"sync"
 	"time"
@@ -86,21 +85,30 @@ func (mod *syncModule) loop() {
 
 		var err error
 		{
-			if r := mod.MustSync(slice); r != nil {
-				err = mod.doSync(r)
-				if err != nil {
-					log.Warnf("do sync failed: %s, maybe require forking", err)
+			if records := mod.MustSync(slice); records != nil && len(records) != 0 {
+				for _, record := range records {
+					err = mod.doSync(record)
+					if err != nil {
+						log.Warnf("do sync failed: %s, maybe require forking", err)
+					} else {
+						break
+					}
 				}
 			}
-
-			// do fork check after sync check
-			if r := mod.MustFork(slice); r != nil {
-				err = mod.doFork(r)
-				if err != nil {
-					log.Errorf("forking is failed: %s", err)
-					r.recordFailure()
-				}
+			if err == nil {
 				continue
+			}
+
+			if records := mod.MustFork(slice); records != nil && len(records) != 0 {
+				for _, record := range records {
+					err = mod.doFork(record)
+					if err != nil {
+						log.Errorf("forking is failed: %s", err)
+						record.recordFailure()
+					} else {
+						break
+					}
+				}
 			}
 		}
 
@@ -110,11 +118,14 @@ func (mod *syncModule) loop() {
 }
 
 // RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
-func (mod *syncModule) MustSync(recordSlice []*remoteRecord) *remoteRecord {
+func (mod *syncModule) MustSync(slice []*remoteRecord) []*remoteRecord {
+	ret := make([]*remoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 
-	if recordSlice[0].latest/ngtypes.BlockCheckRound > latestHeight/ngtypes.BlockCheckRound {
-		return recordSlice[0]
+	for _, r := range slice {
+		if r.shouldSync(latestHeight) {
+			ret = append(ret, r)
+		}
 	}
 
 	return nil

@@ -21,6 +21,18 @@ type remoteRecord struct {
 	lastFailedTime int64
 }
 
+func (r *remoteRecord) shouldSync(latestHeight uint64) bool {
+	if time.Now().Unix() < r.lastFailedTime+int64(60*60) {
+		return false
+	}
+
+	if r.latest/ngtypes.BlockCheckRound <= latestHeight/ngtypes.BlockCheckRound {
+		return false
+	}
+
+	return true
+}
+
 // RULE: when forking?
 // Situation #1: remote height is higher than local, AND checkpoint is on higher level
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
