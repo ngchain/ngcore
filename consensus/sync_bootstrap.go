@@ -35,7 +35,7 @@ func (mod *syncModule) bootstrap() {
 		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor fork
 	}
 
-	slice := make([]*remoteRecord, len(mod.store))
+	slice := make([]*RemoteRecord, len(mod.store))
 	i := 0
 
 	for _, v := range mod.store {
@@ -82,9 +82,9 @@ func (mod *syncModule) bootstrap() {
 	}
 }
 
-func (mod *syncModule) doInit(record *remoteRecord) error {
-	mod.Lock()
-	defer mod.Unlock()
+func (mod *syncModule) doInit(record *RemoteRecord) error {
+	mod.pow.Lock()
+	defer mod.pow.Unlock()
 
 	log.Warnf("initial syncing with remote node %s", record.id)
 

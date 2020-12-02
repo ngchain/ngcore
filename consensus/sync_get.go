@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-
 	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngp2p/wired"
 
@@ -34,11 +33,13 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 			return err
 		}
 
-		mod.putRemote(peerID, &remoteRecord{
-			id:     peerID,
-			origin: pongPayload.Origin,
-			latest: pongPayload.Latest,
-		})
+		if _, exists := mod.store[peerID]; !exists {
+			mod.putRemote(peerID, NewRemoteRecord(peerID, pongPayload.Origin, pongPayload.Latest,
+				pongPayload.CheckpointHash, pongPayload.CheckpointActualDiff))
+		} else {
+			mod.store[peerID].update(pongPayload.Origin, pongPayload.Latest,
+				pongPayload.CheckpointHash, pongPayload.CheckpointActualDiff)
+		}
 
 	case message.MessageType_REJECT:
 		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
@@ -50,7 +51,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 }
 
 // getRemoteChainFromLocalLatest just get the remote status from remote
-func (mod *syncModule) getRemoteChainFromLocalLatest(record *remoteRecord) (chain []*ngtypes.Block, err error) {
+func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chain []*ngtypes.Block, err error) {
 	latestHash := mod.pow.Chain.GetLatestBlockHash()
 
 	id, s, err := mod.localNode.SendGetChain(record.id, [][]byte{latestHash}, nil) // nil means get MaxBlocks number blocks

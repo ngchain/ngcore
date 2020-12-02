@@ -10,8 +10,8 @@ import (
 
 // MustFork detection ignites the forking in local node
 // then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one)
-func (mod *syncModule) MustFork(slice []*remoteRecord) []*remoteRecord {
-	var ret = make([]*remoteRecord, 0)
+func (mod *syncModule) MustFork(slice []*RemoteRecord) []*RemoteRecord {
+	var ret = make([]*RemoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	latestCheckPoint := mod.pow.Chain.GetLatestCheckpoint()
 
@@ -26,7 +26,7 @@ func (mod *syncModule) MustFork(slice []*remoteRecord) []*remoteRecord {
 
 // force local chain be same as the remote record
 // fork is a danger operation so all msg are warn level
-func (mod *syncModule) doFork(record *remoteRecord) error {
+func (mod *syncModule) doFork(record *RemoteRecord) error {
 	mod.pow.Lock()
 	defer mod.pow.Unlock()
 
@@ -57,7 +57,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 }
 
 // getBlocksSinceForkPoint gets the fork point by comparing hashes between local and remote
-func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes.Block, error) {
+func (mod *syncModule) getBlocksSinceForkPoint(record *RemoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
 	blockHashes := make([][]byte, defaults.MaxBlocks)
 

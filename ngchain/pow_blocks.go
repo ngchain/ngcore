@@ -151,18 +151,24 @@ func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 	return ngtypes.GetGenesisBlock(chain.Network) // TODO: for partial sync func
 }
 
-// ForceApplyBlocks checks the block and then calls ngchain's PutNewBlock, after which update the state
+// ForceApplyBlocks checks the block and then calls PutNewBlock, after which update the state
 func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
-	for i := 0; i < len(blocks); i++ {
-		block := blocks[i]
-		if err := chain.CheckBlock(block); err != nil {
-			return err
+	if err := chain.Update(func(txn *badger.Txn) error {
+		for i := 0; i < len(blocks); i++ {
+			block := blocks[i]
+			if err := chain.CheckBlock(block); err != nil {
+				return err
+			}
+
+			err := chain.ForcePutNewBlock(txn, block)
+			if err != nil {
+				return err
+			}
 		}
 
-		err := chain.ForcePutNewBlock(block)
-		if err != nil {
-			return err
-		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil

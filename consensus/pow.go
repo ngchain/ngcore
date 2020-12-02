@@ -196,6 +196,9 @@ func (pow *PoWork) eventLoop() {
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
 func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
+	pow.Lock() // lock to avoid fork/sync when submitting block
+	defer pow.Unlock()
+
 	// check block first
 	err := pow.db.Update(func(txn *badger.Txn) error {
 		// check block first

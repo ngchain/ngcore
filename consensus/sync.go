@@ -17,21 +17,22 @@ const (
 
 // syncModule is a submodule to the pow, managing the sync of blocks
 type syncModule struct {
-	sync.RWMutex
 	pow *PoWork
 
 	localNode *ngp2p.LocalNode
-	store     map[peer.ID]*remoteRecord
+
+	storeMu sync.RWMutex
+	store   map[peer.ID]*RemoteRecord
 }
 
 // newSyncModule creates a new sync module
 func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	syncMod := &syncModule{
-		RWMutex: sync.RWMutex{},
 
 		pow:       pow,
 		localNode: localNode,
-		store:     make(map[peer.ID]*remoteRecord),
+		storeMu:   sync.RWMutex{},
+		store:     make(map[peer.ID]*RemoteRecord),
 	}
 
 	latest := pow.Chain.GetLatestBlock()
@@ -41,9 +42,9 @@ func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 }
 
 // put the peer and its remote status into mod
-func (mod *syncModule) putRemote(id peer.ID, remote *remoteRecord) {
-	mod.Lock()
-	defer mod.Unlock()
+func (mod *syncModule) putRemote(id peer.ID, remote *RemoteRecord) {
+	mod.storeMu.Lock()
+	defer mod.storeMu.Unlock()
 	mod.store[id] = remote
 }
 
@@ -68,7 +69,7 @@ func (mod *syncModule) loop() {
 
 		// do sync check takes the priority
 		// convert map to slice first
-		slice := make([]*remoteRecord, len(mod.store))
+		slice := make([]*RemoteRecord, len(mod.store))
 		i := 0
 
 		for _, v := range mod.store {
@@ -118,8 +119,8 @@ func (mod *syncModule) loop() {
 }
 
 // RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
-func (mod *syncModule) MustSync(slice []*remoteRecord) []*remoteRecord {
-	ret := make([]*remoteRecord, 0)
+func (mod *syncModule) MustSync(slice []*RemoteRecord) []*RemoteRecord {
+	ret := make([]*RemoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 
 	for _, r := range slice {
@@ -131,9 +132,9 @@ func (mod *syncModule) MustSync(slice []*remoteRecord) []*remoteRecord {
 	return ret
 }
 
-func (mod *syncModule) doSync(record *remoteRecord) error {
-	mod.Lock()
-	defer mod.Unlock()
+func (mod *syncModule) doSync(record *RemoteRecord) error {
+	mod.pow.Lock()
+	defer mod.pow.Unlock()
 
 	log.Warnf("start syncing with remote node %s, target height %d", record.id, record.latest)
 
