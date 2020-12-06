@@ -181,6 +181,7 @@ var action = func(c *cli.Context) error {
 	state := ngstate.InitStateFromGenesis(db, network)
 
 	chain := ngchain.Init(db, network, store, state)
+	chain.CheckHealth(network)
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
 		P2PKeyFile:       p2pKeyFile,

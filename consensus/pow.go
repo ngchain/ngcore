@@ -168,7 +168,7 @@ func (pow *PoWork) eventLoop() {
 		case block := <-pow.LocalNode.OnBlock:
 			err := pow.Chain.ApplyBlock(block)
 			if err != nil {
-				log.Warnf("failed to put new block from p2p network: %s", err)
+				log.Warnf("failed to put new block from p2p: %s", err)
 				continue
 			}
 

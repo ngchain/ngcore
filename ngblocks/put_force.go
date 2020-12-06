@@ -15,16 +15,17 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 	}
 
 	hash := block.Hash()
-	// when block is not genesis block, checking error
+
+	// deleting txs
 	if blockHeightExists(txn, block.Height) {
 		b, err := GetBlockByHeight(txn, block.Height)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get existing block@%d: %s", block.Height, err)
 		}
 
 		err = delTxs(txn, b.Txs...)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to del txs: %s", err)
 		}
 	}
 
@@ -32,22 +33,22 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 		return fmt.Errorf("no prev block in storage: %x", block.GetPrevHash())
 	}
 
-	log.Debugf("putting block@%d: %x", block.Height, hash)
+	log.Warnf("putting block@%d: %x", block.Height, hash)
 	err := PutBlock(txn, hash, block)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to pub block: %s", err)
 	}
 
 	// put txs
 	err = PutTxs(txn, block.Txs...)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to put txs: %s", err)
 	}
 
 	// update helper
 	err = PutLatestTags(txn, block.Height, hash)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update tags: %s", err)
 	}
 	return nil
 }
@@ -58,7 +59,7 @@ func delTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 
 		err := txn.Delete(append(txPrefix, hash...))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to delete tx %x: %s", hash, err)
 		}
 	}
 

@@ -18,7 +18,8 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 
 	id, stream := mod.localNode.SendPing(peerID, origin.GetHeight(), latest.GetHeight(), cp.Hash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
-		return fmt.Errorf("failed to send ping, cannot get remote status from %s", peerID)
+		log.Infof("failed to send ping, cannot get remote status from %s", peerID) // level down this
+		return nil
 	}
 
 	reply, err := wired.ReceiveReply(id, stream)
@@ -85,7 +86,7 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 	}
 }
 
-// getRemoteChain just get the remote status from remote
+// getRemoteChain get the chain from remote node
 func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.Block, err error) {
 	id, s, err := mod.localNode.SendGetChain(peerID, from, to)
 	if s == nil {

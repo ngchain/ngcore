@@ -155,14 +155,14 @@ func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
 	if err := chain.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(blocks); i++ {
-			block := blocks[i]
+			block := blocks[i] // 100294
 			if err := chain.CheckBlock(block); err != nil {
 				return err
 			}
 
 			err := chain.ForcePutNewBlock(txn, block)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to force putting new block: %s", err)
 			}
 		}
 

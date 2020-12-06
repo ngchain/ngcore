@@ -21,11 +21,10 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	prevHash := block.GetPrevHash()
-	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash(chain.Network)) {
-		prevBlock, err := chain.GetBlockByHash(prevHash)
+	if !bytes.Equal(block.PrevBlockHash, ngtypes.GetGenesisBlockHash(chain.Network)) {
+		prevBlock, err := chain.GetBlockByHash(block.PrevBlockHash)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get the prev block@%d %x: %s", block.Height-1, block.PrevBlockHash, err)
 		}
 
 		if err := checkBlockTarget(block, prevBlock); err != nil {
@@ -37,7 +36,7 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 		return ngstate.CheckBlockTxs(txn, block)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("block txs are invalid: %s", err)
 	}
 
 	return nil
