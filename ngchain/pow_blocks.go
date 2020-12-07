@@ -155,8 +155,12 @@ func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
 	if err := chain.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(blocks); i++ {
-			block := blocks[i] // 100294
-			if err := chain.CheckBlock(block); err != nil {
+			block := blocks[i]
+			//if err := chain.CheckBlock(block); err != nil {
+			//	return err
+			//}
+			// Todo: enhance error check here(based on blocks rather than db)
+			if err := block.CheckError(); err != nil {
 				return err
 			}
 

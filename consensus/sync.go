@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/utils"
 	"sort"
 	"sync"
 	"time"
@@ -23,16 +24,19 @@ type syncModule struct {
 
 	storeMu sync.RWMutex
 	store   map[peer.ID]*RemoteRecord
+
+	*utils.Locker
 }
 
 // newSyncModule creates a new sync module
 func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	syncMod := &syncModule{
-
 		pow:       pow,
 		localNode: localNode,
 		storeMu:   sync.RWMutex{},
 		store:     make(map[peer.ID]*RemoteRecord),
+
+		Locker: utils.NewLocker(),
 	}
 
 	latest := pow.Chain.GetLatestBlock()
@@ -133,8 +137,12 @@ func (mod *syncModule) MustSync(slice []*RemoteRecord) []*RemoteRecord {
 }
 
 func (mod *syncModule) doSync(record *RemoteRecord) error {
-	mod.pow.Lock()
-	defer mod.pow.Unlock()
+	if mod.Locker.OnLock() {
+		return nil
+	}
+
+	mod.Locker.Lock()
+	defer mod.Locker.Unlock()
 
 	log.Warnf("start syncing with remote node %s, target height %d", record.id, record.latest)
 

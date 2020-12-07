@@ -2,6 +2,7 @@ package jsonrpc
 
 import (
 	"encoding/hex"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -29,6 +30,10 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	if s.pow.SyncMod.OnLock() {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("chain is syncing")))
+	}
+
 	blockTemplate := s.pow.GetBlockTemplate()
 
 	raw, err := utils.JSON.Marshal(blockTemplate)
@@ -46,6 +51,10 @@ type getWorkReply struct {
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	if s.pow.SyncMod.Locker.OnLock() {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("chain is syncing")))
+
+	}
 	blockTemplate := s.pow.GetBlockTemplate()
 
 	rawBlock, err := utils.Proto.Marshal(blockTemplate)

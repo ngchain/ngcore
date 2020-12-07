@@ -38,7 +38,7 @@ func initMDNS(ctx context.Context, localHost host.Host) chan peer.AddrInfo {
 	go func() {
 		for {
 			pi := <-peerInfoCh // will block until we discover a peer
-			log.Warnf("Found peer: %s, connecting", pi.String())
+			log.Debugf("Found peer: %s, connecting", pi.String())
 
 			if err = localHost.Connect(ctx, pi); err != nil {
 				log.Errorf("Connection failed: %s", err)

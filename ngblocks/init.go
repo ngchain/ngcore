@@ -19,7 +19,7 @@ func (store *BlockStore) initWithGenesis() {
 		if err := store.Update(func(txn *badger.Txn) error {
 			hash := block.Hash()
 			raw, _ := utils.Proto.Marshal(block)
-			log.Debugf("putting block@%d: %x", block.Height, hash)
+			log.Infof("putting block@%d: %x", block.Height, hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {
 				return err
@@ -79,7 +79,7 @@ func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
 			block := blocks[i]
 			hash := block.Hash()
 			raw, _ := utils.Proto.Marshal(block)
-			log.Debugf("putting block@%d: %x", block.Height, hash)
+			log.Infof("putting block@%d: %x", block.Height, hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {
 				return err

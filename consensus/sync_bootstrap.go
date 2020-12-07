@@ -83,8 +83,8 @@ func (mod *syncModule) bootstrap() {
 }
 
 func (mod *syncModule) doInit(record *RemoteRecord) error {
-	mod.pow.Lock()
-	defer mod.pow.Unlock()
+	mod.Locker.Lock()
+	defer mod.Locker.Unlock()
 
 	log.Warnf("initial syncing with remote node %s", record.id)
 

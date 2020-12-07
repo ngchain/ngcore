@@ -33,7 +33,7 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 		return fmt.Errorf("no prev block in storage: %x", block.GetPrevHash())
 	}
 
-	log.Warnf("putting block@%d: %x", block.Height, hash)
+	log.Infof("putting block@%d: %x", block.Height, hash)
 	err := PutBlock(txn, hash, block)
 	if err != nil {
 		return fmt.Errorf("failed to pub block: %s", err)

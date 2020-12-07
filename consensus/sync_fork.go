@@ -27,8 +27,12 @@ func (mod *syncModule) MustFork(slice []*RemoteRecord) []*RemoteRecord {
 // force local chain be same as the remote record
 // fork is a danger operation so all msg are warn level
 func (mod *syncModule) doFork(record *RemoteRecord) error {
-	mod.pow.Lock()
-	defer mod.pow.Unlock()
+	if mod.Locker.OnLock() {
+		return nil
+	}
+
+	mod.Locker.Lock()
+	defer mod.Locker.Unlock()
 
 	log.Warnf("start forking Chain from remote node %s, target height: %d", record.id, record.latest)
 	chain, err := mod.getBlocksSinceForkPoint(record)
