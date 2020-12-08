@@ -2,10 +2,11 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/utils"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/ngchain/ngcore/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -54,7 +55,7 @@ func (mod *syncModule) putRemote(id peer.ID, remote *RemoteRecord) {
 
 // main loop of sync module
 func (mod *syncModule) loop() {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(10 * time.Second)
 
 	for {
 		<-ticker.C
@@ -66,7 +67,7 @@ func (mod *syncModule) loop() {
 			if p == string(mod.localNode.GetWiredProtocol()) && id != mod.localNode.ID() {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
-					log.Warn(err)
+					log.Warnf("failed to get remote status from %s: %s", id, err)
 				}
 			}
 		}
