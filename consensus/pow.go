@@ -8,6 +8,8 @@ import (
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
 
+	"github.com/ngchain/secp256k1"
+
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngchain"
@@ -15,7 +17,6 @@ import (
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/secp256k1"
 )
 
 var log = logging.Logger("pow")
@@ -85,7 +86,7 @@ func (pow *PoWork) SwitchMiningOff() {
 // SwitchMiningOn resumes the pow consensus
 // this won't work when the former job unfinished
 func (pow *PoWork) SwitchMiningOn() {
-	if pow.MinerMod != nil && !pow.SyncMod.Locker.OnLock() {
+	if pow.MinerMod != nil && !pow.SyncMod.Locker.IsLocked() {
 		newBlock := pow.GetBlockTemplate()
 		go pow.MinerMod.Mine(newBlock) // when there was an old one started, this will directly return
 	}
@@ -189,8 +190,9 @@ func (pow *PoWork) eventLoop() {
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
 func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
-	pow.SyncMod.Locker.Lock() // lock to avoid fork/sync when submitting block
-	defer pow.SyncMod.Locker.Unlock()
+	if pow.SyncMod.Locker.IsLocked() {
+		return fmt.Errorf("cannot import mined block: chain is syncing")
+	}
 
 	// check block first
 	err := pow.db.Update(func(txn *badger.Txn) error {
@@ -230,8 +232,9 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 }
 
 func (pow *PoWork) ImportBlock(block *ngtypes.Block) error {
-	pow.SyncMod.Locker.Lock() // lock to avoid fork/sync when submitting block
-	defer pow.SyncMod.Locker.Unlock()
+	if pow.SyncMod.Locker.IsLocked() {
+		return fmt.Errorf("cannot import external block: chain is syncing")
+	}
 
 	err := pow.Chain.ApplyBlock(block)
 	if err != nil {

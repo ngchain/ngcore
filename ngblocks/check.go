@@ -9,7 +9,7 @@ import (
 
 func checkBlock(txn *badger.Txn, height uint64, prevHash []byte) error {
 	if blockHeightExists(txn, height) {
-		return fmt.Errorf("already has a block @%d", height)
+		return fmt.Errorf("already has a block@%d", height)
 	}
 
 	if !blockPrevHashExists(txn, height, prevHash) {

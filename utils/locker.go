@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"go.uber.org/atomic"
 	"runtime"
+
+	"go.uber.org/atomic"
 )
 
 type Locker struct {
@@ -25,6 +26,6 @@ func (l *Locker) Unlock() {
 	}
 }
 
-func (l *Locker) OnLock() bool {
+func (l *Locker) IsLocked() bool {
 	return l.status.Load()
 }

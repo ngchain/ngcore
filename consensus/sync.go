@@ -138,7 +138,7 @@ func (mod *syncModule) MustSync(slice []*RemoteRecord) []*RemoteRecord {
 }
 
 func (mod *syncModule) doSync(record *RemoteRecord) error {
-	if mod.Locker.OnLock() {
+	if mod.Locker.IsLocked() {
 		return nil
 	}
 

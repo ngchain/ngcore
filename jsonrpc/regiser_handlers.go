@@ -54,7 +54,7 @@ func registerHTTPHandler(s *Server) {
 }
 
 func (s *Server) requireSynced(f func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage) func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	if s.pow.SyncMod.OnLock() {
+	if s.pow.SyncMod.IsLocked() {
 		return func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("chain is syncing")))
 		}

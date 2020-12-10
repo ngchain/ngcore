@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -27,7 +28,7 @@ func (mod *syncModule) MustFork(slice []*RemoteRecord) []*RemoteRecord {
 // force local chain be same as the remote record
 // fork is a danger operation so all msg are warn level
 func (mod *syncModule) doFork(record *RemoteRecord) error {
-	if mod.Locker.OnLock() {
+	if mod.Locker.IsLocked() {
 		return nil
 	}
 
