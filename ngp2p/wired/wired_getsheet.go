@@ -52,6 +52,24 @@ func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpoint
 	return req.Header.MessageId, stream, nil
 }
 
-func (w *Wired) onSendSheet() {
-	// todo
+func (w *Wired) onGetSheet(stream network.Stream, msg *message.Message) {
+	log.Debugf("Received getsheet request from %s.", stream.Conn().RemotePeer())
+
+	getSheetPayload := &message.GetSheetPayload{}
+
+	err := utils.Proto.Unmarshal(msg.Payload, getSheetPayload)
+	if err != nil {
+		w.sendReject(msg.Header.MessageId, stream, err)
+		return
+	}
+
+	log.Debugf("getsheet requests sheet@%d: %x", getSheetPayload.CheckpointHeight, getSheetPayload.CheckpointHash)
+
+	sheet := w.chain.GetSnapshot(getSheetPayload.CheckpointHeight, getSheetPayload.CheckpointHash)
+	if sheet == nil {
+		err = fmt.Errorf("cannot find the snapshot on such height")
+		w.sendReject(msg.Header.MessageId, stream, err)
+	}
+
+	w.sendSheet(msg.Header.MessageId, stream, sheet)
 }

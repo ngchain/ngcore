@@ -2,13 +2,14 @@ package wired
 
 import (
 	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
 func (w *Wired) sendPong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) bool {
-	log.Debugf("sending sendPong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
+	log.Debugf("sending pong to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &message.PongPayload{
 		Origin:               origin,
@@ -40,16 +41,16 @@ func (w *Wired) sendPong(uuid []byte, stream network.Stream, origin, latest uint
 	// send the response
 	err = Reply(stream, resp)
 	if err != nil {
-		log.Debugf("failed sending sendPong to: %s: %s", stream.Conn().RemotePeer(), err)
+		log.Debugf("failed sending pong to: %s: %s", stream.Conn().RemotePeer(), err)
 		return false
 	}
 
-	log.Debugf("sent sendPong to: %s with message id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("sent pong to: %s with message id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
 
 	return true
 }
 
-// DecodePongPayload unmarshal the raw and return the *pb.PongPayload.
+// DecodePongPayload unmarshal the raw and return the *message.PongPayload.
 func DecodePongPayload(rawPayload []byte) (*message.PongPayload, error) {
 	pongPayload := &message.PongPayload{}
 

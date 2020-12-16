@@ -46,7 +46,7 @@ func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Shee
 	return sm.hashToSnapshot[hexHash]
 }
 
-//generateSnapshot when the block is a checkpoint
+// generateSnapshot when the block is a checkpoint
 func (state *State) generateSnapshot(txn *badger.Txn) error {
 	accounts := make(map[uint64]*ngtypes.Account)
 	anonymous := make(map[string][]byte)
