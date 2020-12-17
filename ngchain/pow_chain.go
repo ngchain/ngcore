@@ -2,11 +2,12 @@ package ngchain
 
 import (
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// ApplyBlock checks the block and then calls ngchain's PutNewBlock, after which update the state
+// ApplyBlock checks the block and then calls ngchain's PutNewBlock, and then auto-upgrade the state
 func (chain *Chain) ApplyBlock(block *ngtypes.Block) error {
 	err := chain.Update(func(txn *badger.Txn) error {
 		// check block first

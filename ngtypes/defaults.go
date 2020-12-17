@@ -23,7 +23,7 @@ const (
 	// MinimumDifficulty is the minimum of pow minimumDifficulty because my laptop has 200 h/s, I believe you can either
 	minimumDifficulty = 200 << 4         // Target = MaxTarget / diff
 	TargetTime        = 16 * time.Second // change time from 10 -> 16 = 1 << 4
-	BlockCheckRound   = 10               // do fork if fall behind one round
+	BlockCheckRound   = 10               // do converge if fall behind one round
 )
 
 // PoW variables

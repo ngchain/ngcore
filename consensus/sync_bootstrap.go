@@ -32,7 +32,7 @@ func (mod *syncModule) bootstrap() {
 	peerNum := len(mod.store)
 	if peerNum < minDesiredPeerCount {
 		log.Warnf("lack remote peer for bootstrapping")
-		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor fork
+		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor converge
 	}
 
 	slice := make([]*RemoteRecord, len(mod.store))
@@ -57,19 +57,19 @@ func (mod *syncModule) bootstrap() {
 			for _, record := range records {
 				err = mod.doSync(record)
 				if err != nil {
-					log.Warnf("do sync failed: %s, maybe require forking", err)
+					log.Warnf("do sync failed: %s, maybe require converging", err)
 				} else {
 					break
 				}
 			}
 		}
 
-		// do fork check after sync check
-		if records := mod.MustFork(slice); records != nil && len(records) != 0 {
+		// do converge check after sync check
+		if records := mod.MustConverge(slice); records != nil && len(records) != 0 {
 			for _, record := range records {
-				err = mod.doFork(record)
+				err = mod.doConverging(record)
 				if err != nil {
-					log.Errorf("forking is failed: %s", err)
+					log.Errorf("converging failed: %s", err)
 					record.recordFailure()
 				} else {
 					break

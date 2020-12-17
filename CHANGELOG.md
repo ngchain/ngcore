@@ -3,6 +3,9 @@
 ## v0.0.20
 
 - DONE: fix bugs
+- DONE: implement getsheet&sheet on ngp2p
+- TODO: rename "fork" to "converge"
+- TODO: add snapshotSync and snapshotConverge
 
 ## v0.0.19
 

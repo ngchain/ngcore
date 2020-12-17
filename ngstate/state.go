@@ -29,6 +29,7 @@ type State struct {
 }
 
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
+// this func is written for snapshot sync/converging
 func InitStateFromSheet(db *badger.DB, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB:  db,
@@ -96,7 +97,7 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 
 var regenerateLock sync.Mutex
 
-// Regenerate works for doing fork and remove all
+// Regenerate works for doing converge and remove all
 func (state *State) Regenerate() error {
 	regenerateLock.Lock()
 	defer regenerateLock.Unlock()

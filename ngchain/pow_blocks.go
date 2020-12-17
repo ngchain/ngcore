@@ -151,7 +151,9 @@ func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 	return ngtypes.GetGenesisBlock(chain.Network) // TODO: for partial sync func
 }
 
-// ForceApplyBlocks checks the block and then calls PutNewBlock, after which update the state
+// ForceApplyBlocks simply checks the block and then calls chain.ForcePutNewBlock
+// but **do not** upgrade the state.
+// so, after this, dev should do a regenerate or import latest sheet.
 func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
 	if err := chain.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(blocks); i++ {

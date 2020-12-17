@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -95,7 +94,7 @@ func (mod *syncModule) loop() {
 				for _, record := range records {
 					err = mod.doSync(record)
 					if err != nil {
-						log.Warnf("do sync failed: %s, maybe require forking", err)
+						log.Warnf("do sync failed: %s, maybe require converging", err)
 					} else {
 						break
 					}
@@ -105,11 +104,11 @@ func (mod *syncModule) loop() {
 				continue
 			}
 
-			if records := mod.MustFork(slice); records != nil && len(records) != 0 {
+			if records := mod.MustConverge(slice); records != nil && len(records) != 0 {
 				for _, record := range records {
-					err = mod.doFork(record)
+					err = mod.doConverging(record)
 					if err != nil {
-						log.Errorf("forking is failed: %s", err)
+						log.Errorf("converging failed: %s", err)
 						record.recordFailure()
 					} else {
 						break
@@ -121,49 +120,4 @@ func (mod *syncModule) loop() {
 		// after sync
 		mod.pow.SwitchMiningOn()
 	}
-}
-
-// RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
-func (mod *syncModule) MustSync(slice []*RemoteRecord) []*RemoteRecord {
-	ret := make([]*RemoteRecord, 0)
-	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
-
-	for _, r := range slice {
-		if r.shouldSync(latestHeight) {
-			ret = append(ret, r)
-		}
-	}
-
-	return ret
-}
-
-func (mod *syncModule) doSync(record *RemoteRecord) error {
-	if mod.Locker.IsLocked() {
-		return nil
-	}
-
-	mod.Locker.Lock()
-	defer mod.Locker.Unlock()
-
-	log.Warnf("start syncing with remote node %s, target height %d", record.id, record.latest)
-
-	// get chain
-	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
-		chain, err := mod.getRemoteChainFromLocalLatest(record)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < len(chain); i++ {
-			err = mod.pow.Chain.ApplyBlock(chain[i])
-			if err != nil {
-				return fmt.Errorf("failed on applying block@%d: %s", chain[i].Height, err)
-			}
-		}
-	}
-
-	height := mod.pow.Chain.GetLatestBlockHeight()
-	log.Warnf("sync finished with remote node %s, local height %d", record.id, height)
-
-	return nil
 }

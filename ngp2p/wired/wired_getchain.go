@@ -72,9 +72,9 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 
 // RULE:
 // request [[from a...from b]...to]
-// if to is nil, fork mode on
+// if to is nil, converging mode on
 //
-// fork mode:
+// converging mode:
 // 1. check all hashes in db and try to find existing one(samepoint)
 // 2. if none, return nil
 // 3. if index==0,return everything back
@@ -109,7 +109,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 
 	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
 
-	// run fork mode
+	// run converging mode
 	if len(getChainPayload.GetTo()) == 16 {
 		var samepointIndex int
 		// do hashes check first

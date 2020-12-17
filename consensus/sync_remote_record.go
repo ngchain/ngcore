@@ -2,11 +2,13 @@ package consensus
 
 import (
 	"bytes"
-	"go.uber.org/atomic"
 	"math/big"
 	"time"
 
+	"go.uber.org/atomic"
+
 	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -55,11 +57,11 @@ func (r *RemoteRecord) shouldSync(latestHeight uint64) bool {
 	return true
 }
 
-// RULE: when forking?
+// RULE: when converging?
 // Situation #1: remote height is higher than local, AND checkpoint is on higher level
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
-// TODO: add a cap for forking
-func (r *RemoteRecord) shouldFork(latestCheckPoint *ngtypes.Block, latestHeight uint64) bool {
+// TODO: add a cap for converging
+func (r *RemoteRecord) shouldConverge(latestCheckPoint *ngtypes.Block, latestHeight uint64) bool {
 	if time.Now().Unix() < r.lastFailedTime+int64(60*60) {
 		return false
 	}
