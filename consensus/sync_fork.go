@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -10,24 +11,29 @@ import (
 
 // MustFork detection ignites the forking in local node
 // then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one)
-func (mod *syncModule) MustFork(slice []*remoteRecord) *remoteRecord {
+func (mod *syncModule) MustFork(slice []*RemoteRecord) []*RemoteRecord {
+	var ret = make([]*RemoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	latestCheckPoint := mod.pow.Chain.GetLatestCheckpoint()
 
 	for _, r := range slice {
 		if r.shouldFork(latestCheckPoint, latestHeight) {
-			return r
+			ret = append(ret, r)
 		}
 	}
 
-	return nil
+	return ret
 }
 
 // force local chain be same as the remote record
 // fork is a danger operation so all msg are warn level
-func (mod *syncModule) doFork(record *remoteRecord) error {
-	mod.pow.Lock()
-	defer mod.pow.Unlock()
+func (mod *syncModule) doFork(record *RemoteRecord) error {
+	if mod.Locker.IsLocked() {
+		return nil
+	}
+
+	mod.Locker.Lock()
+	defer mod.Locker.Unlock()
 
 	log.Warnf("start forking Chain from remote node %s, target height: %d", record.id, record.latest)
 	chain, err := mod.getBlocksSinceForkPoint(record)
@@ -35,7 +41,9 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 		return err
 	}
 
-	log.Warnf("have got the fork point: block@%d", chain[0].Height)
+	localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
+	log.Warnf("have got the fork point: block@%d: local: %x remote %x", chain[1].Height, chain[1].Hash(), localSamepoint.Hash())
+
 	err = mod.pow.Chain.ForceApplyBlocks(chain)
 	if err != nil {
 		return err
@@ -46,6 +54,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 	// 2. download the state from remote(maybe unreliable)
 	// 3. flash back(require remove logout and assign tx)
 	// Currently choose the No.1
+	log.Warnf("regenerateing local state")
 	err = mod.pow.State.Regenerate()
 	if err != nil {
 		return err
@@ -56,7 +65,7 @@ func (mod *syncModule) doFork(record *remoteRecord) error {
 }
 
 // getBlocksSinceForkPoint gets the fork point by comparing hashes between local and remote
-func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes.Block, error) {
+func (mod *syncModule) getBlocksSinceForkPoint(record *RemoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
 	blockHashes := make([][]byte, defaults.MaxBlocks)
 
@@ -70,15 +79,11 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 			panic("cannot fork: completely different chains!")
 		}
 
-		roundHashes := uint64(defaults.MaxBlocks)
-		if ptr < defaults.MaxBlocks {
-			roundHashes = ptr
-		}
-
+		to := ptr
+		roundHashes := utils.MinUint64(defaults.MaxBlocks, ptr)
 		ptr -= roundHashes
+		from := ptr + 1
 
-		var from = ptr + 1
-		var to = ptr + roundHashes
 		// get local hashes as params
 		for h := from; h <= to; h++ {
 			b, err := mod.pow.Chain.GetBlockByHeight(h)
@@ -90,7 +95,7 @@ func (mod *syncModule) getBlocksSinceForkPoint(record *remoteRecord) ([]*ngtypes
 			blockHashes[h-ptr-1] = b.Hash()
 		}
 
-		// to == nil means fork mode
+		// To == from+to means fork mode
 		chain, err := mod.getRemoteChain(record.id, blockHashes, bytes.Join([][]byte{utils.PackUint64LE(from), utils.PackUint64LE(to)}, nil))
 		if err != nil {
 			return nil, err

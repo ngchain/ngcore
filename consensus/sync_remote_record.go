@@ -2,29 +2,69 @@ package consensus
 
 import (
 	"bytes"
+	"go.uber.org/atomic"
 	"math/big"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-type remoteRecord struct {
+type RemoteRecord struct {
 	id                   peer.ID
 	origin               uint64 // rank
 	latest               uint64
 	checkpointHash       []byte   // trigger
 	checkpointActualDiff *big.Int // rank
 	lastChatTime         int64
+
+	failureNum     *atomic.Uint32
+	lastFailedTime int64
+}
+
+func NewRemoteRecord(id peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) *RemoteRecord {
+	return &RemoteRecord{
+		id:                   id,
+		origin:               origin,
+		latest:               latest,
+		checkpointHash:       checkpointHash,
+		checkpointActualDiff: new(big.Int).SetBytes(checkpointActualDiff),
+		lastChatTime:         time.Now().Unix(),
+		failureNum:           atomic.NewUint32(0),
+		lastFailedTime:       0,
+	}
+}
+
+func (r *RemoteRecord) update(origin, latest uint64, checkpointHash, checkpointActualDiff []byte) {
+	r.origin = origin
+	r.latest = latest
+	r.checkpointHash = checkpointHash
+	r.checkpointActualDiff = new(big.Int).SetBytes(checkpointActualDiff)
+	r.lastChatTime = time.Now().Unix()
+}
+
+func (r *RemoteRecord) shouldSync(latestHeight uint64) bool {
+	if time.Now().Unix() < r.lastFailedTime+int64(60*60) {
+		return false
+	}
+
+	if r.latest/ngtypes.BlockCheckRound <= latestHeight/ngtypes.BlockCheckRound {
+		return false
+	}
+
+	return true
 }
 
 // RULE: when forking?
 // Situation #1: remote height is higher than local, AND checkpoint is on higher level
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
 // TODO: add a cap for forking
-func (r *remoteRecord) shouldFork(latestCheckPoint *ngtypes.Block, latestHeight uint64) bool {
-	//latestCheckPoint := ngchain.GetLatestCheckpoint()
+func (r *RemoteRecord) shouldFork(latestCheckPoint *ngtypes.Block, latestHeight uint64) bool {
+	if time.Now().Unix() < r.lastFailedTime+int64(60*60) {
+		return false
+	}
+
 	cpHash := latestCheckPoint.Hash()
-	//latestHeight := ngchain.GetLatestBlockHeight()
 
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
 		r.latest > latestHeight &&
@@ -41,4 +81,11 @@ func (r *remoteRecord) shouldFork(latestCheckPoint *ngtypes.Block, latestHeight 
 	}
 
 	return false
+}
+
+func (r *RemoteRecord) recordFailure() {
+	r.failureNum.Inc()
+	if r.failureNum.Load() > 3 {
+		r.lastFailedTime = time.Now().Unix()
+	}
 }

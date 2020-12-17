@@ -3,6 +3,7 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ngchain/ngcore/ngstate"
@@ -20,11 +21,10 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	prevHash := block.GetPrevHash()
-	if !bytes.Equal(prevHash, ngtypes.GetGenesisBlockHash(chain.Network)) {
-		prevBlock, err := chain.GetBlockByHash(prevHash)
+	if !bytes.Equal(block.PrevBlockHash, ngtypes.GetGenesisBlockHash(chain.Network)) {
+		prevBlock, err := chain.GetBlockByHash(block.PrevBlockHash)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get the prev block@%d %x: %s", block.Height-1, block.PrevBlockHash, err)
 		}
 
 		if err := checkBlockTarget(block, prevBlock); err != nil {
@@ -36,18 +36,24 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 		return ngstate.CheckBlockTxs(txn, block)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("block txs are invalid: %s", err)
 	}
 
 	return nil
 }
 
 func checkBlockTarget(block, prevBlock *ngtypes.Block) error {
-	correctDiff := ngtypes.GetNextDiff(prevBlock)
+	correctDiff := ngtypes.GetNextDiff(block.Height, block.Timestamp, prevBlock)
+	blockDiff := new(big.Int).SetBytes(block.Difficulty)
 	actualDiff := block.GetActualDiff()
 
-	if actualDiff.Cmp(correctDiff) < 0 {
+	if blockDiff.Cmp(correctDiff) != 0 {
 		return fmt.Errorf("wrong block diff for block@%d, diff in block: %x shall be %x",
+			block.GetHeight(), blockDiff, correctDiff)
+	}
+
+	if actualDiff.Cmp(correctDiff) < 0 {
+		return fmt.Errorf("wrong block diff for block@%d, actual diff in block: %x shall be large than %x",
 			block.GetHeight(), actualDiff, correctDiff)
 	}
 

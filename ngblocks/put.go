@@ -23,7 +23,7 @@ func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 		return err
 	}
 
-	log.Debugf("putting block@%d: %x", block.Height, hash)
+	log.Infof("putting block@%d: %x", block.Height, hash)
 	err = PutBlock(txn, hash, block)
 	if err != nil {
 		return err

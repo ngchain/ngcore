@@ -5,6 +5,7 @@ import (
 
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
+
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -109,18 +110,27 @@ func (state *State) Regenerate() error {
 		return err
 	}
 
+	var latestHeight uint64
 	err = state.Update(func(txn *badger.Txn) error {
 		err := initFromSheet(txn, ngtypes.GenesisSheet)
 		if err != nil {
 			return err
 		}
 
-		latestHeight, err := ngblocks.GetLatestHeight(txn)
+		latestHeight, err = ngblocks.GetLatestHeight(txn)
 		if err != nil {
 			return err
 		}
 
-		for h := uint64(0); h <= latestHeight; h++ {
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	for h := uint64(0); h <= latestHeight; h++ {
+		err = state.Update(func(txn *badger.Txn) error {
 			b, err := ngblocks.GetBlockByHeight(txn, h)
 			if err != nil {
 				return err
@@ -130,12 +140,12 @@ func (state *State) Regenerate() error {
 			if err != nil {
 				return err
 			}
-		}
 
-		return nil
-	})
-	if err != nil {
-		return err
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

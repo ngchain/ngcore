@@ -2,10 +2,11 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/ngchain/ngcore/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -18,21 +19,25 @@ const (
 
 // syncModule is a submodule to the pow, managing the sync of blocks
 type syncModule struct {
-	sync.RWMutex
 	pow *PoWork
 
 	localNode *ngp2p.LocalNode
-	store     map[peer.ID]*remoteRecord
+
+	storeMu sync.RWMutex
+	store   map[peer.ID]*RemoteRecord
+
+	*utils.Locker
 }
 
 // newSyncModule creates a new sync module
 func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	syncMod := &syncModule{
-		RWMutex: sync.RWMutex{},
-
 		pow:       pow,
 		localNode: localNode,
-		store:     make(map[peer.ID]*remoteRecord),
+		storeMu:   sync.RWMutex{},
+		store:     make(map[peer.ID]*RemoteRecord),
+
+		Locker: utils.NewLocker(),
 	}
 
 	latest := pow.Chain.GetLatestBlock()
@@ -42,15 +47,15 @@ func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 }
 
 // put the peer and its remote status into mod
-func (mod *syncModule) putRemote(id peer.ID, remote *remoteRecord) {
-	mod.Lock()
-	defer mod.Unlock()
+func (mod *syncModule) putRemote(id peer.ID, remote *RemoteRecord) {
+	mod.storeMu.Lock()
+	defer mod.storeMu.Unlock()
 	mod.store[id] = remote
 }
 
 // main loop of sync module
 func (mod *syncModule) loop() {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(10 * time.Second)
 
 	for {
 		<-ticker.C
@@ -62,14 +67,14 @@ func (mod *syncModule) loop() {
 			if p == string(mod.localNode.GetWiredProtocol()) && id != mod.localNode.ID() {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
-					log.Warn(err)
+					log.Warnf("failed to get remote status from %s: %s", id, err)
 				}
 			}
 		}
 
 		// do sync check takes the priority
 		// convert map to slice first
-		slice := make([]*remoteRecord, len(mod.store))
+		slice := make([]*RemoteRecord, len(mod.store))
 		i := 0
 
 		for _, v := range mod.store {
@@ -84,20 +89,33 @@ func (mod *syncModule) loop() {
 			return slice[i].latest > slice[j].latest
 		})
 
-		if r := mod.MustSync(slice); r != nil {
-			err := mod.doSync(r)
-			if err != nil {
-				log.Warnf("do sync failed: %s, maybe require forking", err)
+		var err error
+		{
+			if records := mod.MustSync(slice); records != nil && len(records) != 0 {
+				for _, record := range records {
+					err = mod.doSync(record)
+					if err != nil {
+						log.Warnf("do sync failed: %s, maybe require forking", err)
+					} else {
+						break
+					}
+				}
 			}
-		}
+			if err == nil {
+				continue
+			}
 
-		// do fork check after sync check
-		if r := mod.MustFork(slice); r != nil {
-			err := mod.doFork(r)
-			if err != nil {
-				log.Errorf("forking is failed: %s", err)
+			if records := mod.MustFork(slice); records != nil && len(records) != 0 {
+				for _, record := range records {
+					err = mod.doFork(record)
+					if err != nil {
+						log.Errorf("forking is failed: %s", err)
+						record.recordFailure()
+					} else {
+						break
+					}
+				}
 			}
-			continue
 		}
 
 		// after sync
@@ -106,19 +124,26 @@ func (mod *syncModule) loop() {
 }
 
 // RULE: checkpoint fork: when a node mined a checkpoint, all other node are forced to start sync
-func (mod *syncModule) MustSync(recordSlice []*remoteRecord) *remoteRecord {
+func (mod *syncModule) MustSync(slice []*RemoteRecord) []*RemoteRecord {
+	ret := make([]*RemoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 
-	if recordSlice[0].latest/ngtypes.BlockCheckRound > latestHeight/ngtypes.BlockCheckRound {
-		return recordSlice[0]
+	for _, r := range slice {
+		if r.shouldSync(latestHeight) {
+			ret = append(ret, r)
+		}
 	}
 
-	return nil
+	return ret
 }
 
-func (mod *syncModule) doSync(record *remoteRecord) error {
-	mod.Lock()
-	defer mod.Unlock()
+func (mod *syncModule) doSync(record *RemoteRecord) error {
+	if mod.Locker.IsLocked() {
+		return nil
+	}
+
+	mod.Locker.Lock()
+	defer mod.Locker.Unlock()
 
 	log.Warnf("start syncing with remote node %s, target height %d", record.id, record.latest)
 

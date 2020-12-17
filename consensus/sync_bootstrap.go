@@ -35,7 +35,7 @@ func (mod *syncModule) bootstrap() {
 		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor fork
 	}
 
-	slice := make([]*remoteRecord, len(mod.store))
+	slice := make([]*RemoteRecord, len(mod.store))
 	i := 0
 
 	for _, v := range mod.store {
@@ -53,19 +53,27 @@ func (mod *syncModule) bootstrap() {
 	// catch error
 	var err error
 	{
-		// initial sync
-		if r := mod.MustSync(slice); r != nil {
-			err = mod.doSync(r)
-			if err != nil {
-				log.Errorf("syncing is failed: %s", err)
+		if records := mod.MustSync(slice); records != nil && len(records) != 0 {
+			for _, record := range records {
+				err = mod.doSync(record)
+				if err != nil {
+					log.Warnf("do sync failed: %s, maybe require forking", err)
+				} else {
+					break
+				}
 			}
 		}
 
-		// then check fork
-		if r := mod.MustFork(slice); r != nil {
-			err = mod.doFork(r) // can overwrite err
-			if err != nil {
-				log.Errorf("forking is failed: %s", err)
+		// do fork check after sync check
+		if records := mod.MustFork(slice); records != nil && len(records) != 0 {
+			for _, record := range records {
+				err = mod.doFork(record)
+				if err != nil {
+					log.Errorf("forking is failed: %s", err)
+					record.recordFailure()
+				} else {
+					break
+				}
 			}
 		}
 	}
@@ -74,9 +82,9 @@ func (mod *syncModule) bootstrap() {
 	}
 }
 
-func (mod *syncModule) doInit(record *remoteRecord) error {
-	mod.Lock()
-	defer mod.Unlock()
+func (mod *syncModule) doInit(record *RemoteRecord) error {
+	mod.Locker.Lock()
+	defer mod.Locker.Unlock()
 
 	log.Warnf("initial syncing with remote node %s", record.id)
 

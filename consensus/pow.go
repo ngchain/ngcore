@@ -3,10 +3,12 @@ package consensus
 import (
 	"fmt"
 	"runtime"
-	"sync"
+	"time"
 
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
+
+	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngblocks"
@@ -15,19 +17,16 @@ import (
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/secp256k1"
 )
 
 var log = logging.Logger("pow")
 
 // PoWork is a proof on work consensus manager
 type PoWork struct {
-	sync.RWMutex
-
 	PoWorkConfig
 
-	syncMod  *syncModule
-	minerMod *miner.Miner
+	SyncMod  *syncModule
+	MinerMod *miner.Miner
 
 	Chain     *ngchain.Chain
 	Pool      *ngpool.TxPool
@@ -50,10 +49,9 @@ type PoWorkConfig struct {
 // InitPoWConsensus creates and initializes the PoW consensus.
 func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
 	pow := &PoWork{
-		RWMutex:      sync.RWMutex{},
 		PoWorkConfig: config,
-		syncMod:      nil,
-		minerMod:     nil,
+		SyncMod:      nil,
+		MinerMod:     nil,
 		Chain:        chain,
 		Pool:         pool,
 		State:        state,
@@ -65,12 +63,12 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update
-	pow.syncMod = newSyncModule(pow, localNode)
+	pow.SyncMod = newSyncModule(pow, localNode)
 	if !pow.DisableConnectingBootstraps {
-		pow.syncMod.bootstrap()
+		pow.SyncMod.bootstrap()
 	}
 
-	pow.minerMod = miner.NewMiner(config.MiningThread, pow.foundBlockCh)
+	pow.MinerMod = miner.NewMiner(config.MiningThread, pow.foundBlockCh)
 
 	// run reporter
 	go pow.reportLoop()
@@ -80,17 +78,17 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 
 // SwitchMiningOff stops the pow consensus.
 func (pow *PoWork) SwitchMiningOff() {
-	if pow.minerMod != nil {
-		pow.minerMod.Stop()
+	if pow.MinerMod != nil {
+		pow.MinerMod.Stop()
 	}
 }
 
 // SwitchMiningOn resumes the pow consensus
 // this won't work when the former job unfinished
 func (pow *PoWork) SwitchMiningOn() {
-	if pow.minerMod != nil {
+	if pow.MinerMod != nil && !pow.SyncMod.Locker.IsLocked() {
 		newBlock := pow.GetBlockTemplate()
-		go pow.minerMod.Mine(newBlock) // when there was an old one started, this will directly return
+		go pow.MinerMod.Mine(newBlock) // when there was an old one started, this will directly return
 	}
 }
 
@@ -102,8 +100,8 @@ func (pow *PoWork) UpdateMiningJob() {
 
 // SwitchMiningOn resumes the pow consensus.
 func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
-	if pow.minerMod != nil {
-		pow.minerMod.ThreadNum = newThreadNum
+	if pow.MinerMod != nil {
+		pow.MinerMod.ThreadNum = newThreadNum
 		return
 	}
 
@@ -115,31 +113,31 @@ func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
 		newThreadNum = runtime.NumCPU()
 	}
 
-	pow.minerMod = miner.NewMiner(newThreadNum, pow.foundBlockCh)
+	pow.MinerMod = miner.NewMiner(newThreadNum, pow.foundBlockCh)
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
 func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
-	pow.RLock()
-	defer pow.RUnlock()
-
 	currentBlock := pow.Chain.GetLatestBlock()
 
 	currentBlockHash := currentBlock.Hash()
 
-	newDiff := ngtypes.GetNextDiff(currentBlock)
-	newHeight := currentBlock.Height + 1
+	blockTime := time.Now().Unix()
+
+	blockHeight := currentBlock.Height + 1
+	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock)
 
 	newBareBlock := ngtypes.NewBareBlock(
 		pow.Network,
-		newHeight,
+		blockHeight,
+		blockTime,
 		currentBlockHash,
 		newDiff,
 	)
 
 	var extraData []byte // FIXME
 
-	genTx := pow.createGenerateTx(newHeight, extraData)
+	genTx := pow.createGenerateTx(blockHeight, extraData)
 	txs := pow.Pool.GetPack(currentBlockHash).Txs
 	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
 
@@ -154,7 +152,7 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 // GoLoop ignites all loops
 func (pow *PoWork) GoLoop() {
 	go pow.eventLoop()
-	go pow.syncMod.loop()
+	go pow.SyncMod.loop()
 }
 
 // channel receiver for broadcasts events
@@ -162,9 +160,9 @@ func (pow *PoWork) eventLoop() {
 	for {
 		select {
 		case block := <-pow.LocalNode.OnBlock:
-			err := pow.Chain.ApplyBlock(block)
+			err := pow.ImportBlock(block)
 			if err != nil {
-				log.Warnf("failed to put new block from p2p network: %s", err)
+				log.Warnf("failed to put new block from p2p: %s", err)
 				continue
 			}
 
@@ -185,13 +183,17 @@ func (pow *PoWork) eventLoop() {
 
 			// assign new job
 			blockTemplate := pow.GetBlockTemplate()
-			pow.minerMod.Mine(blockTemplate)
+			pow.MinerMod.Mine(blockTemplate)
 		}
 	}
 }
 
 // MinedNewBlock means the consensus mined new block and need to add it into the chain.
 func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
+	if pow.SyncMod.Locker.IsLocked() {
+		return fmt.Errorf("cannot import mined block: chain is syncing")
+	}
+
 	// check block first
 	err := pow.db.Update(func(txn *badger.Txn) error {
 		// check block first
@@ -224,6 +226,19 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	err = pow.LocalNode.BroadcastBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to broadcast the new mined block")
+	}
+
+	return nil
+}
+
+func (pow *PoWork) ImportBlock(block *ngtypes.Block) error {
+	if pow.SyncMod.Locker.IsLocked() {
+		return fmt.Errorf("cannot import external block: chain is syncing")
+	}
+
+	err := pow.Chain.ApplyBlock(block)
+	if err != nil {
+		return err
 	}
 
 	return nil
