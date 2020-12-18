@@ -52,28 +52,36 @@ func (mod *syncModule) bootstrap() {
 
 	// catch error
 	var err error
-	{
-		if records := mod.MustSync(slice); records != nil && len(records) != 0 {
-			for _, record := range records {
+	if records := mod.MustSync(slice); records != nil && len(records) != 0 {
+		for _, record := range records {
+			if mod.pow.SnapshotMode {
+				err = mod.doSnapshotSync(record)
+			} else {
 				err = mod.doSync(record)
-				if err != nil {
-					log.Warnf("do sync failed: %s, maybe require converging", err)
-				} else {
-					break
-				}
+			}
+
+			if err != nil {
+				log.Warnf("do sync failed: %s, maybe require converging", err)
+			} else {
+				break
 			}
 		}
+	}
 
-		// do converge check after sync check
-		if records := mod.MustConverge(slice); records != nil && len(records) != 0 {
-			for _, record := range records {
+	// do converge check after sync check
+	if records := mod.MustConverge(slice); records != nil && len(records) != 0 {
+		for _, record := range records {
+			if mod.pow.SnapshotMode {
+				err = mod.doSnapshotConverging(record)
+			} else {
 				err = mod.doConverging(record)
-				if err != nil {
-					log.Errorf("converging failed: %s", err)
-					record.recordFailure()
-				} else {
-					break
-				}
+			}
+
+			if err != nil {
+				log.Errorf("converging failed: %s", err)
+				record.recordFailure()
+			} else {
+				break
 			}
 		}
 	}

@@ -41,9 +41,12 @@ type PoWork struct {
 
 type PoWorkConfig struct {
 	Network                     ngtypes.NetworkType
+	StrictMode                  bool
+	SnapshotMode                bool
 	DisableConnectingBootstraps bool
-	MiningThread                int
-	PrivateKey                  *secp256k1.PrivateKey
+
+	MiningThread int
+	PrivateKey   *secp256k1.PrivateKey
 }
 
 // InitPoWConsensus creates and initializes the PoW consensus.

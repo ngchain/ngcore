@@ -33,6 +33,12 @@ var strictModeFlag = &cli.BoolFlag{
 	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
+var snapshotModeFlag = &cli.BoolFlag{
+	Name:  "snapshot",
+	Value: false,
+	Usage: "Enable snapshot boost for syncing and converging",
+}
+
 var p2pTCPPortFlag = &cli.IntFlag{
 	Name:  "p2p-port",
 	Usage: "Port for P2P connection",
@@ -116,7 +122,9 @@ var action = func(c *cli.Context) error {
 		mining = runtime.NumCPU()
 	}
 
-	isStrictMode := isBootstrapNode || c.Bool(strictModeFlag.Name)
+	strictMode := isBootstrapNode || c.Bool(strictModeFlag.Name)
+	snapshotMode := c.Bool(snapshotModeFlag.Name)
+
 	p2pTCPPort := c.Int(p2pTCPPortFlag.Name)
 	rpcHost := c.String(rpcHostFlag.Name)
 	rpcPort := c.Int(rpcPortFlag.Name)
@@ -171,7 +179,7 @@ var action = func(c *cli.Context) error {
 	}()
 
 	var store *ngblocks.BlockStore
-	if isStrictMode {
+	if strictMode {
 		store = ngblocks.Init(db, network)
 		// then sync
 	} else {
@@ -201,6 +209,8 @@ var action = func(c *cli.Context) error {
 		localNode,
 		consensus.PoWorkConfig{
 			Network:                     network,
+			StrictMode:                  strictMode,
+			SnapshotMode:                snapshotMode,
 			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.NetworkType_ZERONET,
 			MiningThread:                mining,
 			PrivateKey:                  key,
