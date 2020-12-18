@@ -48,13 +48,13 @@ func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.She
 }
 
 // DecodeSheetPayload unmarshal the raw and return the *message.PongPayload.
-func DecodeSheetPayload(rawPayload []byte) (*message.PongPayload, error) {
-	pongPayload := &message.PongPayload{}
+func DecodeSheetPayload(rawPayload []byte) (*message.SheetPayload, error) {
+	sheetPayload := &message.SheetPayload{}
 
-	err := utils.Proto.Unmarshal(rawPayload, pongPayload)
+	err := utils.Proto.Unmarshal(rawPayload, sheetPayload)
 	if err != nil {
 		return nil, err
 	}
 
-	return pongPayload, nil
+	return sheetPayload, nil
 }

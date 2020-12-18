@@ -36,7 +36,7 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	defer mod.Locker.Unlock()
 
 	log.Warnf("start converging chain from remote node %s, target height: %d", record.id, record.latest)
-	chain, err := mod.getBlocksSinceDiffPoint(record)
+	chain, err := mod.getBlocksForConverging(record)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	// 3. flash back(require remove logout and assign tx)
 	// Currently choose the No.1
 	log.Warnf("regenerateing local state")
-	err = mod.pow.State.Regenerate()
+	err = mod.pow.State.RebuildFromBlockStore()
 	if err != nil {
 		return err
 	}
@@ -64,8 +64,8 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	return nil
 }
 
-// getBlocksSinceDiffPoint gets the diffpoint by comparing hashes between local and remote
-func (mod *syncModule) getBlocksSinceDiffPoint(record *RemoteRecord) ([]*ngtypes.Block, error) {
+// getBlocksForConverging gets the blocks since the diffpoint (inclusive) by comparing hashes between local and remote
+func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
 	blockHashes := make([][]byte, defaults.MaxBlocks)
 

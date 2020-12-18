@@ -13,9 +13,11 @@ import (
 )
 
 type RemoteRecord struct {
-	id                   peer.ID
-	origin               uint64 // rank
-	latest               uint64
+	id     peer.ID
+	origin uint64 // rank
+	latest uint64
+
+	checkpointHeight     uint64
 	checkpointHash       []byte   // trigger
 	checkpointActualDiff *big.Int // rank
 	lastChatTime         int64
@@ -29,6 +31,7 @@ func NewRemoteRecord(id peer.ID, origin, latest uint64, checkpointHash, checkpoi
 		id:                   id,
 		origin:               origin,
 		latest:               latest,
+		checkpointHeight:     latest - latest%ngtypes.BlockCheckRound,
 		checkpointHash:       checkpointHash,
 		checkpointActualDiff: new(big.Int).SetBytes(checkpointActualDiff),
 		lastChatTime:         time.Now().Unix(),
@@ -40,6 +43,7 @@ func NewRemoteRecord(id peer.ID, origin, latest uint64, checkpointHash, checkpoi
 func (r *RemoteRecord) update(origin, latest uint64, checkpointHash, checkpointActualDiff []byte) {
 	r.origin = origin
 	r.latest = latest
+	r.checkpointHeight = latest - latest%ngtypes.BlockCheckRound
 	r.checkpointHash = checkpointHash
 	r.checkpointActualDiff = new(big.Int).SetBytes(checkpointActualDiff)
 	r.lastChatTime = time.Now().Unix()

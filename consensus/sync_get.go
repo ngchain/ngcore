@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngp2p/wired"
 
@@ -116,5 +117,37 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 
 	default:
 		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+	}
+}
+
+func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes.Sheet, err error) {
+	id, s, err := mod.localNode.SendGetSheet(record.id, record.checkpointHeight, record.checkpointHash)
+	if s == nil {
+		return nil, fmt.Errorf("failed to send getsheet: %s", err)
+	}
+
+	reply, err := wired.ReceiveReply(id, s)
+	if err != nil {
+		return nil, err
+	}
+
+	switch reply.Header.MessageType {
+	case message.MessageType_SHEET:
+		sheetPayload, err := wired.DecodeSheetPayload(reply.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to send ping: %s", err)
+		}
+
+		// TODO: add support for hashes etc
+		return sheetPayload.Sheet, err
+
+	case message.MessageType_REJECT:
+		return nil, fmt.Errorf("getsheet is rejected by remote: %s", string(reply.Payload))
+
+	case message.MessageType_NOTFOUND:
+		return nil, fmt.Errorf("checkpoint's sheet is not found in remote")
+
+	default:
+		return nil, fmt.Errorf("remote replies with invalid messgae type: %s", reply.Header.MessageType)
 	}
 }

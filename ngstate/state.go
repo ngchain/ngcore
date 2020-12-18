@@ -1,8 +1,6 @@
 package ngstate
 
 import (
-	"sync"
-
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
 
@@ -29,7 +27,8 @@ type State struct {
 }
 
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
-// this func is written for snapshot sync/converging
+// this func is written for snapshot sync/converging when initializing from non-genesis
+// checkpoint
 func InitStateFromSheet(db *badger.DB, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB:  db,
@@ -95,13 +94,29 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 	return nil
 }
 
-var regenerateLock sync.Mutex
+// RebuildFromSheet will overwrite a state from the given sheet
+func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
+	err := state.DropPrefix(addrTobBalancePrefix)
+	if err != nil {
+		return err
+	}
+	err = state.DropPrefix(numToAccountPrefix)
+	if err != nil {
+		return err
+	}
 
-// Regenerate works for doing converge and remove all
-func (state *State) Regenerate() error {
-	regenerateLock.Lock()
-	defer regenerateLock.Unlock()
+	err = state.Update(func(txn *badger.Txn) error {
+		return initFromSheet(txn, sheet)
+	})
+	if err != nil {
+		return err
+	}
 
+	return nil
+}
+
+// RebuildFromBlockStore works for doing converge and remove all
+func (state *State) RebuildFromBlockStore() error {
 	err := state.DropPrefix(addrTobBalancePrefix)
 	if err != nil {
 		return err
