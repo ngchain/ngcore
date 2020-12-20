@@ -8,10 +8,9 @@ import (
 	"math/big"
 
 	"github.com/ngchain/go-schnorr"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
@@ -47,11 +46,6 @@ func (x *Tx) IsSigned() bool {
 
 // Verify helps verify the transaction whether signed by the public key owner.
 func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
-	//if x.Network != Network {
-	//	return fmt.Errorf("tx's network id is incorrect")
-	//}
-	// TODO: do network check on consensus
-
 	if x.Sign == nil {
 		return fmt.Errorf("unsigned transaction")
 	}
@@ -60,12 +54,8 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 		return fmt.Errorf("illegal public key")
 	}
 
-	cp := proto.Clone(x).(*Tx)
-	cp.Sign = nil
-	b, err := utils.Proto.Marshal(cp)
-	if err != nil {
-		return err
-	}
+	hash := [32]byte{}
+	copy(hash[:], x.Hash())
 
 	var signature [64]byte
 	copy(signature[:], x.Sign)
@@ -73,7 +63,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	var key [33]byte
 	copy(key[:], publicKey.SerializeCompressed())
 
-	if ok, err := schnorr.Verify(key, sha3.Sum256(b), signature); !ok {
+	if ok, err := schnorr.Verify(key, hash, signature); !ok {
 		if err != nil {
 			return err
 		}
@@ -96,36 +86,36 @@ func (x *Tx) BS58() string {
 
 // ID is a tx's Readable ID(hash) in string.
 func (x *Tx) ID() string {
-	hash, err := x.CalculateHash()
-	if err != nil {
-		log.Error(err)
-	}
-
-	return hex.EncodeToString(hash)
+	return hex.EncodeToString(x.Hash())
 }
 
 // Hash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) Hash() []byte {
-	raw, err := utils.Proto.Marshal(x)
+	hash, err := x.CalculateHash()
 	if err != nil {
 		panic(err)
 	}
 
-	hash := sha3.Sum256(raw)
-
-	return hash[:]
+	return hash
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) CalculateHash() ([]byte, error) {
-	raw, err := utils.Proto.Marshal(x)
-	if err != nil {
-		return nil, err
+	if x.Id == nil {
+		tx := proto.Clone(x).(*Tx)
+		tx.Sign = nil
+
+		raw, err := utils.Proto.Marshal(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		hash := sha3.Sum256(raw)
+
+		x.Id = hash[:]
 	}
 
-	hash := sha3.Sum256(raw)
-
-	return hash[:], nil
+	return x.Id, nil
 }
 
 // Equals mainly for calculating the tire root of txs.
@@ -135,25 +125,43 @@ func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 		return false, errors.New("invalid transaction type")
 	}
 
-	otherRawHeader, err := utils.Proto.Marshal(tx)
-	if err != nil {
-		return false, err
+	if x.Network != tx.Network {
+		return false, nil
 	}
 
-	otherHash := sha3.Sum256(otherRawHeader)
-
-	selfRawHeader, err := utils.Proto.Marshal(x)
-	if err != nil {
-		return false, err
+	if x.Convener != tx.Convener {
+		return false, nil
 	}
 
-	selfHash := sha3.Sum256(selfRawHeader)
+	if !bytes.Equal(x.PrevBlockHash, tx.PrevBlockHash) {
+		return false, nil
+	}
 
-	return bytes.Equal(selfHash[:], otherHash[:]), nil
+	if !utils.BytesListEquals(x.Participants, tx.Participants) {
+		return false, nil
+	}
+
+	if !utils.BytesListEquals(x.Values, tx.Values) {
+		return false, nil
+	}
+
+	if !bytes.Equal(x.Fee, tx.Fee) {
+		return false, nil
+	}
+
+	if !bytes.Equal(x.Sign, tx.Sign) {
+		return false, nil
+	}
+
+	if !bytes.Equal(x.Extra, tx.Extra) {
+		return false, nil
+	}
+
+	return true, nil
 }
 
-// TxsToMerkleTreeContents make a []merkletree.Content whose values is from txs.
-func TxsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
+// txsToMerkleTreeContents make a []merkletree.Content whose values is from txs.
+func txsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
 	mtc := make([]merkletree.Content, len(txs))
 	for i := range txs {
 		mtc[i] = txs[i]
@@ -348,22 +356,17 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 
 // Signature will re-sign the Tx with private key.
 func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
-	tx := proto.Clone(x).(*Tx)
-	tx.Sign = nil
-
-	b, err := utils.Proto.Marshal(tx)
-	if err != nil {
-		log.Error(err)
-	}
-
 	ds := make([]*big.Int, len(privateKeys))
 	for i := range privateKeys {
 		ds[i] = privateKeys[i].D
 	}
 
-	sign, err := schnorr.AggregateSignatures(ds, sha3.Sum256(b))
+	hash := [32]byte{}
+	copy(hash[:], x.Hash())
+
+	sign, err := schnorr.AggregateSignatures(ds, hash)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	x.Sign = sign[:]

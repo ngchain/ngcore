@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -46,7 +47,7 @@ func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 
 func PutTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := range txs {
-		hash, _ := txs[i].CalculateHash()
+		hash := txs[i].Hash()
 
 		raw, err := utils.Proto.Marshal(txs[i])
 		if err != nil {

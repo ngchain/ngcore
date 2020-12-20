@@ -31,7 +31,7 @@ func (mod *syncModule) bootstrap() {
 
 	peerNum := len(mod.store)
 	if peerNum < minDesiredPeerCount {
-		log.Warnf("lack remote peer for bootstrapping")
+		log.Warnf("lack remote peer for bootstrapping, current peer num: %d", peerNum)
 		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor converge
 	}
 

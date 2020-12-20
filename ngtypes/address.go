@@ -5,8 +5,9 @@ import (
 
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/go-schnorr"
-	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/secp256k1"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 // Address is the anonymous address for receiving coin, 2+33=35 length

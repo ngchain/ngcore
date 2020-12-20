@@ -3,6 +3,7 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

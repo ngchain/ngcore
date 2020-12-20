@@ -9,6 +9,7 @@ import (
 
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
+
 	"github.com/ngchain/ngcore/ngp2p/broadcast"
 	"github.com/ngchain/ngcore/ngp2p/wired"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-tcp-transport"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

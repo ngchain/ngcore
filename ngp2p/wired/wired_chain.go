@@ -2,6 +2,7 @@ package wired
 
 import (
 	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/ngchain/ngcore/ngtypes"

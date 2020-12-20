@@ -9,6 +9,7 @@ import (
 	"github.com/c0mm4nd/wasman/config"
 
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 
 	logging "github.com/ipfs/go-log/v2"

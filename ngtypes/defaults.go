@@ -90,10 +90,10 @@ func GetGenesisGenerateTxSignature(network NetworkType) []byte {
 func GetGenesisBlockNonce(network NetworkType) []byte {
 	switch network {
 	case NetworkType_ZERONET:
-		genesisBlockNonce, _ := hex.DecodeString("c800120f3ae9a2fc")
+		genesisBlockNonce, _ := hex.DecodeString("84e1be18c794f125")
 		return genesisBlockNonce
 	case NetworkType_TESTNET:
-		genesisBlockNonce, _ := hex.DecodeString("115c488d6d09dc41")
+		genesisBlockNonce, _ := hex.DecodeString("55e0414311982f0e")
 		return genesisBlockNonce
 	case NetworkType_MAINNET:
 		panic("not ready for mainnet")

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	core "github.com/libp2p/go-libp2p-core"
+
 	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/ngchain/ngcore/ngtypes"

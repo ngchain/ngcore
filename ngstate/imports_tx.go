@@ -2,6 +2,7 @@ package ngstate
 
 import (
 	"github.com/c0mm4nd/wasman"
+
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 )

@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/go-randomx"
 	"math/big"
 	"runtime"
 	"sync"
+
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/go-randomx"
 
 	"google.golang.org/protobuf/proto"
 
@@ -243,17 +244,21 @@ func (x *Block) CheckError() error {
 
 // Hash will help you get the hash of block.
 func (x *Block) Hash() []byte {
-	b := proto.Clone(x).(*Block)
-	b.Txs = nil // txs can be represented by triehash
+	if x.Id == nil {
+		b := proto.Clone(x).(*Block)
+		b.Txs = nil // txs can be represented by triehash
 
-	raw, err := utils.Proto.Marshal(x)
-	if err != nil {
-		panic(err)
+		raw, err := utils.Proto.Marshal(b)
+		if err != nil {
+			panic(err)
+		}
+
+		hash := sha3.Sum256(raw)
+
+		x.Id = hash[:]
 	}
 
-	hash := sha3.Sum256(raw)
-
-	return hash[:]
+	return x.Id
 }
 
 // GetPrevHash is a helper to get the prev block hash from block header.

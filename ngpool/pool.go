@@ -6,6 +6,7 @@ import (
 
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
+
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"

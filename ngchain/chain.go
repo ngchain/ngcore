@@ -3,6 +3,7 @@ package ngchain
 import (
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
+
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"

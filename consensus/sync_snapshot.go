@@ -34,7 +34,7 @@ func (mod *syncModule) doSnapshotSync(record *RemoteRecord) error {
 	}
 	err = mod.pow.State.RebuildFromSheet(sheet)
 	if err != nil {
-		return fmt.Errorf("failed on rebuilding state with sheet %x: %s", sheet.Hash(), err)
+		return fmt.Errorf("failed on rebuilding state with sheet %x: %s", sheet.PrevBlockHash, err)
 	}
 
 	height := mod.pow.Chain.GetLatestBlockHeight()

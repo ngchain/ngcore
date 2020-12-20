@@ -3,9 +3,11 @@ package ngstate
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/ngchain/ngcore/utils"
 
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

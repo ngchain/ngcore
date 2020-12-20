@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mr-tron/base58"
+
 	"github.com/ngchain/ngcore/keytools"
 )
 

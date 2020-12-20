@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -55,7 +56,7 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 
 func delTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := range txs {
-		hash, _ := txs[i].CalculateHash()
+		hash := txs[i].Hash()
 
 		err := txn.Delete(append(txPrefix, hash...))
 		if err != nil {

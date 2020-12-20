@@ -1,8 +1,9 @@
 package ngtypes_test
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
 	"testing"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func TestGenesisBalances(t *testing.T) {

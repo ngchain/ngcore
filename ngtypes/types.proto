@@ -32,6 +32,8 @@ message Block {
   bytes nonce = 8;
 
   repeated Tx txs = 10; // miner should build the generate tx by themselves
+
+  bytes id = 20; // use id representing hash to avoid conflict of Hash and GetHash()
 }
 
 enum TxType {
@@ -61,7 +63,9 @@ message Tx {
   // extension
   bytes extra = 8;
 
-  bytes sign = 9;
+  bytes sign = 9; // the abbr of signature
+
+  bytes id = 20;  // use id representing hash to avoid conflict of Hash and GetHash()
 }
 
 // Sheet is a simplified States

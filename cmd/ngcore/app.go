@@ -2,16 +2,14 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"strings"
 	"time"
-
-	"github.com/ngchain/ngcore/ngchain"
-	"github.com/ngchain/ngcore/ngpool"
-	"github.com/ngchain/ngcore/ngstate"
-	"github.com/ngchain/ngcore/storage"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
@@ -23,8 +21,12 @@ import (
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
+	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngpool"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 var strictModeFlag = &cli.BoolFlag{
@@ -157,6 +159,15 @@ var action = func(c *cli.Context) error {
 		if err != nil {
 			panic(err)
 		}
+
+		go func() {
+			listener, err := net.Listen("tcp", ":0")
+			if err != nil {
+				panic(err)
+			}
+			log.Warnf("profiling on http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
+			panic(http.Serve(listener, nil))
+		}()
 
 		defer pprof.StopCPUProfile()
 	}

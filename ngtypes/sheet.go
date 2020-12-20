@@ -1,10 +1,5 @@
 package ngtypes
 
-import (
-	"github.com/ngchain/ngcore/utils"
-	"golang.org/x/crypto/sha3"
-)
-
 // NewSheet gets the rows from db and return the sheet for transport/saving.
 func NewSheet(prevBlockHash []byte, accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
 	return &Sheet{
@@ -12,18 +7,6 @@ func NewSheet(prevBlockHash []byte, accounts map[uint64]*Account, anonymous map[
 		Anonymous:     anonymous,
 		Accounts:      accounts,
 	}
-}
-
-// Hash mainly for calculating the tire root of txs and sign tx.
-func (x *Sheet) Hash() []byte {
-	raw, err := utils.Proto.Marshal(x)
-	if err != nil {
-		return nil
-	}
-
-	hash := sha3.Sum256(raw)
-
-	return hash[:]
 }
 
 var GenesisSheet *Sheet

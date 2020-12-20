@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
