@@ -29,7 +29,7 @@ type State struct {
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
 // this func is written for snapshot sync/converging when initializing from non-genesis
 // checkpoint
-func InitStateFromSheet(db *badger.DB, sheet *ngtypes.Sheet) *State {
+func InitStateFromSheet(db *badger.DB, network ngtypes.NetworkType, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB:  db,
 		vms: make(map[ngtypes.AccountNum]*VM),

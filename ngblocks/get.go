@@ -135,3 +135,37 @@ func GetLatestBlock(txn *badger.Txn) (*ngtypes.Block, error) {
 
 	return block, nil
 }
+
+func GetOriginHeight(txn *badger.Txn) (uint64, error) {
+	key := append(blockPrefix, originHeightTag...)
+	item, err := txn.Get(key)
+	if err == badger.ErrKeyNotFound {
+		return 0, err // export the keynotfound
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to get latest height: %s", err)
+	}
+	raw, err := item.ValueCopy(nil)
+	if err != nil {
+		return 0, fmt.Errorf("no such height in latestTag: %s", err)
+	}
+
+	return binary.LittleEndian.Uint64(raw), nil
+}
+
+func GetOriginHash(txn *badger.Txn) ([]byte, error) {
+	key := append(blockPrefix, originHashTag...)
+	item, err := txn.Get(key)
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest hash: %s", err)
+	}
+	hash, err := item.ValueCopy(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest hash: %s", err)
+	}
+
+	return hash, nil
+}

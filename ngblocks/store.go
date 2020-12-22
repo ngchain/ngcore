@@ -10,6 +10,8 @@ import (
 const (
 	latestHeightTag = "height"
 	latestHashTag   = "hash"
+	originHeightTag = "origin:height" // store the origin block
+	originHashTag   = "origin:hash"
 )
 
 var log = logging.Logger("blocks")
@@ -21,26 +23,25 @@ var (
 
 // BlockStore managers a badger DB, which stores vaults and blocks and some helper tags for managing.
 // TODO: Add DAG support to extend the capacity of store
+// initialize with genesis blocks first,
+// then load the origin in bootstrap process
 type BlockStore struct {
 	*badger.DB
 	Network ngtypes.NetworkType
 }
 
 // Init will do all initialization for the block store.
-func Init(db *badger.DB, network ngtypes.NetworkType, blocks ...*ngtypes.Block) *BlockStore {
+func Init(db *badger.DB, network ngtypes.NetworkType) *BlockStore {
 	store := &BlockStore{
 		DB:      db,
 		Network: network,
 	}
 
-	if blocks == nil {
-		store.initWithGenesis()
-	} else {
-		err := store.initWithBlockchain(blocks...)
-		if err != nil {
-			panic(err)
-		}
-	}
+	store.initWithGenesis()
+	//err := store.initWithBlockchain(blocks...)
+	//if err != nil {
+	//		panic(err)
+	//	}
 
 	return store
 }

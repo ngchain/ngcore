@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -54,6 +55,14 @@ func (mod *syncModule) bootstrap() {
 	var err error
 	if records := mod.MustSync(slice); records != nil && len(records) != 0 {
 		for _, record := range records {
+			if mod.pow.StrictMode {
+				//
+				err = mod.switchToRemoteCheckpoint(record)
+				if err != nil {
+					panic(fmt.Errorf("failed to fast sync via checkpoint: %s", err))
+				}
+			}
+
 			if mod.pow.SnapshotMode {
 				err = mod.doSnapshotSync(record)
 			} else {

@@ -31,7 +31,7 @@ import (
 
 var strictModeFlag = &cli.BoolFlag{
 	Name:  "strict",
-	Value: true,
+	Value: true, // local chain will be able to start from a checkpoint if false
 	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
@@ -189,14 +189,8 @@ var action = func(c *cli.Context) error {
 		}
 	}()
 
-	var store *ngblocks.BlockStore
-	if strictMode {
-		store = ngblocks.Init(db, network)
-		// then sync
-	} else {
-		// TODO: use the new origin block to initialize the ngblocks
-		store = ngblocks.Init(db, network)
-	}
+	store := ngblocks.Init(db, network)
+	// then sync
 	state := ngstate.InitStateFromGenesis(db, network)
 
 	chain := ngchain.Init(db, network, store, state)
