@@ -7,6 +7,10 @@ import (
 	"math/big"
 	"runtime"
 	"sync"
+	"time"
+
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/go-randomx"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/go-randomx"
@@ -224,6 +228,10 @@ func (x *Block) CheckError() error {
 
 	if len(x.Nonce) != NonceSize {
 		return fmt.Errorf("block%d's Nonce length is incorrect", x.GetHeight())
+	}
+
+	if x.Timestamp > time.Now().Unix() {
+		return fmt.Errorf("block%d's timestamp %d is invalid", x.GetHeight(), x.Timestamp)
 	}
 
 	if !x.IsSealed() {
