@@ -11,23 +11,32 @@ import (
 
 var log = logging.Logger("rpc")
 
+type ServerConfig struct {
+	Host                 string
+	Port                 int
+	DisableP2PMethods    bool
+	DisableMiningMethods bool
+}
+
 // Server is a json-rpc v2 server
 type Server struct {
+	*ServerConfig
 	*jsonrpc2http.Server
 
 	pow *consensus.PoWork
 }
 
 // NewServer will create a new Server, with registered *jsonrpc2http.HTTPHandler. But not running
-func NewServer(host string, port int, pow *consensus.PoWork) *Server {
+func NewServer(pow *consensus.PoWork, config ServerConfig) *Server {
 	s := &Server{
-		Server: nil,
+		ServerConfig: &config,
+		Server:       nil,
 
 		pow: pow,
 	}
 
 	s.Server = jsonrpc2http.NewServer(jsonrpc2http.ServerConfig{
-		Addr:    fmt.Sprintf("%s:%d", host, port),
+		Addr:    fmt.Sprintf("%s:%d", config.Host, config.Port),
 		Handler: nil,
 		Logger:  log,
 	})

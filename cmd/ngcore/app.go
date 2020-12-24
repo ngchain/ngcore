@@ -59,6 +59,12 @@ var rpcPortFlag = &cli.IntFlag{
 	Value: defaultRPCPort,
 }
 
+var rpcDisableFlag = &cli.StringSliceFlag{
+	Name:  "rpc-disable",
+	Usage: "Disable some JSON RPC methods",
+	Value: nil,
+}
+
 var isBootstrapFlag = &cli.BoolFlag{
 	Name:  "bootstrap",
 	Usage: "Enable starting local node as a bootstrap peer",
@@ -130,6 +136,7 @@ var action = func(c *cli.Context) error {
 	p2pTCPPort := c.Int(p2pTCPPortFlag.Name)
 	rpcHost := c.String(rpcHostFlag.Name)
 	rpcPort := c.Int(rpcPortFlag.Name)
+	rpcDisables := c.StringSlice(rpcDisableFlag.Name)
 	keyPass := c.String(keyPassFlag.Name)
 	keyFile := c.String(keyFileNameFlag.Name)
 	p2pKeyFile := c.String(p2pKeyFileFlag.Name)
@@ -223,8 +230,27 @@ var action = func(c *cli.Context) error {
 	)
 	pow.GoLoop()
 
-	rpc := jsonrpc.NewServer(rpcHost, rpcPort, pow)
-	go rpc.Serve()
+	// when rpcPort <= 0, disable rpc server
+	if rpcPort > 0 {
+		jsonRPCServerConfig := jsonrpc.ServerConfig{
+			Host:                 rpcHost,
+			Port:                 rpcPort,
+			DisableP2PMethods:    false,
+			DisableMiningMethods: false,
+		}
+
+		for i := range rpcDisables {
+			switch strings.ToLower(rpcDisables[i]) {
+			case "p2p":
+				jsonRPCServerConfig.DisableP2PMethods = true
+			case "mining":
+				jsonRPCServerConfig.DisableMiningMethods = true
+			}
+		}
+
+		rpc := jsonrpc.NewServer(pow, jsonRPCServerConfig)
+		go rpc.Serve()
+	}
 
 	// notify the exit events
 	select {}

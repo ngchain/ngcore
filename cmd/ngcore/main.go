@@ -19,7 +19,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		strictModeFlag, snapshotModeFlag,
 		p2pTCPPortFlag, p2pKeyFileFlag,
-		rpcHostFlag, rpcPortFlag,
+		rpcHostFlag, rpcPortFlag, rpcDisableFlag,
 		miningFlag,
 		isBootstrapFlag, profileFlag,
 		keyFileNameFlag, keyPassFlag,

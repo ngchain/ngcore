@@ -13,11 +13,13 @@ func registerHTTPHandler(s *Server) {
 	})
 
 	// p2p
-	s.RegisterJsonRpcHandleFunc("addNode", s.addPeerFunc) // keep this alia
-	s.RegisterJsonRpcHandleFunc("addPeer", s.addPeerFunc)
-	s.RegisterJsonRpcHandleFunc("getNodes", s.getPeersFunc) // keep this alia
-	s.RegisterJsonRpcHandleFunc("getPeers", s.getPeersFunc)
-	s.RegisterJsonRpcHandleFunc("getNetwork", s.getNetworkFunc)
+	if !s.DisableP2PMethods {
+		s.RegisterJsonRpcHandleFunc("addNode", s.addPeerFunc) // keep this alia
+		s.RegisterJsonRpcHandleFunc("addPeer", s.addPeerFunc)
+		s.RegisterJsonRpcHandleFunc("getNodes", s.getPeersFunc) // keep this alia
+		s.RegisterJsonRpcHandleFunc("getPeers", s.getPeersFunc)
+		s.RegisterJsonRpcHandleFunc("getNetwork", s.getNetworkFunc)
+	}
 
 	// chain
 	s.RegisterJsonRpcHandleFunc("getLatestBlockHeight", s.requireSynced(s.getLatestBlockHeightFunc))
@@ -43,11 +45,13 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
 
 	// mining
-	s.RegisterJsonRpcHandleFunc("submitBlock", s.requireSynced(s.submitBlockFunc))
-	s.RegisterJsonRpcHandleFunc("getBlockTemplate", s.requireSynced(s.getBlockTemplateFunc))
-	s.RegisterJsonRpcHandleFunc("getWork", s.requireSynced(s.getWorkFunc))
-	s.RegisterJsonRpcHandleFunc("submitWork", s.requireSynced(s.submitWorkFunc))
-	s.RegisterJsonRpcHandleFunc("switchMining", s.requireSynced(s.switchMiningFunc))
+	if !s.DisableMiningMethods {
+		s.RegisterJsonRpcHandleFunc("submitBlock", s.requireSynced(s.submitBlockFunc))
+		s.RegisterJsonRpcHandleFunc("getBlockTemplate", s.requireSynced(s.getBlockTemplateFunc))
+		s.RegisterJsonRpcHandleFunc("getWork", s.requireSynced(s.getWorkFunc))           // dangerous: public key reveal
+		s.RegisterJsonRpcHandleFunc("submitWork", s.requireSynced(s.submitWorkFunc))     // dangerous: attack pow hash on verification
+		s.RegisterJsonRpcHandleFunc("switchMining", s.requireSynced(s.switchMiningFunc)) // dangerous: attack cpu usage
+	}
 
 	// utils
 	s.RegisterJsonRpcHandleFunc("publicKeyToAddress", s.publicKeyToAddressFunc)
