@@ -171,7 +171,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.TxType_TRANSACTION,
+		ngtypes.TxType_TRANSACT,
 		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		participants,

@@ -30,7 +30,7 @@ func (state *State) HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 			if err := state.handleLogout(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TxType_TRANSACTION:
+		case ngtypes.TxType_TRANSACT:
 			if err := state.handleTransaction(txn, tx); err != nil {
 				return err
 			}

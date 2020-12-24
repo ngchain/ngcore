@@ -41,7 +41,7 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 				return err
 			}
 
-		case ngtypes.TxType_TRANSACTION: // transaction
+		case ngtypes.TxType_TRANSACT: // transaction
 			if err := checkTransaction(txn, tx); err != nil {
 				return err
 			}
@@ -87,7 +87,7 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 			return err
 		}
 
-	case ngtypes.TxType_TRANSACTION: // transaction
+	case ngtypes.TxType_TRANSACT: // transaction
 		if err := checkTransaction(txn, tx); err != nil {
 			return err
 		}

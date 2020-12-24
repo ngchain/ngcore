@@ -33,7 +33,7 @@ message Block {
 
   repeated Tx txs = 10; // miner should build the generate tx by themselves
 
-  bytes id = 20; // use id representing hash to avoid conflict of Hash and GetHash()
+  bytes id = 15; // use id representing hash to avoid conflict of Hash and GetHash()
 }
 
 enum TxType {
@@ -42,10 +42,10 @@ enum TxType {
   REGISTER = 2;
   LOGOUT = 3;
 
-  TRANSACTION = 10;
+  TRANSACT = 4;
 
-  ASSIGN = 20;
-  APPEND = 21;
+  ASSIGN = 5;
+  APPEND = 6;
 }
 
 // Or you can call it Op
@@ -65,7 +65,7 @@ message Tx {
 
   bytes sign = 9; // the abbr of signature
 
-  bytes id = 20;  // use id representing hash to avoid conflict of Hash and GetHash()
+  bytes id = 15;  // use id representing hash to avoid conflict of Hash and GetHash()
 }
 
 // Sheet is a simplified States

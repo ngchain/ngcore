@@ -12,9 +12,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/go-randomx"
 
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/go-randomx"
-
 	"google.golang.org/protobuf/proto"
 
 	"golang.org/x/crypto/sha3"
