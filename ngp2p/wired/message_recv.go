@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-msgio"
 
@@ -21,7 +20,7 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*message.Message, error) 
 		return nil, err
 	}
 
-	err = helpers.FullClose(stream)
+	err = stream.Close()
 	if err != nil {
 		return nil, err
 	}

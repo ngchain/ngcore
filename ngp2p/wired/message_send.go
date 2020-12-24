@@ -4,7 +4,6 @@ import (
 	"context"
 
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -51,7 +50,7 @@ func Reply(stream network.Stream, data proto.Message) error {
 	}
 
 	// close the stream and waits to read an EOF from the other side.
-	err = helpers.FullClose(stream)
+	err = stream.Close()
 	if err != nil {
 		return err
 	}
