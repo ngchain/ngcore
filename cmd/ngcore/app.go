@@ -29,9 +29,9 @@ import (
 	"github.com/ngchain/ngcore/storage"
 )
 
-var strictModeFlag = &cli.BoolFlag{
-	Name:  "strict",
-	Value: true, // local chain will be able to start from a checkpoint if false
+var nonStrictModeFlag = &cli.BoolFlag{
+	Name: "non-strict",
+	//Value: true, // local chain will be able to start from a checkpoint if false
 	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
@@ -130,7 +130,7 @@ var action = func(c *cli.Context) error {
 		mining = runtime.NumCPU()
 	}
 
-	strictMode := isBootstrapNode || c.Bool(strictModeFlag.Name)
+	strictMode := isBootstrapNode || !c.Bool(nonStrictModeFlag.Name)
 	snapshotMode := c.Bool(snapshotModeFlag.Name)
 
 	p2pTCPPort := c.Int(p2pTCPPortFlag.Name)
@@ -143,6 +143,10 @@ var action = func(c *cli.Context) error {
 	withProfile := c.Bool(profileFlag.Name)
 	inMem := c.Bool(inMemFlag.Name)
 	dbFolder := c.String(dbFolderFlag.Name)
+
+	if !strictMode {
+		log.Warn("running on non-strict mode")
+	}
 
 	var network = ngtypes.NetworkType_TESTNET
 	if c.Bool(testNetFlag.Name) {

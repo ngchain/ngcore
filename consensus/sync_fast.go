@@ -39,7 +39,10 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 	to := make([]byte, 16)
 	binary.LittleEndian.PutUint64(to[0:], record.checkpointHeight)
 	binary.LittleEndian.PutUint64(to[8:], record.checkpointHeight)
-	id, s, err := mod.localNode.SendGetChain(record.id, [][]byte{}, to) // nil means get MaxBlocks number blocks
+	id, s, err := mod.localNode.SendGetChain(record.id, nil, to) // nil means get MaxBlocks number blocks
+	if err != nil {
+		return nil, err
+	}
 
 	reply, err := wired.ReceiveReply(id, s)
 	if err != nil {

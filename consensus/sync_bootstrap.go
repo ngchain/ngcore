@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func (mod *syncModule) bootstrap() {
+	time.Sleep(time.Minute)
+	log.Warn("bootstrapping ... ")
 	peerStore := mod.localNode.Peerstore()
 
 	// init the store
@@ -55,7 +58,7 @@ func (mod *syncModule) bootstrap() {
 	var err error
 	if records := mod.MustSync(slice); records != nil && len(records) != 0 {
 		for _, record := range records {
-			if mod.pow.StrictMode {
+			if !mod.pow.StrictMode {
 				//
 				err = mod.switchToRemoteCheckpoint(record)
 				if err != nil {

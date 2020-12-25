@@ -18,14 +18,7 @@ import (
 )
 
 func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byte, stream network.Stream, err error) {
-	if len(from) == 0 {
-		err := fmt.Errorf("getchain's from is nil")
-		log.Debug(err)
-
-		return nil, nil, err
-	}
-
-	// avoid nil hash
+	// avoid nil
 	if to == nil {
 		to = ngtypes.GetEmptyHash()
 	}
@@ -93,8 +86,25 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		return
 	}
 
-	if len(getChainPayload.GetFrom()) == 0 {
-		w.sendReject(msg.Header.MessageId, stream, err)
+	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
+
+	if getChainPayload.GetFrom() == nil || len(getChainPayload.GetFrom()) == 0 {
+		// fetching mode
+		from := binary.LittleEndian.Uint64(getChainPayload.GetTo()[0:8])
+		to := binary.LittleEndian.Uint64(getChainPayload.GetTo()[8:16])
+		for blockHeight := from; blockHeight <= to; blockHeight++ {
+			cur, err := w.chain.GetBlockByHeight(blockHeight)
+			if err != nil {
+				err := fmt.Errorf("local chain lacks block@%d: %s", blockHeight, err)
+				log.Error(err)
+				w.sendReject(msg.Header.MessageId, stream, err)
+				return
+			}
+
+			blocks = append(blocks, cur)
+		}
+
+		w.sendChain(msg.Header.MessageId, stream, blocks...)
 		return
 	}
 
@@ -103,11 +113,10 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 	// init cur
 	cur, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[0])
 	if err != nil {
+		log.Error(err)
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return
 	}
-
-	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
 
 	// run converging mode
 	if len(getChainPayload.GetTo()) == 16 {

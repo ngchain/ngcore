@@ -31,11 +31,6 @@ func Send(host core.Host, protocolID protocol.ID, peerID peer.ID, data proto.Mes
 		return nil, err
 	}
 
-	// Close stream for writing.
-	if err := stream.Close(); err != nil {
-		return nil, err
-	}
-
 	return stream, nil
 }
 
@@ -49,11 +44,11 @@ func Reply(stream network.Stream, data proto.Message) error {
 		return err
 	}
 
-	// close the stream and waits to read an EOF from the other side.
-	err = stream.Close()
-	if err != nil {
-		return err
-	}
+	//// close the stream and waits to read an EOF from the other side.
+	//err = stream.Close()
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
