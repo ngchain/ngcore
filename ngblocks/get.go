@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -168,4 +169,39 @@ func GetOriginHash(txn *badger.Txn) ([]byte, error) {
 	}
 
 	return hash, nil
+}
+
+func GetOriginBlock(txn *badger.Txn) (*ngtypes.Block, error) {
+	key := append(blockPrefix, originHashTag...)
+	item, err := txn.Get(key)
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get origin block hash: %s", err)
+	}
+	hash, err := item.ValueCopy(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get origin block hash: %s", err)
+	}
+
+	item, err = txn.Get(append(blockPrefix, hash...))
+	if err == badger.ErrKeyNotFound {
+		return nil, err // export the keynotfound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get origin block hash: %s", err)
+	}
+	rawBlock, err := item.ValueCopy(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get origin block: %s", err)
+	}
+
+	var block ngtypes.Block
+	err = proto.Unmarshal(rawBlock, &block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get origin block: %s", err)
+	}
+
+	return &block, nil
 }

@@ -27,11 +27,18 @@ type RemoteRecord struct {
 }
 
 func NewRemoteRecord(id peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) *RemoteRecord {
+	var checkpointHeight uint64
+	if latest%ngtypes.BlockCheckRound == 0 {
+		checkpointHeight = latest
+	} else {
+		checkpointHeight = latest - latest%ngtypes.BlockCheckRound
+	}
+
 	return &RemoteRecord{
 		id:                   id,
 		origin:               origin,
 		latest:               latest,
-		checkpointHeight:     latest - latest%ngtypes.BlockCheckRound,
+		checkpointHeight:     checkpointHeight,
 		checkpointHash:       checkpointHash,
 		checkpointActualDiff: new(big.Int).SetBytes(checkpointActualDiff),
 		lastChatTime:         time.Now().Unix(),

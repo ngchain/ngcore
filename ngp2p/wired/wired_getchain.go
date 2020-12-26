@@ -88,14 +88,14 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 
 	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
 
-	if getChainPayload.GetFrom() == nil || len(getChainPayload.GetFrom()) == 0 {
+	if getChainPayload.GetFrom() == nil || len(getChainPayload.GetFrom()) == 0 && len(getChainPayload.To) == 16 {
 		// fetching mode
 		from := binary.LittleEndian.Uint64(getChainPayload.GetTo()[0:8])
 		to := binary.LittleEndian.Uint64(getChainPayload.GetTo()[8:16])
 		for blockHeight := from; blockHeight <= to; blockHeight++ {
 			cur, err := w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
-				err := fmt.Errorf("local chain lacks block@%d: %s", blockHeight, err)
+				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
 				log.Error(err)
 				w.sendReject(msg.Header.MessageId, stream, err)
 				return
@@ -113,6 +113,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 	// init cur
 	cur, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[0])
 	if err != nil {
+		err = fmt.Errorf("cannot get block by hash %x: %s", getChainPayload.GetFrom()[0], err)
 		log.Error(err)
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return
@@ -139,7 +140,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 			for blockHeight := from; blockHeight <= to; blockHeight++ {
 				cur, err = w.chain.GetBlockByHeight(blockHeight)
 				if err != nil {
-					err := fmt.Errorf("local chain lacks block@%d: %s", blockHeight, err)
+					err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
 					log.Debug(err)
 					w.sendReject(msg.Header.MessageId, stream, err)
 					return
@@ -159,11 +160,11 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 			return
 		}
 
-		for i := 0; i < len(getChainPayload.GetFrom())-samepointIndex; i++ {
+		for i := 0; i < len(getChainPayload.GetFrom())-1-samepointIndex; i++ {
 			blockHeight := cur.GetHeight() + 1
 			cur, err = w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
-				err := fmt.Errorf("local chain lacks block@%d: %s", blockHeight, err)
+				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
 				log.Debug(err)
 				w.sendReject(msg.Header.MessageId, stream, err)
 				return

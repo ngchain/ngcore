@@ -38,11 +38,11 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	log.Warnf("start converging chain from remote node %s, target height: %d", record.id, record.latest)
 	chain, err := mod.getBlocksForConverging(record)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get blocks for converging: %s", err)
 	}
 
-	localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
-	log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Height, chain[1].Hash(), localSamepoint.Hash())
+	//localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
+	//log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Height, chain[1].Hash(), localSamepoint.Hash())
 
 	err = mod.pow.Chain.ForceApplyBlocks(chain)
 	if err != nil {
@@ -67,7 +67,6 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 // getBlocksForConverging gets the blocks since the diffpoint (inclusive) by comparing hashes between local and remote
 func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
-	blockHashes := make([][]byte, defaults.MaxBlocks)
 
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
 
@@ -79,6 +78,7 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 			panic("converging failed: completely different chains!")
 		}
 
+		blockHashes := make([][]byte, 0, defaults.MaxBlocks)
 		to := ptr
 		roundHashes := utils.MinUint64(defaults.MaxBlocks, ptr)
 		ptr -= roundHashes
@@ -92,7 +92,7 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 				return nil, err
 			}
 
-			blockHashes[h-ptr-1] = b.Hash()
+			blockHashes = append(blockHashes, b.Hash())
 		}
 
 		// To == from+to means converging mode

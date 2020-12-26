@@ -19,7 +19,7 @@ enum MessageType {
     GETCHAIN = 10;
     CHAIN = 11;
 
-    // chain
+    // sheet
     GETSHEET = 12;
     SHEET = 13;
 }

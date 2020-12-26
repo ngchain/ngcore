@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -37,8 +36,14 @@ func (mod *syncModule) switchToRemoteCheckpoint(record *RemoteRecord) error {
 
 func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block, error) {
 	to := make([]byte, 16)
-	binary.LittleEndian.PutUint64(to[0:], record.checkpointHeight)
-	binary.LittleEndian.PutUint64(to[8:], record.checkpointHeight)
+
+	if record.checkpointHeight <= 2*ngtypes.BlockCheckRound {
+		return ngtypes.GetGenesisBlock(mod.pow.Network), nil
+	}
+
+	checkpointHeight := record.checkpointHeight - 2*ngtypes.BlockCheckRound
+	binary.LittleEndian.PutUint64(to[0:], checkpointHeight)
+	binary.LittleEndian.PutUint64(to[8:], checkpointHeight)
 	id, s, err := mod.localNode.SendGetChain(record.id, nil, to) // nil means get MaxBlocks number blocks
 	if err != nil {
 		return nil, err
@@ -61,10 +66,10 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 			return nil, fmt.Errorf("invalid blocks payload length: should be 1 but got %d", len(chainPayload.Blocks))
 		}
 
-		checkpoint := chainPayload.Blocks[0]
-		if !bytes.Equal(checkpoint.Hash(), record.checkpointHash) {
-			return nil, fmt.Errorf("invalid checkpoint: should be %x, but got %x", record.checkpointHash, checkpoint.Hash())
-		}
+		//checkpoint := chainPayload.Blocks[0]
+		//if !bytes.Equal(checkpoint.Hash(), record.checkpointHash) {
+		//	return nil, fmt.Errorf("invalid checkpoint: should be %x, but got %x", record.checkpointHash, checkpoint.Hash())
+		//}
 
 		return chainPayload.Blocks[0], err
 
