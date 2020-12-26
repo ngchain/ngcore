@@ -69,18 +69,19 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 	blocks := make([]*ngtypes.Block, 0)
 
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
+	localOriginHeight := mod.pow.Chain.GetOriginBlock().Height
 
 	ptr := localHeight
 
 	// when the chainLen (the len of returned chain) is not equal to defaults.MaxBlocks, means it has reach the latest height
 	for {
-		if ptr == 0 {
+		if ptr <= localOriginHeight {
 			panic("converging failed: completely different chains!")
 		}
 
 		blockHashes := make([][]byte, 0, defaults.MaxBlocks)
 		to := ptr
-		roundHashes := utils.MinUint64(defaults.MaxBlocks, ptr)
+		roundHashes := utils.MinUint64(defaults.MaxBlocks, ptr-localOriginHeight)
 		ptr -= roundHashes
 		from := ptr + 1
 

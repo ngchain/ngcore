@@ -7,6 +7,7 @@ import (
 
 	"github.com/dgraph-io/badger/v2"
 
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -22,18 +23,23 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	if !bytes.Equal(block.PrevBlockHash, ngtypes.GetGenesisBlockHash(chain.Network)) {
-		prevBlock, err := chain.GetBlockByHash(block.PrevBlockHash)
-		if err != nil {
-			return fmt.Errorf("failed to get the prev block@%d %x: %s", block.Height-1, block.PrevBlockHash, err)
-		}
-
-		if err := checkBlockTarget(block, prevBlock); err != nil {
-			return err
-		}
-	}
-
 	err := chain.View(func(txn *badger.Txn) error {
+		originHash, err := ngblocks.GetOriginHash(txn)
+		if err != nil {
+			panic(err)
+		}
+
+		if !bytes.Equal(block.PrevBlockHash, originHash) {
+			prevBlock, err := chain.GetBlockByHash(block.PrevBlockHash)
+			if err != nil {
+				return fmt.Errorf("failed to get the prev block@%d %x: %s", block.Height-1, block.PrevBlockHash, err)
+			}
+
+			if err := checkBlockTarget(block, prevBlock); err != nil {
+				return err
+			}
+		}
+
 		return ngstate.CheckBlockTxs(txn, block)
 	})
 	if err != nil {
