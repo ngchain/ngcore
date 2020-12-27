@@ -244,6 +244,34 @@ func (x *Block) CheckError() error {
 		return err
 	}
 
+	err = x.verifyNonce()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (x *Block) verifyHash() error {
+	if x.Id == nil {
+		x.Hash()
+		return nil
+	}
+
+	b := proto.Clone(x).(*Block)
+	b.Txs = nil // txs can be represented by triehash
+
+	raw, err := utils.Proto.Marshal(b)
+	if err != nil {
+		panic(err)
+	}
+
+	hash := sha3.Sum256(raw)
+
+	if !bytes.Equal(hash[:], x.Id) {
+		return fmt.Errorf("block@%d hash %x not match its id %x", x.Height, hash, x.Id)
+	}
+
 	return nil
 }
 

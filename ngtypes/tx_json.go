@@ -88,6 +88,11 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	hash, err := hex.DecodeString(tx.Hash)
+	if err != nil {
+		return err
+	}
+
 	*x = Tx{
 		Network:       network,
 		Type:          t,
@@ -98,6 +103,7 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		Values:        values,
 		Extra:         extra,
 		Sign:          sign,
+		Id:            hash,
 	}
 
 	return nil

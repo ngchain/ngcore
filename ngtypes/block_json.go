@@ -71,6 +71,10 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	hash, err := hex.DecodeString(b.Hash)
+	if err != nil {
+		return err
+	}
 
 	*x = Block{
 		Network:       network,
@@ -81,6 +85,7 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		Difficulty:    difficulty,
 		Nonce:         nonce,
 		Txs:           b.Txs,
+		Id:            hash,
 	}
 
 	return nil
