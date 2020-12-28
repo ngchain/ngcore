@@ -84,6 +84,10 @@ func (w *Wired) handleStream(stream network.Stream) {
 		w.onPing(stream, msg)
 	case message.MessageType_GETCHAIN:
 		w.onGetChain(stream, msg)
+	case message.MessageType_GETSHEET:
+		w.onGetChain(stream, msg)
+	default:
+		w.sendReject(msg.Header.MessageId, stream, fmt.Errorf("unsupported protocol method"))
 	}
 
 	err = stream.Close()
