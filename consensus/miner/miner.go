@@ -21,13 +21,13 @@ var log = logging.Logger("miner")
 // Miner is an inner miner for proof of work
 // miner implements a internal PoW miner with multi threads(goroutines) support
 type Miner struct {
-	Started *atomic.Bool
+	sync.Mutex
 
 	ThreadNum int
 	hashes    *atomic.Int64
 	job       *atomic.Value
 
-	abortCh      chan struct{}
+	abortChs     []chan struct{}
 	foundBlockCh chan *ngtypes.Block
 }
 
@@ -41,11 +41,10 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	}
 
 	m := &Miner{
-		Started:      atomic.NewBool(false),
 		ThreadNum:    threadNum,
 		hashes:       atomic.NewInt64(0),
 		job:          new(atomic.Value),
-		abortCh:      make(chan struct{}),
+		abortChs:     nil,
 		foundBlockCh: foundBlockCh,
 	}
 
@@ -76,17 +75,18 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 
 // Mine will ignite the engine of Miner and all threads Mine working.
 func (m *Miner) Mine(job *ngtypes.Block) {
-	if m.Started.Load() {
-		return // make Mine threadsafe
-	}
+	m.Lock()
+	defer m.Unlock()
 
-	m.Started.Toggle()
+	m.Stop()
 
 	m.job.Store(job)
 	log.Info("mining on job: block@%d diff: %s", job.Height, new(big.Int).SetBytes(job.Difficulty).String())
 
-	m.abortCh = make(chan struct{})
-	once := new(sync.Once)
+	m.abortChs = make([]chan struct{}, m.ThreadNum)
+	for i := range m.abortChs {
+		m.abortChs[i] = make(chan struct{})
+	}
 
 	cache, err := randomx.AllocCache(randomx.FlagDefault)
 	if err != nil {
@@ -125,10 +125,10 @@ func (m *Miner) Mine(job *ngtypes.Block) {
 			if err != nil {
 				panic(err)
 			}
-
+			defer randomx.DestroyVM(vm)
 			for {
 				select {
-				case <-m.abortCh:
+				case <-m.abortChs[threadID]:
 					// Mining terminated, update stats and abort
 					return
 				default:
@@ -145,9 +145,7 @@ func (m *Miner) Mine(job *ngtypes.Block) {
 					m.hashes.Inc()
 
 					if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
-						go once.Do(func() {
-							m.found(threadID, job, nonce)
-						})
+						go m.found(threadID, job, nonce)
 
 						return
 					}
@@ -159,19 +157,28 @@ func (m *Miner) Mine(job *ngtypes.Block) {
 
 	randomx.ReleaseCache(cache)
 	randomx.ReleaseDataset(dataset)
-
-	m.Started.Toggle()
 }
 
 // Stop will Stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
 func (m *Miner) Stop() {
-	if m.job.Load() == nil {
-		return
+	if m.abortChs == nil {
+		return // avoid reset more than once
 	}
 
 	m.job = new(atomic.Value) // nil value
-	close(m.abortCh)
-	<-m.abortCh // wait
+
+	var wg sync.WaitGroup
+	for i := range m.abortChs {
+		wg.Add(1)
+		go func(i int) {
+			close(m.abortChs[i])
+			<-m.abortChs[i] // wait
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	m.abortChs = nil
 
 	log.Info("mining mode off")
 }
@@ -184,7 +191,7 @@ func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
 
 	block, err := job.ToSealed(nonce)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	m.foundBlockCh <- block
