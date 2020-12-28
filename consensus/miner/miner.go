@@ -78,7 +78,7 @@ func (m *Miner) Mine(job *ngtypes.Block) {
 	m.Lock()
 	defer m.Unlock()
 
-	m.Stop()
+	m.stop()
 
 	m.job.Store(job)
 	log.Info("mining on job: block@%d diff: %s", job.Height, new(big.Int).SetBytes(job.Difficulty).String())
@@ -161,7 +161,13 @@ func (m *Miner) Mine(job *ngtypes.Block) {
 
 // Stop will Stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
 func (m *Miner) Stop() {
-	if m.abortChs == nil {
+	m.stop()
+
+	log.Info("mining mode off")
+}
+
+func (m *Miner) stop() {
+	if m.job.Load() == nil {
 		return // avoid reset more than once
 	}
 
@@ -177,16 +183,10 @@ func (m *Miner) Stop() {
 		}(i)
 	}
 	wg.Wait()
-
-	m.abortChs = nil
-
-	log.Info("mining mode off")
 }
 
 func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
 	// Correct nonce found
-	m.Stop()
-
 	log.Debugf("Thread %d found nonce %x", t, nonce)
 
 	block, err := job.ToSealed(nonce)
