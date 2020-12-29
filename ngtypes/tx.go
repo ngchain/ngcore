@@ -277,6 +277,12 @@ func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
 		return err
 	}
 
+	// RULE: logout should takes owner's pubKey in Extra for verify and recording to make Tx reversible
+	_publicKey := utils.Bytes2PublicKey(x.Extra)
+	if !publicKey.IsEqual(&_publicKey) {
+		return fmt.Errorf("invalid raw bytes public key in logout's Extra field")
+	}
+
 	return nil
 }
 

@@ -239,9 +239,9 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 }
 
 type genLogoutParams struct {
-	Convener uint64  `json:"convener"`
-	Fee      float64 `json:"fee"`
-	Extra    string  `json:"extra"`
+	Convener  uint64  `json:"convener"`
+	Fee       float64 `json:"fee"`
+	PublicKey string  `json:"publicKey"` // compressed publicKey, beginning with 02 or 03 (not 04).
 }
 
 func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -254,7 +254,7 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	extra, err := hex.DecodeString(params.Extra)
+	extra, err := hex.DecodeString(params.PublicKey)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
