@@ -302,32 +302,6 @@ func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 	return nil
 }
 
-// CheckAssign does a self check for assign tx
-func (x *Tx) CheckAssign(publicKey secp256k1.PublicKey) error {
-	if x == nil {
-		return errors.New("assign is missing header")
-	}
-
-	if x.GetConvener() == 0 {
-		return fmt.Errorf("assign's convener should NOT be 0")
-	}
-
-	if len(x.GetParticipants()) != 0 {
-		return fmt.Errorf("assign should have NO participant")
-	}
-
-	if len(x.GetValues()) != 0 {
-		return fmt.Errorf("assign should have NO value")
-	}
-
-	err := x.Verify(publicKey)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // CheckAppend does a self check for append tx
 func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	if x == nil {
@@ -347,6 +321,39 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	}
 
 	err := x.Verify(key)
+	if err != nil {
+		return err
+	}
+
+	// check this on chain
+	//var appendExtra AppendExtra
+	//err = proto.Unmarshal(x.Extra, &appendExtra)
+	//if err != nil {
+	//	return err
+	//}
+
+	return nil
+}
+
+// CheckDelete does a self check for delete tx
+func (x *Tx) CheckDelete(publicKey secp256k1.PublicKey) error {
+	if x == nil {
+		return errors.New("deleteTx is missing header")
+	}
+
+	if x.GetConvener() == 0 {
+		return fmt.Errorf("deleteTx's convener should NOT be 0")
+	}
+
+	if len(x.GetParticipants()) != 0 {
+		return fmt.Errorf("deleteTx should have NO participant")
+	}
+
+	if len(x.GetValues()) != 0 {
+		return fmt.Errorf("deleteTx should have NO value")
+	}
+
+	err := x.Verify(publicKey)
 	if err != nil {
 		return err
 	}

@@ -36,8 +36,8 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("genRegister", s.genRegisterFunc)
 	s.RegisterJsonRpcHandleFunc("genLogout", s.genLogoutFunc)
 	s.RegisterJsonRpcHandleFunc("genTransaction", s.genTransactionFunc)
-	s.RegisterJsonRpcHandleFunc("genAssign", s.genAssignFunc)
 	s.RegisterJsonRpcHandleFunc("genAppend", s.genAppendFunc)
+	s.RegisterJsonRpcHandleFunc("genDelete", s.genDeleteFunc)
 
 	s.RegisterJsonRpcHandleFunc("getAccountByAddress", s.requireSynced(s.getAccountByAddressFunc))
 	s.RegisterJsonRpcHandleFunc("getAccountByNum", s.requireSynced(s.getAccountByNumFunc))

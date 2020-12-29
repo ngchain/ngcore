@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/dgraph-io/badger/v2"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -34,16 +35,16 @@ func (state *State) HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 			if err := state.handleTransaction(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TxType_ASSIGN: // assign tx
-			if err := state.handleAssign(txn, tx); err != nil {
-				return err
-			}
 		case ngtypes.TxType_APPEND: // append tx
 			if err := state.handleAppend(txn, tx); err != nil {
 				return err
 			}
+		case ngtypes.TxType_DELETE: // delete tx
+			if err := state.handleDelete(txn, tx); err != nil {
+				return err
+			}
 		default:
-			return fmt.Errorf("unknown transaction type")
+			return fmt.Errorf("unknown tx type")
 		}
 	}
 
@@ -234,61 +235,6 @@ func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err erro
 	return nil
 }
 
-func (state *State) handleAssign(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
-	if err != nil {
-		return err
-	}
-
-	pk := ngtypes.Address(convener.Owner).PubKey()
-
-	if err = tx.Verify(pk); err != nil {
-		return err
-	}
-
-	totalValue := big.NewInt(0)
-	for i := range tx.GetValues() {
-		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
-	}
-
-	fee := new(big.Int).SetBytes(tx.GetFee())
-
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
-
-	if convenerBalance.Cmp(fee) < 0 {
-		return fmt.Errorf("balance is insufficient for assign")
-	}
-
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, fee))
-	if err != nil {
-		return err
-	}
-
-	// assign the extra bytes
-	convener.Contract = tx.GetExtra()
-	account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
-	if err != nil {
-		return err
-	}
-
-	vm, err := NewVM(txn, account)
-	if err != nil {
-		return err
-	}
-
-	state.vms[ngtypes.AccountNum(tx.Convener)] = vm
-
-	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
 	if err != nil {
@@ -314,7 +260,7 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	if convenerBalance.Cmp(fee) < 0 {
-		return fmt.Errorf("balance is insufficient for assign")
+		return fmt.Errorf("balance is insufficient for appendTx")
 	}
 
 	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, fee))
@@ -323,18 +269,87 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	// append the extra bytes
-	convener.Contract = utils.CombineBytes(convener.Contract, tx.GetExtra())
-	account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	var appendExtra ngtypes.AppendExtra
+	err = proto.Unmarshal(tx.Extra, &appendExtra)
 	if err != nil {
 		return err
 	}
 
-	vm, err := NewVM(txn, account)
+	convener.Contract = utils.InsertBytes(convener.Contract, int(appendExtra.Pos), appendExtra.Content...)
+
+	// TODO: migrate to Lock
+	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	//if err != nil {
+	//	return err
+	//}
+	//vm, err := NewVM(txn, account)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
+
+	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
 	if err != nil {
 		return err
 	}
 
-	state.vms[ngtypes.AccountNum(tx.Convener)] = vm
+	return nil
+}
+
+func (state *State) handleDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
+	if err != nil {
+		return err
+	}
+
+	pk := ngtypes.Address(convener.Owner).PubKey()
+
+	if err = tx.Verify(pk); err != nil {
+		return err
+	}
+
+	totalValue := big.NewInt(0)
+	for i := range tx.GetValues() {
+		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+	}
+
+	fee := new(big.Int).SetBytes(tx.GetFee())
+
+	convenerBalance, err := getBalance(txn, convener.Owner)
+	if err != nil {
+		return err
+	}
+
+	if convenerBalance.Cmp(fee) < 0 {
+		return fmt.Errorf("balance is insufficient for deleteTx")
+	}
+
+	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, fee))
+	if err != nil {
+		return err
+	}
+
+	// append the extra bytes
+	var deleteExtra ngtypes.DeleteExtra
+	err = proto.Unmarshal(tx.Extra, &deleteExtra)
+	if err != nil {
+		return err
+	}
+
+	convener.Contract = utils.CutBytes(convener.Contract, int(deleteExtra.Pos), int(deleteExtra.Pos)+len(deleteExtra.Content))
+
+	// TODO: migrate to Lock
+	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	//if err != nil {
+	//	return err
+	//}
+	//vm, err := NewVM(txn, account)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
 	if err != nil {

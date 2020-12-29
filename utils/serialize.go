@@ -10,6 +10,29 @@ func CombineBytes(b ...[]byte) []byte {
 	return bytes.Join(b, nil)
 }
 
+func InsertBytes(s []byte, k int, vs ...byte) []byte {
+	if n := len(s) + len(vs); n <= cap(s) {
+		s2 := s[:n]
+		copy(s2[k+len(vs):], s[k:])
+		copy(s2[k:], vs)
+		return s2
+	}
+	s2 := make([]byte, len(s)+len(vs))
+	copy(s2, s[:k])
+	copy(s2[k:], vs)
+	copy(s2[k+len(vs):], s[k:])
+	return s2
+}
+
+func CutBytes(a []byte, i int, j int) []byte {
+	copy(a[i:], a[j:])
+	for k, n := len(a)-j+i, len(a); k < n; k++ {
+		a[k] = 0 // or the zero value of T
+	}
+
+	return a[:len(a)-j+i]
+}
+
 // PackUint64LE converts int64 to bytes in LittleEndian
 func PackUint64LE(n uint64) []byte {
 	b := make([]byte, 8)

@@ -1,8 +1,11 @@
 package ngstate
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/utils"
 
@@ -46,15 +49,17 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 				return err
 			}
 
-		case ngtypes.TxType_ASSIGN: // assign & append
-			if err := checkAssign(txn, tx); err != nil {
-				return err
-			}
-
-		case ngtypes.TxType_APPEND: // assign & append
+		case ngtypes.TxType_APPEND: // append
 			if err := checkAppend(txn, tx); err != nil {
 				return err
 			}
+
+		case ngtypes.TxType_DELETE: // delete
+			if err := checkDelete(txn, tx); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("invalid tx type")
 		}
 	}
 
@@ -87,17 +92,17 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 			return err
 		}
 
-	case ngtypes.TxType_TRANSACT: // transaction
+	case ngtypes.TxType_TRANSACT: // transact
 		if err := checkTransaction(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.TxType_ASSIGN: // assign & append
-		if err := checkAssign(txn, tx); err != nil {
+	case ngtypes.TxType_DELETE: // delete
+		if err := checkDelete(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.TxType_APPEND: // assign & append
+	case ngtypes.TxType_APPEND: // append
 		if err := checkAppend(txn, tx); err != nil {
 			return err
 		}
@@ -220,33 +225,6 @@ func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
 	return nil
 }
 
-// checkAssign checks assign tx
-func checkAssign(txn *badger.Txn, assignTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(assignTx.Convener))
-	if err != nil {
-		return err
-	}
-
-	// check structure and key
-	if err = assignTx.CheckAssign(ngtypes.Address(convener.Owner).PubKey()); err != nil {
-		return err
-	}
-
-	// check balance
-	totalCharge := assignTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return fmt.Errorf("balance is insufficient for assign")
-	}
-
-	return nil
-
-}
-
 // checkAppend checks append tx
 func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(appendTx.Convener))
@@ -270,6 +248,61 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for append")
 	}
 
-	return nil
+	var appendExtra ngtypes.AppendExtra
+	err = proto.Unmarshal(appendTx.Extra, &appendExtra)
+	if err != nil {
+		return err
+	}
 
+	if appendExtra.Pos >= uint64(len(convener.Contract)) {
+		return fmt.Errorf("append pos is out of bound")
+	}
+
+	return nil
+}
+
+// checkDelete checks delete tx
+func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(deleteTx.Convener))
+	if err != nil {
+		return err
+	}
+
+	// check structure and key
+	if err = deleteTx.CheckDelete(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+		return err
+	}
+
+	// check balance
+	totalCharge := deleteTx.TotalExpenditure()
+	convenerBalance, err := getBalance(txn, convener.Owner)
+	if err != nil {
+		return err
+	}
+
+	if convenerBalance.Cmp(totalCharge) < 0 {
+		return fmt.Errorf("balance is insufficient for delete")
+	}
+
+	var appendExtra ngtypes.DeleteExtra
+	err = proto.Unmarshal(deleteTx.Extra, &appendExtra)
+	if err != nil {
+		return err
+	}
+
+	if appendExtra.Pos >= uint64(len(convener.Contract)) {
+		return fmt.Errorf("delete pos is out of bound")
+	}
+
+	if appendExtra.Pos+uint64(len(appendExtra.Content)) >= uint64(len(convener.Contract)) {
+		return fmt.Errorf("delete content length is out of bound")
+	}
+
+	if !bytes.Equal(
+		convener.Contract[int(appendExtra.Pos):int(appendExtra.Pos)+len(appendExtra.Content)],
+		appendExtra.Content) {
+		return fmt.Errorf("delete content length is invalid")
+	}
+
+	return nil
 }
