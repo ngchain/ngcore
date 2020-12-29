@@ -196,6 +196,14 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for logout")
 	}
 
+	if len(convener.Contract) != 0 {
+		return fmt.Errorf("you should clear your contract before logout")
+	}
+
+	if len(convener.Context) != 0 {
+		return fmt.Errorf("you should clear your context before logout")
+	}
+
 	return nil
 }
 

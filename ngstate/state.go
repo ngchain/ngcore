@@ -1,6 +1,8 @@
 package ngstate
 
 import (
+	"sync"
+
 	"github.com/dgraph-io/badger/v2"
 	logging "github.com/ipfs/go-log/v2"
 
@@ -23,6 +25,7 @@ var (
 type State struct {
 	*badger.DB
 	*SnapshotManager
+
 	vms map[ngtypes.AccountNum]*VM
 }
 
@@ -31,7 +34,13 @@ type State struct {
 // checkpoint
 func InitStateFromSheet(db *badger.DB, network ngtypes.NetworkType, sheet *ngtypes.Sheet) *State {
 	state := &State{
-		DB:  db,
+		DB: db,
+		SnapshotManager: &SnapshotManager{
+			RWMutex:        sync.RWMutex{},
+			heightToHash:   make(map[uint64]string),
+			hashToSnapshot: make(map[string]*ngtypes.Sheet),
+		},
+
 		vms: make(map[ngtypes.AccountNum]*VM),
 	}
 	err := state.Update(func(txn *badger.Txn) error {
@@ -47,7 +56,12 @@ func InitStateFromSheet(db *badger.DB, network ngtypes.NetworkType, sheet *ngtyp
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
 func InitStateFromGenesis(db *badger.DB, network ngtypes.NetworkType) *State {
 	state := &State{
-		DB:  db,
+		DB: db,
+		SnapshotManager: &SnapshotManager{
+			RWMutex:        sync.RWMutex{},
+			heightToHash:   make(map[uint64]string),
+			hashToSnapshot: make(map[string]*ngtypes.Sheet),
+		},
 		vms: make(map[ngtypes.AccountNum]*VM),
 	}
 	err := state.Update(func(txn *badger.Txn) error {
