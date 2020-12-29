@@ -31,6 +31,7 @@ message Block {
   bytes difficulty = 7; // diff = maxTarget / Big(header_hash)
   bytes nonce = 8;
 
+  repeated Block subs = 9;
   repeated Tx txs = 10; // miner should build the generate tx by themselves
 
   bytes id = 15; // use id representing hash to avoid conflict of Hash and GetHash()
@@ -44,8 +45,11 @@ enum TxType {
 
   TRANSACT = 4;
 
-  ASSIGN = 5;
-  APPEND = 6;
+  APPEND = 5; // add content to the tail of contract
+  DELETE = 6;
+
+  LOCK = 7; // cannot assign nor append, but can run vm
+  UNLOCK = 8; // disable vm, but enable assign and append
 }
 
 // Or you can call it Op
@@ -66,6 +70,18 @@ message Tx {
   bytes sign = 9; // the abbr of signature
 
   bytes id = 15;  // use id representing hash to avoid conflict of Hash and GetHash()
+}
+
+// the structure of Append Tx 's Extra
+message AppendExtra {
+    uint64 pos = 1;
+    bytes content = 2;
+}
+
+// the structure of Delete Tx 's Extra
+message DeleteExtra {
+    uint64 pos = 1; // should match part of contract
+    bytes content = 2; // the new content of that part of contract
 }
 
 // Sheet is a simplified States
