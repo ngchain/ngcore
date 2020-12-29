@@ -211,6 +211,8 @@ var action = func(c *cli.Context) error {
 	rpc := jsonrpc.NewServer(rpcHost, rpcPort, pow)
 	go rpc.Serve()
 
+	pow.SwitchMiningOn()
+
 	// notify the exit events
 	select {}
 }

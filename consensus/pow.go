@@ -183,7 +183,7 @@ func (pow *PoWork) eventLoop() {
 
 			// assign new job
 			blockTemplate := pow.GetBlockTemplate()
-			pow.MinerMod.Mine(blockTemplate)
+			go pow.MinerMod.Mine(blockTemplate)
 		}
 	}
 }
