@@ -25,7 +25,7 @@ type Miner struct {
 
 	ThreadNum int
 	hashes    *atomic.Int64
-	job       *atomic.Value
+	Job       *atomic.Value
 
 	abortChs     []chan struct{}
 	foundBlockCh chan *ngtypes.Block
@@ -43,7 +43,7 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	m := &Miner{
 		ThreadNum:    threadNum,
 		hashes:       atomic.NewInt64(0),
-		job:          new(atomic.Value),
+		Job:          new(atomic.Value),
 		abortChs:     nil,
 		foundBlockCh: foundBlockCh,
 	}
@@ -60,8 +60,8 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 			go func() {
 				hashes := m.hashes.Load()
 
-				if m.job.Load() != nil {
-					current, _ := m.job.Load().(*ngtypes.Block)
+				if m.Job.Load() != nil {
+					current, _ := m.Job.Load().(*ngtypes.Block)
 					log.Warnf("Total hashrate: %d h/s, height: %d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
 				}
 
@@ -80,8 +80,8 @@ func (m *Miner) Mine(job *ngtypes.Block) {
 
 	m.stop()
 
-	m.job.Store(job)
-	log.Info("mining on job: block@%d diff: %s", job.Height, new(big.Int).SetBytes(job.Difficulty).String())
+	m.Job.Store(job)
+	log.Info("mining on Job: block@%d diff: %s", job.Height, new(big.Int).SetBytes(job.Difficulty).String())
 
 	m.abortChs = make([]chan struct{}, m.ThreadNum)
 	for i := range m.abortChs {
@@ -167,11 +167,11 @@ func (m *Miner) Stop() {
 }
 
 func (m *Miner) stop() {
-	if m.job.Load() == nil {
+	if m.Job.Load() == nil {
 		return // avoid reset more than once
 	}
 
-	m.job = new(atomic.Value) // nil value
+	m.Job = new(atomic.Value) // nil value
 
 	var wg sync.WaitGroup
 	for i := range m.abortChs {

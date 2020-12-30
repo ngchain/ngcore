@@ -76,28 +76,6 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 	return pow
 }
 
-// SwitchMiningOff stops the pow consensus.
-func (pow *PoWork) SwitchMiningOff() {
-	if pow.MinerMod != nil {
-		pow.MinerMod.Stop()
-	}
-}
-
-// SwitchMiningOn resumes the pow consensus
-// this won't work when the former job unfinished
-func (pow *PoWork) SwitchMiningOn() {
-	if pow.MinerMod != nil && !pow.SyncMod.Locker.IsLocked() {
-		newBlock := pow.GetBlockTemplate()
-		go pow.MinerMod.Mine(newBlock) // when there was an old one started, this will directly return
-	}
-}
-
-// UpdateMiningJob updates the mining work
-func (pow *PoWork) UpdateMiningJob() {
-	pow.SwitchMiningOff()
-	pow.SwitchMiningOn()
-}
-
 // SwitchMiningOn resumes the pow consensus.
 func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
 	if pow.MinerMod != nil {
@@ -105,10 +83,14 @@ func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
 		return
 	}
 
+	// when pow.MinerMod is nil
+
+	// no action
 	if newThreadNum < 0 {
-		pow.SwitchMiningOff()
+		return
 	}
 
+	// auto mode
 	if newThreadNum == 0 {
 		newThreadNum = runtime.NumCPU()
 	}
@@ -165,10 +147,6 @@ func (pow *PoWork) eventLoop() {
 				log.Warnf("failed to put new block from p2p: %s", err)
 				continue
 			}
-
-			// update miner work
-			go pow.UpdateMiningJob()
-
 		case tx := <-pow.LocalNode.OnTx:
 			err := pow.Pool.PutTx(tx)
 			if err != nil {
@@ -180,10 +158,15 @@ func (pow *PoWork) eventLoop() {
 			if err != nil {
 				log.Warnf("error on handling the mined block: %s", err)
 			}
+		default:
+			if currentJobInf := pow.MinerMod.Job.Load(); currentJobInf != nil {
+				newJob := pow.GetBlockTemplate()
+				currentJob := currentJobInf.(*ngtypes.Block)
+				if newJob.Height != currentJob.Height || len(newJob.Txs) != len(currentJob.Txs) {
+					pow.MinerMod.Mine(newJob)
+				}
+			}
 
-			// assign new job
-			blockTemplate := pow.GetBlockTemplate()
-			go pow.MinerMod.Mine(blockTemplate)
 		}
 	}
 }

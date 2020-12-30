@@ -117,9 +117,6 @@ func (mod *syncModule) loop() {
 				}
 			}
 		}
-
-		// after sync
-		mod.pow.UpdateMiningJob()
 	}
 }
 

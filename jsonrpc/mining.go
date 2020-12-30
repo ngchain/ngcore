@@ -129,9 +129,10 @@ func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 	mode := strings.ToLower(strings.TrimSpace(params.Mode))
 	switch mode {
 	case "on":
-		s.pow.SwitchMiningOn()
+		s.pow.UpdateMiningThread(0)
 	case "off":
-		s.pow.SwitchMiningOff()
+		s.pow.MinerMod.ThreadNum = 0
+		s.pow.MinerMod.Stop()
 	default:
 		workerNum, err := strconv.ParseInt(mode, 10, 64)
 		if err != nil {
@@ -140,7 +141,6 @@ func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		}
 
 		s.pow.UpdateMiningThread(int(workerNum))
-		s.pow.SwitchMiningOn()
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
