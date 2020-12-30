@@ -159,13 +159,18 @@ func (pow *PoWork) eventLoop() {
 				log.Warnf("error on handling the mined block: %s", err)
 			}
 		default:
-			if currentJobInf := pow.MinerMod.Job.Load(); currentJobInf != nil {
-				newJob := pow.GetBlockTemplate()
-				currentJob := currentJobInf.(*ngtypes.Block)
-				if newJob.Height != currentJob.Height || len(newJob.Txs) != len(currentJob.Txs) {
-					pow.MinerMod.Mine(newJob)
-				}
+			newJob := pow.GetBlockTemplate()
+			currentJobInf := pow.MinerMod.Job.Load()
+			if currentJobInf == nil {
+				go pow.MinerMod.Mine(newJob)
+				continue
 			}
+
+			currentJob := currentJobInf.(*ngtypes.Block)
+			if newJob.Height != currentJob.Height || len(newJob.Txs) != len(currentJob.Txs) {
+				go pow.MinerMod.Mine(newJob)
+			}
+			continue
 
 		}
 	}

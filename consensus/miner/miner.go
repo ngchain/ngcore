@@ -21,8 +21,6 @@ var log = logging.Logger("miner")
 // Miner is an inner miner for proof of work
 // miner implements a internal PoW miner with multi threads(goroutines) support
 type Miner struct {
-	sync.Mutex
-
 	ThreadNum int
 	hashes    *atomic.Int64
 	Job       *atomic.Value
@@ -75,9 +73,6 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 
 // Mine will ignite the engine of Miner and all threads Mine working.
 func (m *Miner) Mine(job *ngtypes.Block) {
-	m.Lock()
-	defer m.Unlock()
-
 	m.stop()
 
 	m.Job.Store(job)
