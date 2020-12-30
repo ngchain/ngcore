@@ -160,19 +160,19 @@ func (pow *PoWork) eventLoop() {
 			}
 		default:
 			// miner
-			newJob := pow.GetBlockTemplate()
+			if pow.MinerMod != nil {
+				newJob := pow.GetBlockTemplate()
 
-			if pow.MinerMod.Job == nil {
-				go pow.MinerMod.Mine(newJob)
-				continue
+				if pow.MinerMod.Job == nil {
+					go pow.MinerMod.Mine(newJob)
+					continue
+				}
+
+				if newJob.Height != pow.MinerMod.Job.Height || len(newJob.Txs) != len(pow.MinerMod.Job.Txs) {
+					go pow.MinerMod.Mine(newJob)
+					continue
+				}
 			}
-
-			if newJob.Height != pow.MinerMod.Job.Height || len(newJob.Txs) != len(pow.MinerMod.Job.Txs) {
-				go pow.MinerMod.Mine(newJob)
-				continue
-			}
-
-			continue
 		}
 	}
 }
