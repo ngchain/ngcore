@@ -23,7 +23,7 @@ var log = logging.Logger("miner")
 type Miner struct {
 	ThreadNum int
 	hashes    *atomic.Int64
-	Job       *atomic.Value
+	Job       *ngtypes.Block
 
 	abortChs     []chan struct{}
 	foundBlockCh chan *ngtypes.Block
@@ -41,7 +41,7 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 	m := &Miner{
 		ThreadNum:    threadNum,
 		hashes:       atomic.NewInt64(0),
-		Job:          new(atomic.Value),
+		Job:          nil,
 		abortChs:     nil,
 		foundBlockCh: foundBlockCh,
 	}
@@ -58,9 +58,11 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 			go func() {
 				hashes := m.hashes.Load()
 
-				if m.Job.Load() != nil {
-					current, _ := m.Job.Load().(*ngtypes.Block)
-					log.Warnf("Total hashrate: %d h/s, height: %d, diff: %d", hashes/elapsed, current.GetHeight(), new(big.Int).SetBytes(current.GetDifficulty()))
+				if m.Job != nil {
+					log.Warnf("Total hashrate: %d h/s, height: %d, diff: %d",
+						hashes/elapsed,
+						m.Job.GetHeight(),
+						new(big.Int).SetBytes(m.Job.GetDifficulty()))
 				}
 
 				m.hashes.Sub(hashes)
@@ -73,9 +75,9 @@ func NewMiner(threadNum int, foundBlockCh chan *ngtypes.Block) *Miner {
 
 // Mine will ignite the engine of Miner and all threads Mine working.
 func (m *Miner) Mine(job *ngtypes.Block) {
-	m.stop()
+	m.stop() // will close the former one, so no need to
 
-	m.Job.Store(job)
+	m.Job = job
 	log.Info("mining on Job: block@%d diff: %s", job.Height, new(big.Int).SetBytes(job.Difficulty).String())
 
 	m.abortChs = make([]chan struct{}, m.ThreadNum)
@@ -162,21 +164,17 @@ func (m *Miner) Stop() {
 }
 
 func (m *Miner) stop() {
-	if m.Job.Load() == nil {
-		return // avoid reset more than once
-	}
-
-	m.Job = new(atomic.Value) // nil value
+	m.Job = nil // nil value
 
 	var wg sync.WaitGroup
 	for i := range m.abortChs {
 		wg.Add(1)
 		go func(i int) {
-			close(m.abortChs[i])
-			<-m.abortChs[i] // wait
+			m.abortChs[i] <- struct{}{}
 			wg.Done()
 		}(i)
 	}
+
 	wg.Wait()
 }
 
