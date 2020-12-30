@@ -15,17 +15,20 @@ func TestPoWMiner(t *testing.T) {
 	block.Difficulty = big.NewInt(100).Bytes() // lower for avoid timeout
 
 	ch := make(chan *ngtypes.Block)
-	m := miner.NewMiner(2, ch)
+	m := miner.NewMiner(1, ch)
 
 	go func() {
-		result := <-ch
-		if err := result.CheckError(); err != nil {
-			panic(err)
+		for {
+			result := <-ch
+			if err := result.CheckError(); err != nil {
+				panic(err)
+			}
 		}
 	}()
 
 	m.Mine(block)
-	time.Sleep(time.Minute)
+	time.Sleep(time.Second)
 
-	m.Stop()
+	m.Stop() // should stop and exit
+	t.Log(m.Job)
 }

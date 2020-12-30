@@ -156,9 +156,19 @@ func (m *Miner) Mine(job *ngtypes.Block) {
 	randomx.ReleaseDataset(dataset)
 }
 
-// Stop will Stop all threads. It would lose some hashrate, but it's necessary in a node for stablity.
+// Stop will Stop all workers via closing all channels.
 func (m *Miner) Stop() {
-	m.stop()
+	m.Job = nil // nil value
+
+	var wg sync.WaitGroup
+	for i := range m.abortChs {
+		wg.Add(1)
+		go func(i int) {
+			close(m.abortChs[i])
+			<-m.abortChs[i]
+			wg.Done()
+		}(i)
+	}
 
 	log.Info("mining mode off")
 }
@@ -174,8 +184,6 @@ func (m *Miner) stop() {
 			wg.Done()
 		}(i)
 	}
-
-	wg.Wait()
 }
 
 func (m *Miner) found(t int, job *ngtypes.Block, nonce []byte) {
