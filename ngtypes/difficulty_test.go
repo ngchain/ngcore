@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestDiffifultyAlgo(t *testing.T) {
+func TestDifficultyAlgo(t *testing.T) {
 	//network := ngtypes.NetworkType_ZERONET
 	//
 	//tailBlock := &ngtypes.Block{

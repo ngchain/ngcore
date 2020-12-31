@@ -39,7 +39,7 @@ const (
 	// !NO MAX LIMITATION!
 	//BlockMaxTxsSize = 1 << 25 // 32M
 	TxMaxExtraSize = 1 << 20 // if more than 1m, extra should be separated ot multi append
-	// The length of a timestemp bytes
+	// The length of a timestamp bytes
 	TimestampSize = 8
 	// The length of a hash bytes
 	HashSize = 32

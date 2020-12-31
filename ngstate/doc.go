@@ -1,5 +1,5 @@
 // Package ngstate provides a global account status manager which controls all accounts and balance
-// besides that, the manager can do generating current sheet for fasy sync
+// besides that, the manager can do generating current sheet for fast sync
 //
 // ngstate can get init from genesis sheet or remote sheet.
 //

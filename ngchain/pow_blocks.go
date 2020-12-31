@@ -85,7 +85,7 @@ func (chain *Chain) GetLatestCheckpoint() *ngtypes.Block {
 	return b
 }
 
-// GetBlockByHeight returns a block by height inputed
+// GetBlockByHeight returns a block by height inputted
 func (chain *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	if height == 0 {
 		return ngtypes.GetGenesisBlock(chain.Network), nil
@@ -108,7 +108,7 @@ func (chain *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	return block, nil
 }
 
-// GetBlockByHash returns a block by hash inputed
+// GetBlockByHash returns a block by hash inputted
 func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	if bytes.Equal(hash, ngtypes.GetGenesisBlockHash(chain.Network)) {
 		return ngtypes.GetGenesisBlock(chain.Network), nil

@@ -49,7 +49,7 @@ func NewAddressFromBS58(s string) (Address, error) {
 	return addr, nil
 }
 
-// PubKey gets the public key from address for validition
+// PubKey gets the public key from address for validation
 func (a Address) PubKey() secp256k1.PublicKey {
 	return utils.Bytes2PublicKey(a[2:])
 }
