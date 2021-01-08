@@ -85,7 +85,7 @@ Or you can choose to run in a docker
 
 ```bash
 git clone https://github.com/ngchain/ngcore && cd ngcore
-sudo docker build . -t ngcore:alpine
+sudo docker build . -t ngcore
 
 # Run as a bootstrap node
 sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --bootstrap true
