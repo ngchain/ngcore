@@ -21,9 +21,12 @@ var (
 // PoW const
 const (
 	// MinimumDifficulty is the minimum of pow minimumDifficulty because my laptop has 200 h/s, I believe you can either
-	minimumDifficulty = 200 << 4         // Target = MaxTarget / diff
-	TargetTime        = 16 * time.Second // change time from 10 -> 16 = 1 << 4
-	BlockCheckRound   = 10               // do converge if fall behind one round
+	minimumDifficulty = 200 << 4 // Target = MaxTarget / diff
+	TargetTime        = 16 * time.Second
+	BlockCheckRound   = 10 // do converge if fall behind one round
+
+	MatureRound  = 10                            // not mandatory required, can be modified by different daemons
+	MatureHeight = MatureRound * BlockCheckRound // just for calculating the immature balance
 )
 
 // PoW variables
@@ -36,8 +39,7 @@ var (
 
 // Maximum sizes
 const (
-	// !NO MAX LIMITATION!
-	//BlockMaxTxsSize = 1 << 25 // 32M
+	// BlockMaxTxsSize = 1 << 25 // 32M
 	TxMaxExtraSize = 1 << 20 // if more than 1m, extra should be separated ot multi append
 	// The length of a timestamp bytes
 	TimestampSize = 8
@@ -115,4 +117,13 @@ func GetGenesisTimestamp(network NetworkType) int64 {
 	default:
 		panic("unknown network")
 	}
+}
+
+// 100 * X
+func GetMatureHeight(currentHeight uint64) uint64 {
+	if currentHeight < MatureHeight {
+		return 0
+	}
+
+	return currentHeight / MatureHeight * MatureHeight
 }

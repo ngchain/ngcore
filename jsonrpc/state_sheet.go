@@ -1,6 +1,8 @@
 package jsonrpc
 
 import (
+	"math/big"
+
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 
@@ -40,6 +42,12 @@ func (s *Server) getAccountByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
+type balanceReply struct {
+	TotalBalance  string
+	MatureBalance string
+	LockedBalance string
+}
+
 type getBalanceByAddressParams struct {
 	Address string `json:"address"`
 }
@@ -59,12 +67,23 @@ func (s *Server) getBalanceByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	balance, err := s.pow.State.GetBalanceByAddress(addr)
+	totalBalance, err := s.pow.State.GetTotalBalanceByAddress(addr)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	raw, err := utils.JSON.Marshal(balance.String())
+
+	matureBalance, err := s.pow.State.GetMatureBalanceByAddress(addr)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := utils.JSON.Marshal(balanceReply{
+		TotalBalance:  totalBalance.String(),
+		MatureBalance: matureBalance.String(),
+		LockedBalance: new(big.Int).Sub(totalBalance, matureBalance).String(),
+	})
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -86,13 +105,23 @@ func (s *Server) getBalanceByNumFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	balance, err := s.pow.State.GetBalanceByNum(params.Num)
+	totalBalance, err := s.pow.State.GetTotalBalanceByNum(params.Num)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(balance.String())
+	matureBalance, err := s.pow.State.GetMatureBalanceByNum(params.Num)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := utils.JSON.Marshal(balanceReply{
+		TotalBalance:  totalBalance.String(),
+		MatureBalance: matureBalance.String(),
+		LockedBalance: new(big.Int).Sub(totalBalance, matureBalance).String(),
+	})
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

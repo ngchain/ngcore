@@ -2,69 +2,18 @@ package ngstate
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/dgraph-io/badger/v2"
 
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-//// ToSheet will conclude a sheet which has all status of all accounts & keys(if balance not nil)
-//func (state *State) ToSheet() *ngtypes.Sheet {
-//	var prevBlockHash []byte
-//	accounts := make(map[uint64]*ngtypes.Account)
-//	anonymous := make(map[string][]byte)
-//	err := state.View(func(txn *badger.Txn) error {
-//		item, err := txn.Get([]byte("hash"))
-//		if err != nil {
-//			return err
-//		}
-//
-//		prevBlockHash = item.KeyCopy(nil)
-//
-//		it := txn.NewIterator(badger.DefaultIteratorOptions)
-//		defer it.Close()
-//		for it.Seek(numToAccountPrefix); it.ValidForPrefix(numToAccountPrefix); it.Next() {
-//			item := it.Item()
-//			rawAccount, err := item.ValueCopy(nil)
-//			if err != nil {
-//				return err
-//			}
-//
-//			var account ngtypes.Account
-//			err = utils.Proto.Unmarshal(rawAccount, &account)
-//			if err != nil {
-//				return err
-//			}
-//
-//			accounts[account.Num] = &account
-//		}
-//
-//		it = txn.NewIterator(badger.DefaultIteratorOptions)
-//		defer it.Close()
-//		for it.Seek(addrTobBalancePrefix); it.ValidForPrefix(addrTobBalancePrefix); it.Next() {
-//			item := it.Item()
-//			addr := item.KeyCopy(nil)
-//			rawBalance, err := item.ValueCopy(nil)
-//			if err != nil {
-//				return err
-//			}
-//
-//			anonymous[base58.FastBase58Encoding(addr)] = rawBalance
-//		}
-//
-//		return nil
-//	})
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	return ngtypes.NewSheet(prevBlockHash, accounts, anonymous)
-//}
-
-// GetBalanceByNum get the balance of account by the account's num
-func (state *State) GetBalanceByNum(num uint64) (*big.Int, error) {
+// GetTotalBalanceByNum get the balance of account by the account's num
+func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
 	var balance *big.Int
 
 	err := state.View(func(txn *badger.Txn) error {
@@ -88,8 +37,8 @@ func (state *State) GetBalanceByNum(num uint64) (*big.Int, error) {
 	return balance, nil
 }
 
-// GetBalanceByAddress get the balance of account by the account's address
-func (state *State) GetBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
+// GetTotalBalanceByAddress get the total balance of account by the account's address
+func (state *State) GetTotalBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	var balance *big.Int
 
 	err := state.View(func(txn *badger.Txn) error {
@@ -98,6 +47,67 @@ func (state *State) GetBalanceByAddress(address ngtypes.Address) (*big.Int, erro
 		if err != nil {
 			return err
 		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return balance, nil
+}
+
+// GetMatureBalanceByNum get the balance of account by the account's num
+func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
+	var balance *big.Int
+
+	err := state.View(func(txn *badger.Txn) error {
+		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+		if err != nil {
+			return err
+		}
+
+		addr := ngtypes.Address(account.Owner)
+
+		currentHeight, err := ngblocks.GetLatestHeight(txn)
+		if err != nil {
+			return err
+		}
+
+		matureSnapshot := state.GetSnapshotByHeight(ngtypes.GetMatureHeight(currentHeight))
+		if matureSnapshot == nil {
+			return fmt.Errorf("cannot find the mature snapshot") // abnormal
+		}
+
+		balance = new(big.Int).SetBytes(matureSnapshot.Anonymous[addr.String()])
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return balance, nil
+}
+
+// GetMatureBalanceByAddress get the locked balance of account by the account's address
+func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
+	var balance *big.Int
+
+	err := state.View(func(txn *badger.Txn) error {
+		var err error
+
+		currentHeight, err := ngblocks.GetLatestHeight(txn)
+		if err != nil {
+			return err
+		}
+
+		matureSnapshot := state.GetSnapshotByHeight(ngtypes.GetMatureHeight(currentHeight))
+		if matureSnapshot == nil {
+			return fmt.Errorf("cannot find the mature snapshot") // abnormal
+		}
+
+		balance = new(big.Int).SetBytes(matureSnapshot.Anonymous[address.String()])
 
 		return nil
 	})

@@ -7,11 +7,11 @@ import (
 func TestInitialState(t *testing.T) {
 	//state := ngstate.GetActiveState()
 	//state.ToSheet()
-	//_, err := state.GetBalanceByNum(1)
+	//_, err := state.GetTotalBalanceByNum(1)
 	//if err != nil {
 	//	panic(err)
 	//}
-	//_, err = state.GetBalanceByAddress(ngtypes.GenesisAddress)
+	//_, err = state.GetTotalBalanceByAddress(ngtypes.GenesisAddress)
 	//if err != nil {
 	//	panic(err)
 	//}

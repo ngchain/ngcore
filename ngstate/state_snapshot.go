@@ -30,6 +30,7 @@ func (sm *SnapshotManager) PutSnapshot(height uint64, hash []byte, sheet *ngtype
 	sm.hashToSnapshot[hexHash] = sheet
 }
 
+// for external use with security ensure
 func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Sheet {
 	sm.RLock()
 	defer sm.RLocker()
@@ -44,6 +45,27 @@ func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Shee
 	}
 
 	return sm.hashToSnapshot[hexHash]
+}
+
+// for internal use only
+func (sm *SnapshotManager) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
+	sm.RLock()
+	defer sm.RLocker()
+
+	hexHash, exists := sm.heightToHash[height]
+	if !exists {
+		return nil
+	}
+
+	return sm.hashToSnapshot[hexHash]
+}
+
+// for internal use only
+func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
+	sm.RLock()
+	defer sm.RLocker()
+
+	return sm.hashToSnapshot[hex.EncodeToString(hash)]
 }
 
 // generateSnapshot when the block is a checkpoint
