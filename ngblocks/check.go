@@ -16,6 +16,10 @@ func checkBlock(txn *badger.Txn, height uint64, prevHash []byte) error {
 		return fmt.Errorf("no prev block in ngblocks: %x", prevHash)
 	}
 
+	if height > 400_000 {
+		panic("v0.0.19 testnet reaches the end of life, please wait for v0.0.20 testnet")
+	}
+
 	return nil
 }
 
