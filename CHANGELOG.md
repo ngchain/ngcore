@@ -11,7 +11,7 @@
 - DONE: add GetSheet and Sheet p2p message
 - DONE: enhance mining job update
 - DONE: add id for Block & Tx representing the hash
-- TODO: use subs field in Block to implement
+- TODO: use subs field in Block to implement sub-blocks revenue in v0.0.21
 
 ## v0.0.19
 
