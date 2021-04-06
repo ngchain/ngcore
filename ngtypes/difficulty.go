@@ -19,33 +19,21 @@ func GetNextDiff(blockHeight uint64, blockTime int64, tailBlock *Block) *big.Int
 	delta := new(big.Int)
 	if diffTime < int64(TargetTime/time.Second)*(-2) {
 		delta.Div(diff, big.NewInt(10))
-		diff.Add(diff, delta)
 	}
 
 	if diffTime > int64(TargetTime/time.Second)*(+2) {
 		delta.Div(diff, big.NewInt(10))
-		diff.Sub(diff, delta)
 	}
 
-	period := (tailBlock.Height + 1) / 1000
-	// TODO: delete me
-	if (tailBlock.Height+1)%1000 == 0 && period > 10 && period < 26 {
-		delta.Exp(big2, new(big.Int).SetUint64(period), nil)
-		diff.Add(diff, delta)
-	}
+	// reload the diff
+	diff = new(big.Int).SetBytes(tailBlock.GetDifficulty())
+	d := blockTime - tailBlock.Timestamp - int64(TargetTime/time.Second)
+	delta.Div(diff, big.NewInt(2048))
+	delta.Mul(delta, big.NewInt(max(1-(d)/10, -99)))
+	diff.Add(diff, delta)
 
-	// try new algo after 60_000
-	if blockHeight > 60_000 {
-		// reload the diff
-		diff = new(big.Int).SetBytes(tailBlock.GetDifficulty())
-		d := blockTime - tailBlock.Timestamp - int64(TargetTime/time.Second)
-		delta.Div(diff, big.NewInt(2048))
-		delta.Mul(delta, big.NewInt(max(1-(d)/10, -99)))
-		diff.Add(diff, delta)
-
-		delta.Exp(big2, big.NewInt(int64(blockHeight)/100_000-2), nil)
-		diff.Add(diff, delta)
-	}
+	delta.Exp(big2, big.NewInt(int64(blockHeight)/100_000-2), nil)
+	diff.Add(diff, delta)
 
 	if diff.Cmp(minimumBigDifficulty) < 0 {
 		diff = minimumBigDifficulty
