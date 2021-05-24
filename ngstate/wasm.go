@@ -8,7 +8,7 @@ import (
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngtypes"
 

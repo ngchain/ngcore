@@ -14,7 +14,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ngchain/ngcore/consensus"

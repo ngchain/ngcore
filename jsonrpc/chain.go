@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 )
 
 func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {

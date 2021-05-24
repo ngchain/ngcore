@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"

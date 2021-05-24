@@ -1,7 +1,7 @@
 package ngchain
 
 import (
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"

@@ -9,7 +9,7 @@ import (
 
 	"github.com/ngchain/ngcore/utils"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )

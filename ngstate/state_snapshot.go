@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"sync"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngblocks"

@@ -1,9 +1,7 @@
 package storage
 
 import (
-	"runtime"
-
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 )
 
@@ -15,9 +13,6 @@ var db *badger.DB
 func InitStorage(dbFolder string) *badger.DB {
 	if db == nil {
 		options := badger.DefaultOptions(dbFolder)
-		if runtime.GOOS == "windows" {
-			options.Truncate = true
-		}
 
 		options.Logger = log
 
@@ -35,9 +30,6 @@ func InitStorage(dbFolder string) *badger.DB {
 func InitMemStorage() *badger.DB {
 	if db == nil {
 		options := badger.DefaultOptions("").WithInMemory(true)
-		if runtime.GOOS == "windows" {
-			options.Truncate = true
-		}
 		options.Logger = log
 
 		var err error

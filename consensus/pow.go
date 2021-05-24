@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/secp256k1"
