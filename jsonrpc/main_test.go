@@ -38,7 +38,7 @@ func TestNewRPCServer(t *testing.T) {
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
 		P2PKeyFile:       "p2p.key",
 		Network:          network,
-		Port:             52520,
+		Port:             32320,
 		DisableDiscovery: true,
 	})
 	localNode.GoServe()

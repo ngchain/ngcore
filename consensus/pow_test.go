@@ -35,7 +35,7 @@ func TestNewConsensusManager(t *testing.T) {
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
 		Network:          net,
-		Port:             52520,
+		Port:             42420,
 		DisableDiscovery: true,
 	})
 	pool := ngpool.Init(db, chain, localNode)
