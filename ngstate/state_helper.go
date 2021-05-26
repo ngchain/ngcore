@@ -54,7 +54,7 @@ func getAccountNumByAddr(txn *badger.Txn, addr ngtypes.Address) (ngtypes.Account
 }
 
 func getBalance(txn *badger.Txn, addr ngtypes.Address) (*big.Int, error) {
-	item, err := txn.Get(append(addrTobBalancePrefix, addr...))
+	item, err := txn.Get(append(addrToBalancePrefix, addr...))
 	if err == badger.ErrKeyNotFound {
 		return big.NewInt(0), nil
 	}
@@ -84,7 +84,7 @@ func setAccount(txn *badger.Txn, num ngtypes.AccountNum, account *ngtypes.Accoun
 }
 
 func setBalance(txn *badger.Txn, addr ngtypes.Address, balance *big.Int) error {
-	err := txn.Set(append(addrTobBalancePrefix, addr...), balance.Bytes())
+	err := txn.Set(append(addrToBalancePrefix, addr...), balance.Bytes())
 	if err != nil {
 		return fmt.Errorf("cannot set balance: %s", err)
 	}

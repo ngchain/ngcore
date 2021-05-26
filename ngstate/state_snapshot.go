@@ -97,7 +97,7 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 
 	it = txn.NewIterator(badger.DefaultIteratorOptions)
 	defer it.Close()
-	for it.Seek(addrTobBalancePrefix); it.ValidForPrefix(addrTobBalancePrefix); it.Next() {
+	for it.Seek(addrToBalancePrefix); it.ValidForPrefix(addrToBalancePrefix); it.Next() {
 		item := it.Item()
 		addr := item.KeyCopy(nil)
 		rawBalance, err := item.ValueCopy(nil)

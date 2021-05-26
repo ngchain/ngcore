@@ -3,12 +3,11 @@ package ngp2p
 import (
 	"context"
 	"fmt"
-
-	"github.com/ngchain/ngcore/keytools"
-	"github.com/ngchain/ngcore/ngchain"
-
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
+	"github.com/ngchain/ngcore/keytools"
+
+	"github.com/ngchain/ngcore/ngchain"
 
 	"github.com/ngchain/ngcore/ngp2p/broadcast"
 	"github.com/ngchain/ngcore/ngp2p/wired"

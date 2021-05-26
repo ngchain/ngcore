@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"github.com/mr-tron/base58"
 	"sync"
 
 	"github.com/dgraph-io/badger/v3"
@@ -14,9 +15,9 @@ import (
 var log = logging.Logger("sheet")
 
 var (
-	numToAccountPrefix   = []byte("nu:")
-	addrTobBalancePrefix = []byte("ab:")
-	addrToNumPrefix      = []byte("an:")
+	numToAccountPrefix  = []byte("nu:")
+	addrToBalancePrefix = []byte("ab:")
+	addrToNumPrefix     = []byte("an:")
 )
 
 // State is a global set of account & txs status
@@ -98,8 +99,12 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 		}
 	}
 
-	for addr, balance := range sheet.Anonymous {
-		err := txn.Set(append(addrTobBalancePrefix, addr...), balance)
+	for strAddr, balance := range sheet.Anonymous {
+		addr, err := base58.FastBase58Decoding(strAddr)
+		if err != nil {
+			return err
+		}
+		err = txn.Set(append(addrToBalancePrefix, addr...), balance)
 		if err != nil {
 			return err
 		}
@@ -110,7 +115,7 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 
 // RebuildFromSheet will overwrite a state from the given sheet
 func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
-	err := state.DropPrefix(addrTobBalancePrefix)
+	err := state.DropPrefix(addrToBalancePrefix)
 	if err != nil {
 		return err
 	}
@@ -131,7 +136,7 @@ func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
 
 // RebuildFromBlockStore works for doing converge and remove all
 func (state *State) RebuildFromBlockStore() error {
-	err := state.DropPrefix(addrTobBalancePrefix)
+	err := state.DropPrefix(addrToBalancePrefix)
 	if err != nil {
 		return err
 	}
