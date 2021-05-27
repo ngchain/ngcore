@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/ngchain/secp256k1"
 
-	"github.com/ngchain/ngcore/consensus/miner"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
@@ -25,8 +23,7 @@ var log = logging.Logger("pow")
 type PoWork struct {
 	PoWorkConfig
 
-	SyncMod  *syncModule
-	MinerMod *miner.Miner
+	SyncMod *syncModule
 
 	Chain     *ngchain.Chain
 	Pool      *ngpool.TxPool
@@ -54,7 +51,6 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 	pow := &PoWork{
 		PoWorkConfig: config,
 		SyncMod:      nil,
-		MinerMod:     nil,
 		Chain:        chain,
 		Pool:         pool,
 		State:        state,
@@ -71,34 +67,10 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 		pow.SyncMod.bootstrap()
 	}
 
-	pow.MinerMod = miner.NewMiner(config.MiningThread, pow.foundBlockCh)
-
 	// run reporter
 	go pow.reportLoop()
 
 	return pow
-}
-
-// UpdateMiningThread will change the number of mining thread.
-func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
-	if pow.MinerMod != nil {
-		pow.MinerMod.ThreadNum = newThreadNum
-		return
-	}
-
-	// when pow.MinerMod is nil
-
-	// no action
-	if newThreadNum < 0 {
-		return
-	}
-
-	// auto mode
-	if newThreadNum == 0 {
-		newThreadNum = runtime.NumCPU()
-	}
-
-	pow.MinerMod = miner.NewMiner(newThreadNum, pow.foundBlockCh)
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
@@ -163,19 +135,7 @@ func (pow *PoWork) eventLoop() {
 			}
 		default:
 			// miner
-			if pow.MinerMod != nil {
-				newJob := pow.GetBlockTemplate()
 
-				if pow.MinerMod.Job == nil {
-					go pow.MinerMod.Mine(newJob)
-					continue
-				}
-
-				if newJob.Height != pow.MinerMod.Job.Height || len(newJob.Txs) != len(pow.MinerMod.Job.Txs) {
-					go pow.MinerMod.Mine(newJob)
-					continue
-				}
-			}
 		}
 	}
 }

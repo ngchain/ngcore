@@ -2,9 +2,6 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"strconv"
-	"strings"
-
 	"github.com/c0mm4nd/go-jsonrpc2"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -114,37 +111,4 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 type switchMiningParams struct {
 	Mode string `json:"mode"`
-}
-
-// switchMiningFunc provides the switch on built-in block mining
-func (s *Server) switchMiningFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params switchMiningParams
-
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	mode := strings.ToLower(strings.TrimSpace(params.Mode))
-	switch mode {
-	case "on":
-		log.Warn("switch mining on")
-		s.pow.UpdateMiningThread(0)
-	case "off":
-		log.Warn("switch mining off")
-		s.pow.MinerMod.ThreadNum = 0
-		s.pow.MinerMod.Stop()
-	default:
-		workerNum, err := strconv.ParseInt(mode, 10, 64)
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-
-		log.Warnf("switch to %d mining workers", workerNum)
-		s.pow.UpdateMiningThread(int(workerNum))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
 }

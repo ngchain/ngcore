@@ -1,5 +1,10 @@
 # ChangeLog
 
+## v0.0.21
+
+- BUGFIX: fix balance bug in the genesis list
+- DONE: remove built-in miner
+
 ## v0.0.20
 
 - DONE: fix bugs
