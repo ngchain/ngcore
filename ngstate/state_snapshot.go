@@ -30,7 +30,8 @@ func (sm *SnapshotManager) PutSnapshot(height uint64, hash []byte, sheet *ngtype
 	sm.hashToSnapshot[hexHash] = sheet
 }
 
-// for external use with security ensure
+// GetSnapshot return the snapshot in a balance sheet at a height, and doo hash check
+//for external use with security ensure
 func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Sheet {
 	sm.RLock()
 	defer sm.RLocker()
@@ -47,6 +48,7 @@ func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Shee
 	return sm.hashToSnapshot[hexHash]
 }
 
+// GetSnapshotByHeight return the snapshot in a balance sheet at a height, without hash check
 // for internal use only
 func (sm *SnapshotManager) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
 	sm.RLock()
@@ -60,7 +62,8 @@ func (sm *SnapshotManager) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
 	return sm.hashToSnapshot[hexHash]
 }
 
-// for internal use only
+//GetSnapshotByHash return the snapshot in a balance sheet with the hash
+//for internal use only
 func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 	sm.RLock()
 	defer sm.RLocker()

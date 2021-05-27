@@ -20,6 +20,7 @@ import (
 
 // Errors for Tx
 var (
+	// ErrTxWrongSign occurs when the signature of the Tx doesnt match the Tx 's caller/account
 	ErrTxWrongSign = errors.New("the signer of transaction is not the own of the account")
 )
 

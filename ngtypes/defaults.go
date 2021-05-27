@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
+// GenesisAddressBase58 is the genesis address in base58 str
 // FIXME: before initializing new network, should manually init PK & Sign
-// use `go run ./cmd/ngcore gentools check` check and generate valid values
+// 	use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
 	GenesisAddressBase58 = "QVSdpMLFwUtECb3SxgLt8YeQwkHGmzh5ZexjGCUB2E5koFhJ"
 )
@@ -32,25 +33,27 @@ const (
 // PoW variables
 var (
 	minimumBigDifficulty = big.NewInt(minimumDifficulty)
-	// Max Value of Target
+	// MaxTarget is the Max value of mining target
 	MaxTarget = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
 )
 
 // Maximum sizes
 const (
-	// BlockMaxTxsSize = 1 << 25 // 32M
-	TxMaxExtraSize = 1 << 20 // if more than 1m, extra should be separated ot multi append
-	// The length of a timestamp bytes
+	// TxMaxExtraSize 1 << 20 = 1024K = 1M, if more than 1m, extra should be separated and using more than one append
+	TxMaxExtraSize = 1 << 20
+	// TimestampSize is The length of a timestamp bytes
 	TimestampSize = 8
-	// The length of a hash bytes
+	// HashSize is the length of a hash bytes
 	HashSize = 32
-	// The length of a nonce bytes
+	// NonceSize is the length of a nonce bytes
 	NonceSize = 8 // nonce uses 8 bytes
 
-	// some for tx
-	AddressSize   = 35
-	SignatureSize = 64 // signature uses 64 bytes, R 32 & S 32
+	// AddressSize some for tx
+	AddressSize = 35
+
+	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
+	SignatureSize = 64
 )
 
 // Unit const
@@ -104,7 +107,7 @@ func GetGenesisBlockNonce(network NetworkType) []byte {
 	}
 }
 
-// GenesisTimestamp must be the time chain started, or the difficulty algo wont work
+// GetGenesisTimestamp is the time chain started, or the difficulty algo wont work
 // FIXME: should be the time network starts
 func GetGenesisTimestamp(network NetworkType) int64 {
 	switch network {
@@ -119,7 +122,8 @@ func GetGenesisTimestamp(network NetworkType) int64 {
 	}
 }
 
-// 100 * X
+// GetMatureHeight will return the next mature height for now
+//  it is 100 * X
 func GetMatureHeight(currentHeight uint64) uint64 {
 	if currentHeight < MatureHeight {
 		return 0

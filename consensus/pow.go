@@ -79,7 +79,7 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 	return pow
 }
 
-// SwitchMiningOn resumes the pow consensus.
+// UpdateMiningThread will change the number of mining thread.
 func (pow *PoWork) UpdateMiningThread(newThreadNum int) {
 	if pow.MinerMod != nil {
 		pow.MinerMod.ThreadNum = newThreadNum

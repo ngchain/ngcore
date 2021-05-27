@@ -20,6 +20,7 @@ var RegisterFee = new(big.Int).Mul(NG, big.NewInt(registerFeeNG))
 var big1 = big.NewInt(1)
 var big10 = big.NewInt(10000)
 
+// GetBlockReward returns the block reward in a specific height
 // reward = 2 + 8*(0.9)^Era
 func GetBlockReward(height uint64) *big.Int {
 	reward := new(big.Int).Set(floatingReward)
