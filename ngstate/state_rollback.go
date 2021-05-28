@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
@@ -33,29 +34,29 @@ func (state *State) reverseTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.GetType() {
-		case ngtypes.TxType_INVALID:
+		case ngproto.TxType_INVALID:
 			return fmt.Errorf("invalid tx")
-		case ngtypes.TxType_GENERATE:
+		case ngproto.TxType_GENERATE:
 			if err := state.reverseGenerate(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TxType_REGISTER:
+		case ngproto.TxType_REGISTER:
 			if err := state.reverseRegister(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TxType_LOGOUT:
+		case ngproto.TxType_LOGOUT:
 			if err := state.reverseLogout(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TxType_TRANSACT:
+		case ngproto.TxType_TRANSACT:
 			if err := state.reverseTransaction(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TxType_APPEND: // append tx
+		case ngproto.TxType_APPEND: // append tx
 			if err := state.reverseAppend(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TxType_DELETE: // delete tx
+		case ngproto.TxType_DELETE: // delete tx
 			if err := state.reverseDelete(txn, tx); err != nil {
 				return err
 			}

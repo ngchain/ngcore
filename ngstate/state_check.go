@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"google.golang.org/protobuf/proto"
 
@@ -29,32 +30,32 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 		}
 
 		switch tx.GetType() {
-		case ngtypes.TxType_GENERATE: // generate
+		case ngproto.TxType_GENERATE: // generate
 			if err := checkGenerate(txn, tx, block.Height); err != nil {
 				return err
 			}
 
-		case ngtypes.TxType_REGISTER: // register
+		case ngproto.TxType_REGISTER: // register
 			if err := checkRegister(txn, tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TxType_LOGOUT: // logout
+		case ngproto.TxType_LOGOUT: // logout
 			if err := checkLogout(txn, tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TxType_TRANSACT: // transaction
+		case ngproto.TxType_TRANSACT: // transaction
 			if err := checkTransaction(txn, tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TxType_APPEND: // append
+		case ngproto.TxType_APPEND: // append
 			if err := checkAppend(txn, tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TxType_DELETE: // delete
+		case ngproto.TxType_DELETE: // delete
 			if err := checkDelete(txn, tx); err != nil {
 				return err
 			}
@@ -79,30 +80,30 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 	}
 
 	switch tx.GetType() {
-	case ngtypes.TxType_GENERATE: // generate
+	case ngproto.TxType_GENERATE: // generate
 		return fmt.Errorf("cannot check generate tx with CheckTx")
 
-	case ngtypes.TxType_REGISTER: // register
+	case ngproto.TxType_REGISTER: // register
 		if err := checkRegister(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.TxType_LOGOUT: // logout
+	case ngproto.TxType_LOGOUT: // logout
 		if err := checkLogout(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.TxType_TRANSACT: // transact
+	case ngproto.TxType_TRANSACT: // transact
 		if err := checkTransaction(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.TxType_DELETE: // delete
+	case ngproto.TxType_DELETE: // delete
 		if err := checkDelete(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.TxType_APPEND: // append
+	case ngproto.TxType_APPEND: // append
 		if err := checkAppend(txn, tx); err != nil {
 			return err
 		}

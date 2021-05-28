@@ -435,17 +435,3 @@ func (x *Tx) TotalExpenditure() *big.Int {
 
 	return new(big.Int).Add(new(big.Int).SetBytes(x.Fee), total)
 }
-
-func GetGenesisGenerateTx(network ngproto.NetworkType) *Tx {
-	ggtx := NewTx(network, ngproto.TxType_GENERATE, nil, 0, [][]byte{GenesisAddress},
-		BigIntsToBytesList([]*big.Int{GetBlockReward(0)}),
-		big.NewInt(0).Bytes(),
-		nil,
-		nil,
-	)
-
-	ggtx.Sign = GetGenesisGenerateTxSignature(network)
-	ggtx.GetHash()
-
-	return ggtx
-}

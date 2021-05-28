@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
@@ -16,7 +17,7 @@ type Broadcast struct {
 	PubSub *pubsub.PubSub
 	node   core.Host
 
-	network       ngtypes.NetworkType
+	network       ngproto.NetworkType
 	topics        map[string]*pubsub.Topic
 	subscriptions map[string]*pubsub.Subscription
 
@@ -29,7 +30,7 @@ type Broadcast struct {
 
 var log = logging.Logger("bcast")
 
-func NewBroadcastProtocol(node core.Host, network ngtypes.NetworkType, blockCh chan *ngtypes.Block, txCh chan *ngtypes.Tx) *Broadcast {
+func NewBroadcastProtocol(node core.Host, network ngproto.NetworkType, blockCh chan *ngtypes.Block, txCh chan *ngtypes.Tx) *Broadcast {
 	var err error
 
 	b := &Broadcast{

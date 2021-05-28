@@ -27,7 +27,7 @@ package ngstate_test
 //			panic(err)
 //		}
 //
-//		fakeTx := ngtypes.NewUnsignedTx(ngtypes.TxType_TRANSACTION,
+//		fakeTx := ngtypes.NewUnsignedTx(ngproto.TxType_TRANSACTION,
 //			nil,
 //			0,
 //			[][]byte{ngtypes.GenesisAddress},

@@ -19,6 +19,6 @@ func TestInitialState(t *testing.T) {
 
 func TestTxPool(t *testing.T) {
 
-	// tx := ngtypes.NewUnsignedTx(ngtypes.TxType_TRANSACTION, ngtypes.GetGenesisBlockHash(), 1)
+	// tx := ngtypes.NewUnsignedTx(ngproto.TxType_TRANSACTION, ngtypes.GetGenesisBlockHash(), 1)
 	// pool.PutTx(tx)
 }

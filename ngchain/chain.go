@@ -3,10 +3,10 @@ package ngchain
 import (
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngstate"
-	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var log = logging.Logger("chain")
@@ -17,10 +17,10 @@ type Chain struct {
 	*ngblocks.BlockStore
 	*ngstate.State
 
-	Network ngtypes.NetworkType
+	Network ngproto.NetworkType
 }
 
-func Init(db *badger.DB, network ngtypes.NetworkType, store *ngblocks.BlockStore, state *ngstate.State) *Chain {
+func Init(db *badger.DB, network ngproto.NetworkType, store *ngblocks.BlockStore, state *ngstate.State) *Chain {
 	chain := &Chain{
 		DB: db,
 

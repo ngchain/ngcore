@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
 	"reflect"
 
@@ -171,7 +172,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.TxType_TRANSACT,
+		ngproto.TxType_TRANSACT,
 		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		participants,
@@ -212,7 +213,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.TxType_REGISTER,
+		ngproto.TxType_REGISTER,
 		s.pow.Chain.GetLatestBlockHash(),
 		1,
 		[][]byte{
@@ -262,7 +263,7 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.TxType_LOGOUT,
+		ngproto.TxType_LOGOUT,
 		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
@@ -322,7 +323,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.TxType_APPEND,
+		ngproto.TxType_APPEND,
 		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,
@@ -383,7 +384,7 @@ func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.TxType_APPEND,
+		ngproto.TxType_APPEND,
 		s.pow.Chain.GetLatestBlockHash(),
 		params.Convener,
 		nil,

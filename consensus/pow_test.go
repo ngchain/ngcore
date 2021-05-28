@@ -1,6 +1,7 @@
 package consensus_test
 
 import (
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"testing"
 
 	"github.com/ngchain/ngcore/ngchain"
@@ -13,7 +14,6 @@ import (
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngstate"
-	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func TestNewConsensusManager(t *testing.T) {
@@ -28,7 +28,7 @@ func TestNewConsensusManager(t *testing.T) {
 		}
 	}()
 
-	net := ngtypes.NetworkType_ZERONET
+	net := ngproto.NetworkType_ZERONET
 	store := ngblocks.Init(db, net)
 	state := ngstate.InitStateFromGenesis(db, net)
 	chain := ngchain.Init(db, net, store, nil)

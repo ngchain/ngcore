@@ -2,6 +2,7 @@ package ngstate
 
 import (
 	"github.com/mr-tron/base58"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"sync"
 
 	"github.com/dgraph-io/badger/v3"
@@ -33,7 +34,7 @@ type State struct {
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
 // this func is written for snapshot sync/converging when initializing from non-genesis
 // checkpoint
-func InitStateFromSheet(db *badger.DB, network ngtypes.NetworkType, sheet *ngtypes.Sheet) *State {
+func InitStateFromSheet(db *badger.DB, network ngproto.NetworkType, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB: db,
 		SnapshotManager: &SnapshotManager{
@@ -55,7 +56,7 @@ func InitStateFromSheet(db *badger.DB, network ngtypes.NetworkType, sheet *ngtyp
 }
 
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
-func InitStateFromGenesis(db *badger.DB, network ngtypes.NetworkType) *State {
+func InitStateFromGenesis(db *badger.DB, network ngproto.NetworkType) *State {
 	state := &State{
 		DB: db,
 		SnapshotManager: &SnapshotManager{

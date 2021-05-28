@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -148,13 +149,13 @@ var action = func(c *cli.Context) error {
 		log.Warn("running on non-strict mode")
 	}
 
-	var network = ngtypes.NetworkType_TESTNET
+	var network = ngproto.NetworkType_TESTNET
 	if c.Bool(testNetFlag.Name) {
-		network = ngtypes.NetworkType_TESTNET
+		network = ngproto.NetworkType_TESTNET
 	}
 
 	if c.Bool(regTestNetFlag.Name) {
-		network = ngtypes.NetworkType_ZERONET // use zero net as the regression test network
+		network = ngproto.NetworkType_ZERONET // use zero net as the regression test network
 	}
 
 	if withProfile {
@@ -211,7 +212,7 @@ var action = func(c *cli.Context) error {
 		P2PKeyFile:       p2pKeyFile,
 		Network:          network,
 		Port:             p2pTCPPort,
-		DisableDiscovery: network == ngtypes.NetworkType_ZERONET,
+		DisableDiscovery: network == ngproto.NetworkType_ZERONET,
 	})
 	localNode.GoServe()
 
@@ -227,7 +228,7 @@ var action = func(c *cli.Context) error {
 			Network:                     network,
 			StrictMode:                  strictMode,
 			SnapshotMode:                snapshotMode,
-			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.NetworkType_ZERONET,
+			DisableConnectingBootstraps: isBootstrapNode || network == ngproto.NetworkType_ZERONET,
 			MiningThread:                mining,
 			PrivateKey:                  key,
 		},

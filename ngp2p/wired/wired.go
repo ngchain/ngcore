@@ -2,11 +2,11 @@ package wired
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/libp2p/go-libp2p-core/protocol"
 
 	"github.com/ngchain/ngcore/ngchain"
-	"github.com/ngchain/ngcore/ngtypes"
 
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
@@ -24,7 +24,7 @@ var log = logging.Logger("wired")
 
 // Wired type
 type Wired struct {
-	network ngtypes.NetworkType
+	network ngproto.NetworkType
 	host    core.Host // local host
 
 	protocolID protocol.ID
@@ -32,7 +32,7 @@ type Wired struct {
 	chain *ngchain.Chain
 }
 
-func NewWiredProtocol(host core.Host, network ngtypes.NetworkType, chain *ngchain.Chain) *Wired {
+func NewWiredProtocol(host core.Host, network ngproto.NetworkType, chain *ngchain.Chain) *Wired {
 	w := &Wired{
 		network: network,
 		host:    host,

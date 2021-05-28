@@ -1,31 +1,28 @@
 package ngtypes
 
 import (
-	"encoding/binary"
-
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"google.golang.org/protobuf/proto"
 )
 
-type AccountNum uint64
-
-func (num AccountNum) Bytes() []byte {
-	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, uint64(num))
-	return b
-}
-
-func NewNumFromBytes(b []byte) AccountNum {
-	return AccountNum(binary.LittleEndian.Uint64(b))
-}
-
 type Account struct {
-	ngproto.Account
+	*ngproto.Account
+}
+
+func (x *Account) GetProto() *ngproto.Account {
+	return x.Account
+}
+
+func (x *Account) Marshal() ([]byte, error) {
+	protoAccount := proto.Clone(x.GetProto()).(*ngproto.Account)
+
+	return proto.Marshal(protoAccount)
 }
 
 // NewAccount receive parameters and return a new Account(class constructor.
 func NewAccount(num AccountNum, ownerAddress, contract, context []byte) *Account {
 	return &Account{
-		ngproto.Account{
+		&ngproto.Account{
 			Num:      uint64(num),
 			Owner:    ownerAddress,
 			Contract: contract,
@@ -37,8 +34,4 @@ func NewAccount(num AccountNum, ownerAddress, contract, context []byte) *Account
 // GetGenesisStyleAccount will return the genesis style account.
 func GetGenesisStyleAccount(num AccountNum) *Account {
 	return NewAccount(num, GenesisAddress, nil, nil)
-}
-
-func (x *Account) GetProto() *ngproto.Account {
-	return &x.Account
 }

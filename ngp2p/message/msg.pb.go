@@ -155,7 +155,7 @@ type Header struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Network     ngtypes.NetworkType `protobuf:"varint,1,opt,name=network,proto3,enum=ngtypes.NetworkType" json:"network,omitempty"`
+	Network     ngproto.NetworkType `protobuf:"varint,1,opt,name=network,proto3,enum=ngproto.NetworkType" json:"network,omitempty"`
 	MessageId   []byte              `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	MessageType MessageType         `protobuf:"varint,3,opt,name=message_type,json=messageType,proto3,enum=pb.MessageType" json:"message_type,omitempty"`
 	Timestamp   int64               `protobuf:"varint,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -195,11 +195,11 @@ func (*Header) Descriptor() ([]byte, []int) {
 	return file_msg_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Header) GetNetwork() ngtypes.NetworkType {
+func (x *Header) GetNetwork() ngproto.NetworkType {
 	if x != nil {
 		return x.Network
 	}
-	return ngtypes.NetworkType_ZERONET
+	return ngproto.NetworkType_ZERONET
 }
 
 func (x *Header) GetMessageId() []byte {
@@ -764,12 +764,12 @@ var file_msg_proto_goTypes = []interface{}{
 	(*ChainPayload)(nil),     // 7: pb.ChainPayload
 	(*GetSheetPayload)(nil),  // 8: pb.GetSheetPayload
 	(*SheetPayload)(nil),     // 9: pb.SheetPayload
-	(ngtypes.NetworkType)(0), // 10: ngtypes.NetworkType
+	(ngproto.NetworkType)(0), // 10: ngproto.NetworkType
 	(*ngtypes.Block)(nil),    // 11: ngtypes.Block
 	(*ngtypes.Sheet)(nil),    // 12: ngtypes.Sheet
 }
 var file_msg_proto_depIdxs = []int32{
-	10, // 0: pb.Header.network:type_name -> ngtypes.NetworkType
+	10, // 0: pb.Header.network:type_name -> ngproto.NetworkType
 	0,  // 1: pb.Header.message_type:type_name -> pb.MessageType
 	2,  // 2: pb.Message.header:type_name -> pb.Header
 	1,  // 3: pb.GetChainPayload.type:type_name -> pb.ChainType

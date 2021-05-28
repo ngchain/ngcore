@@ -3,11 +3,10 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 )
 
-func (chain *Chain) CheckHealth(network ngtypes.NetworkType) {
+func (chain *Chain) CheckHealth(network ngproto.NetworkType) {
 	log.Warn("checking chain's health")
 	latestHeight := chain.GetLatestBlockHeight()
 

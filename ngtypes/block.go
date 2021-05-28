@@ -46,6 +46,13 @@ func NewBlock(network ngproto.NetworkType, height uint64, timestamp int64, prevB
 	}
 }
 
+func NewBlockFromHeader(protoBlockHeader *ngproto.BlockHeader, txs []*Tx) *Block {
+	return &Block{
+		BlockHeader: protoBlockHeader,
+		Txs:         txs,
+	}
+}
+
 func NewBlockFromProto(protoBlock *ngproto.Block) *Block {
 	txs := make([]*Tx, len(protoBlock.Txs))
 	for i := 0; i < len(protoBlock.Txs); i++ {
@@ -88,6 +95,41 @@ func NewBlockFromPoWRawWithTxs(raw []byte, txs []*Tx) (*Block, error) {
 	}
 
 	return newBlock, nil
+}
+
+// NewBareBlock will return an unsealing block and
+// then you need to add txs and seal with the correct N.
+func NewBareBlock(network ngproto.NetworkType, height uint64, blockTime int64, prevBlockHash []byte, diff *big.Int) *Block {
+	return NewBlock(
+		network,
+		height,
+		blockTime,
+		prevBlockHash,
+		make([]byte, HashSize),
+
+		diff.Bytes(),
+		make([]byte, NonceSize),
+		[]*ngproto.BlockHeader{},
+		make([]*Tx, 0),
+	)
+}
+
+func (x *Block) GetProto() *ngproto.Block {
+	txs := make([]*ngproto.Tx, len(x.Txs))
+	for i := 0; i < len(x.Txs); i++ {
+		txs[i] = x.Txs[i].GetProto()
+	}
+
+	return &ngproto.Block{
+		Header: x.BlockHeader,
+		Txs:    txs,
+	}
+}
+
+func (x *Block) Marshal() ([]byte, error) {
+	protoBlock := proto.Clone(x.GetProto()).(*ngproto.Block)
+
+	return proto.Marshal(protoBlock)
 }
 
 // IsUnsealing checks whether the block is unsealing.
@@ -233,41 +275,12 @@ func (x *Block) GetActualDiff() *big.Int {
 	return new(big.Int).Div(MaxTarget, new(big.Int).SetBytes(x.PowHash()))
 }
 
-// NewBareBlock will return an unsealing block and
-// then you need to add txs and seal with the correct N.
-func NewBareBlock(network ngproto.NetworkType, height uint64, blockTime int64, prevBlockHash []byte, diff *big.Int) *Block {
-	return NewBlock(
-		network,
-		height,
-		blockTime,
-		prevBlockHash,
-		make([]byte, HashSize),
-
-		diff.Bytes(),
-		make([]byte, NonceSize),
-		[]*ngproto.BlockHeader{},
-		make([]*Tx, 0),
-	)
-}
-
 func (x *Block) GetHeader() *ngproto.BlockHeader {
 	return x.BlockHeader
 }
 
 func (x *Block) GetTxs() []*Tx {
 	return x.Txs
-}
-
-func (x *Block) GetProto() *ngproto.Block {
-	txs := make([]*ngproto.Tx, len(x.Txs))
-	for i := 0; i < len(x.Txs); i++ {
-		txs[i] = x.Txs[i].GetProto()
-	}
-
-	return &ngproto.Block{
-		Header: x.BlockHeader,
-		Txs:    txs,
-	}
 }
 
 // CheckError will check the errors in block inner fields.
@@ -314,25 +327,13 @@ func (x *Block) CheckError() error {
 	return nil
 }
 
-func (x *Block) MarshalHeader() ([]byte, error) {
-	header := proto.Clone(x.BlockHeader).(*ngproto.BlockHeader)
-
-	return proto.Marshal(header)
-}
-
-func (x *Block) Marshal() ([]byte, error) {
-	protoBlock := proto.Clone(x.GetProto()).(*ngproto.Block)
-
-	return proto.Marshal(protoBlock)
-}
-
 func (x *Block) verifyHash() error {
 	if x.Hash == nil {
 		x.GetHash()
 		return nil
 	}
 
-	// recalc the hash
+	// re-calc the hash
 	raw, err := x.MarshalHeader()
 	if err != nil {
 		panic(err)
@@ -366,36 +367,4 @@ func (x *Block) GetHash() []byte {
 // GetPrevHash is a helper to get the prev block hash from block header.
 func (x *Block) GetPrevHash() []byte {
 	return x.GetPrevBlockHash()
-}
-
-var genesisBlock *Block
-
-// GetGenesisBlock will return a complete sealed GenesisBlock.
-func GetGenesisBlock(network ngproto.NetworkType) *Block {
-	txs := []*Tx{
-		GetGenesisGenerateTx(network),
-	}
-
-	if genesisBlock == nil {
-		genesisBlock = NewBlock(
-			network,
-			0,
-			GetGenesisTimestamp(network),
-
-			make([]byte, HashSize),
-			NewTxTrie(txs).TrieRoot(),
-
-			minimumBigDifficulty.Bytes(), // this is a number, dont put any padding on
-			GetGenesisBlockNonce(network),
-			[]*ngproto.BlockHeader{},
-			txs,
-		)
-		genesisBlock.GetHash()
-	}
-
-	return genesisBlock
-}
-
-func GetGenesisBlockHash(network ngproto.NetworkType) []byte {
-	return GetGenesisBlock(network).GetHash()
 }

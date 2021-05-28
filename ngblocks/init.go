@@ -2,6 +2,7 @@ package ngblocks
 
 import (
 	"bytes"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/dgraph-io/badger/v3"
 
@@ -54,7 +55,7 @@ func (store *BlockStore) initWithGenesis() {
 }
 
 // hasGenesisBlock checks whether the genesis block is in db.
-func (store *BlockStore) hasGenesisBlock(network ngtypes.NetworkType) bool {
+func (store *BlockStore) hasGenesisBlock(network ngproto.NetworkType) bool {
 	var has = false
 
 	if err := store.View(func(txn *badger.Txn) error {
@@ -82,7 +83,7 @@ func (store *BlockStore) hasGenesisBlock(network ngtypes.NetworkType) bool {
 }
 
 // hasOrigin checks whether the genesis vault is in db.
-func (store *BlockStore) hasOrigin(network ngtypes.NetworkType) bool {
+func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 	var has = false
 
 	if err := store.View(func(txn *badger.Txn) error {

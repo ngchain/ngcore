@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -37,7 +38,7 @@ type PoWork struct {
 }
 
 type PoWorkConfig struct {
-	Network                     ngtypes.NetworkType
+	Network                     ngproto.NetworkType
 	StrictMode                  bool
 	SnapshotMode                bool
 	DisableConnectingBootstraps bool
