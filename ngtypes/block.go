@@ -16,10 +16,79 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.Logger("types")
+
+type Block struct {
+	*ngproto.BlockHeader
+	Txs  []*Tx
+	Hash []byte
+}
+
+func NewBlock(network ngproto.NetworkType, height uint64, timestamp int64, prevBlockHash, trieHash, difficulty, nonce []byte, subs []*ngproto.BlockHeader,
+	txs []*Tx) *Block {
+	return &Block{
+		BlockHeader: &ngproto.BlockHeader{
+			Network:       network,
+			Height:        height,
+			Timestamp:     timestamp,
+			PrevBlockHash: prevBlockHash,
+			TrieHash:      trieHash,
+			Difficulty:    difficulty,
+			Nonce:         nonce,
+			Subs:          subs,
+		},
+		Txs:  txs,
+		Hash: nil, // lazy load
+	}
+}
+
+func NewBlockFromProto(protoBlock *ngproto.Block) *Block {
+	txs := make([]*Tx, len(protoBlock.Txs))
+	for i := 0; i < len(protoBlock.Txs); i++ {
+		txs[i] = NewTxFromProto(protoBlock.Txs[i])
+	}
+
+	return &Block{
+		BlockHeader: protoBlock.Header,
+		Txs:         txs,
+	}
+}
+
+// NewBlockFromPoWRawWithTxs will apply the raw pow of header and txs to the block.
+func NewBlockFromPoWRawWithTxs(raw []byte, txs []*Tx) (*Block, error) {
+	//lenRaw := 1 + // network size
+	//	HeightSize+
+	//	TimestampSize +
+	//	HashSize +
+	//	HashSize + // unknown length
+	//	HashSize +
+	//	NonceSize
+	if len(raw) != 121 {
+		return nil, fmt.Errorf("wrong length of PoW raw bytes")
+	}
+
+	newBlock := NewBlock(
+		ngproto.NetworkType(raw[0]),
+		binary.LittleEndian.Uint64(raw[1:9][:]),
+		int64(binary.LittleEndian.Uint64(raw[9:17])),
+		raw[17:49],
+		raw[49:81],
+		bytes.TrimLeft(utils.ReverseBytes(raw[81:113]), string(byte(0))), // remove left padding
+		raw[113:121],
+		[]*ngproto.BlockHeader{},
+		txs,
+	)
+
+	if err := newBlock.verifyNonce(); err != nil {
+		return nil, err
+	}
+
+	return newBlock, nil
+}
 
 // IsUnsealing checks whether the block is unsealing.
 func (x *Block) IsUnsealing() bool {
@@ -43,7 +112,7 @@ func (x *Block) IsTail() bool {
 
 // IsGenesis will check whether the Block is the genesis block.
 func (x *Block) IsGenesis() bool {
-	return bytes.Equal(x.Hash(), GetGenesisBlockHash(x.Network))
+	return bytes.Equal(x.GetHash(), GetGenesisBlockHash(x.Network))
 }
 
 // GetPoWRawHeader will return a complete raw for block hash.
@@ -72,33 +141,6 @@ func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 	}
 
 	return raw
-}
-
-// ApplyPoWRawAndTxs will apply the raw pow of header and txs to the block.
-func (x *Block) ApplyPoWRawAndTxs(raw []byte, txs []*Tx) error {
-	//lenRaw := 1 + // network size
-	//	HeightSize+
-	//	TimestampSize +
-	//	HashSize +
-	//	HashSize + // unknown length
-	//	HashSize +
-	//	NonceSize
-	if len(raw) != 121 {
-		return fmt.Errorf("wrong length of PoW raw bytes")
-	}
-
-	*x = Block{
-		Network:       NetworkType(raw[0]),
-		Height:        binary.LittleEndian.Uint64(raw[1:9][:]),
-		Timestamp:     int64(binary.LittleEndian.Uint64(raw[9:17])),
-		PrevBlockHash: raw[17:49],
-		TrieHash:      raw[49:81],
-		Difficulty:    bytes.TrimLeft(utils.ReverseBytes(raw[81:113]), string(byte(0))), // remove left padding
-		Nonce:         raw[113:121],
-		Txs:           txs,
-	}
-
-	return nil
 }
 
 // PowHash will help you get the pow hash of block.
@@ -143,12 +185,12 @@ func (x *Block) PowHash() []byte {
 func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
 	b := proto.Clone(x).(*Block)
 
-	if txsWithGen[0].GetType() != TxType_GENERATE {
+	if txsWithGen[0].GetType() != ngproto.TxType_GENERATE {
 		return nil, fmt.Errorf("first tx shall be a generate")
 	}
 
 	for i := 1; i < len(txsWithGen); i++ {
-		if txsWithGen[i].GetType() == TxType_GENERATE {
+		if txsWithGen[i].GetType() == ngproto.TxType_GENERATE {
 			return nil, fmt.Errorf("except first, other tx shall not be a generate")
 		}
 	}
@@ -193,18 +235,38 @@ func (x *Block) GetActualDiff() *big.Int {
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(network NetworkType, height uint64, blockTime int64, prevBlockHash []byte, diff *big.Int) *Block {
-	return &Block{
-		Network:       network,
-		Height:        height,
-		Timestamp:     blockTime,
-		PrevBlockHash: prevBlockHash,
-		TrieHash:      make([]byte, HashSize),
+func NewBareBlock(network ngproto.NetworkType, height uint64, blockTime int64, prevBlockHash []byte, diff *big.Int) *Block {
+	return NewBlock(
+		network,
+		height,
+		blockTime,
+		prevBlockHash,
+		make([]byte, HashSize),
 
-		Difficulty: diff.Bytes(),
-		Nonce:      make([]byte, NonceSize),
+		diff.Bytes(),
+		make([]byte, NonceSize),
+		[]*ngproto.BlockHeader{},
+		make([]*Tx, 0),
+	)
+}
 
-		Txs: make([]*Tx, 0),
+func (x *Block) GetHeader() *ngproto.BlockHeader {
+	return x.BlockHeader
+}
+
+func (x *Block) GetTxs() []*Tx {
+	return x.Txs
+}
+
+func (x *Block) GetProto() *ngproto.Block {
+	txs := make([]*ngproto.Tx, len(x.Txs))
+	for i := 0; i < len(x.Txs); i++ {
+		txs[i] = x.Txs[i].GetProto()
+	}
+
+	return &ngproto.Block{
+		Header: x.BlockHeader,
+		Txs:    txs,
 	}
 }
 
@@ -252,46 +314,53 @@ func (x *Block) CheckError() error {
 	return nil
 }
 
+func (x *Block) MarshalHeader() ([]byte, error) {
+	header := proto.Clone(x.BlockHeader).(*ngproto.BlockHeader)
+
+	return proto.Marshal(header)
+}
+
+func (x *Block) Marshal() ([]byte, error) {
+	protoBlock := proto.Clone(x.GetProto()).(*ngproto.Block)
+
+	return proto.Marshal(protoBlock)
+}
+
 func (x *Block) verifyHash() error {
-	if x.Id == nil {
-		x.Hash()
+	if x.Hash == nil {
+		x.GetHash()
 		return nil
 	}
 
-	b := proto.Clone(x).(*Block)
-	b.Txs = nil // txs can be represented by triehash
-
-	raw, err := utils.Proto.Marshal(b)
+	// recalc the hash
+	raw, err := x.MarshalHeader()
 	if err != nil {
 		panic(err)
 	}
 
 	hash := sha3.Sum256(raw)
 
-	if !bytes.Equal(hash[:], x.Id) {
-		return fmt.Errorf("block@%d hash %x not match its id %x", x.Height, hash, x.Id)
+	if !bytes.Equal(hash[:], x.Hash) {
+		return fmt.Errorf("block@%d hash %x not match its hash %x", x.Height, hash, x.Hash)
 	}
 
 	return nil
 }
 
-// Hash will help you get the hash of block.
-func (x *Block) Hash() []byte {
-	if x.Id == nil {
-		b := proto.Clone(x).(*Block)
-		b.Txs = nil // txs can be represented by triehash
-
-		raw, err := utils.Proto.Marshal(b)
+// GetHash will help you get the hash of block.
+func (x *Block) GetHash() []byte {
+	if x.Hash == nil {
+		raw, err := x.MarshalHeader()
 		if err != nil {
 			panic(err)
 		}
 
 		hash := sha3.Sum256(raw)
 
-		x.Id = hash[:]
+		x.Hash = hash[:]
 	}
 
-	return x.Id
+	return x.Hash
 }
 
 // GetPrevHash is a helper to get the prev block hash from block header.
@@ -299,28 +368,34 @@ func (x *Block) GetPrevHash() []byte {
 	return x.GetPrevBlockHash()
 }
 
+var genesisBlock *Block
+
 // GetGenesisBlock will return a complete sealed GenesisBlock.
-func GetGenesisBlock(network NetworkType) *Block {
+func GetGenesisBlock(network ngproto.NetworkType) *Block {
 	txs := []*Tx{
 		GetGenesisGenerateTx(network),
 	}
 
-	genesisBlock := &Block{
-		Network:   network,
-		Height:    0,
-		Timestamp: GetGenesisTimestamp(network),
+	if genesisBlock == nil {
+		genesisBlock = NewBlock(
+			network,
+			0,
+			GetGenesisTimestamp(network),
 
-		PrevBlockHash: make([]byte, HashSize),
-		TrieHash:      NewTxTrie(txs).TrieRoot(),
+			make([]byte, HashSize),
+			NewTxTrie(txs).TrieRoot(),
 
-		Difficulty: minimumBigDifficulty.Bytes(), // this is a number, dont put any padding on
-		Nonce:      GetGenesisBlockNonce(network),
-		Txs:        txs,
+			minimumBigDifficulty.Bytes(), // this is a number, dont put any padding on
+			GetGenesisBlockNonce(network),
+			[]*ngproto.BlockHeader{},
+			txs,
+		)
+		genesisBlock.GetHash()
 	}
 
 	return genesisBlock
 }
 
-func GetGenesisBlockHash(network NetworkType) []byte {
-	return GetGenesisBlock(network).Hash()
+func GetGenesisBlockHash(network ngproto.NetworkType) []byte {
+	return GetGenesisBlock(network).GetHash()
 }

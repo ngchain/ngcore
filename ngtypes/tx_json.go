@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -46,7 +47,7 @@ func (x *Tx) MarshalJSON() ([]byte, error) {
 
 		Sign: hex.EncodeToString(x.GetSign()),
 
-		Hash: hex.EncodeToString(x.Hash()),
+		Hash: hex.EncodeToString(x.GetHash()),
 	})
 }
 
@@ -57,9 +58,9 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	network := NetworkType(tx.Network)
+	network := ngproto.NetworkType(tx.Network)
 
-	t := TxType(tx.Type)
+	t := ngproto.TxType(tx.Type)
 
 	prevBlockHash, err := hex.DecodeString(tx.PrevBlockHash)
 	if err != nil {
@@ -88,23 +89,16 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	hash, err := hex.DecodeString(tx.Hash)
-	if err != nil {
-		return err
-	}
-
-	*x = Tx{
-		Network:       network,
-		Type:          t,
-		PrevBlockHash: prevBlockHash,
-		Convener:      convener,
-		Participants:  participants,
-		Fee:           tx.Fee.Bytes(),
-		Values:        values,
-		Extra:         extra,
-		Sign:          sign,
-		Id:            hash,
-	}
+	*x = *NewTx(network,
+		t,
+		prevBlockHash,
+		convener,
+		participants,
+		values,
+		tx.Fee.Bytes(),
+		extra,
+		sign,
+	)
 
 	return nil
 }

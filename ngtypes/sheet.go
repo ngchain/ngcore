@@ -1,27 +1,33 @@
 package ngtypes
 
+import (
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
+)
+
+type Sheet struct {
+	ngproto.Sheet
+}
+
 // NewSheet gets the rows from db and return the sheet for transport/saving.
-func NewSheet(prevBlockHash []byte, accounts map[uint64]*Account, anonymous map[string][]byte) *Sheet {
+func NewSheet(network ngproto.NetworkType, height uint64, blockHash []byte, accounts map[uint64]*ngproto.Account, anonymous map[string][]byte) *Sheet {
 	return &Sheet{
-		PrevBlockHash: prevBlockHash,
-		Anonymous:     anonymous,
-		Accounts:      accounts,
+		ngproto.Sheet{
+			Network:   network,
+			Height:    height,
+			BlockHash: blockHash,
+			Anonymous: anonymous,
+			Accounts:  accounts,
+		},
 	}
 }
 
-var GenesisSheet *Sheet
-
-// GetGenesisSheetHash returns a genesis sheet's hash
-func init() {
-	accounts := make(map[uint64]*Account)
+// GetGenesisSheet returns a genesis sheet
+func GetGenesisSheet(network ngproto.NetworkType) *Sheet {
+	accounts := make(map[uint64]*ngproto.Account)
 
 	for i := uint64(0); i <= 100; i++ {
-		accounts[i] = GetGenesisStyleAccount(AccountNum(i))
+		accounts[i] = GetGenesisStyleAccount(AccountNum(i)).GetProto()
 	}
 
-	GenesisSheet = &Sheet{
-		PrevBlockHash: make([]byte, HashSize),
-		Accounts:      accounts,
-		Anonymous:     GenesisBalances,
-	}
+	return NewSheet(network, 0, GetGenesisBlockHash(network), accounts, GenesisBalances)
 }

@@ -9,14 +9,15 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // TestDeserialize test unsigned transaction whether it is possible to deserialize.
 func TestDeserialize(t *testing.T) {
 	tx := ngtypes.NewUnsignedTx(
-		ngtypes.NetworkType_TESTNET,
-		ngtypes.TxType_GENERATE,
+		ngproto.NetworkType_TESTNET,
+		ngproto.TxType_GENERATE,
 		nil,
 		0,
 		[][]byte{ngtypes.GenesisAddress},
@@ -27,19 +28,19 @@ func TestDeserialize(t *testing.T) {
 
 	t.Log(proto.Size(tx))
 
-	raw, _ := utils.Proto.Marshal(tx)
+	raw, _ := proto.Marshal(tx)
 	result := hex.EncodeToString(raw)
 	t.Log(result)
 
 	var otherTx ngtypes.Tx
-	_ = utils.Proto.Unmarshal(raw, &otherTx)
+	_ = proto.Unmarshal(raw, &otherTx)
 	t.Log(otherTx.String())
 }
 
 // TestTransaction_Signature test generated Key pair.
 func TestTransaction_Signature(t *testing.T) {
 	o := ngtypes.NewUnsignedTx(
-		ngtypes.NetworkType_TESTNET,
+		ngproto.NetworkType_TESTNET,
 		0,
 		nil,
 		1,

@@ -15,6 +15,7 @@ import (
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
 
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -24,20 +25,56 @@ var (
 	ErrTxWrongSign = errors.New("the signer of transaction is not the own of the account")
 )
 
-// NewUnsignedTx will return an unsigned tx, must using Signature().
-func NewUnsignedTx(network NetworkType, txType TxType, prevBlockHash []byte, convener uint64, participants [][]byte, values []*big.Int, fee *big.Int, extraData []byte) *Tx {
+type Tx struct {
+	*ngproto.Tx
+	Hash []byte
+}
 
+// NewTx is the default constructor for ngtypes.Tx
+func NewTx(network ngproto.NetworkType, txType ngproto.TxType, prevBlockHash []byte,
+	convener uint64, participants [][]byte, values [][]byte, fee,
+	extraData, sign []byte) *Tx {
 	return &Tx{
-		Network:       network,
-		Type:          txType,
-		PrevBlockHash: prevBlockHash,
-		Convener:      convener,
-		Participants:  participants,
-		Fee:           fee.Bytes(),
-		Values:        BigIntsToBytesList(values),
-		Extra:         extraData,
-		Sign:          nil,
+		Tx: &ngproto.Tx{
+			Network:       network,
+			Type:          txType,
+			PrevBlockHash: prevBlockHash,
+			Convener:      convener,
+			Participants:  participants,
+			Fee:           fee,
+			Values:        values,
+			Extra:         extraData,
+			Sign:          sign,
+		},
+		Hash: nil,
 	}
+}
+
+// NewTxFromProto implement the Tx from its parent
+func NewTxFromProto(protoTx *ngproto.Tx) *Tx {
+	return &Tx{
+		Tx:   protoTx,
+		Hash: nil,
+	}
+}
+
+// NewUnsignedTx will return an unsigned tx, must using Signature().
+func NewUnsignedTx(network ngproto.NetworkType, txType ngproto.TxType, prevBlockHash []byte,
+	convener uint64, participants [][]byte, values []*big.Int, fee *big.Int,
+	extraData []byte) *Tx {
+
+	return NewTx(network, txType, prevBlockHash, convener, participants, BigIntsToBytesList(values), fee.Bytes(), extraData, nil)
+}
+
+// GetProto will return Tx's parent
+func (x *Tx) GetProto() *ngproto.Tx {
+	return x.Tx
+}
+
+func (x *Tx) Marshal() ([]byte, error) {
+	protoTx := proto.Clone(x.GetProto()).(*ngproto.Tx)
+
+	return proto.Marshal(protoTx)
 }
 
 // IsSigned will return whether the op has been signed.
@@ -56,7 +93,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	}
 
 	hash := [32]byte{}
-	copy(hash[:], x.Hash())
+	copy(hash[:], x.GetHash())
 
 	var signature [64]byte
 	copy(signature[:], x.Sign)
@@ -77,7 +114,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 
 // BS58 is a tx's Readable Raw in string.
 func (x *Tx) BS58() string {
-	b, err := utils.Proto.Marshal(x)
+	b, err := x.Marshal()
 	if err != nil {
 		log.Error(err)
 	}
@@ -87,11 +124,11 @@ func (x *Tx) BS58() string {
 
 // ID is a tx's Readable ID(hash) in string.
 func (x *Tx) ID() string {
-	return hex.EncodeToString(x.Hash())
+	return hex.EncodeToString(x.GetHash())
 }
 
-// Hash mainly for calculating the tire root of txs and sign tx.
-func (x *Tx) Hash() []byte {
+// GetHash mainly for calculating the tire root of txs and sign tx.
+func (x *Tx) GetHash() []byte {
 	hash, err := x.CalculateHash()
 	if err != nil {
 		panic(err)
@@ -102,21 +139,21 @@ func (x *Tx) Hash() []byte {
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) CalculateHash() ([]byte, error) {
-	if x.Id == nil {
-		tx := proto.Clone(x).(*Tx)
+	if x.Hash == nil {
+		tx := proto.Clone(x.Tx).(*ngproto.Tx)
 		tx.Sign = nil
 
-		raw, err := utils.Proto.Marshal(tx)
+		raw, err := x.Marshal()
 		if err != nil {
 			return nil, err
 		}
 
 		hash := sha3.Sum256(raw)
 
-		x.Id = hash[:]
+		x.Hash = hash[:]
 	}
 
-	return x.Id, nil
+	return x.Hash, nil
 }
 
 // Equals mainly for calculating the tire root of txs.
@@ -376,7 +413,7 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	}
 
 	hash := [32]byte{}
-	copy(hash[:], x.Hash())
+	copy(hash[:], x.GetHash())
 
 	sign, err := schnorr.AggregateSignatures(ds, hash)
 	if err != nil {
@@ -399,19 +436,16 @@ func (x *Tx) TotalExpenditure() *big.Int {
 	return new(big.Int).Add(new(big.Int).SetBytes(x.Fee), total)
 }
 
-func GetGenesisGenerateTx(network NetworkType) *Tx {
-	ggtx := &Tx{
-		Network:       network,
-		Type:          TxType_GENERATE,
-		PrevBlockHash: nil,
-		Convener:      0,
-		Participants:  [][]byte{GenesisAddress},
-		Fee:           big.NewInt(0).Bytes(),
-		Values:        BigIntsToBytesList([]*big.Int{GetBlockReward(0)}),
-		Extra:         nil,
-		Sign:          nil,
-	}
+func GetGenesisGenerateTx(network ngproto.NetworkType) *Tx {
+	ggtx := NewTx(network, ngproto.TxType_GENERATE, nil, 0, [][]byte{GenesisAddress},
+		BigIntsToBytesList([]*big.Int{GetBlockReward(0)}),
+		big.NewInt(0).Bytes(),
+		nil,
+		nil,
+	)
 
 	ggtx.Sign = GetGenesisGenerateTxSignature(network)
+	ggtx.GetHash()
+
 	return ggtx
 }

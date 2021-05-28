@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-package ngtypes;
-option go_package = "github.com/ngchain/ngcore/ngtypes";
+package ngproto;
+option go_package = "github.com/ngchain/ngcore/ngtypes/ngproto";
 
 message Account {
   uint64 num = 1;
@@ -19,7 +19,7 @@ enum NetworkType {
   // MAIN_FUTURE = 4;
 }
 
-message Block {
+message BlockHeader {
   NetworkType network = 1;
 
   uint64 height = 2;
@@ -31,10 +31,12 @@ message Block {
   bytes difficulty = 7; // diff = maxTarget / Big(header_hash)
   bytes nonce = 8;
 
-  repeated Block subs = 9;
-  repeated Tx txs = 10; // miner should build the generate tx by themselves
+  repeated BlockHeader subs = 9; // no txs inside
+}
 
-  bytes id = 15; // use id representing hash to avoid conflict of Hash and GetHash()
+message Block {
+  BlockHeader header = 1;
+  repeated Tx txs = 10; // miner should build the generate tx by themselves
 }
 
 enum TxType {
@@ -68,8 +70,6 @@ message Tx {
   bytes extra = 8;
 
   bytes sign = 9; // the abbr of signature
-
-  bytes id = 15;  // use id representing hash to avoid conflict of Hash and GetHash()
 }
 
 // the structure of Append Tx 's Extra
@@ -86,7 +86,9 @@ message DeleteExtra {
 
 // Sheet is a simplified States
 message Sheet {
-  bytes prevBlockHash = 1; // use prevBlockHash to replace height to keep uniqueness
-  map<string, bytes> anonymous = 2; // bs58_address(aka anonymous recipient) -> balance
-  map<uint64, ngtypes.Account> accounts = 3;
+  NetworkType network = 1;
+  uint64 height = 2;
+  bytes block_hash = 3; // use prevBlockHash to replace height to keep uniqueness
+  map<string, bytes> anonymous = 10; // bs58_address(aka anonymous recipient) -> balance
+  map<uint64, Account> accounts = 11;
 }

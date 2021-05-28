@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -36,16 +37,24 @@ func TestBlock_IsGenesis(t *testing.T) {
 			return
 		}
 
-		raw, _ := utils.Proto.Marshal(g)
-		gg := new(ngtypes.Block)
-		_ = utils.Proto.Unmarshal(raw, gg)
+		raw, err := proto.Marshal(g.GetProto())
+		if err != nil {
+			panic(err)
+		}
+		gg := new(ngproto.Block)
+		err = proto.Unmarshal(raw, gg)
+		if err != nil {
+			panic(err)
+		}
 
-		if !gg.IsGenesis() {
+		ggg := ngtypes.NewBlockFromProto(gg)
+
+		if !ggg.IsGenesis() {
 			t.Error("failed unmarshalling back to genesis block structure")
 			return
 		}
 
-		if err := gg.CheckError(); err != nil {
+		if err := ggg.CheckError(); err != nil {
 			t.Error(err)
 			return
 		}
@@ -56,13 +65,13 @@ func TestBlock_IsGenesis(t *testing.T) {
 // TestBlock_Marshal test func GetGenesisBlock()'s Marshal().
 func TestBlock_Marshal(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
-		block, _ := utils.Proto.Marshal(ngtypes.GetGenesisBlock(net))
+		rawBlock, _ := ngtypes.GetGenesisBlock(net).Marshal()
 
-		var genesisBlock ngtypes.Block
-		_ = utils.Proto.Unmarshal(block, &genesisBlock)
-		_block, _ := utils.Proto.Marshal(&genesisBlock)
+		var genesisBlock ngproto.Block
+		_ = proto.Unmarshal(rawBlock, &genesisBlock)
+		_block, _ := proto.Marshal(&genesisBlock)
 
-		if !bytes.Equal(block, _block) {
+		if !bytes.Equal(rawBlock, _block) {
 			t.Fail()
 		}
 	}
@@ -72,7 +81,7 @@ func TestBlock_Marshal(t *testing.T) {
 func TestGetGenesisBlock(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		t.Logf(string(net))
-		d, _ := utils.Proto.Marshal(ngtypes.GetGenesisBlock(net))
+		d, _ := proto.Marshal(ngtypes.GetGenesisBlock(net))
 		hash := sha3.Sum256(d)
 
 		t.Logf("GenesisBlock hex: %x", d)
@@ -110,8 +119,7 @@ func TestBlockRawPoW(t *testing.T) {
 		block := ngtypes.GetGenesisBlock(net)
 		raw := block.GetPoWRawHeader(nil)
 		txs := block.Txs
-		block_ := new(ngtypes.Block)
-		err := block_.ApplyPoWRawAndTxs(raw, txs)
+		block_, err := ngtypes.NewBlockFromPoWRawWithTxs(raw, txs)
 		if err != nil {
 			panic(err)
 		}

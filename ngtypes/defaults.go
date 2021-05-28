@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 	"time"
+
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 )
 
 // GenesisAddressBase58 is the genesis address in base58 str
@@ -16,7 +18,10 @@ const (
 // decoded genesis variables
 var (
 	GenesisAddress, _ = NewAddressFromBS58(GenesisAddressBase58)
-	AvailableNetworks = []NetworkType{NetworkType_ZERONET, NetworkType_TESTNET}
+	AvailableNetworks = []ngproto.NetworkType{
+		ngproto.NetworkType_ZERONET,
+		ngproto.NetworkType_TESTNET,
+	}
 )
 
 // PoW const
@@ -77,45 +82,46 @@ func GetEmptyHash() []byte {
 	return make([]byte, HashSize)
 }
 
-func GetGenesisGenerateTxSignature(network NetworkType) []byte {
+func GetGenesisGenerateTxSignature(network ngproto.NetworkType) []byte {
 	switch network {
-	case NetworkType_ZERONET:
+	case ngproto.NetworkType_ZERONET:
 		genesisGenerateTxSign, _ := hex.DecodeString("1aca22bb998d0bea643f75c126b8be259839aa4c2c13829d737c57c8f20371edbc7014a79e2af97e8119c92fcc9f4642c5f42639cad59429fbc4336ee8dcc858")
 		return genesisGenerateTxSign
-	case NetworkType_TESTNET:
+	case ngproto.NetworkType_TESTNET:
 		genesisGenerateTxSign, _ := hex.DecodeString("5ca0c8099874dd61b4ebbfb6e984f5f1e7f6287d1093f05d3ed973a5fb3f3352bf7fc3c78d93dcaf077f98602338445e4187ae5f225a2d79ff9b36ec8c61b98a")
 		return genesisGenerateTxSign
-	case NetworkType_MAINNET:
+	case ngproto.NetworkType_MAINNET:
 		panic("not ready for mainnet")
 	default:
 		panic("unknown network")
 	}
 }
 
-func GetGenesisBlockNonce(network NetworkType) []byte {
+func GetGenesisBlockNonce(network ngproto.NetworkType) []byte {
 	switch network {
-	case NetworkType_ZERONET:
+	case ngproto.NetworkType_ZERONET:
 		genesisBlockNonce, _ := hex.DecodeString("84e1be18c794f125")
 		return genesisBlockNonce
-	case NetworkType_TESTNET:
+	case ngproto.NetworkType_TESTNET:
 		genesisBlockNonce, _ := hex.DecodeString("55e0414311982f0e")
 		return genesisBlockNonce
-	case NetworkType_MAINNET:
+	case ngproto.NetworkType_MAINNET:
 		panic("not ready for mainnet")
 	default:
 		panic("unknown network")
 	}
 }
 
-// GetGenesisTimestamp is the time chain started, or the difficulty algo wont work
+// GetGenesisTimestamp returns the genesis timestamp
+// must be the time chain started, or the difficulty algo wont work
 // FIXME: should be the time network starts
-func GetGenesisTimestamp(network NetworkType) int64 {
+func GetGenesisTimestamp(network ngproto.NetworkType) int64 {
 	switch network {
-	case NetworkType_ZERONET:
+	case ngproto.NetworkType_ZERONET:
 		return time.Date(2020, time.October, 24, 0, 0, 0, 0, time.UTC).Unix()
-	case NetworkType_TESTNET:
+	case ngproto.NetworkType_TESTNET:
 		return time.Date(2020, time.November, 11, 11, 11, 11, 11, time.UTC).Unix()
-	case NetworkType_MAINNET:
+	case ngproto.NetworkType_MAINNET:
 		panic("not ready for mainnet")
 	default:
 		panic("unknown network")

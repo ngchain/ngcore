@@ -41,12 +41,12 @@ func (x *Account) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*x = Account{
-		Num:      account.Num,
-		Owner:    account.Owner,
-		Contract: contract,
-		Context:  context,
-	}
+	*x = *NewAccount(
+		AccountNum(account.Num),
+		account.Owner,
+		contract,
+		context,
+	)
 
 	return nil
 }

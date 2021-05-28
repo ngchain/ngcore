@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -39,7 +40,7 @@ func (x *Block) MarshalJSON() ([]byte, error) {
 		Nonce:         hex.EncodeToString(x.GetNonce()),
 		Txs:           x.GetTxs(),
 
-		Hash:    hex.EncodeToString(x.Hash()),
+		Hash:    hex.EncodeToString(x.GetHash()),
 		PoWHash: hex.EncodeToString(x.PowHash()),
 		Txn:     len(x.Txs),
 	})
@@ -52,7 +53,7 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	network := NetworkType(b.Network)
+	network := ngproto.NetworkType(b.Network)
 
 	prevBlockHash, err := hex.DecodeString(b.PrevBlockHash)
 	if err != nil {
@@ -71,22 +72,26 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+
 	hash, err := hex.DecodeString(b.Hash)
 	if err != nil {
 		return err
 	}
 
-	*x = Block{
-		Network:       network,
-		Height:        b.Height,
-		Timestamp:     b.Timestamp,
-		PrevBlockHash: prevBlockHash,
-		TrieHash:      trieHash,
-		Difficulty:    difficulty,
-		Nonce:         nonce,
-		Txs:           b.Txs,
-		Id:            hash,
-	}
+	*x = *NewBlock(
+		network,
+		b.Height,
+		b.Timestamp,
+		prevBlockHash,
+		trieHash,
+		difficulty,
+		nonce,
+		[]*ngproto.BlockHeader{}, // TODO
+		b.Txs,
+	)
+
+	x.Hash = hash
+	x.verifyHash()
 
 	return nil
 }
