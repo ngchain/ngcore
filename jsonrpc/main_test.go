@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
@@ -32,7 +32,7 @@ func TestNewRPCServer(t *testing.T) {
 	store := ngblocks.Init(db, network)
 	state := ngstate.InitStateFromGenesis(db, network)
 
-	chain := ngchain.Init(db, network, store, state)
+	chain := blockchain.Init(db, network, store, state)
 	chain.CheckHealth(network)
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{

@@ -8,7 +8,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/protocol"
 
-	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/blockchain"
 
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
@@ -29,10 +29,10 @@ type Wired struct {
 
 	protocolID protocol.ID
 
-	chain *ngchain.Chain
+	chain *blockchain.Chain
 }
 
-func NewWiredProtocol(host core.Host, network ngproto.NetworkType, chain *ngchain.Chain) *Wired {
+func NewWiredProtocol(host core.Host, network ngproto.NetworkType, chain *blockchain.Chain) *Wired {
 	w := &Wired{
 		network: network,
 		host:    host,

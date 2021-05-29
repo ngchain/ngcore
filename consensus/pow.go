@@ -11,8 +11,8 @@ import (
 
 	"github.com/ngchain/secp256k1"
 
+	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngblocks"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
@@ -27,7 +27,7 @@ type PoWork struct {
 
 	SyncMod *syncModule
 
-	Chain     *ngchain.Chain
+	Chain     *blockchain.Chain
 	Pool      *ngpool.TxPool
 	State     *ngstate.State
 	LocalNode *ngp2p.LocalNode
@@ -49,7 +49,7 @@ type PoWorkConfig struct {
 }
 
 // InitPoWConsensus creates and initializes the PoW consensus.
-func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
+func InitPoWConsensus(db *badger.DB, chain *blockchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
 	pow := &PoWork{
 		PoWorkConfig: config,
 		SyncMod:      nil,

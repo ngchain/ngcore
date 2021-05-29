@@ -4,7 +4,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"testing"
 
-	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngpool"
 
 	"github.com/ngchain/ngcore/storage"
@@ -31,7 +31,7 @@ func TestNewConsensusManager(t *testing.T) {
 	net := ngproto.NetworkType_ZERONET
 	store := ngblocks.Init(db, net)
 	state := ngstate.InitStateFromGenesis(db, net)
-	chain := ngchain.Init(db, net, store, nil)
+	chain := blockchain.Init(db, net, store, nil)
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
 		Network:          net,

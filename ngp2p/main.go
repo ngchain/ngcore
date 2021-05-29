@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
-	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/blockchain"
 
 	"github.com/ngchain/ngcore/ngp2p/broadcast"
 	"github.com/ngchain/ngcore/ngp2p/wired"
@@ -42,7 +42,7 @@ type P2PConfig struct {
 }
 
 // InitLocalNode creates a new node with its implemented protocols.
-func InitLocalNode(chain *ngchain.Chain, config P2PConfig) *LocalNode {
+func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 	ctx := context.Background()
 	priv := keytools.GetP2PKey(config.P2PKeyFile)
 

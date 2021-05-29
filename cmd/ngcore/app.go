@@ -19,11 +19,11 @@ import (
 	"github.com/dgraph-io/badger/v3"
 	"github.com/urfave/cli/v2"
 
+	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
-	"github.com/ngchain/ngcore/ngchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
@@ -206,7 +206,7 @@ var action = func(c *cli.Context) error {
 	// then sync
 	state := ngstate.InitStateFromGenesis(db, network)
 
-	chain := ngchain.Init(db, network, store, state)
+	chain := blockchain.Init(db, network, store, state)
 	chain.CheckHealth(network)
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{

@@ -1,4 +1,4 @@
-package ngchain
+package blockchain
 
 import (
 	"github.com/dgraph-io/badger/v3"

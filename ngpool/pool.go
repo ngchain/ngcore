@@ -7,7 +7,7 @@ import (
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 
-	"github.com/ngchain/ngcore/ngchain"
+	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -23,11 +23,11 @@ type TxPool struct {
 	db    *badger.DB
 	txMap map[uint64]*ngtypes.Tx // priority first
 
-	chain     *ngchain.Chain
+	chain     *blockchain.Chain
 	localNode *ngp2p.LocalNode
 }
 
-func Init(db *badger.DB, chain *ngchain.Chain, localNode *ngp2p.LocalNode) *TxPool {
+func Init(db *badger.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *TxPool {
 	pool := &TxPool{
 		Mutex: sync.Mutex{},
 		db:    db,

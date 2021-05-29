@@ -1,4 +1,4 @@
-package ngchain
+package blockchain
 
 import (
 	"bytes"
