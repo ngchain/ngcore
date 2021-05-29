@@ -3,6 +3,7 @@ package ngchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
 )
 
@@ -13,7 +14,7 @@ func (chain *Chain) CheckHealth(network ngproto.NetworkType) {
 	origin := chain.GetOriginBlock()
 	originHeight := origin.Height
 
-	prevBlockHash := origin.Hash()
+	prevBlockHash := origin.GetHash()
 
 	for h := originHeight; h < latestHeight; {
 		h++
@@ -26,7 +27,7 @@ func (chain *Chain) CheckHealth(network ngproto.NetworkType) {
 			panic(fmt.Errorf("prev block hash %x is incorrect, shall be %x", b.PrevBlockHash, prevBlockHash))
 		}
 
-		prevBlockHash = b.Hash()
+		prevBlockHash = b.GetHash()
 	}
 
 	log.Warn("checking is finished")

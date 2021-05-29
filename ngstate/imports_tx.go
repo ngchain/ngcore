@@ -19,7 +19,7 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_caller", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {
-			l, err := cp(ins, ptr, vm.caller.Hash())
+			l, err := cp(ins, ptr, vm.caller.GetHash())
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

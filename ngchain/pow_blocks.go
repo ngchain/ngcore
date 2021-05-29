@@ -66,7 +66,7 @@ func (chain *Chain) GetLatestBlockHeight() uint64 {
 // GetLatestCheckpointHash returns the hash of latest checkpoint
 func (chain *Chain) GetLatestCheckpointHash() []byte {
 	cp := chain.GetLatestCheckpoint()
-	return cp.Hash()
+	return cp.GetHash()
 }
 
 // GetLatestCheckpoint returns the latest checkpoint block

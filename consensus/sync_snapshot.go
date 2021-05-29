@@ -34,7 +34,7 @@ func (mod *syncModule) doSnapshotSync(record *RemoteRecord) error {
 	}
 	err = mod.pow.State.RebuildFromSheet(sheet)
 	if err != nil {
-		return fmt.Errorf("failed on rebuilding state with sheet %x: %s", sheet.PrevBlockHash, err)
+		return fmt.Errorf("failed on rebuilding state with sheet %x: %s", sheet.BlockHash, err)
 	}
 
 	height := mod.pow.Chain.GetLatestBlockHeight()
@@ -58,7 +58,7 @@ func (mod *syncModule) doSnapshotConverging(record *RemoteRecord) error {
 	}
 
 	localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
-	log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Height, chain[1].Hash(), localSamepoint.Hash())
+	log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Height, chain[1].GetHash(), localSamepoint.GetHash())
 
 	err = mod.pow.Chain.ForceApplyBlocks(chain)
 	if err != nil {

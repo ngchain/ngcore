@@ -2,11 +2,12 @@ package wired
 
 import (
 	"github.com/libp2p/go-libp2p-core/network"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 // sendChain will send peer the specific vault's sendChain, which's len is not must be full BlockCheckRound num
@@ -19,8 +20,13 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight(), blocks[len(blocks)-1].GetHeight(),
 	)
 
-	payload, err := utils.Proto.Marshal(&message.ChainPayload{
-		Blocks: blocks,
+	protoBlocks := make([]*ngproto.Block, len(blocks))
+	for i := 0; i < len(blocks); i++ {
+		protoBlocks[i] = blocks[i].GetProto()
+	}
+
+	payload, err := proto.Marshal(&message.ChainPayload{
+		Blocks: protoBlocks,
 	})
 	if err != nil {
 		log.Debugf("failed to sign pb data: %s", err)
@@ -58,7 +64,7 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 func DecodeChainPayload(rawPayload []byte) (*message.ChainPayload, error) {
 	payload := &message.ChainPayload{}
 
-	err := utils.Proto.Unmarshal(rawPayload, payload)
+	err := proto.Unmarshal(rawPayload, payload)
 	if err != nil {
 		return nil, err
 	}

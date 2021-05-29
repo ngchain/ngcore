@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
+
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/dgraph-io/badger/v3"
 	"google.golang.org/protobuf/proto"
@@ -20,7 +21,7 @@ func (state *State) rollback(txn *badger.Txn, block *ngtypes.Block) error {
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(block.Hash(), latestBlock.Hash()) {
+	if !bytes.Equal(block.GetHash(), latestBlock.GetHash()) {
 		return fmt.Errorf("the block to be rollbacked must be the latest one")
 	}
 
@@ -135,12 +136,12 @@ func (state *State) reverseLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	err = setAccount(txn, ngtypes.AccountNum(convener.Num), &ngtypes.Account{
-		Num:      convener.Num,
-		Owner:    tx.Extra, // logoutTx's extra as pub key
-		Contract: nil,      // empty
-		Context:  nil,      // empty
-	})
+	err = setAccount(txn, ngtypes.AccountNum(convener.Num), ngtypes.NewAccount(
+		ngtypes.AccountNum(convener.Num),
+		tx.Extra, // logoutTx's extra as pub key
+		nil,      // empty
+		nil,      // empty
+	))
 	if err != nil {
 		return err
 	}
@@ -249,7 +250,7 @@ func (state *State) reverseAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	// append the extra bytes
-	var appendExtra ngtypes.AppendExtra
+	var appendExtra ngproto.AppendExtra
 	err = proto.Unmarshal(tx.Extra, &appendExtra)
 	if err != nil {
 		return err
@@ -300,7 +301,7 @@ func (state *State) reverseDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	// append the extra bytes
-	var deleteExtra ngtypes.DeleteExtra
+	var deleteExtra ngproto.DeleteExtra
 	err = proto.Unmarshal(tx.Extra, &deleteExtra)
 	if err != nil {
 		return err

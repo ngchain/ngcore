@@ -71,6 +71,10 @@ func (x *Tx) GetProto() *ngproto.Tx {
 	return x.Tx
 }
 
+func (*Tx) ProtoMessage() error {
+	return fmt.Errorf("not a proto")
+}
+
 func (x *Tx) Marshal() ([]byte, error) {
 	protoTx := proto.Clone(x.GetProto()).(*ngproto.Tx)
 

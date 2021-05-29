@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -11,6 +10,8 @@ import (
 	"runtime/pprof"
 	"strings"
 	"time"
+
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"

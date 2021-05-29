@@ -2,7 +2,9 @@ package wired
 
 import (
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/libp2p/go-libp2p-core/protocol"
 
@@ -16,8 +18,6 @@ import (
 	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/libp2p/go-libp2p-core/network"
-
-	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.Logger("wired")
@@ -68,7 +68,7 @@ func (w *Wired) handleStream(stream network.Stream) {
 	// unmarshal it
 	var msg = &message.Message{}
 
-	err = utils.Proto.Unmarshal(raw, msg)
+	err = proto.Unmarshal(raw, msg)
 	if err != nil {
 		log.Error(err)
 		return

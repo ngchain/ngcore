@@ -6,10 +6,11 @@ import (
 
 	"github.com/dgraph-io/badger/v3"
 	"github.com/mr-tron/base58"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 )
 
 //var snapshot *atomic.Value
@@ -73,7 +74,7 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 
 // generateSnapshot when the block is a checkpoint
 func (state *State) generateSnapshot(txn *badger.Txn) error {
-	accounts := make(map[uint64]*ngtypes.Account)
+	accounts := make(map[uint64]*ngproto.Account)
 	anonymous := make(map[string][]byte)
 	latestBlock, err := ngblocks.GetLatestBlock(txn)
 	if err != nil {
@@ -90,12 +91,12 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 		}
 
 		var account ngtypes.Account
-		err = utils.Proto.Unmarshal(rawAccount, &account)
+		err = proto.Unmarshal(rawAccount, &account)
 		if err != nil {
 			return err
 		}
 
-		accounts[account.Num] = &account
+		accounts[account.Num] = account.GetProto()
 	}
 
 	it = txn.NewIterator(badger.DefaultIteratorOptions)
@@ -111,8 +112,8 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 		anonymous[base58.FastBase58Encoding(addr)] = rawBalance
 	}
 
-	sheet := ngtypes.NewSheet(latestBlock.PrevBlockHash, accounts, anonymous)
-	state.SnapshotManager.PutSnapshot(latestBlock.Height, latestBlock.Hash(), sheet)
+	sheet := ngtypes.NewSheet(state.Network, latestBlock.Height, latestBlock.GetHash(), accounts, anonymous)
+	state.SnapshotManager.PutSnapshot(latestBlock.Height, latestBlock.GetHash(), sheet)
 	return nil
 }
 

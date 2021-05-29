@@ -6,13 +6,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
-	"github.com/ngchain/ngcore/utils"
 )
 
 func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpointHash []byte) (id []byte, stream network.Stream, err error) {
-	payload, err := utils.Proto.Marshal(&message.GetSheetPayload{
+	payload, err := proto.Marshal(&message.GetSheetPayload{
 		CheckpointHeight: checkpointHeight,
 		CheckpointHash:   checkpointHash,
 	})
@@ -57,7 +57,7 @@ func (w *Wired) onGetSheet(stream network.Stream, msg *message.Message) {
 
 	getSheetPayload := &message.GetSheetPayload{}
 
-	err := utils.Proto.Unmarshal(msg.Payload, getSheetPayload)
+	err := proto.Unmarshal(msg.Payload, getSheetPayload)
 	if err != nil {
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return

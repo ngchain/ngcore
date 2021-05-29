@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"google.golang.org/protobuf/proto"
-
-	"github.com/ngchain/ngcore/utils"
 
 	"github.com/dgraph-io/badger/v3"
 
@@ -126,7 +125,7 @@ func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) 
 	}
 
 	convener := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawConvener, convener)
+	err = proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
 	}
@@ -257,7 +256,7 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for append")
 	}
 
-	var appendExtra ngtypes.AppendExtra
+	var appendExtra ngproto.AppendExtra
 	err = proto.Unmarshal(appendTx.Extra, &appendExtra)
 	if err != nil {
 		return err
@@ -293,7 +292,7 @@ func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for delete")
 	}
 
-	var appendExtra ngtypes.DeleteExtra
+	var appendExtra ngproto.DeleteExtra
 	err = proto.Unmarshal(deleteTx.Extra, &appendExtra)
 	if err != nil {
 		return err

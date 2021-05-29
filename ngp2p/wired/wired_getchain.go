@@ -8,6 +8,7 @@ import (
 
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngp2p/message"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -23,7 +24,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 		to = ngtypes.GetEmptyHash()
 	}
 
-	payload, err := utils.Proto.Marshal(&message.GetChainPayload{
+	payload, err := proto.Marshal(&message.GetChainPayload{
 		From: from,
 		To:   to,
 	})
@@ -80,7 +81,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 
 	getChainPayload := &message.GetChainPayload{}
 
-	err := utils.Proto.Unmarshal(msg.Payload, getChainPayload)
+	err := proto.Unmarshal(msg.Payload, getChainPayload)
 	if err != nil {
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return
@@ -176,7 +177,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		// fetch mode
 		for i := 0; i < defaults.MaxBlocks; i++ {
 			// never reach To
-			if bytes.Equal(cur.Hash(), getChainPayload.GetTo()) {
+			if bytes.Equal(cur.GetHash(), getChainPayload.GetTo()) {
 				break
 			}
 

@@ -1,6 +1,8 @@
 package ngtypes
 
 import (
+	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"google.golang.org/protobuf/proto"
 )
@@ -22,8 +24,18 @@ func NewSheet(network ngproto.NetworkType, height uint64, blockHash []byte, acco
 	}
 }
 
+func NewSheetFromProto(protoSheet *ngproto.Sheet) *Sheet {
+	return &Sheet{
+		protoSheet,
+	}
+}
+
 func (x *Sheet) GetProto() *ngproto.Sheet {
 	return x.Sheet
+}
+
+func (*Sheet) ProtoMessage() error {
+	return fmt.Errorf("not a proto")
 }
 
 func (x *Sheet) Marshal() ([]byte, error) {

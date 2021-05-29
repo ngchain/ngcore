@@ -3,8 +3,9 @@ package ngstate
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
+
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/dgraph-io/badger/v3"
 	"google.golang.org/protobuf/proto"
@@ -265,7 +266,7 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	// append the extra bytes
-	var appendExtra ngtypes.AppendExtra
+	var appendExtra ngproto.AppendExtra
 	err = proto.Unmarshal(tx.Extra, &appendExtra)
 	if err != nil {
 		return err
@@ -322,7 +323,7 @@ func (state *State) handleDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	// append the extra bytes
-	var deleteExtra ngtypes.DeleteExtra
+	var deleteExtra ngproto.DeleteExtra
 	err = proto.Unmarshal(tx.Extra, &deleteExtra)
 	if err != nil {
 		return err

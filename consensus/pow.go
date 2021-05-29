@@ -2,8 +2,9 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"time"
+
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
@@ -78,7 +79,7 @@ func InitPoWConsensus(db *badger.DB, chain *ngchain.Chain, pool *ngpool.TxPool, 
 func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	currentBlock := pow.Chain.GetLatestBlock()
 
-	currentBlockHash := currentBlock.Hash()
+	currentBlockHash := currentBlock.GetHash()
 
 	blockTime := time.Now().Unix()
 
@@ -171,7 +172,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	hash := block.Hash()
+	hash := block.GetHash()
 	log.Warnf("mined a new block: %x@%d", hash, block.GetHeight())
 
 	pow.Pool.Reset()

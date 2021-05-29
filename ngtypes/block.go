@@ -126,6 +126,10 @@ func (x *Block) GetProto() *ngproto.Block {
 	}
 }
 
+func (*Block) ProtoMessage() error {
+	return fmt.Errorf("not a proto")
+}
+
 func (x *Block) Marshal() ([]byte, error) {
 	protoBlock := proto.Clone(x.GetProto()).(*ngproto.Block)
 

@@ -1,6 +1,8 @@
 package ngtypes
 
 import (
+	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"google.golang.org/protobuf/proto"
 )
@@ -11,6 +13,10 @@ type Account struct {
 
 func (x *Account) GetProto() *ngproto.Account {
 	return x.Account
+}
+
+func (*Account) ProtoMessage() error {
+	return fmt.Errorf("not a proto")
 }
 
 func (x *Account) Marshal() ([]byte, error) {

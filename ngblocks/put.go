@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dgraph-io/badger/v3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -17,7 +18,7 @@ func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 		return fmt.Errorf("block is nil")
 	}
 
-	hash := block.Hash()
+	hash := block.GetHash()
 
 	err := checkBlock(txn, block.Height, block.PrevBlockHash)
 	if err != nil {
@@ -47,9 +48,9 @@ func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 
 func PutTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := range txs {
-		hash := txs[i].Hash()
+		hash := txs[i].GetHash()
 
-		raw, err := utils.Proto.Marshal(txs[i])
+		raw, err := proto.Marshal(txs[i])
 		if err != nil {
 			return err
 		}
@@ -64,7 +65,7 @@ func PutTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 }
 
 func PutBlock(txn *badger.Txn, hash []byte, block *ngtypes.Block) error {
-	raw, err := utils.Proto.Marshal(block)
+	raw, err := proto.Marshal(block)
 	if err != nil {
 		return err
 	}

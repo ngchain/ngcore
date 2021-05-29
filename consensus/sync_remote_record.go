@@ -77,7 +77,7 @@ func (r *RemoteRecord) shouldConverge(latestCheckPoint *ngtypes.Block, latestHei
 		return false
 	}
 
-	cpHash := latestCheckPoint.Hash()
+	cpHash := latestCheckPoint.GetHash()
 
 	if !bytes.Equal(r.checkpointHash, cpHash) &&
 		r.latest > latestHeight &&

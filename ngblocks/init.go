@@ -2,7 +2,9 @@ package ngblocks
 
 import (
 	"bytes"
+
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/dgraph-io/badger/v3"
 
@@ -18,8 +20,8 @@ func (store *BlockStore) initWithGenesis() {
 		block := ngtypes.GetGenesisBlock(store.Network)
 
 		if err := store.Update(func(txn *badger.Txn) error {
-			hash := block.Hash()
-			raw, _ := utils.Proto.Marshal(block)
+			hash := block.GetHash()
+			raw, _ := proto.Marshal(block)
 			log.Infof("putting block@%d: %x", block.Height, hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {
@@ -116,7 +118,7 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 		}
 
 		var originBlock ngtypes.Block
-		err = utils.Proto.Unmarshal(rawBlock, &originBlock)
+		err = proto.Unmarshal(rawBlock, &originBlock)
 		if err != nil {
 			return err
 		}
@@ -138,7 +140,7 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 //		for i := 0; i < len(blocks); i++ {
 //			block := blocks[i]
 //			hash := block.Hash()
-//			raw, _ := utils.Proto.Marshal(block)
+//			raw, _ := proto.Marshal(block)
 //			log.Infof("putting block@%d: %x", block.Height, hash)
 //			err := txn.Set(append(blockPrefix, hash...), raw)
 //			if err != nil {
@@ -165,8 +167,8 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 
 func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
 	err := store.Update(func(txn *badger.Txn) error {
-		hash := block.Hash()
-		raw, _ := utils.Proto.Marshal(block)
+		hash := block.GetHash()
+		raw, _ := proto.Marshal(block)
 		log.Infof("putting block@%d: %x", block.Height, hash)
 		err := txn.Set(append(blockPrefix, hash...), raw)
 		if err != nil {

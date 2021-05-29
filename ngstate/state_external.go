@@ -6,10 +6,10 @@ import (
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 // GetTotalBalanceByNum get the balance of account by the account's num
@@ -162,7 +162,7 @@ func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Accou
 			}
 
 			var acc ngtypes.Account
-			err = utils.Proto.Unmarshal(rawAccount, &acc)
+			err = proto.Unmarshal(rawAccount, &acc)
 			if err != nil {
 				return err
 			}

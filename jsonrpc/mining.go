@@ -2,7 +2,9 @@ package jsonrpc
 
 import (
 	"encoding/hex"
+
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -21,7 +23,7 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.Hash())
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.GetHash())
 }
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug
@@ -45,7 +47,7 @@ type getWorkReply struct {
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	blockTemplate := s.pow.GetBlockTemplate()
 
-	rawBlock, err := utils.Proto.Marshal(blockTemplate)
+	rawBlock, err := proto.Marshal(blockTemplate)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -92,7 +94,7 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 
 	var block ngtypes.Block
-	err = utils.Proto.Unmarshal(rawBlock, &block)
+	err = proto.Unmarshal(rawBlock, &block)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

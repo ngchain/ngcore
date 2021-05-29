@@ -28,7 +28,7 @@ func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
 		return nil, fmt.Errorf("no such tx in hash")
 	}
 
-	err = utils.Proto.Unmarshal(raw, &tx)
+	err = proto.Unmarshal(raw, &tx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
 	}
-	err = utils.Proto.Unmarshal(raw, &b)
+	err = proto.Unmarshal(raw, &b)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
 	if err != nil || raw == nil {
 		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
 	}
-	err = utils.Proto.Unmarshal(raw, &b)
+	err = proto.Unmarshal(raw, &b)
 	if err != nil {
 		return nil, err
 	}

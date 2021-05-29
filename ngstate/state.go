@@ -1,16 +1,17 @@
 package ngstate
 
 import (
+	"sync"
+
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
-	"sync"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.Logger("sheet")
@@ -25,6 +26,8 @@ var (
 // (nil) --> B0(Prev: S0) --> B1(Prev: S1) -> B2(Prev: S2)
 //  init (S0,S0)  -->   (S0,S1)  -->    (S1, S2)
 type State struct {
+	Network ngproto.NetworkType
+
 	*badger.DB
 	*SnapshotManager
 
@@ -58,7 +61,8 @@ func InitStateFromSheet(db *badger.DB, network ngproto.NetworkType, sheet *ngtyp
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
 func InitStateFromGenesis(db *badger.DB, network ngproto.NetworkType) *State {
 	state := &State{
-		DB: db,
+		Network: network,
+		DB:      db,
 		SnapshotManager: &SnapshotManager{
 			RWMutex:        sync.RWMutex{},
 			heightToHash:   make(map[uint64]string),
@@ -67,7 +71,7 @@ func InitStateFromGenesis(db *badger.DB, network ngproto.NetworkType) *State {
 		vms: make(map[ngtypes.AccountNum]*VM),
 	}
 	err := state.Update(func(txn *badger.Txn) error {
-		err := initFromSheet(txn, ngtypes.GenesisSheet)
+		err := initFromSheet(txn, ngtypes.GetGenesisSheet(network))
 		if err != nil {
 			return err
 		}
@@ -89,7 +93,7 @@ func InitStateFromGenesis(db *badger.DB, network ngproto.NetworkType) *State {
 // initFromSheet will overwrite a state from the given sheet
 func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 	for num, account := range sheet.Accounts {
-		rawAccount, err := utils.Proto.Marshal(account)
+		rawAccount, err := proto.Marshal(account)
 		if err != nil {
 			return err
 		}
@@ -148,7 +152,7 @@ func (state *State) RebuildFromBlockStore() error {
 
 	var latestHeight uint64
 	err = state.Update(func(txn *badger.Txn) error {
-		err := initFromSheet(txn, ngtypes.GenesisSheet)
+		err := initFromSheet(txn, ngtypes.GetGenesisSheet(state.Network))
 		if err != nil {
 			return err
 		}

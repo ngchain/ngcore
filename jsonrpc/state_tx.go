@@ -3,9 +3,10 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
 	"reflect"
+
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
@@ -37,7 +38,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	}
 
 	tx := &ngtypes.Tx{}
-	err = utils.Proto.Unmarshal(signedTxRaw, tx)
+	err = proto.Unmarshal(signedTxRaw, tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -49,7 +50,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(tx.Hash()))
+	raw, err := utils.JSON.Marshal(hex.EncodeToString(tx.GetHash()))
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -79,7 +80,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	}
 
 	tx := &ngtypes.Tx{}
-	err = utils.Proto.Unmarshal(unsignedTxRaw, tx)
+	err = proto.Unmarshal(unsignedTxRaw, tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -102,7 +103,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	rawTx, err := utils.Proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -183,7 +184,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	// providing Proto encoded bytes
 	// Reason: 1. avoid accident client modification 2. less length
-	rawTx, err := utils.Proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -224,7 +225,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		utils.PackUint64LE(params.Num),
 	)
 
-	rawTx, err := utils.Proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -272,7 +273,7 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		extra,
 	)
 
-	rawTx, err := utils.Proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -310,7 +311,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	extra := &ngtypes.DeleteExtra{
+	extra := &ngproto.DeleteExtra{
 		Pos:     params.ExtraPos,
 		Content: extraContent,
 	}
@@ -332,7 +333,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		rawExtra,
 	)
 
-	rawTx, err := utils.Proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -371,7 +372,7 @@ func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	extra := &ngtypes.DeleteExtra{
+	extra := &ngproto.DeleteExtra{
 		Pos:     params.ExtraPos,
 		Content: extraContent,
 	}
@@ -393,7 +394,7 @@ func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		rawExtra,
 	)
 
-	rawTx, err := utils.Proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

@@ -2,20 +2,20 @@ package wired
 
 import (
 	"github.com/libp2p/go-libp2p-core/network"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.Sheet) bool {
 	log.Debugf("sending sheet to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &message.SheetPayload{
-		Sheet: sheet,
+		Sheet: sheet.GetProto(),
 	}
 
-	rawPayload, err := utils.Proto.Marshal(pongPayload)
+	rawPayload, err := proto.Marshal(pongPayload)
 	if err != nil {
 		return false
 	}
@@ -51,7 +51,7 @@ func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.She
 func DecodeSheetPayload(rawPayload []byte) (*message.SheetPayload, error) {
 	sheetPayload := &message.SheetPayload{}
 
-	err := utils.Proto.Unmarshal(rawPayload, sheetPayload)
+	err := proto.Unmarshal(rawPayload, sheetPayload)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,7 @@ syntax = "proto3";
 package pb;
 option go_package = "github.com/ngchain/ngcore/ngp2p/message";
 
-import "ngtypes/types.proto";
+import "ngtypes/ngproto/types.proto";
 
 /* enums */
 enum MessageType {
@@ -71,7 +71,7 @@ message GetChainPayload {
 
 message ChainPayload {
   repeated bytes hashes = 1;
-  repeated ngtypes.Block blocks = 2;
+  repeated ngproto.Block blocks = 2;
 }
 
 // fast-sync for state
@@ -83,5 +83,5 @@ message GetSheetPayload {
 }
 
 message SheetPayload {
-  ngtypes.Sheet sheet = 2;
+  ngproto.Sheet sheet = 2;
 }

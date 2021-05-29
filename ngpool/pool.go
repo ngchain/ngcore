@@ -43,7 +43,7 @@ func Init(db *badger.DB, chain *ngchain.Chain, localNode *ngp2p.LocalNode) *TxPo
 // IsInPool checks one tx is in pool or not.
 func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) {
 	for _, txInQueue := range pool.txMap {
-		if bytes.Equal(txInQueue.Hash(), txHash) {
+		if bytes.Equal(txInQueue.GetHash(), txHash) {
 			return true, txInQueue
 		}
 	}

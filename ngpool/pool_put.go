@@ -14,7 +14,7 @@ import (
 
 // PutNewTxFromLocal puts tx from local(rpc) into txpool.
 func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
-	log.Debugf("putting new tx %x from rpc", tx.Hash())
+	log.Debugf("putting new tx %x from rpc", tx.GetHash())
 
 	err = pool.PutTx(tx)
 	if err != nil {
@@ -31,7 +31,7 @@ func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 
 // PutNewTxFromRemote puts tx from local(rpc) into txpool.
 func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
-	log.Debugf("putting new tx %x from p2p", tx.Hash())
+	log.Debugf("putting new tx %x from p2p", tx.GetHash())
 
 	err = pool.PutTx(tx)
 	if err != nil {
@@ -59,9 +59,9 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 
 	latestBlock := pool.chain.GetLatestBlock()
 
-	if !bytes.Equal(tx.PrevBlockHash, latestBlock.Hash()) {
+	if !bytes.Equal(tx.PrevBlockHash, latestBlock.GetHash()) {
 		return fmt.Errorf("tx %x does not belong to current State, found %x, require %x",
-			tx.Hash(), tx.PrevBlockHash, latestBlock.Hash())
+			tx.GetHash(), tx.PrevBlockHash, latestBlock.GetHash())
 	}
 
 	if pool.txMap[tx.Convener] == nil ||

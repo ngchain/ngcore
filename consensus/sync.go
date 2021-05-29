@@ -38,7 +38,7 @@ func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	}
 
 	latest := pow.Chain.GetLatestBlock()
-	log.Warnf("current latest block: %x@%d", latest.Hash(), latest.Height)
+	log.Warnf("current latest block: %x@%d", latest.GetHash(), latest.Height)
 
 	return syncMod
 }

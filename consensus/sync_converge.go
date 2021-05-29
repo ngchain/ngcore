@@ -93,7 +93,7 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 				return nil, err
 			}
 
-			blockHashes = append(blockHashes, b.Hash())
+			blockHashes = append(blockHashes, b.GetHash())
 		}
 
 		// To == from+to means converging mode

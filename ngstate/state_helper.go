@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 func getAccountByNum(txn *badger.Txn, num ngtypes.AccountNum) (*ngtypes.Account, error) {
@@ -25,7 +25,7 @@ func getAccountByNum(txn *badger.Txn, num ngtypes.AccountNum) (*ngtypes.Account,
 	}
 
 	acc := new(ngtypes.Account)
-	err = utils.Proto.Unmarshal(rawAcc, acc)
+	err = proto.Unmarshal(rawAcc, acc)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func getBalance(txn *badger.Txn, addr ngtypes.Address) (*big.Int, error) {
 }
 
 func setAccount(txn *badger.Txn, num ngtypes.AccountNum, account *ngtypes.Account) error {
-	rawAccount, err := utils.Proto.Marshal(account)
+	rawAccount, err := proto.Marshal(account)
 	if err != nil {
 		return err
 	}

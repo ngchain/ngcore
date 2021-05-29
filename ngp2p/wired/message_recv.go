@@ -6,10 +6,9 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-msgio"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
-
-	"github.com/ngchain/ngcore/utils"
 )
 
 // ReceiveReply will receive the correct reply message from the stream
@@ -27,7 +26,7 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*message.Message, error) 
 
 	msg := &message.Message{}
 
-	err = utils.Proto.Unmarshal(raw, msg)
+	err = proto.Unmarshal(raw, msg)
 	if err != nil {
 		return nil, err
 	}

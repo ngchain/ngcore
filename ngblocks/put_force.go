@@ -15,7 +15,7 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 		return fmt.Errorf("block is nil")
 	}
 
-	hash := block.Hash()
+	hash := block.GetHash()
 
 	// deleting txs
 	if blockHeightExists(txn, block.Height) {
@@ -56,7 +56,7 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 
 func delTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := range txs {
-		hash := txs[i].Hash()
+		hash := txs[i].GetHash()
 
 		err := txn.Delete(append(txPrefix, hash...))
 		if err != nil {
