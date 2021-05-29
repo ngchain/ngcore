@@ -28,13 +28,13 @@ func (state *State) rollback(txn *badger.Txn, block *ngtypes.Block) error {
 	// TODO: run reverse Txs
 	panic("todo")
 
-	return nil
+	//return nil
 }
 
 func (state *State) reverseTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
-		switch tx.GetType() {
+		switch tx.Proto.GetType() {
 		case ngproto.TxType_INVALID:
 			return fmt.Errorf("invalid tx")
 		case ngproto.TxType_GENERATE:
@@ -70,7 +70,7 @@ func (state *State) reverseTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 }
 
 func (state *State) reverseGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	participants := tx.GetParticipants()
+	participants := tx.Proto.GetParticipants()
 	balance, err := getBalance(txn, participants[0])
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func (state *State) reverseGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error)
 
 	err = setBalance(txn, participants[0], new(big.Int).Add(
 		balance,
-		new(big.Int).SetBytes(tx.GetValues()[0]),
+		new(big.Int).SetBytes(tx.Proto.GetValues()[0]),
 	))
 	if err != nil {
 		return err
@@ -88,9 +88,9 @@ func (state *State) reverseGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error)
 }
 
 func (state *State) reverseRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	totalExpense := new(big.Int).SetBytes(tx.GetFee())
+	totalExpense := new(big.Int).SetBytes(tx.Proto.GetFee())
 
-	participants := tx.GetParticipants()
+	participants := tx.Proto.GetParticipants()
 	balance, err := getBalance(txn, participants[0])
 	if err != nil {
 		return err
@@ -101,9 +101,9 @@ func (state *State) reverseRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error)
 		return err
 	}
 
-	newAccount := ngtypes.NewAccount(ngtypes.AccountNum(binary.LittleEndian.Uint64(tx.GetExtra())), tx.GetParticipants()[0], nil, nil)
+	newAccount := ngtypes.NewAccount(ngtypes.AccountNum(binary.LittleEndian.Uint64(tx.Proto.GetExtra())), tx.Proto.GetParticipants()[0], nil, nil)
 
-	num := ngtypes.AccountNum(newAccount.Num)
+	num := ngtypes.AccountNum(newAccount.Proto.Num)
 	err = setAccount(txn, num, newAccount)
 	if err != nil {
 		return err
@@ -119,35 +119,35 @@ func (state *State) reverseRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error)
 }
 
 func (state *State) reverseLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Proto.GetConvener()))
 	if err != nil {
 		return err
 	}
 
-	totalExpense := new(big.Int).SetBytes(tx.GetFee())
+	totalExpense := new(big.Int).SetBytes(tx.Proto.GetFee())
 
-	balance, err := getBalance(txn, convener.Owner)
+	balance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
 
-	err = setBalance(txn, convener.Owner, new(big.Int).Add(balance, totalExpense))
+	err = setBalance(txn, convener.Proto.Owner, new(big.Int).Add(balance, totalExpense))
 	if err != nil {
 		return err
 	}
 
-	err = setAccount(txn, ngtypes.AccountNum(convener.Num), ngtypes.NewAccount(
-		ngtypes.AccountNum(convener.Num),
-		tx.Extra, // logoutTx's extra as pub key
-		nil,      // empty
-		nil,      // empty
+	err = setAccount(txn, ngtypes.AccountNum(convener.Proto.Num), ngtypes.NewAccount(
+		ngtypes.AccountNum(convener.Proto.Num),
+		tx.Proto.Extra, // logoutTx's extra as pub key
+		nil,            // empty
+		nil,            // empty
 	))
 	if err != nil {
 		return err
 	}
 
 	// remove ownership
-	err = setOwnership(txn, convener.Owner, ngtypes.AccountNum(convener.Num))
+	err = setOwnership(txn, convener.Proto.Owner, ngtypes.AccountNum(convener.Proto.Num))
 	if err != nil {
 		return err
 	}
@@ -157,26 +157,26 @@ func (state *State) reverseLogout(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 
 // FIXME: cannot Transact Tx yet.
 func (state *State) reverseTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Proto.GetConvener()))
 	if err != nil {
 		return err
 	}
 
-	pk := ngtypes.Address(convener.Owner).PubKey()
+	pk := ngtypes.Address(convener.Proto.Owner).PubKey()
 
 	if err = tx.Verify(pk); err != nil {
 		return err
 	}
 
 	totalValue := big.NewInt(0)
-	for i := range tx.GetValues() {
-		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.GetValues()[i]))
+	for i := range tx.Proto.GetValues() {
+		totalValue.Add(totalValue, new(big.Int).SetBytes(tx.Proto.GetValues()[i]))
 	}
 
-	fee := new(big.Int).SetBytes(tx.GetFee())
+	fee := new(big.Int).SetBytes(tx.Proto.GetFee())
 	totalExpense := new(big.Int).Add(fee, totalValue)
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
@@ -184,12 +184,12 @@ func (state *State) reverseTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err err
 	if convenerBalance.Cmp(totalExpense) < 0 {
 		return fmt.Errorf("balance is insufficient for transaction")
 	}
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, totalExpense))
+	err = setBalance(txn, convener.Proto.Owner, new(big.Int).Sub(convenerBalance, totalExpense))
 	if err != nil {
 		return err
 	}
 
-	participants := tx.GetParticipants()
+	participants := tx.Proto.GetParticipants()
 	for i := range participants {
 		participantBalance, err := getBalance(txn, participants[i])
 		if err != nil {
@@ -198,7 +198,7 @@ func (state *State) reverseTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err err
 
 		err = setBalance(txn, participants[i], new(big.Int).Add(
 			participantBalance,
-			new(big.Int).SetBytes(tx.GetValues()[i]),
+			new(big.Int).SetBytes(tx.Proto.GetValues()[i]),
 		))
 		if err != nil {
 			return err
@@ -223,7 +223,7 @@ func (state *State) reverseTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err err
 		}
 	}
 
-	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
+	err = setAccount(txn, ngtypes.AccountNum(tx.Proto.GetConvener()), convener)
 	if err != nil {
 		return err
 	}
@@ -232,31 +232,31 @@ func (state *State) reverseTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err err
 }
 
 func (state *State) reverseAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Proto.GetConvener()))
 	if err != nil {
 		return err
 	}
 
-	fee := new(big.Int).SetBytes(tx.GetFee())
+	fee := new(big.Int).SetBytes(tx.Proto.GetFee())
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
 
-	err = setBalance(txn, convener.Owner, new(big.Int).Add(convenerBalance, fee))
+	err = setBalance(txn, convener.Proto.Owner, new(big.Int).Add(convenerBalance, fee))
 	if err != nil {
 		return err
 	}
 
 	// append the extra bytes
 	var appendExtra ngproto.AppendExtra
-	err = proto.Unmarshal(tx.Extra, &appendExtra)
+	err = proto.Unmarshal(tx.Proto.Extra, &appendExtra)
 	if err != nil {
 		return err
 	}
 
-	convener.Contract = utils.CutBytes(convener.Contract, int(appendExtra.Pos), int(appendExtra.Pos)+len(appendExtra.Content))
+	convener.Proto.Contract = utils.CutBytes(convener.Proto.Contract, int(appendExtra.Pos), int(appendExtra.Pos)+len(appendExtra.Content))
 
 	// TODO: migrate to Lock
 	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
@@ -270,7 +270,7 @@ func (state *State) reverseAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	//
 	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
-	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
+	err = setAccount(txn, ngtypes.AccountNum(tx.Proto.GetConvener()), convener)
 	if err != nil {
 		return err
 	}
@@ -279,14 +279,14 @@ func (state *State) reverseAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 }
 
 func (state *State) reverseDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Proto.GetConvener()))
 	if err != nil {
 		return err
 	}
 
-	fee := new(big.Int).SetBytes(tx.GetFee())
+	fee := new(big.Int).SetBytes(tx.Proto.GetFee())
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
@@ -295,19 +295,19 @@ func (state *State) reverseDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return fmt.Errorf("balance is insufficient for deleteTx")
 	}
 
-	err = setBalance(txn, convener.Owner, new(big.Int).Add(convenerBalance, fee))
+	err = setBalance(txn, convener.Proto.Owner, new(big.Int).Add(convenerBalance, fee))
 	if err != nil {
 		return err
 	}
 
 	// append the extra bytes
 	var deleteExtra ngproto.DeleteExtra
-	err = proto.Unmarshal(tx.Extra, &deleteExtra)
+	err = proto.Unmarshal(tx.Proto.Extra, &deleteExtra)
 	if err != nil {
 		return err
 	}
 
-	convener.Contract = utils.InsertBytes(convener.Contract, int(deleteExtra.Pos), deleteExtra.Content...)
+	convener.Proto.Contract = utils.InsertBytes(convener.Proto.Contract, int(deleteExtra.Pos), deleteExtra.Content...)
 
 	// TODO: migrate to Lock
 	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
@@ -321,7 +321,7 @@ func (state *State) reverseDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	//
 	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
-	err = setAccount(txn, ngtypes.AccountNum(tx.GetConvener()), convener)
+	err = setAccount(txn, ngtypes.AccountNum(tx.Proto.GetConvener()), convener)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,10 @@
 package ngtypes
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes/ngproto"
@@ -31,13 +33,13 @@ type jsonBlock struct {
 
 func (x *Block) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonBlock{
-		Network:       int(x.Network),
-		Height:        x.GetHeight(),
-		Timestamp:     x.GetTimestamp(),
-		PrevBlockHash: hex.EncodeToString(x.GetPrevBlockHash()),
-		TrieHash:      hex.EncodeToString(x.GetTrieHash()),
-		Difficulty:    new(big.Int).SetBytes(x.GetDifficulty()).String(),
-		Nonce:         hex.EncodeToString(x.GetNonce()),
+		Network:       int(x.Header.GetNetwork()),
+		Height:        x.Header.GetHeight(),
+		Timestamp:     x.Header.GetTimestamp(),
+		PrevBlockHash: hex.EncodeToString(x.Header.GetPrevBlockHash()),
+		TrieHash:      hex.EncodeToString(x.Header.GetTrieHash()),
+		Difficulty:    new(big.Int).SetBytes(x.Header.GetDifficulty()).String(),
+		Nonce:         hex.EncodeToString(x.Header.GetNonce()),
 		Txs:           x.GetTxs(),
 
 		Hash:    hex.EncodeToString(x.GetHash()),
@@ -88,10 +90,39 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		nonce,
 		[]*ngproto.BlockHeader{}, // TODO
 		b.Txs,
+		hash,
 	)
 
-	x.Hash = hash
-	x.verifyHash()
+	err = x.verifyNonce()
+	if err != nil {
+		return err
+	}
+
+	err = x.verifyHash()
+	if err != nil {
+		return err
+	}
 
 	return nil
+}
+
+func (x *Block) Equals(other *Block) (bool, error) {
+	if !proto.Equal(x.Header, other.Header) {
+		return false, nil
+	}
+	if len(x.Txs) != len(other.Txs) {
+		return false, nil
+	}
+
+	for i := 0; i < len(x.Txs); i++ {
+		if eq, err := x.Txs[i].Equals(other.Txs[i]); !eq {
+			return false, err
+		}
+	}
+
+	if !bytes.Equal(x.Hash, other.Hash) {
+		return false, nil
+	}
+
+	return true, nil
 }

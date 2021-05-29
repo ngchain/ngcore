@@ -24,13 +24,13 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 		}
 
 		// check the tx's extra size is necessary
-		if len(tx.Extra) > ngtypes.TxMaxExtraSize {
+		if len(tx.Proto.Extra) > ngtypes.TxMaxExtraSize {
 			return fmt.Errorf("tx is too large")
 		}
 
-		switch tx.GetType() {
+		switch tx.Proto.GetType() {
 		case ngproto.TxType_GENERATE: // generate
-			if err := checkGenerate(txn, tx, block.Height); err != nil {
+			if err := checkGenerate(txn, tx, block.Header.Height); err != nil {
 				return err
 			}
 
@@ -74,11 +74,11 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 	}
 
 	// check the tx's extra size is necessary
-	if len(tx.Extra) > ngtypes.TxMaxExtraSize {
+	if len(tx.Proto.Extra) > ngtypes.TxMaxExtraSize {
 		return fmt.Errorf("tx is too large")
 	}
 
-	switch tx.GetType() {
+	switch tx.Proto.GetType() {
 	case ngproto.TxType_GENERATE: // generate
 		return fmt.Errorf("cannot check generate tx with CheckTx")
 
@@ -114,17 +114,17 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 // checkGenerate checks the generate tx
 func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) error {
 
-	item, err := txn.Get(append(numToAccountPrefix, ngtypes.AccountNum(generateTx.GetConvener()).Bytes()...))
+	item, err := txn.Get(append(numToAccountPrefix, ngtypes.AccountNum(generateTx.Proto.GetConvener()).Bytes()...))
 	if err != nil {
-		return fmt.Errorf("cannot find convener %d: %s", generateTx.GetConvener(), err)
+		return fmt.Errorf("cannot find convener %d: %s", generateTx.Proto.GetConvener(), err)
 	}
 
 	rawConvener, err := item.ValueCopy(nil)
 	if err != nil {
-		return fmt.Errorf("cannot get convener account %d: %s", generateTx.GetConvener(), err)
+		return fmt.Errorf("cannot get convener account %d: %s", generateTx.Proto.GetConvener(), err)
 	}
 
-	convener := new(ngtypes.Account)
+	convener := new(ngproto.Account)
 	err = proto.Unmarshal(rawConvener, convener)
 	if err != nil {
 		return err
@@ -148,7 +148,7 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 	}
 
 	// check balance
-	payerAddr := registerTx.GetParticipants()[0]
+	payerAddr := registerTx.Proto.GetParticipants()[0]
 	payerBalance, err := getBalance(txn, payerAddr)
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 	}
 
 	// check newAccountNum
-	newAccountNum := binary.LittleEndian.Uint64(registerTx.GetExtra())
+	newAccountNum := binary.LittleEndian.Uint64(registerTx.Proto.GetExtra())
 	if accountNumExists(txn, ngtypes.AccountNum(newAccountNum)) {
 		return fmt.Errorf("failed to register account@%d, account is already used by others", newAccountNum)
 	}
@@ -175,19 +175,19 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 
 // checkLogout checks logout tx
 func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(logoutTx.GetConvener()))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(logoutTx.Proto.GetConvener()))
 	if err != nil {
 		return err
 	}
 
 	// check structure and key
-	if err = logoutTx.CheckLogout(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = logoutTx.CheckLogout(ngtypes.Address(convener.Proto.Owner).PubKey()); err != nil {
 		return err
 	}
 
 	// check balance
 	totalCharge := logoutTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
@@ -196,11 +196,11 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 		return fmt.Errorf("balance is insufficient for logout")
 	}
 
-	if len(convener.Contract) != 0 {
+	if len(convener.Proto.Contract) != 0 {
 		return fmt.Errorf("you should clear your contract before logout")
 	}
 
-	if len(convener.Context) != 0 {
+	if len(convener.Proto.Context) != 0 {
 		return fmt.Errorf("you should clear your context before logout")
 	}
 
@@ -209,19 +209,19 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 
 // checkTransaction checks normal transaction tx
 func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(transactionTx.Convener))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(transactionTx.Proto.Convener))
 	if err != nil {
 		return err
 	}
 
 	// check structure and key
-	if err = transactionTx.CheckTransaction(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = transactionTx.CheckTransaction(ngtypes.Address(convener.Proto.Owner).PubKey()); err != nil {
 		return err
 	}
 
 	// check balance
 	totalCharge := transactionTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
@@ -235,19 +235,19 @@ func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
 
 // checkAppend checks append tx
 func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(appendTx.Convener))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(appendTx.Proto.Convener))
 	if err != nil {
 		return err
 	}
 
 	// check structure and key
-	if err = appendTx.CheckAppend(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = appendTx.CheckAppend(ngtypes.Address(convener.Proto.Owner).PubKey()); err != nil {
 		return err
 	}
 
 	// check balance
 	totalCharge := appendTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
@@ -257,12 +257,12 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 	}
 
 	var appendExtra ngproto.AppendExtra
-	err = proto.Unmarshal(appendTx.Extra, &appendExtra)
+	err = proto.Unmarshal(appendTx.Proto.Extra, &appendExtra)
 	if err != nil {
 		return err
 	}
 
-	if appendExtra.Pos >= uint64(len(convener.Contract)) {
+	if appendExtra.Pos >= uint64(len(convener.Proto.Contract)) {
 		return fmt.Errorf("append pos is out of bound")
 	}
 
@@ -271,19 +271,19 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 
 // checkDelete checks delete tx
 func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(deleteTx.Convener))
+	convener, err := getAccountByNum(txn, ngtypes.AccountNum(deleteTx.Proto.Convener))
 	if err != nil {
 		return err
 	}
 
 	// check structure and key
-	if err = deleteTx.CheckDelete(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = deleteTx.CheckDelete(ngtypes.Address(convener.Proto.Owner).PubKey()); err != nil {
 		return err
 	}
 
 	// check balance
 	totalCharge := deleteTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
@@ -293,21 +293,21 @@ func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
 	}
 
 	var appendExtra ngproto.DeleteExtra
-	err = proto.Unmarshal(deleteTx.Extra, &appendExtra)
+	err = proto.Unmarshal(deleteTx.Proto.Extra, &appendExtra)
 	if err != nil {
 		return err
 	}
 
-	if appendExtra.Pos >= uint64(len(convener.Contract)) {
+	if appendExtra.Pos >= uint64(len(convener.Proto.Contract)) {
 		return fmt.Errorf("delete pos is out of bound")
 	}
 
-	if appendExtra.Pos+uint64(len(appendExtra.Content)) >= uint64(len(convener.Contract)) {
+	if appendExtra.Pos+uint64(len(appendExtra.Content)) >= uint64(len(convener.Proto.Contract)) {
 		return fmt.Errorf("delete content length is out of bound")
 	}
 
 	if !bytes.Equal(
-		convener.Contract[int(appendExtra.Pos):int(appendExtra.Pos)+len(appendExtra.Content)],
+		convener.Proto.Contract[int(appendExtra.Pos):int(appendExtra.Pos)+len(appendExtra.Content)],
 		appendExtra.Content) {
 		return fmt.Errorf("delete content length is invalid")
 	}

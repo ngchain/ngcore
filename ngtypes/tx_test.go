@@ -26,15 +26,16 @@ func TestDeserialize(t *testing.T) {
 		nil,
 	)
 
-	t.Log(proto.Size(tx))
+	t.Log(proto.Size(tx.GetProto()))
 
-	raw, _ := proto.Marshal(tx)
+	raw, _ := proto.Marshal(tx.GetProto())
 	result := hex.EncodeToString(raw)
 	t.Log(result)
 
-	var otherTx ngtypes.Tx
-	_ = proto.Unmarshal(raw, &otherTx)
-	t.Log(otherTx.String())
+	var otherTxProto ngproto.Tx
+	_ = proto.Unmarshal(raw, &otherTxProto)
+	otherTx := ngtypes.NewTxFromProto(&otherTxProto)
+	t.Logf("%#v", otherTx)
 }
 
 // TestTransaction_Signature test generated Key pair.
@@ -66,7 +67,7 @@ func TestTransaction_Signature(t *testing.T) {
 func TestGetGenesisGenerate(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		gg := ngtypes.GetGenesisGenerateTx(net)
-		if err := gg.Verify(ngtypes.Address(gg.GetParticipants()[0]).PubKey()); err != nil {
+		if err := gg.Verify(ngtypes.Address(gg.Proto.GetParticipants()[0]).PubKey()); err != nil {
 			t.Log(err)
 			t.Fail()
 		}
@@ -92,8 +93,12 @@ func TestTxJSON(t *testing.T) {
 			return
 		}
 
-		if !proto.Equal(tx1, tx2) {
-			t.Error("tx 2 is different from 1")
+		if eq, _ := tx1.Equals(tx2); !eq {
+			t.Errorf("tx \n 2 %#v \n is different from \n 1 %#v", tx2, tx1)
+		}
+
+		if !proto.Equal(tx1.GetProto(), tx2.GetProto()) {
+			t.Errorf("tx \n 2 %#v \n is different from \n 1 %#v", tx2, tx1)
 		}
 	}
 }

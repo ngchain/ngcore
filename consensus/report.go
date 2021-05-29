@@ -13,7 +13,7 @@ func (pow *PoWork) reportLoop() {
 		for {
 			<-interval.C
 			latestBlock := pow.Chain.GetLatestBlock()
-			log.Warnf("local latest block@%d: %x", latestBlock.Height, latestBlock.GetHash())
+			log.Warnf("local latest block@%d: %x", latestBlock.Header.Height, latestBlock.GetHash())
 		}
 	})
 }

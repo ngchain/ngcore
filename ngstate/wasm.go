@@ -32,7 +32,7 @@ type VM struct {
 // NewVM creates a new Wasm
 // call me when a assign or append tx
 func NewVM(txn *badger.Txn, account *ngtypes.Account) (*VM, error) {
-	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewBuffer(account.Contract))
+	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewBuffer(account.Proto.Contract))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func NewVM(txn *badger.Txn, account *ngtypes.Account) (*VM, error) {
 		txn:     txn,
 		linker:  linker,
 		module:  module,
-		logger:  logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
+		logger:  logging.Logger("vm" + strconv.FormatUint(account.Proto.Num, 10)),
 	}, nil
 }
 

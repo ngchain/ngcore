@@ -20,25 +20,25 @@ func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 
 	hash := block.GetHash()
 
-	err := checkBlock(txn, block.Height, block.PrevBlockHash)
+	err := checkBlock(txn, block.Header.Height, block.Header.PrevBlockHash)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("putting block@%d: %x", block.Height, hash)
-	err = PutBlock(txn, hash, block)
+	log.Infof("putting block@%d: %x", block.Header.Height, hash)
+	err = putBlock(txn, hash, block)
 	if err != nil {
 		return err
 	}
 
 	// put txs
-	err = PutTxs(txn, block.Txs...)
+	err = putTxs(txn, block)
 	if err != nil {
 		return err
 	}
 
 	// update helper
-	err = PutLatestTags(txn, block.Height, hash)
+	err = putLatestTags(txn, block.Header.Height, hash)
 	if err != nil {
 		return err
 	}
@@ -46,11 +46,11 @@ func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 	return nil
 }
 
-func PutTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
-	for i := range txs {
-		hash := txs[i].GetHash()
+func putTxs(txn *badger.Txn, block *ngtypes.Block) error {
+	for i := range block.Txs {
+		hash := block.Txs[i].GetHash()
 
-		raw, err := proto.Marshal(txs[i])
+		raw, err := proto.Marshal(block.Txs[i].GetProto())
 		if err != nil {
 			return err
 		}
@@ -64,8 +64,8 @@ func PutTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 	return nil
 }
 
-func PutBlock(txn *badger.Txn, hash []byte, block *ngtypes.Block) error {
-	raw, err := proto.Marshal(block)
+func putBlock(txn *badger.Txn, hash []byte, block *ngtypes.Block) error {
+	raw, err := proto.Marshal(block.GetProto())
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func PutBlock(txn *badger.Txn, hash []byte, block *ngtypes.Block) error {
 	if err != nil {
 		return err
 	}
-	err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Height)...), hash)
+	err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func PutBlock(txn *badger.Txn, hash []byte, block *ngtypes.Block) error {
 	return nil
 }
 
-func PutLatestTags(txn *badger.Txn, height uint64, hash []byte) error {
+func putLatestTags(txn *badger.Txn, height uint64, hash []byte) error {
 	err := txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(height))
 	if err != nil {
 		return err

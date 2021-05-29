@@ -3,6 +3,7 @@ package ngblocks
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/dgraph-io/badger/v3"
 	"google.golang.org/protobuf/proto"
@@ -12,7 +13,6 @@ import (
 )
 
 func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
-	var tx ngtypes.Tx
 	item, err := txn.Get(append(txPrefix, hash...))
 	if err == badger.ErrKeyNotFound {
 		return nil, err // export the keynotfound
@@ -28,16 +28,17 @@ func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
 		return nil, fmt.Errorf("no such tx in hash")
 	}
 
+	var tx ngproto.Tx
 	err = proto.Unmarshal(raw, &tx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &tx, nil
+	return ngtypes.NewTxFromProto(&tx), nil
 }
 
 func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
-	var b ngtypes.Block
+
 	key := append(blockPrefix, hash...)
 	item, err := txn.Get(key)
 	if err == badger.ErrKeyNotFound {
@@ -50,16 +51,17 @@ func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
 	}
+
+	var b ngproto.Block
 	err = proto.Unmarshal(raw, &b)
 	if err != nil {
 		return nil, err
 	}
 
-	return &b, nil
+	return ngtypes.NewBlockFromProto(&b), nil
 }
 
 func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
-	var b ngtypes.Block
 	key := append(blockPrefix, utils.PackUint64LE(height)...)
 	item, err := txn.Get(key)
 	if err == badger.ErrKeyNotFound {
@@ -81,12 +83,14 @@ func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
 	if err != nil || raw == nil {
 		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
 	}
+
+	var b ngproto.Block
 	err = proto.Unmarshal(raw, &b)
 	if err != nil {
 		return nil, err
 	}
 
-	return &b, nil
+	return ngtypes.NewBlockFromProto(&b), nil
 }
 
 func GetLatestHeight(txn *badger.Txn) (uint64, error) {
@@ -197,11 +201,11 @@ func GetOriginBlock(txn *badger.Txn) (*ngtypes.Block, error) {
 		return nil, fmt.Errorf("failed to get origin block: %s", err)
 	}
 
-	var block ngtypes.Block
+	var block ngproto.Block
 	err = proto.Unmarshal(rawBlock, &block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get origin block: %s", err)
 	}
 
-	return &block, nil
+	return ngtypes.NewBlockFromProto(&block), nil
 }

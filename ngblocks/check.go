@@ -45,7 +45,7 @@ func blockPrevHashExists(txn *badger.Txn, height uint64, prevHash []byte) bool {
 		return false
 	}
 
-	if b.Height == height-1 {
+	if b.Header.GetHeight() == height-1 {
 		return true
 	}
 

@@ -12,7 +12,7 @@ func (chain *Chain) CheckHealth(network ngproto.NetworkType) {
 	latestHeight := chain.GetLatestBlockHeight()
 
 	origin := chain.GetOriginBlock()
-	originHeight := origin.Height
+	originHeight := origin.Header.GetHeight()
 
 	prevBlockHash := origin.GetHash()
 
@@ -23,8 +23,8 @@ func (chain *Chain) CheckHealth(network ngproto.NetworkType) {
 			panic(err)
 		}
 
-		if !bytes.Equal(b.PrevBlockHash, prevBlockHash) {
-			panic(fmt.Errorf("prev block hash %x is incorrect, shall be %x", b.PrevBlockHash, prevBlockHash))
+		if !bytes.Equal(b.Header.GetPrevBlockHash(), prevBlockHash) {
+			panic(fmt.Errorf("prev block hash %x is incorrect, shall be %x", b.Header.GetPrevBlockHash(), prevBlockHash))
 		}
 
 		prevBlockHash = b.GetHash()

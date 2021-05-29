@@ -18,10 +18,10 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 	hash := block.GetHash()
 
 	// deleting txs
-	if blockHeightExists(txn, block.Height) {
-		b, err := GetBlockByHeight(txn, block.Height)
+	if blockHeightExists(txn, block.Header.Height) {
+		b, err := GetBlockByHeight(txn, block.Header.Height)
 		if err != nil {
-			return fmt.Errorf("failed to get existing block@%d: %s", block.Height, err)
+			return fmt.Errorf("failed to get existing block@%d: %s", block.Header.Height, err)
 		}
 
 		err = delTxs(txn, b.Txs...)
@@ -30,24 +30,24 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 		}
 	}
 
-	if !blockPrevHashExists(txn, block.Height, block.PrevBlockHash) {
+	if !blockPrevHashExists(txn, block.Header.Height, block.Header.PrevBlockHash) {
 		return fmt.Errorf("no prev block in storage: %x", block.GetPrevHash())
 	}
 
-	log.Infof("putting block@%d: %x", block.Height, hash)
-	err := PutBlock(txn, hash, block)
+	log.Infof("putting block@%d: %x", block.Header.Height, hash)
+	err := putBlock(txn, hash, block)
 	if err != nil {
 		return fmt.Errorf("failed to pub block: %s", err)
 	}
 
 	// put txs
-	err = PutTxs(txn, block.Txs...)
+	err = putTxs(txn, block)
 	if err != nil {
 		return fmt.Errorf("failed to put txs: %s", err)
 	}
 
 	// update helper
-	err = PutLatestTags(txn, block.Height, hash)
+	err = putLatestTags(txn, block.Header.Height, hash)
 	if err != nil {
 		return fmt.Errorf("failed to update tags: %s", err)
 	}

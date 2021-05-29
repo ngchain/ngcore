@@ -16,11 +16,11 @@ type jsonAccount struct {
 
 func (x *Account) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonAccount{
-		Num:   x.GetNum(),
-		Owner: x.GetOwner(),
+		Num:   x.Proto.GetNum(),
+		Owner: x.Proto.GetOwner(),
 
-		Contract: hex.EncodeToString(x.GetContract()),
-		Context:  hex.EncodeToString(x.GetContext()),
+		Contract: hex.EncodeToString(x.Proto.GetContract()),
+		Context:  hex.EncodeToString(x.Proto.GetContext()),
 	})
 }
 

@@ -23,6 +23,7 @@ func GetGenesisBlock(network ngproto.NetworkType) *Block {
 			GetGenesisBlockNonce(network),
 			[]*ngproto.BlockHeader{},
 			txs,
+			nil,
 		)
 		genesisBlock.GetHash()
 	}

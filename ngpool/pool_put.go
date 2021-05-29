@@ -59,14 +59,14 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 
 	latestBlock := pool.chain.GetLatestBlock()
 
-	if !bytes.Equal(tx.PrevBlockHash, latestBlock.GetHash()) {
+	if !bytes.Equal(tx.Proto.PrevBlockHash, latestBlock.GetHash()) {
 		return fmt.Errorf("tx %x does not belong to current State, found %x, require %x",
-			tx.GetHash(), tx.PrevBlockHash, latestBlock.GetHash())
+			tx.GetHash(), tx.Proto.PrevBlockHash, latestBlock.GetHash())
 	}
 
-	if pool.txMap[tx.Convener] == nil ||
-		new(big.Int).SetBytes(pool.txMap[tx.Convener].Fee).Cmp(new(big.Int).SetBytes(tx.Fee)) < 0 {
-		pool.txMap[tx.Convener] = tx
+	if pool.txMap[tx.Proto.Convener] == nil ||
+		new(big.Int).SetBytes(pool.txMap[tx.Proto.Convener].Proto.Fee).Cmp(new(big.Int).SetBytes(tx.Proto.Fee)) < 0 {
+		pool.txMap[tx.Proto.Convener] = tx
 	}
 
 	return nil

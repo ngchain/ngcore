@@ -19,7 +19,7 @@ func (pool *TxPool) GetPack(prevBlockHash []byte) *ngtypes.TxTrie {
 	sort.Slice(accountNums, func(i, j int) bool { return accountNums[i] < accountNums[j] })
 
 	for _, num := range accountNums {
-		if pool.txMap[num] != nil && bytes.Equal(pool.txMap[num].PrevBlockHash, prevBlockHash) {
+		if pool.txMap[num] != nil && bytes.Equal(pool.txMap[num].Proto.PrevBlockHash, prevBlockHash) {
 			txs = append(txs, pool.txMap[num])
 		}
 	}

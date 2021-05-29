@@ -9,7 +9,7 @@ import (
 func initAccountImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("account", "get_host", func(ins *wasman.Instance) interface{} {
 		return func() uint64 {
-			return vm.self.Num // host means the account which is hosting the contract
+			return vm.self.Proto.Num // host means the account which is hosting the contract
 		}
 	})
 	if err != nil {
@@ -33,7 +33,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, acc.Owner)
+			l, err := cp(ins, ptr, acc.Proto.Owner)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -54,7 +54,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(acc.Contract))
+			return uint32(len(acc.Proto.Contract))
 		}
 	})
 	if err != nil {
@@ -69,7 +69,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, acc.Contract)
+			l, err := cp(ins, ptr, acc.Proto.Contract)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -90,7 +90,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(acc.Context))
+			return uint32(len(acc.Proto.Context))
 		}
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, acc.Context)
+			l, err := cp(ins, ptr, acc.Proto.Context)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

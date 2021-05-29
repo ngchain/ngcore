@@ -69,7 +69,7 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 	blocks := make([]*ngtypes.Block, 0)
 
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
-	localOriginHeight := mod.pow.Chain.GetOriginBlock().Height
+	localOriginHeight := mod.pow.Chain.GetOriginBlock().Header.Height
 
 	ptr := localHeight
 

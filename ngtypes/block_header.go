@@ -6,7 +6,7 @@ import (
 )
 
 func (x *Block) MarshalHeader() ([]byte, error) {
-	header := proto.Clone(x.BlockHeader).(*ngproto.BlockHeader)
+	header := proto.Clone(x.Header).(*ngproto.BlockHeader)
 
 	return proto.Marshal(header)
 }

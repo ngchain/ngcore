@@ -15,9 +15,11 @@ func GetGenesisGenerateTx(network ngproto.NetworkType) *Tx {
 			big.NewInt(0).Bytes(),
 			nil,
 			nil,
+			nil,
 		)
 
-		ggtx.Sign = GetGenesisGenerateTxSignature(network)
+		ggtx.ManuallySetSignature(
+			GetGenesisGenerateTxSignature(network))
 		ggtx.GetHash()
 
 		genesisGenerateTx = ggtx

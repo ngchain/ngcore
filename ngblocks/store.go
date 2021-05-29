@@ -16,8 +16,9 @@ const (
 var log = logging.Logger("blocks")
 
 var (
-	blockPrefix = []byte("b:")
-	txPrefix    = []byte("t:")
+	blockPrefix   = []byte("b:")
+	txPrefix      = []byte("t:")
+	blockTxPrefix = []byte("bt:")
 )
 
 // BlockStore managers a badger DB, which stores vaults and blocks and some helper tags for managing.

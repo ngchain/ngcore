@@ -17,7 +17,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	latest := mod.pow.Chain.GetLatestBlock()
 	cp := mod.pow.Chain.GetLatestCheckpoint()
 
-	id, stream := mod.localNode.SendPing(peerID, origin.GetHeight(), latest.GetHeight(), cp.GetHash(), cp.GetActualDiff().Bytes())
+	id, stream := mod.localNode.SendPing(peerID, origin.Header.GetHeight(), latest.Header.GetHeight(), cp.GetHash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
 		log.Infof("failed to send ping, cannot get remote status from %s", peerID) // level down this
 		return nil

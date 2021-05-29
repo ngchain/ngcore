@@ -3,6 +3,7 @@ package ngstate
 import (
 	"bytes"
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
@@ -22,7 +23,7 @@ func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
 			return err
 		}
 
-		addr := account.Owner
+		addr := account.Proto.Owner
 		balance, err = getBalance(txn, addr)
 		if err != nil {
 			return err
@@ -67,7 +68,7 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 			return err
 		}
 
-		addr := ngtypes.Address(account.Owner)
+		addr := ngtypes.Address(account.Proto.Owner)
 
 		currentHeight, err := ngblocks.GetLatestHeight(txn)
 		if err != nil {
@@ -161,14 +162,14 @@ func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Accou
 				return err
 			}
 
-			var acc ngtypes.Account
+			var acc ngproto.Account
 			err = proto.Unmarshal(rawAccount, &acc)
 			if err != nil {
 				return err
 			}
 
 			if bytes.Equal(address, acc.Owner) {
-				account = &acc
+				account = ngtypes.NewAccountFromProto(&acc)
 				return nil
 			}
 		}

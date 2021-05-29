@@ -37,12 +37,14 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	tx := &ngtypes.Tx{}
-	err = proto.Unmarshal(signedTxRaw, tx)
+	var protoTx ngproto.Tx
+	err = proto.Unmarshal(signedTxRaw, &protoTx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
+
+	tx := ngtypes.NewTxFromProto(&protoTx)
 
 	err = s.pow.Pool.PutNewTxFromLocal(tx)
 	if err != nil {
@@ -79,12 +81,13 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	tx := &ngtypes.Tx{}
-	err = proto.Unmarshal(unsignedTxRaw, tx)
+	var protoTx ngproto.Tx
+	err = proto.Unmarshal(unsignedTxRaw, &protoTx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
+	tx := ngtypes.NewTxFromProto(&protoTx)
 
 	privateKeys := make([]*secp256k1.PrivateKey, len(params.PrivateKeys))
 	for i := range params.PrivateKeys {
@@ -103,7 +106,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	rawTx, err := proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx.GetProto())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -151,7 +154,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
-			participants[i] = account.Owner
+			participants[i] = account.Proto.Owner
 		default:
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("unknown participant type: %s", reflect.TypeOf(p))))
 
@@ -184,7 +187,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	// providing Proto encoded bytes
 	// Reason: 1. avoid accident client modification 2. less length
-	rawTx, err := proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx.GetProto())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -225,7 +228,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		utils.PackUint64LE(params.Num),
 	)
 
-	rawTx, err := proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx.GetProto())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -273,7 +276,7 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		extra,
 	)
 
-	rawTx, err := proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx.GetProto())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -333,7 +336,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		rawExtra,
 	)
 
-	rawTx, err := proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx.GetProto())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -394,7 +397,7 @@ func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		rawExtra,
 	)
 
-	rawTx, err := proto.Marshal(tx)
+	rawTx, err := proto.Marshal(tx.GetProto())
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

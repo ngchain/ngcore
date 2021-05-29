@@ -21,18 +21,18 @@ func (store *BlockStore) initWithGenesis() {
 
 		if err := store.Update(func(txn *badger.Txn) error {
 			hash := block.GetHash()
-			raw, _ := proto.Marshal(block)
-			log.Infof("putting block@%d: %x", block.Height, hash)
+			raw, _ := proto.Marshal(block.GetProto())
+			log.Infof("putting block@%d: %x", block.Header.GetHeight(), hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Height)...), hash)
+			err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.GetHeight())...), hash)
 			if err != nil {
 				return err
 			}
 
-			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Height))
+			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
 			if err != nil {
 				return err
 			}
@@ -41,7 +41,7 @@ func (store *BlockStore) initWithGenesis() {
 				return err
 			}
 
-			err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Height))
+			err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
 			if err != nil {
 				return err
 			}
@@ -117,13 +117,13 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 			return err
 		}
 
-		var originBlock ngtypes.Block
+		var originBlock ngproto.Block
 		err = proto.Unmarshal(rawBlock, &originBlock)
 		if err != nil {
 			return err
 		}
 
-		has = has && originBlock.Network == network
+		has = has && originBlock.Header.GetNetwork() == network
 
 		return nil
 	}); err != nil && err != badger.ErrKeyNotFound {
@@ -168,18 +168,18 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
 	err := store.Update(func(txn *badger.Txn) error {
 		hash := block.GetHash()
-		raw, _ := proto.Marshal(block)
-		log.Infof("putting block@%d: %x", block.Height, hash)
+		raw, _ := proto.Marshal(block.GetProto())
+		log.Infof("putting block@%d: %x", block.Header.GetHeight(), hash)
 		err := txn.Set(append(blockPrefix, hash...), raw)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Height)...), hash)
+		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.GetHeight())...), hash)
 		if err != nil {
 			return err
 		}
 
-		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Height))
+		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
 		if err != nil {
 			return err
 		}
@@ -188,7 +188,7 @@ func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
 			return err
 		}
 
-		err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Height))
+		err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
 		if err != nil {
 			return err
 		}

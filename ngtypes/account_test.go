@@ -50,7 +50,12 @@ func TestJSONAccount(t *testing.T) {
 		return
 	}
 
-	if !proto.Equal(account1, account2) {
-		t.Errorf("account 2 %v is different from 1 %v", account2, account1)
+	if eq, _ := account1.Equals(account2); !eq {
+		t.Errorf("account \n 2 %#v \n is different from \n 1 %#v", account2, account1)
 	}
+
+	if !proto.Equal(account1.GetProto(), account2.GetProto()) {
+		t.Errorf("account \n 2 %#v \n is different from \n 1 %#v", account2, account1)
+	}
+
 }

@@ -23,15 +23,15 @@ import (
 var log = logging.Logger("types")
 
 type Block struct {
-	*ngproto.BlockHeader
-	Txs  []*Tx
-	Hash []byte
+	Header *ngproto.BlockHeader // do not inherit to avoid Marshal(ngtypes.Block)
+	Txs    []*Tx
+	Hash   []byte
 }
 
-func NewBlock(network ngproto.NetworkType, height uint64, timestamp int64, prevBlockHash, trieHash, difficulty, nonce []byte, subs []*ngproto.BlockHeader,
-	txs []*Tx) *Block {
+func NewBlock(network ngproto.NetworkType, height uint64, timestamp int64, prevBlockHash, trieHash, difficulty,
+	nonce []byte, subs []*ngproto.BlockHeader, txs []*Tx, hash []byte) *Block {
 	return &Block{
-		BlockHeader: &ngproto.BlockHeader{
+		Header: &ngproto.BlockHeader{
 			Network:       network,
 			Height:        height,
 			Timestamp:     timestamp,
@@ -42,14 +42,14 @@ func NewBlock(network ngproto.NetworkType, height uint64, timestamp int64, prevB
 			Subs:          subs,
 		},
 		Txs:  txs,
-		Hash: nil, // lazy load
+		Hash: hash,
 	}
 }
 
 func NewBlockFromHeader(protoBlockHeader *ngproto.BlockHeader, txs []*Tx) *Block {
 	return &Block{
-		BlockHeader: protoBlockHeader,
-		Txs:         txs,
+		Header: protoBlockHeader,
+		Txs:    txs,
 	}
 }
 
@@ -60,8 +60,8 @@ func NewBlockFromProto(protoBlock *ngproto.Block) *Block {
 	}
 
 	return &Block{
-		BlockHeader: protoBlock.Header,
-		Txs:         txs,
+		Header: protoBlock.Header,
+		Txs:    txs,
 	}
 }
 
@@ -88,7 +88,9 @@ func NewBlockFromPoWRawWithTxs(raw []byte, txs []*Tx) (*Block, error) {
 		raw[113:121],
 		[]*ngproto.BlockHeader{},
 		txs,
+		nil,
 	)
+	newBlock.GetHash()
 
 	if err := newBlock.verifyNonce(); err != nil {
 		return nil, err
@@ -111,6 +113,7 @@ func NewBareBlock(network ngproto.NetworkType, height uint64, blockTime int64, p
 		make([]byte, NonceSize),
 		[]*ngproto.BlockHeader{},
 		make([]*Tx, 0),
+		nil,
 	)
 }
 
@@ -121,13 +124,9 @@ func (x *Block) GetProto() *ngproto.Block {
 	}
 
 	return &ngproto.Block{
-		Header: x.BlockHeader,
+		Header: x.Header,
 		Txs:    txs,
 	}
-}
-
-func (*Block) ProtoMessage() error {
-	return fmt.Errorf("not a proto")
 }
 
 func (x *Block) Marshal() ([]byte, error) {
@@ -138,27 +137,27 @@ func (x *Block) Marshal() ([]byte, error) {
 
 // IsUnsealing checks whether the block is unsealing.
 func (x *Block) IsUnsealing() bool {
-	return x.GetTrieHash() != nil
+	return x.Header.GetTrieHash() != nil
 }
 
 // IsSealed checks whether the block is sealed.
 func (x *Block) IsSealed() bool {
-	return x.GetNonce() != nil
+	return x.Header.GetNonce() != nil
 }
 
 // IsHead will check whether the Block is the head(checkpoint).
 func (x *Block) IsHead() bool {
-	return x.GetHeight()%BlockCheckRound == 0
+	return x.Header.GetHeight()%BlockCheckRound == 0
 }
 
 // IsTail will check whether the Block is the tail(the one before head).
 func (x *Block) IsTail() bool {
-	return (x.GetHeight()+1)%BlockCheckRound == 0
+	return (x.Header.GetHeight()+1)%BlockCheckRound == 0
 }
 
 // IsGenesis will check whether the Block is the genesis block.
 func (x *Block) IsGenesis() bool {
-	return bytes.Equal(x.GetHash(), GetGenesisBlockHash(x.Network))
+	return bytes.Equal(x.GetHash(), GetGenesisBlockHash(x.Header.GetNetwork()))
 }
 
 // GetPoWRawHeader will return a complete raw for block hash.
@@ -173,15 +172,15 @@ func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 	//	NonceSize
 	raw := make([]byte, 121)
 
-	raw[0] = byte(x.Network)
-	binary.LittleEndian.PutUint64(raw[1:], x.Height)
-	binary.LittleEndian.PutUint64(raw[9:17], uint64(x.GetTimestamp()))
-	copy(raw[17:49], x.GetPrevBlockHash())
-	copy(raw[49:81], x.GetTrieHash())
-	copy(raw[81:113], utils.ReverseBytes(x.GetDifficulty())) // uint256
+	raw[0] = byte(x.Header.GetNetwork())
+	binary.LittleEndian.PutUint64(raw[1:], x.Header.GetHeight())
+	binary.LittleEndian.PutUint64(raw[9:17], uint64(x.Header.GetTimestamp()))
+	copy(raw[17:49], x.Header.GetPrevBlockHash())
+	copy(raw[49:81], x.Header.GetTrieHash())
+	copy(raw[81:113], utils.ReverseBytes(x.Header.GetDifficulty())) // uint256
 
 	if nonce == nil {
-		copy(raw[113:121], x.GetNonce())
+		copy(raw[113:121], x.Header.GetNonce())
 	} else {
 		copy(raw[113:121], nonce)
 	}
@@ -197,7 +196,7 @@ func (x *Block) PowHash() []byte {
 	}
 	defer randomx.ReleaseCache(cache)
 
-	randomx.InitCache(cache, x.PrevBlockHash)
+	randomx.InitCache(cache, x.Header.GetPrevBlockHash())
 	ds, err := randomx.AllocDataset(randomx.FlagJIT)
 	if err != nil {
 		panic(err)
@@ -227,24 +226,22 @@ func (x *Block) PowHash() []byte {
 	return randomx.CalculateHash(vm, x.GetPoWRawHeader(nil))
 }
 
-// ToUnsealing converts a bare block to an unsealing block.
-func (x *Block) ToUnsealing(txsWithGen []*Tx) (*Block, error) {
-	b := proto.Clone(x).(*Block)
-
-	if txsWithGen[0].GetType() != ngproto.TxType_GENERATE {
-		return nil, fmt.Errorf("first tx shall be a generate")
+// ToUnsealing converts a bare block to an unsealing block
+func (x *Block) ToUnsealing(txsWithGen []*Tx) error {
+	if txsWithGen[0].Proto.GetType() != ngproto.TxType_GENERATE {
+		return fmt.Errorf("first tx shall be a generate")
 	}
 
 	for i := 1; i < len(txsWithGen); i++ {
-		if txsWithGen[i].GetType() == ngproto.TxType_GENERATE {
-			return nil, fmt.Errorf("except first, other tx shall not be a generate")
+		if txsWithGen[i].Proto.GetType() == ngproto.TxType_GENERATE {
+			return fmt.Errorf("except first, other tx shall not be a generate")
 		}
 	}
 
-	b.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
-	b.Txs = txsWithGen
+	x.Header.TrieHash = NewTxTrie(txsWithGen).TrieRoot()
+	x.Txs = txsWithGen
 
-	return b, nil
+	return nil
 }
 
 // ToSealed converts an unsealing block to a sealed block.
@@ -257,21 +254,21 @@ func (x *Block) ToSealed(nonce []byte) (*Block, error) {
 		return nil, fmt.Errorf("nonce length %d is incorrect", len(nonce))
 	}
 
-	x.Nonce = nonce
+	x.Header.Nonce = nonce
 
 	return x, nil
 }
 
 // verifyNonce will verify whether the nonce meets the target.
 func (x *Block) verifyNonce() error {
-	diff := new(big.Int).SetBytes(x.GetDifficulty())
+	diff := new(big.Int).SetBytes(x.Header.GetDifficulty())
 	target := new(big.Int).Div(MaxTarget, diff)
 
 	if new(big.Int).SetBytes(x.PowHash()).Cmp(target) < 0 {
 		return nil
 	}
 
-	return fmt.Errorf("block@%d's nonce %x is invalid", x.GetHeight(), x.GetNonce())
+	return fmt.Errorf("block@%d's nonce %x is invalid", x.Header.GetHeight(), x.Header.GetNonce())
 }
 
 // GetActualDiff returns the diff decided by nonce.
@@ -280,7 +277,7 @@ func (x *Block) GetActualDiff() *big.Int {
 }
 
 func (x *Block) GetHeader() *ngproto.BlockHeader {
-	return x.BlockHeader
+	return x.Header
 }
 
 func (x *Block) GetTxs() []*Tx {
@@ -294,28 +291,28 @@ func (x *Block) CheckError() error {
 	//}
 	// DONE: do network check on consensus
 
-	if len(x.PrevBlockHash) != HashSize {
-		return fmt.Errorf("block%d's PrevBlockHash length is incorrect", x.GetHeight())
+	if len(x.Header.GetPrevBlockHash()) != HashSize {
+		return fmt.Errorf("block%d's PrevBlockHash length is incorrect", x.Header.GetHeight())
 	}
 
-	if len(x.TrieHash) != HashSize {
-		return fmt.Errorf("block%d's TrieHash length is incorrect", x.GetHeight())
+	if len(x.Header.GetTrieHash()) != HashSize {
+		return fmt.Errorf("block%d's TrieHash length is incorrect", x.Header.GetHeight())
 	}
 
-	if len(x.Nonce) != NonceSize {
-		return fmt.Errorf("block%d's Nonce length is incorrect", x.GetHeight())
+	if len(x.Header.GetNonce()) != NonceSize {
+		return fmt.Errorf("block%d's Nonce length is incorrect", x.Header.GetHeight())
 	}
 
-	if x.Timestamp > time.Now().Unix() {
-		return fmt.Errorf("block%d's timestamp %d is invalid", x.GetHeight(), x.Timestamp)
+	if x.Header.GetTimestamp() > time.Now().Unix() {
+		return fmt.Errorf("block%d's timestamp %d is invalid", x.Header.GetHeight(), x.Header.GetTimestamp())
 	}
 
 	if !x.IsSealed() {
-		return fmt.Errorf("block@%d has not sealed with nonce", x.GetHeight())
+		return fmt.Errorf("block@%d has not sealed with nonce", x.Header.GetHeight())
 	}
 
-	if !bytes.Equal(NewTxTrie(x.Txs).TrieRoot(), x.GetTrieHash()) {
-		return fmt.Errorf("the merkle tree in block@%d is invalid", x.GetHeight())
+	if !bytes.Equal(NewTxTrie(x.Txs).TrieRoot(), x.Header.GetTrieHash()) {
+		return fmt.Errorf("the merkle tree in block@%d is invalid", x.Header.GetHeight())
 	}
 
 	err := x.verifyNonce()
@@ -346,7 +343,7 @@ func (x *Block) verifyHash() error {
 	hash := sha3.Sum256(raw)
 
 	if !bytes.Equal(hash[:], x.Hash) {
-		return fmt.Errorf("block@%d hash %x not match its hash %x", x.Height, hash, x.Hash)
+		return fmt.Errorf("block@%d hash %x not match its hash %x", x.Header.GetHeight(), hash, x.Hash)
 	}
 
 	return nil
@@ -370,5 +367,5 @@ func (x *Block) GetHash() []byte {
 
 // GetPrevHash is a helper to get the prev block hash from block header.
 func (x *Block) GetPrevHash() []byte {
-	return x.GetPrevBlockHash()
+	return x.Header.GetPrevBlockHash()
 }

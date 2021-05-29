@@ -17,7 +17,7 @@ func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
 		return err
 	}
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
+	convenerBalance, err := getBalance(txn, convener.Proto.Owner)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
 	if convenerBalance.Cmp(bigValue) < 0 {
 		return fmt.Errorf("balance is insufficient for transaction")
 	}
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, bigValue))
+	err = setBalance(txn, convener.Proto.Owner, new(big.Int).Sub(convenerBalance, bigValue))
 	if err != nil {
 		return err
 	}
@@ -35,12 +35,12 @@ func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
 		return err
 	}
 
-	participantBalance, err := getBalance(txn, participant.Owner)
+	participantBalance, err := getBalance(txn, participant.Proto.Owner)
 	if err != nil {
 		return err
 	}
 
-	err = setBalance(txn, participant.Owner, new(big.Int).Add(
+	err = setBalance(txn, participant.Proto.Owner, new(big.Int).Add(
 		participantBalance,
 		bigValue,
 	))

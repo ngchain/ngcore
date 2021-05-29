@@ -25,27 +25,27 @@ type jsonTx struct {
 }
 
 func (x *Tx) MarshalJSON() ([]byte, error) {
-	participants := make([]Address, len(x.Participants))
-	for i := range x.Participants {
-		participants[i] = x.Participants[i]
+	participants := make([]Address, len(x.Proto.Participants))
+	for i := range x.Proto.Participants {
+		participants[i] = x.Proto.Participants[i]
 	}
 
-	values := make([]*big.Int, len(x.Values))
-	for i := range x.Values {
-		values[i] = new(big.Int).SetBytes(x.Values[i])
+	values := make([]*big.Int, len(x.Proto.Values))
+	for i := range x.Proto.Values {
+		values[i] = new(big.Int).SetBytes(x.Proto.Values[i])
 	}
 
 	return utils.JSON.Marshal(jsonTx{
-		Network:       int(x.Network),
-		Type:          int(x.GetType()),
-		PrevBlockHash: hex.EncodeToString(x.PrevBlockHash),
-		Convener:      x.Convener,
+		Network:       int(x.Proto.Network),
+		Type:          int(x.Proto.GetType()),
+		PrevBlockHash: hex.EncodeToString(x.Proto.PrevBlockHash),
+		Convener:      x.Proto.Convener,
 		Participants:  participants,
-		Fee:           new(big.Int).SetBytes(x.GetFee()),
+		Fee:           new(big.Int).SetBytes(x.Proto.GetFee()),
 		Values:        values,
-		Extra:         hex.EncodeToString(x.GetExtra()),
+		Extra:         hex.EncodeToString(x.Proto.GetExtra()),
 
-		Sign: hex.EncodeToString(x.GetSign()),
+		Sign: hex.EncodeToString(x.Proto.GetSign()),
 
 		Hash: hex.EncodeToString(x.GetHash()),
 	})
@@ -89,6 +89,11 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	hash, err := hex.DecodeString(tx.Hash)
+	if err != nil {
+		return err
+	}
+
 	*x = *NewTx(network,
 		t,
 		prevBlockHash,
@@ -98,6 +103,7 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		tx.Fee.Bytes(),
 		extra,
 		sign,
+		hash,
 	)
 
 	return nil

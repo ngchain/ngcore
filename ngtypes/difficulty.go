@@ -9,13 +9,13 @@ var big2 = big.NewInt(2)
 
 // GetNextDiff is a helper to get next pow block Diff field.
 func GetNextDiff(blockHeight uint64, blockTime int64, tailBlock *Block) *big.Int {
-	diff := new(big.Int).SetBytes(tailBlock.GetDifficulty())
+	diff := new(big.Int).SetBytes(tailBlock.Header.GetDifficulty())
 	if !tailBlock.IsTail() {
 		return diff
 	}
 
-	elapsed := tailBlock.Timestamp - GetGenesisTimestamp(tailBlock.Network)
-	diffTime := elapsed - int64(tailBlock.GetHeight())*int64(TargetTime/time.Second)
+	elapsed := tailBlock.Header.Timestamp - GetGenesisTimestamp(tailBlock.Header.GetNetwork())
+	diffTime := elapsed - int64(tailBlock.Header.GetHeight())*int64(TargetTime/time.Second)
 	delta := new(big.Int)
 	if diffTime < int64(TargetTime/time.Second)*(-2) {
 		delta.Div(diff, big.NewInt(10))
@@ -26,8 +26,8 @@ func GetNextDiff(blockHeight uint64, blockTime int64, tailBlock *Block) *big.Int
 	}
 
 	// reload the diff
-	diff = new(big.Int).SetBytes(tailBlock.GetDifficulty())
-	d := blockTime - tailBlock.Timestamp - int64(TargetTime/time.Second)
+	diff = new(big.Int).SetBytes(tailBlock.Header.GetDifficulty())
+	d := blockTime - tailBlock.Header.GetTimestamp() - int64(TargetTime/time.Second)
 	delta.Div(diff, big.NewInt(2048))
 	delta.Mul(delta, big.NewInt(max(1-(d)/10, -99)))
 	diff.Add(diff, delta)

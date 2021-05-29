@@ -76,7 +76,7 @@ func (chain *Chain) GetLatestCheckpoint() *ngtypes.Block {
 		return b
 	}
 
-	checkpointHeight := b.Height - b.Height%ngtypes.BlockCheckRound
+	checkpointHeight := b.Header.Height - b.Header.Height%ngtypes.BlockCheckRound
 	b, err := chain.GetBlockByHeight(checkpointHeight)
 	if err != nil {
 		log.Errorf("error when getting latest checkpoint, maybe chain is broken, please resync: %s", err)

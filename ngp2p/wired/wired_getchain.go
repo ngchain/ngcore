@@ -162,7 +162,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		}
 
 		for i := 0; i < len(getChainPayload.GetFrom())-1-samepointIndex; i++ {
-			blockHeight := cur.GetHeight() + 1
+			blockHeight := cur.Header.GetHeight() + 1
 			cur, err = w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
 				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
@@ -181,7 +181,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 				break
 			}
 
-			nextHeight := cur.GetHeight() + 1
+			nextHeight := cur.Header.GetHeight() + 1
 			cur, err = w.chain.GetBlockByHeight(nextHeight)
 			if err != nil {
 				log.Debugf("local chain lacks block@%d: %s", nextHeight, err)

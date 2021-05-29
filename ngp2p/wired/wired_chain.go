@@ -17,7 +17,7 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 	}
 
 	log.Debugf("replying sendChain to %s. Message id: %x, from block@%d to %d",
-		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight(), blocks[len(blocks)-1].GetHeight(),
+		stream.Conn().RemotePeer(), uuid, blocks[0].Header.GetHeight(), blocks[len(blocks)-1].Header.GetHeight(),
 	)
 
 	protoBlocks := make([]*ngproto.Block, len(blocks))

@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"context"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"google.golang.org/protobuf/proto"
@@ -12,7 +13,7 @@ import (
 func (b *Broadcast) BroadcastTx(tx *ngtypes.Tx) error {
 	log.Debugf("broadcasting tx %s", tx.BS58())
 
-	raw, err := proto.Marshal(tx)
+	raw, err := proto.Marshal(tx.GetProto())
 	if err != nil {
 		log.Errorf("failed to sign pb data")
 		return err
@@ -30,13 +31,13 @@ func (b *Broadcast) BroadcastTx(tx *ngtypes.Tx) error {
 }
 
 func (b *Broadcast) onBroadcastTx(msg *pubsub.Message) {
-	var tx = &ngtypes.Tx{}
+	var protoTx ngproto.Tx
 
-	err := proto.Unmarshal(msg.Data, tx)
+	err := proto.Unmarshal(msg.Data, &protoTx)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	b.OnTx <- tx
+	b.OnTx <- ngtypes.NewTxFromProto(&protoTx)
 }

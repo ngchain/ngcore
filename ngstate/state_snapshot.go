@@ -90,13 +90,13 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 			return err
 		}
 
-		var account ngtypes.Account
+		var account ngproto.Account
 		err = proto.Unmarshal(rawAccount, &account)
 		if err != nil {
 			return err
 		}
 
-		accounts[account.Num] = account.GetProto()
+		accounts[account.Num] = &account
 	}
 
 	it = txn.NewIterator(badger.DefaultIteratorOptions)
@@ -112,8 +112,8 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 		anonymous[base58.FastBase58Encoding(addr)] = rawBalance
 	}
 
-	sheet := ngtypes.NewSheet(state.Network, latestBlock.Height, latestBlock.GetHash(), accounts, anonymous)
-	state.SnapshotManager.PutSnapshot(latestBlock.Height, latestBlock.GetHash(), sheet)
+	sheet := ngtypes.NewSheet(state.Network, latestBlock.Header.Height, latestBlock.GetHash(), accounts, anonymous)
+	state.SnapshotManager.PutSnapshot(latestBlock.Header.Height, latestBlock.GetHash(), sheet)
 	return nil
 }
 

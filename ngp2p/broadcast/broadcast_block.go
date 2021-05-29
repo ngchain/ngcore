@@ -3,6 +3,7 @@ package broadcast
 import (
 	"context"
 	"fmt"
+	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"google.golang.org/protobuf/proto"
@@ -11,9 +12,7 @@ import (
 )
 
 func (b *Broadcast) BroadcastBlock(block *ngtypes.Block) error {
-	broadcastBlockPayload := block
-
-	raw, err := proto.Marshal(broadcastBlockPayload)
+	raw, err := proto.Marshal(block.GetProto())
 	if err != nil {
 		return fmt.Errorf("failed to sign pb data")
 	}
@@ -23,22 +22,22 @@ func (b *Broadcast) BroadcastBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	log.Debugf("broadcast block@%d: %x", block.GetHeight(), block.GetHash())
+	log.Debugf("broadcast block@%d: %x", block.Header.GetHeight(), block.GetHash())
 
 	return nil
 }
 
 func (b *Broadcast) onBroadcastBlock(msg *pubsub.Message) {
-	var broadcastBlockPayload = new(ngtypes.Block)
+	var protoBlock = new(ngproto.Block)
 
-	err := proto.Unmarshal(msg.Data, broadcastBlockPayload)
+	err := proto.Unmarshal(msg.Data, protoBlock)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	newBlock := broadcastBlockPayload
-	log.Debugf("received a new block broadcast@%d", newBlock.GetHeight())
+	newBlock := ngtypes.NewBlockFromProto(protoBlock)
+	log.Debugf("received a new block broadcast@%d", newBlock.Header.GetHeight())
 
 	b.OnBlock <- newBlock
 }

@@ -2,7 +2,6 @@ package ngtypes_test
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"golang.org/x/crypto/sha3"
@@ -81,7 +80,7 @@ func TestBlock_Marshal(t *testing.T) {
 func TestGetGenesisBlock(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		t.Logf(string(net))
-		d, _ := proto.Marshal(ngtypes.GetGenesisBlock(net))
+		d, _ := proto.Marshal(ngtypes.GetGenesisBlock(net).GetProto())
 		hash := sha3.Sum256(d)
 
 		t.Logf("GenesisBlock hex: %x", d)
@@ -92,8 +91,8 @@ func TestGetGenesisBlock(t *testing.T) {
 
 func TestBlockJSON(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
-		block1 := ngtypes.GetGenesisBlock(net)
-		jsonBlock, err := utils.JSON.Marshal(block1)
+		block := ngtypes.GetGenesisBlock(net)
+		jsonBlock, err := utils.JSON.Marshal(block)
 		if err != nil {
 			t.Error(err)
 			return
@@ -101,15 +100,23 @@ func TestBlockJSON(t *testing.T) {
 
 		t.Log(string(jsonBlock))
 
-		block2 := &ngtypes.Block{}
-		err = utils.JSON.Unmarshal(jsonBlock, &block2)
+		block_ := &ngtypes.Block{}
+		err = utils.JSON.Unmarshal(jsonBlock, &block_)
 		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		if !proto.Equal(block1, block2) {
-			t.Error("block 2 is different from 1")
+		if eq, _ := block.Equals(block_); !eq {
+			log.Errorf("block  %#v", block)
+			log.Errorf("block_ %#v", block_)
+			t.Fail()
+		}
+
+		if !proto.Equal(block.GetProto(), block_.GetProto()) {
+			log.Errorf("block  %#v", block)
+			log.Errorf("block_ %#v", block_)
+			t.Fail()
 		}
 	}
 }
@@ -123,9 +130,16 @@ func TestBlockRawPoW(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		if !proto.Equal(block, block_) {
-			fmt.Println("block", block)
-			fmt.Println("block_", block_)
+
+		if eq, _ := block.Equals(block_); !eq {
+			log.Errorf("block  %#v", block)
+			log.Errorf("block_ %#v", block_)
+			t.Fail()
+		}
+
+		if !proto.Equal(block.GetProto(), block_.GetProto()) {
+			log.Errorf("block  %#v", block)
+			log.Errorf("block_ %#v", block_)
 			t.Fail()
 		}
 	}

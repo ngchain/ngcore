@@ -83,10 +83,10 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 
 	blockTime := time.Now().Unix()
 
-	blockHeight := currentBlock.Height + 1
+	blockHeight := currentBlock.Header.Height + 1
 	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock)
 
-	newBareBlock := ngtypes.NewBareBlock(
+	newBlock := ngtypes.NewBareBlock(
 		pow.Network,
 		blockHeight,
 		blockTime,
@@ -100,12 +100,12 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	txs := pow.Pool.GetPack(currentBlockHash).Txs
 	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
 
-	newUnsealingBlock, err := newBareBlock.ToUnsealing(txsWithGen)
+	err := newBlock.ToUnsealing(txsWithGen)
 	if err != nil {
 		log.Error(err)
 	}
 
-	return newUnsealingBlock
+	return newBlock
 }
 
 // GoLoop ignites all loops
@@ -173,7 +173,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash := block.GetHash()
-	log.Warnf("mined a new block: %x@%d", hash, block.GetHeight())
+	log.Warnf("mined a new block: %x@%d", hash, block.Header.GetHeight())
 
 	pow.Pool.Reset()
 
