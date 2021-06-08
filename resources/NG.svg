@@ -1,21 +1,16 @@
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 64 64">
-    <style>
-        .st0 {
-        fill: #353535;
-        }
-        .st1 {
-        fill: #464646
-        }
-        .st2 {
-        fill: #242424
-        }
-        .st3 {
-        fill: #222222
-        }
-    </style>
-
-    <path class="st3" d="M 8 12 L 8 60 L 16 52 L 16 4"/>
-    <path class="st1" d="M 32 32  L 16 4 L  8 12  "/>
-    <path class="st2" d="M 32 32 L 48 60 L 56 52"/>
-    <path class="st0" d="M 48 12 L 48 60 L 56 52 L 56 4 "/>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 25.2.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+	 viewBox="0 0 640 640" style="enable-background:new 0 0 640 640;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#3C3C3C;}
+	.st1{fill:#464646;}
+	.st2{fill:#505050;}
+	.st3{fill:#323232;}
+</style>
+	<path class="st0" d="M1328,581"/>
+	<path class="st1" d="M464,32l72,72H177"/>
+	<path class="st2" d="M104,32v360l72-72l1-216"/>
+	<path class="st3" d="M464,32v504l72-72V104"/>
+	<path class="st1" d="M104,536l288,72l72-72l-288-72"/>
 </svg>

@@ -1,22 +1,18 @@
-# ngCore
-<p style="text-align: center">
-<img alt="NG" width="400" height="400" src="./resources/NG.svg"/>
-<br/>
-<b>ngcore:</b> Brand-new golang daemon implement of Ngin Network Node
-</p>
+<h1 style="background-image: url(./resources/NG.svg);background-repeat: no-repeat;">&emsp; &nbsp; ngcore</h1>
 
-## What is NGIN?
+## What is ngchain?
 
-NGIN is a radically updating **brand-new blockchain network**, which is not a fork of ethereum or any other chain.
+The ngchain is a radically updating **brand-new blockchain network**, which is not a fork of ethereum or any other
+chain.
 
-NGIN's **goal** is to build **a blockchain engine** which acts more **auditable, scalable, security-oriented** and 
-supports more network tasks with vm.
+The ngchain's **goal** is to build **a blockchain engine** which acts more **auditable, scalable, security-oriented**
+and supports more network tasks with vm.
 
-NGIN uses modern models - Vault(Block), Account, Multi-type Tx, and the traditional Block model to build the blockchain 
-ecosystem. And NGIN strictly follow the idea of blockchain, locking items with hash to keep engine work safely.
-Not only blockchain, but Vault(Block) will also link up to be a chain for account security and powerful functions like 
-fast ignition, free account state and so on. So It's safe and robust like bitcoin and ethereum but more scalable and
- powerful on the node's operational capacity and p2p network's speed and performance. 
+The ngchain uses modern models - Vault(Block), Account, Multi-type Tx, and the traditional Block model to build the
+blockchain ecosystem. And ngchain strictly follow the idea of blockchain, locking items with hash to keep engine work
+safely. Not only blockchain, but Vault(Block) will also link up to be a chain for account security and powerful
+functions like fast ignition, free account state and so on. So It's safe and robust like bitcoin and ethereum but more
+scalable and powerful on the node's operational capacity and p2p network's speed and performance.
 
 ## Status
 
@@ -94,7 +90,7 @@ sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ng
 sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --mining 0 --in-mem
 ```
 
-## Run a NGIN Forknet
+## Run a ngchain forknet
 
 It's so easy to run an independent PoW chain on ngCore codebase.
 

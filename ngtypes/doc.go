@@ -22,7 +22,7 @@ The sheetHash is the sheet before applying block txs.
 
 ## Tx
 
-Tx is a basic operation method in NGIN network, acting as extendable structure for the network's functions.
+Tx is a basic operation method in the ngchain network, acting as extendable structure for the network's functions.
 
 Tx can handle more than one transfer of coins or operations because of it's values field and participants
 field. Also, with the schnorr signature,

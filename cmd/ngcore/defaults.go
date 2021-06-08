@@ -2,8 +2,8 @@ package main
 
 const (
 	// app
-	usage       = "Brand-new golang daemon implement of Ngin Network Node"
-	description = "NGIN is a radically updating brand-new blockchain network, " +
+	usage       = "Brand-new golang daemon implement of ngchain network node"
+	description = "The ngchain is a radically updating brand-new blockchain network, " +
 		"which is not a fork of ethereum or any other chain."
 	version = "v0.0.19"
 
