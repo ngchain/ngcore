@@ -1,4 +1,4 @@
-<h1> <img src="./resources/NG.svg" style="height: 0.8em; width: 0.8em;">core</h1>
+<h1> <img src="./resources/ng_64x64.png" >core</h1>
 
 ## What is ngchain?
 
