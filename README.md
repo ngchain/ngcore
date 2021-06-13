@@ -1,4 +1,4 @@
-<h1 style="background-image: url(./resources/NG.svg);background-repeat: no-repeat;">&emsp; &nbsp; ngcore</h1>
+<h1> <img src="./resources/NG.svg" style="height: 0.8em; width: 0.8em;">core</h1>
 
 ## What is ngchain?
 
