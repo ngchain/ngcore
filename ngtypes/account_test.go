@@ -6,11 +6,9 @@ import (
 
 	"github.com/NebulousLabs/fastrand"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/secp256k1"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
+	"github.com/ngchain/secp256k1"
 )
 
 var log = logging.Logger("ngtypes_test")
@@ -54,8 +52,7 @@ func TestJSONAccount(t *testing.T) {
 		t.Errorf("account \n 2 %#v \n is different from \n 1 %#v", account2, account1)
 	}
 
-	if !proto.Equal(account1.GetProto(), account2.GetProto()) {
+	if eq, _ := account1.Equals(account2); !eq {
 		t.Errorf("account \n 2 %#v \n is different from \n 1 %#v", account2, account1)
 	}
-
 }

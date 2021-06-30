@@ -69,6 +69,8 @@ github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46f
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
 github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210305160149-d8eb0b5a2fce h1:aSty1w7MA2BdGYQCli385m+UNFn2oETrLU6rYLUv96E=
 github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210305160149-d8eb0b5a2fce/go.mod h1:1uXjZQveTnArkEcE4uVJBEb8MtQwH2l1SSkckTI9R18=
+github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956 h1:SmdoahoEJuQOgi0OkfUBT1WORylSuVmyCTxeJTZOH/k=
+github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956/go.mod h1:Lj9Wi4tUaji+kdIpbvScxggeOhzF95+6V1CqQLUQy58=
 github.com/c0mm4nd/wasman v0.0.0-20201023051902-3f585a486d39 h1:ZjtzUFA50aTnWOcvNaGdYGpsA2nOJQqpljhjcYGrHV4=
 github.com/c0mm4nd/wasman v0.0.0-20201023051902-3f585a486d39/go.mod h1:IJRXJa3GeMbD5Oo14goLaer661oiI6SC0LU7fxNle6g=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=

@@ -1,23 +1,21 @@
 package ngtypes
 
 import (
-	"errors"
-
 	"github.com/cbergoon/merkletree"
 	"golang.org/x/crypto/sha3"
+	"sort"
 )
 
-// TxTrie is a fixed ordered tx container, mainly for pending.
-// And TxTrie is an advanced type, aiming to get the trie root hash.
-type TxTrie struct {
-	Txs []*Tx
-}
+// TxTrie is a fixed ordered tx container to get the trie root hash.
+// This is not thread-safe
+type TxTrie []*Tx
 
 // NewTxTrie receives ordered ops.
-func NewTxTrie(txs []*Tx) *TxTrie {
-	return &TxTrie{
-		Txs: txs,
-	}
+func NewTxTrie(txs []*Tx) TxTrie {
+	sort.Slice(txs, func(i, j int) bool {
+		return txs[i].Convener < txs[j].Convener
+	})
+	return txs
 }
 
 // func (tt *TxTrie) Len() int {
@@ -46,27 +44,10 @@ func NewTxTrie(txs []*Tx) *TxTrie {
 // 	return sort.Reverse(tt).(*TxTrie)
 // }
 
-// Append will append new tx to the end of TxTrie's txs.
-func (tt *TxTrie) Append(tx *Tx) {
-	tt.Txs = append(tt.Txs, tx)
-}
-
-// Del removes a tx from txs.
-func (tt *TxTrie) Del(tx *Tx) error {
-	for i := range tt.Txs {
-		if tt.Txs[i] == tx {
-			tt.Txs = append(tt.Txs[:i], tt.Txs[i+1:]...)
-			return nil
-		}
-	}
-
-	return errors.New("no such transaction")
-}
-
 // Contains determine if tt.Txs and tx are equal.
 func (tt *TxTrie) Contains(tx *Tx) bool {
-	for i := 0; i < len(tt.Txs); i++ {
-		if tt.Txs[i] == tx {
+	for i := 0; i < len(*tt); i++ {
+		if (*tt)[i] == tx {
 			return true
 		}
 	}
@@ -76,11 +57,16 @@ func (tt *TxTrie) Contains(tx *Tx) bool {
 
 // TrieRoot sort tx tire by trie tree and return the root hash.
 func (tt *TxTrie) TrieRoot() []byte {
-	if len(tt.Txs) == 0 {
+	if len(*tt) == 0 {
 		return make([]byte, HashSize)
 	}
 
-	trie, err := merkletree.NewTreeWithHashStrategy(txsToMerkleTreeContents(tt.Txs), sha3.New256)
+	mtc := make([]merkletree.Content, len(*tt))
+	for i := range *tt {
+		mtc[i] = (*tt)[i]
+	}
+
+	trie, err := merkletree.NewTreeWithHashStrategy(mtc, sha3.New256)
 	if err != nil {
 		log.Error(err)
 	}

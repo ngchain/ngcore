@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
 	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210305160149-d8eb0b5a2fce
+	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956 // indirect
 	github.com/c0mm4nd/wasman v0.0.0-20201023051902-3f585a486d39
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dgraph-io/badger/v3 v3.2011.1
