@@ -3,16 +3,15 @@ package blockchain
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (chain *Chain) CheckHealth(network ngproto.NetworkType) {
+func (chain *Chain) CheckHealth(network ngtypes.Network) {
 	log.Warn("checking chain's health")
 	latestHeight := chain.GetLatestBlockHeight()
 
 	origin := chain.GetOriginBlock()
-	originHeight := origin.Header.GetHeight()
+	originHeight := origin.Header.Height
 
 	prevBlockHash := origin.GetHash()
 
@@ -23,8 +22,8 @@ func (chain *Chain) CheckHealth(network ngproto.NetworkType) {
 			panic(err)
 		}
 
-		if !bytes.Equal(b.Header.GetPrevBlockHash(), prevBlockHash) {
-			panic(fmt.Errorf("prev block hash %x is incorrect, shall be %x", b.Header.GetPrevBlockHash(), prevBlockHash))
+		if !bytes.Equal(b.Header.PrevBlockHash, prevBlockHash) {
+			panic(fmt.Errorf("prev block hash %x is incorrect, shall be %x", b.Header.PrevBlockHash, prevBlockHash))
 		}
 
 		prevBlockHash = b.GetHash()

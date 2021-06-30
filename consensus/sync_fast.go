@@ -71,7 +71,7 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 		//	return nil, fmt.Errorf("invalid checkpoint: should be %x, but got %x", record.checkpointHash, checkpoint.Hash())
 		//}
 
-		return ngtypes.NewBlockFromProto(chainPayload.Blocks[0]), err
+		return chainPayload.Blocks[0], err
 
 	case message.MessageType_REJECT:
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))

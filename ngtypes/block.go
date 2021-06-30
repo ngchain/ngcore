@@ -26,7 +26,7 @@ type Block struct {
 	Subs   []*BlockHeader
 }
 
-func NewBlock(network uint8, height uint64, timestamp uint64, prevBlockHash, txTrieHash, subTrieHash, difficulty,
+func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, txTrieHash, subTrieHash, difficulty,
 	nonce []byte, txs []*Tx, subs []*BlockHeader) *Block {
 	return &Block{
 		Header: &BlockHeader{
@@ -68,7 +68,7 @@ func NewBlockFromPoWRaw(raw []byte, txs []*Tx, subs []*BlockHeader) (*Block, err
 	}
 
 	newBlock := NewBlock(
-		raw[0],
+		Network(raw[0]),
 		binary.LittleEndian.Uint64(raw[1:9][:]),
 		binary.LittleEndian.Uint64(raw[9:17]),
 		raw[17:49],
@@ -89,7 +89,7 @@ func NewBlockFromPoWRaw(raw []byte, txs []*Tx, subs []*BlockHeader) (*Block, err
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(network uint8, height uint64, blockTime uint64, prevBlockHash []byte, diff *big.Int) *Block {
+func NewBareBlock(network Network, height uint64, blockTime uint64, prevBlockHash []byte, diff *big.Int) *Block {
 	return NewBlock(
 		network,
 		height,
@@ -143,7 +143,7 @@ func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 	//                     // = 145
 	raw := make([]byte, 153)
 
-	raw[0] = x.Header.Network
+	raw[0] = byte(x.Header.Network)
 	binary.LittleEndian.PutUint64(raw[1:], x.Header.Height)
 	binary.LittleEndian.PutUint64(raw[9:17], x.Header.Timestamp)
 	copy(raw[17:49], x.Header.PrevBlockHash)

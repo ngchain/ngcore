@@ -29,11 +29,11 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 			panic(err)
 		}
 
-		if !bytes.Equal(block.Header.GetPrevBlockHash(), originHash) {
-			prevBlock, err := chain.GetBlockByHash(block.Header.GetPrevBlockHash())
+		if !bytes.Equal(block.Header.PrevBlockHash, originHash) {
+			prevBlock, err := chain.GetBlockByHash(block.Header.PrevBlockHash)
 			if err != nil {
 				return fmt.Errorf("failed to get the prev block@%d %x: %s",
-					block.Header.GetHeight()-1, block.Header.GetPrevBlockHash(), err)
+					block.Header.Height-1, block.Header.PrevBlockHash, err)
 			}
 
 			if err := checkBlockTarget(block, prevBlock); err != nil {
@@ -51,18 +51,18 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 }
 
 func checkBlockTarget(block, prevBlock *ngtypes.Block) error {
-	correctDiff := ngtypes.GetNextDiff(block.Header.GetHeight(), block.Header.GetTimestamp(), prevBlock)
-	blockDiff := new(big.Int).SetBytes(block.Header.GetDifficulty())
+	correctDiff := ngtypes.GetNextDiff(block.Header.Height, block.Header.Timestamp, prevBlock)
+	blockDiff := new(big.Int).SetBytes(block.Header.Difficulty)
 	actualDiff := block.GetActualDiff()
 
 	if blockDiff.Cmp(correctDiff) != 0 {
 		return fmt.Errorf("wrong block diff for block@%d, diff in block: %x shall be %x",
-			block.Header.GetHeight(), blockDiff, correctDiff)
+			block.Header.Height, blockDiff, correctDiff)
 	}
 
 	if actualDiff.Cmp(correctDiff) < 0 {
 		return fmt.Errorf("wrong block diff for block@%d, actual diff in block: %x shall be large than %x",
-			block.Header.GetHeight(), actualDiff, correctDiff)
+			block.Header.Height, actualDiff, correctDiff)
 	}
 
 	return nil

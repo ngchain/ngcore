@@ -1,11 +1,8 @@
 package ngstate
 
 import (
+	"github.com/c0mm4nd/rlp"
 	"sync"
-
-	"github.com/mr-tron/base58"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
@@ -26,7 +23,7 @@ var (
 // (nil) --> B0(Prev: S0) --> B1(Prev: S1) -> B2(Prev: S2)
 //  init (S0,S0)  -->   (S0,S1)  -->    (S1, S2)
 type State struct {
-	Network ngproto.NetworkType
+	Network ngtypes.Network
 
 	*badger.DB
 	*SnapshotManager
@@ -37,7 +34,7 @@ type State struct {
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
 // this func is written for snapshot sync/converging when initializing from non-genesis
 // checkpoint
-func InitStateFromSheet(db *badger.DB, network ngproto.NetworkType, sheet *ngtypes.Sheet) *State {
+func InitStateFromSheet(db *badger.DB, network uint8, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB: db,
 		SnapshotManager: &SnapshotManager{
@@ -59,7 +56,7 @@ func InitStateFromSheet(db *badger.DB, network ngproto.NetworkType, sheet *ngtyp
 }
 
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
-func InitStateFromGenesis(db *badger.DB, network ngproto.NetworkType) *State {
+func InitStateFromGenesis(db *badger.DB, network ngtypes.Network) *State {
 	state := &State{
 		Network: network,
 		DB:      db,
@@ -93,7 +90,7 @@ func InitStateFromGenesis(db *badger.DB, network ngproto.NetworkType) *State {
 // initFromSheet will overwrite a state from the given sheet
 func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 	for num, account := range sheet.Accounts {
-		rawAccount, err := proto.Marshal(account)
+		rawAccount, err := rlp.EncodeToBytes(account)
 		if err != nil {
 			return err
 		}
@@ -104,12 +101,8 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 		}
 	}
 
-	for strAddr, balance := range sheet.Anonymous {
-		addr, err := base58.FastBase58Decoding(strAddr)
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(addrToBalancePrefix, addr...), balance)
+	for _, balance := range sheet.Balances {
+		err := txn.Set(append(addrToBalancePrefix, balance.Address...), balance.Amount.Bytes())
 		if err != nil {
 			return err
 		}

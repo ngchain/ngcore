@@ -1,10 +1,10 @@
 package wired
 
 import (
+	"github.com/c0mm4nd/rlp"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
 )
@@ -14,7 +14,7 @@ func Verify(peerID peer.ID, message *message.Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
 
-	raw, err := proto.Marshal(message)
+	raw, err := rlp.EncodeToBytes(message)
 	if err != nil {
 		log.Errorf("failed to marshal pb message: %v", err)
 		return false
@@ -29,7 +29,7 @@ func Verify(peerID peer.ID, message *message.Message) bool {
 func Signature(host core.Host, message *message.Message) ([]byte, error) {
 	message.Header.Sign = nil
 
-	data, err := proto.Marshal(message)
+	data, err := rlp.EncodeToBytes(message)
 	if err != nil {
 		return nil, err
 	}

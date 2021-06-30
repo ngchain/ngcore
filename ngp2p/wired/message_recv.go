@@ -3,10 +3,10 @@ package wired
 import (
 	"bytes"
 	"fmt"
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-msgio"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
 )
@@ -26,7 +26,7 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*message.Message, error) 
 
 	msg := &message.Message{}
 
-	err = proto.Unmarshal(raw, msg)
+	err = rlp.DecodeBytes(raw, msg)
 	if err != nil {
 		return nil, err
 	}

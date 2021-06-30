@@ -2,7 +2,7 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/ngchain/ngcore/ngtypes"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -21,7 +21,7 @@ import (
 
 var p2pDHT *dht.IpfsDHT
 
-func getPublicRouter(network ngproto.NetworkType) libp2p.Option {
+func getPublicRouter(network ngtypes.Network) libp2p.Option {
 	return libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		var err error
 		p2pDHT, err = dht.New(

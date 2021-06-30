@@ -6,12 +6,6 @@ import (
 	"time"
 )
 
-const (
-	ZERONET = 0
-	TESTNET = 1
-	MAINNET = 2
-)
-
 // GenesisAddressBase58 is the genesis address in base58 str
 // FIXME: before initializing new network, should manually init PK & Sign
 // 	use `go run ./cmd/ngcore gentools check` check and generate valid values
@@ -22,7 +16,7 @@ const (
 // decoded genesis variables
 var (
 	GenesisAddress, _ = NewAddressFromBS58(GenesisAddressBase58)
-	AvailableNetworks = []uint8{
+	AvailableNetworks = []Network{
 		ZERONET,
 		TESTNET,
 	}
@@ -86,7 +80,7 @@ func GetEmptyHash() []byte {
 	return make([]byte, HashSize)
 }
 
-func GetGenesisGenerateTxSignature(network uint8) []byte {
+func GetGenesisGenerateTxSignature(network Network) []byte {
 	switch network {
 	case ZERONET:
 		genesisGenerateTxSign, _ := hex.DecodeString("1aca22bb998d0bea643f75c126b8be259839aa4c2c13829d737c57c8f20371edbc7014a79e2af97e8119c92fcc9f4642c5f42639cad59429fbc4336ee8dcc858")
@@ -101,7 +95,7 @@ func GetGenesisGenerateTxSignature(network uint8) []byte {
 	}
 }
 
-func GetGenesisBlockNonce(network uint8) []byte {
+func GetGenesisBlockNonce(network Network) []byte {
 	switch network {
 	case ZERONET:
 		genesisBlockNonce, _ := hex.DecodeString("84e1be18c794f125")
@@ -119,7 +113,7 @@ func GetGenesisBlockNonce(network uint8) []byte {
 // GetGenesisTimestamp returns the genesis timestamp
 // must be the time chain started, or the difficulty algo wont work
 // FIXME: should be the time network starts
-func GetGenesisTimestamp(network uint8) uint64 {
+func GetGenesisTimestamp(network Network) uint64 {
 	switch network {
 	case ZERONET:
 		return uint64(time.Date(2020, time.October, 24, 0, 0, 0, 0, time.UTC).Unix())

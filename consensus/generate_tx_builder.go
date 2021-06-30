@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -14,10 +13,10 @@ func (pow *PoWork) createGenerateTx(height uint64, extraData []byte) *ngtypes.Tx
 	fee := big.NewInt(0)
 	gen := ngtypes.NewUnsignedTx(
 		pow.Network,
-		ngproto.TxType_GENERATE,
-		pow.Chain.GetLatestBlockHash(),
+		ngtypes.GenerateTx,
+		pow.Chain.GetLatestBlockHeight(),
 		0,
-		[][]byte{addr},
+		[]ngtypes.Address{addr},
 		[]*big.Int{ngtypes.GetBlockReward(height)},
 		fee,
 		extraData,

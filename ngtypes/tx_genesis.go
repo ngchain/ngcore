@@ -6,7 +6,7 @@ import (
 
 var genesisGenerateTx *Tx
 
-func GetGenesisGenerateTx(network uint8) *Tx {
+func GetGenesisGenerateTx(network Network) *Tx {
 	if genesisGenerateTx == nil {
 		ggtx := NewTx(network, GenerateTx, 0, 0, []Address{GenesisAddress},
 			[]*big.Int{GetBlockReward(0)},

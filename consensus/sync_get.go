@@ -17,7 +17,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	latest := mod.pow.Chain.GetLatestBlock()
 	cp := mod.pow.Chain.GetLatestCheckpoint()
 
-	id, stream := mod.localNode.SendPing(peerID, origin.Header.GetHeight(), latest.Header.GetHeight(), cp.GetHash(), cp.GetActualDiff().Bytes())
+	id, stream := mod.localNode.SendPing(peerID, origin.Header.Height, latest.Header.Height, cp.GetHash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
 		log.Infof("failed to send ping, cannot get remote status from %s", peerID) // level down this
 		return nil
@@ -73,13 +73,8 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 			return nil, fmt.Errorf("failed to send ping: %s", err)
 		}
 
-		blocks := make([]*ngtypes.Block, len(chainPayload.Blocks))
-		for i := 0; i < len(chainPayload.Blocks); i++ {
-			blocks[i] = ngtypes.NewBlockFromProto(chainPayload.Blocks[i])
-		}
-
 		// TODO: add support for hashes etc
-		return blocks, err
+		return chainPayload.Blocks, err
 
 	case message.MessageType_REJECT:
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
@@ -110,13 +105,9 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		if err != nil {
 			return nil, fmt.Errorf("failed to send ping: %s", err)
 		}
-		blocks := make([]*ngtypes.Block, len(chainPayload.Blocks))
-		for i := 0; i < len(chainPayload.Blocks); i++ {
-			blocks[i] = ngtypes.NewBlockFromProto(chainPayload.Blocks[i])
-		}
 
 		// TODO: add support for hashes etc
-		return blocks, err
+		return chainPayload.Blocks, err
 
 	case message.MessageType_REJECT:
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
@@ -148,7 +139,7 @@ func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes
 		}
 
 		// TODO: add support for hashes etc
-		return ngtypes.NewSheetFromProto(sheetPayload.Sheet), err
+		return sheetPayload.Sheet, err
 
 	case message.MessageType_REJECT:
 		return nil, fmt.Errorf("getsheet is rejected by remote: %s", string(reply.Payload))

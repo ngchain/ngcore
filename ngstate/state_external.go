@@ -3,11 +3,10 @@ package ngstate
 import (
 	"bytes"
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/c0mm4nd/rlp"
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -23,7 +22,7 @@ func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
 			return err
 		}
 
-		addr := account.Proto.Owner
+		addr := account.Owner
 		balance, err = getBalance(txn, addr)
 		if err != nil {
 			return err
@@ -68,7 +67,7 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 			return err
 		}
 
-		addr := ngtypes.Address(account.Proto.Owner)
+		addr := ngtypes.Address(account.Owner)
 
 		currentHeight, err := ngblocks.GetLatestHeight(txn)
 		if err != nil {
@@ -80,7 +79,11 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 			return fmt.Errorf("cannot find the mature snapshot") // abnormal
 		}
 
-		balance = new(big.Int).SetBytes(matureSnapshot.Anonymous[addr.String()])
+		for i := range matureSnapshot.Balances {
+			if bytes.Equal(matureSnapshot.Balances[i].Address, addr) {
+				balance = matureSnapshot.Balances[i].Amount
+			}
+		}
 
 		return nil
 	})
@@ -108,7 +111,11 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 			return fmt.Errorf("cannot find the mature snapshot") // abnormal
 		}
 
-		balance = new(big.Int).SetBytes(matureSnapshot.Anonymous[address.String()])
+		for i := range matureSnapshot.Balances {
+			if bytes.Equal(matureSnapshot.Balances[i].Address, address) {
+				balance = matureSnapshot.Balances[i].Amount
+			}
+		}
 
 		return nil
 	})
@@ -162,14 +169,14 @@ func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Accou
 				return err
 			}
 
-			var acc ngproto.Account
-			err = proto.Unmarshal(rawAccount, &acc)
+			var acc ngtypes.Account
+			err = rlp.DecodeBytes(rawAccount, &acc)
 			if err != nil {
 				return err
 			}
 
 			if bytes.Equal(address, acc.Owner) {
-				account = ngtypes.NewAccountFromProto(&acc)
+				account = &acc
 				return nil
 			}
 		}

@@ -100,7 +100,7 @@ func init() {
 }
 
 // GetGenesisSheet returns a genesis sheet
-func GetGenesisSheet(network uint8) *Sheet {
+func GetGenesisSheet(network Network) *Sheet {
 	if genesisSheet == nil {
 		accounts := make([]*Account, 0, 100)
 

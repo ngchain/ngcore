@@ -9,7 +9,7 @@ import (
 )
 
 type BlockHeader struct {
-	Network uint8 // 1
+	Network Network // 1
 
 	Height    uint64 // 4
 	Timestamp uint64 // 4

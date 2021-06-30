@@ -1,9 +1,8 @@
 package wired
 
 import (
+	"github.com/c0mm4nd/rlp"
 	"github.com/libp2p/go-libp2p-core/network"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/ngchain/ngcore/ngp2p/message"
 )
 
@@ -17,7 +16,7 @@ func (w *Wired) sendPong(uuid []byte, stream network.Stream, origin, latest uint
 		CheckpointActualDiff: checkpointActualDiff,
 	}
 
-	rawPayload, err := proto.Marshal(pongPayload)
+	rawPayload, err := rlp.EncodeToBytes(pongPayload)
 	if err != nil {
 		return false
 	}
@@ -53,7 +52,7 @@ func (w *Wired) sendPong(uuid []byte, stream network.Stream, origin, latest uint
 func DecodePongPayload(rawPayload []byte) (*message.PongPayload, error) {
 	pongPayload := &message.PongPayload{}
 
-	err := proto.Unmarshal(rawPayload, pongPayload)
+	err := rlp.DecodeBytes(rawPayload, pongPayload)
 	if err != nil {
 		return nil, err
 	}

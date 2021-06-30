@@ -2,6 +2,7 @@ package wired
 
 import (
 	"context"
+	"github.com/c0mm4nd/rlp"
 
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -14,7 +15,7 @@ import (
 // Send is a helper method - writes a protobuf go data object to a network stream.
 // then the stream will be returned and caller is able to read the response from it.
 func Send(host core.Host, protocolID protocol.ID, peerID peer.ID, data proto.Message) (network.Stream, error) {
-	raw, err := proto.Marshal(data)
+	raw, err := rlp.EncodeToBytes(data)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +34,7 @@ func Send(host core.Host, protocolID protocol.ID, peerID peer.ID, data proto.Mes
 }
 
 func Reply(stream network.Stream, data proto.Message) error {
-	raw, err := proto.Marshal(data)
+	raw, err := rlp.EncodeToBytes(data)
 	if err != nil {
 		return err
 	}

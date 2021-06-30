@@ -2,17 +2,17 @@ package wired
 
 import (
 	"fmt"
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
 )
 
 func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpointHash []byte) (id []byte, stream network.Stream, err error) {
-	payload, err := proto.Marshal(&message.GetSheetPayload{
+	payload, err := rlp.EncodeToBytes(&message.GetSheetPayload{
 		CheckpointHeight: checkpointHeight,
 		CheckpointHash:   checkpointHash,
 	})
@@ -57,7 +57,7 @@ func (w *Wired) onGetSheet(stream network.Stream, msg *message.Message) {
 
 	getSheetPayload := &message.GetSheetPayload{}
 
-	err := proto.Unmarshal(msg.Payload, getSheetPayload)
+	err := rlp.DecodeBytes(msg.Payload, getSheetPayload)
 	if err != nil {
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return

@@ -3,7 +3,7 @@ package ngtypes
 var genesisBlock *Block
 
 // GetGenesisBlock will return a complete sealed GenesisBlock.
-func GetGenesisBlock(network uint8) *Block {
+func GetGenesisBlock(network Network) *Block {
 	txs := []*Tx{
 		GetGenesisGenerateTx(network),
 	}
@@ -30,6 +30,6 @@ func GetGenesisBlock(network uint8) *Block {
 	return genesisBlock
 }
 
-func GetGenesisBlockHash(network uint8) []byte {
+func GetGenesisBlockHash(network Network) []byte {
 	return GetGenesisBlock(network).GetHash()
 }

@@ -3,10 +3,9 @@ package ngblocks
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/dgraph-io/badger/v3"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -28,13 +27,13 @@ func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
 		return nil, fmt.Errorf("no such tx in hash")
 	}
 
-	var tx ngproto.Tx
-	err = proto.Unmarshal(raw, &tx)
+	var tx ngtypes.Tx
+	err = rlp.DecodeBytes(raw, &tx)
 	if err != nil {
 		return nil, err
 	}
 
-	return ngtypes.NewTxFromProto(&tx), nil
+	return &tx, nil
 }
 
 func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
@@ -52,13 +51,13 @@ func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
 		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
 	}
 
-	var b ngproto.Block
-	err = proto.Unmarshal(raw, &b)
+	var b ngtypes.Block
+	err = rlp.DecodeBytes(raw, &b)
 	if err != nil {
 		return nil, err
 	}
 
-	return ngtypes.NewBlockFromProto(&b), nil
+	return &b, nil
 }
 
 func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
@@ -84,13 +83,13 @@ func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
 		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
 	}
 
-	var b ngproto.Block
-	err = proto.Unmarshal(raw, &b)
+	var b ngtypes.Block
+	err = rlp.DecodeBytes(raw, &b)
 	if err != nil {
 		return nil, err
 	}
 
-	return ngtypes.NewBlockFromProto(&b), nil
+	return &b, nil
 }
 
 func GetLatestHeight(txn *badger.Txn) (uint64, error) {
@@ -201,11 +200,11 @@ func GetOriginBlock(txn *badger.Txn) (*ngtypes.Block, error) {
 		return nil, fmt.Errorf("failed to get origin block: %s", err)
 	}
 
-	var block ngproto.Block
-	err = proto.Unmarshal(rawBlock, &block)
+	var block ngtypes.Block
+	err = rlp.DecodeBytes(rawBlock, &block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get origin block: %s", err)
 	}
 
-	return ngtypes.NewBlockFromProto(&block), nil
+	return &block, nil
 }

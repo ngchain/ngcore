@@ -1,8 +1,8 @@
 package wired
 
 import (
+	"github.com/c0mm4nd/rlp"
 	"github.com/libp2p/go-libp2p-core/network"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -12,10 +12,10 @@ func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.She
 	log.Debugf("sending sheet to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
 	pongPayload := &message.SheetPayload{
-		Sheet: sheet.GetProto(),
+		Sheet: sheet,
 	}
 
-	rawPayload, err := proto.Marshal(pongPayload)
+	rawPayload, err := rlp.EncodeToBytes(pongPayload)
 	if err != nil {
 		return false
 	}
@@ -51,7 +51,7 @@ func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.She
 func DecodeSheetPayload(rawPayload []byte) (*message.SheetPayload, error) {
 	sheetPayload := &message.SheetPayload{}
 
-	err := proto.Unmarshal(rawPayload, sheetPayload)
+	err := rlp.DecodeBytes(rawPayload, sheetPayload)
 	if err != nil {
 		return nil, err
 	}

@@ -40,7 +40,7 @@ var (
 )
 
 type Tx struct {
-	Network      uint8
+	Network      Network
 	Type         uint8
 	Height       uint64 // lock the tx on the specific height, rather than the hash, to make the tx can act on forking
 	Convener     AccountNum
@@ -53,7 +53,7 @@ type Tx struct {
 }
 
 // NewTx is the default constructor for ngtypes.Tx
-func NewTx(network uint8, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
+func NewTx(network Network, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
 	extraData, sign, hash []byte) *Tx {
 	tx := &Tx{
 		Network:      network,
@@ -72,7 +72,7 @@ func NewTx(network uint8, txType uint8, height uint64, convener AccountNum, part
 }
 
 // NewUnsignedTx will return an unsigned tx, must using Signature().
-func NewUnsignedTx(network uint8, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
+func NewUnsignedTx(network Network, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
 	extraData []byte) *Tx {
 
 	return NewTx(network, txType, height, convener, participants, values, fee, extraData, nil, nil)
@@ -357,7 +357,7 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 
 	// check this on chain
 	//var appendExtra AppendExtra
-	//err = proto.Unmarshal(x.Extra, &appendExtra)
+	//err = rlp.DecodeBytes(x.Extra, &appendExtra)
 	//if err != nil {
 	//	return err
 	//}

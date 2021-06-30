@@ -1,17 +1,17 @@
 package wired
 
 import (
+	"github.com/c0mm4nd/rlp"
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
 )
 
 func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) (id []byte,
 	stream network.Stream) {
-	payload, err := proto.Marshal(&message.PingPayload{
+	payload, err := rlp.EncodeToBytes(&message.PingPayload{
 		Origin:               origin,
 		Latest:               latest,
 		CheckpointHash:       checkpointHash,
@@ -56,7 +56,7 @@ func (w *Wired) onPing(stream network.Stream, msg *message.Message) {
 	log.Debugf("Received ping request from %s.", stream.Conn().RemotePeer())
 	ping := &message.PingPayload{}
 
-	err := proto.Unmarshal(msg.Payload, ping)
+	err := rlp.DecodeBytes(msg.Payload, ping)
 	if err != nil {
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return
@@ -66,5 +66,5 @@ func (w *Wired) onPing(stream network.Stream, msg *message.Message) {
 	origin := w.chain.GetOriginBlock()
 	latest := w.chain.GetLatestBlock()
 	checkpoint := w.chain.GetLatestCheckpoint()
-	w.sendPong(msg.Header.MessageId, stream, origin.Header.GetHeight(), latest.Header.GetHeight(), checkpoint.GetHash(), checkpoint.GetActualDiff().Bytes())
+	w.sendPong(msg.Header.MessageId, stream, origin.Header.Height, latest.Header.Height, checkpoint.GetHash(), checkpoint.GetActualDiff().Bytes())
 }

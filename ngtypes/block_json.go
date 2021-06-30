@@ -10,7 +10,7 @@ import (
 )
 
 type jsonBlock struct {
-	Network uint8 `json:"network"`
+	Network string `json:"network"`
 
 	Height    uint64 `json:"height"`
 	Timestamp uint64 `json:"timestamp"`
@@ -32,7 +32,7 @@ type jsonBlock struct {
 
 func (x *Block) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonBlock{
-		Network:       x.Header.Network,
+		Network:       x.Header.Network.String(),
 		Height:        x.Header.Height,
 		Timestamp:     x.Header.Timestamp,
 		PrevBlockHash: hex.EncodeToString(x.Header.PrevBlockHash),
@@ -78,7 +78,7 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 	}
 
 	*x = *NewBlock(
-		b.Network,
+		GetNetwork(b.Network),
 		b.Height,
 		b.Timestamp,
 		prevBlockHash,

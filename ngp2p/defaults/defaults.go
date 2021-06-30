@@ -2,7 +2,6 @@ package defaults
 
 import (
 	"encoding/hex"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -15,22 +14,22 @@ const (
 	protocolVersion = "/0.0.1"
 )
 
-func getGenesisBlockHash(network ngproto.NetworkType) string {
+func getGenesisBlockHash(network ngtypes.Network) string {
 	return hex.EncodeToString(ngtypes.GetGenesisBlockHash(network))
 }
 
-func GetWiredProtocol(network ngproto.NetworkType) string {
+func GetWiredProtocol(network ngtypes.Network) string {
 	return "/ngp2p/wired/" + getGenesisBlockHash(network) + protocolVersion
 }
 
-func GetDHTProtocolExtension(network ngproto.NetworkType) string {
+func GetDHTProtocolExtension(network ngtypes.Network) string {
 	return "/ngp2p/dht/" + getGenesisBlockHash(network) + protocolVersion
 }
 
-func GetBroadcastBlockTopic(network ngproto.NetworkType) string {
+func GetBroadcastBlockTopic(network ngtypes.Network) string {
 	return "/ngp2p/broadcast/block/" + getGenesisBlockHash(network) + protocolVersion
 }
 
-func GetBroadcastTxTopic(network ngproto.NetworkType) string {
+func GetBroadcastTxTopic(network ngtypes.Network) string {
 	return "/ngp2p/broadcast/tx/" + getGenesisBlockHash(network) + protocolVersion
 }

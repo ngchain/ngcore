@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 
@@ -39,7 +37,7 @@ type PoWork struct {
 }
 
 type PoWorkConfig struct {
-	Network                     ngproto.NetworkType
+	Network                     ngtypes.Network
 	StrictMode                  bool
 	SnapshotMode                bool
 	DisableConnectingBootstraps bool
@@ -81,7 +79,7 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 
 	currentBlockHash := currentBlock.GetHash()
 
-	blockTime := time.Now().Unix()
+	blockTime := uint64(time.Now().Unix())
 
 	blockHeight := currentBlock.Header.Height + 1
 	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock)
@@ -97,7 +95,7 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	var extraData []byte // FIXME
 
 	genTx := pow.createGenerateTx(blockHeight, extraData)
-	txs := pow.Pool.GetPack(currentBlockHash).Txs
+	txs := pow.Pool.GetPack(blockHeight)
 	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
 
 	err := newBlock.ToUnsealing(txsWithGen)
@@ -173,7 +171,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash := block.GetHash()
-	log.Warnf("mined a new block: %x@%d", hash, block.Header.GetHeight())
+	log.Warnf("mined a new block: %x@%d", hash, block.Header.Height)
 
 	pow.Pool.Reset()
 

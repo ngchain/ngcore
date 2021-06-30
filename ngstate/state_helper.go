@@ -2,12 +2,10 @@ package ngstate
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/c0mm4nd/rlp"
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -25,13 +23,13 @@ func getAccountByNum(txn *badger.Txn, num ngtypes.AccountNum) (*ngtypes.Account,
 		return nil, fmt.Errorf("cannot get account: %s", err)
 	}
 
-	var acc ngproto.Account
-	err = proto.Unmarshal(rawAcc, &acc)
+	var acc ngtypes.Account
+	err = rlp.DecodeBytes(rawAcc, &acc)
 	if err != nil {
 		return nil, err
 	}
 
-	return ngtypes.NewAccountFromProto(&acc), nil
+	return &acc, nil
 }
 
 // DONE: make sure num/addr = 1/1
@@ -72,7 +70,7 @@ func getBalance(txn *badger.Txn, addr ngtypes.Address) (*big.Int, error) {
 }
 
 func setAccount(txn *badger.Txn, num ngtypes.AccountNum, account *ngtypes.Account) error {
-	rawAccount, err := proto.Marshal(account.GetProto())
+	rawAccount, err := rlp.EncodeToBytes(account)
 	if err != nil {
 		return err
 	}

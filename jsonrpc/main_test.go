@@ -1,7 +1,7 @@
 package jsonrpc_test
 
 import (
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/ngchain/ngcore/ngtypes"
 	"testing"
 	"time"
 
@@ -18,7 +18,7 @@ import (
 
 // TODO: add tests for each method rather than testing the server
 func TestNewRPCServer(t *testing.T) {
-	network := ngproto.NetworkType_ZERONET
+	var network = ngtypes.ZERONET
 
 	key := keytools.NewLocalKey()
 	db := storage.InitMemStorage()

@@ -1,11 +1,10 @@
 package wired
 
 import (
+	"github.com/c0mm4nd/rlp"
 	"github.com/libp2p/go-libp2p-core/network"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngp2p/message"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -17,15 +16,15 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 	}
 
 	log.Debugf("replying sendChain to %s. Message id: %x, from block@%d to %d",
-		stream.Conn().RemotePeer(), uuid, blocks[0].Header.GetHeight(), blocks[len(blocks)-1].Header.GetHeight(),
+		stream.Conn().RemotePeer(), uuid, blocks[0].Header.Height, blocks[len(blocks)-1].Header.Height,
 	)
 
-	protoBlocks := make([]*ngproto.Block, len(blocks))
+	protoBlocks := make([]*ngtypes.Block, len(blocks))
 	for i := 0; i < len(blocks); i++ {
-		protoBlocks[i] = blocks[i].GetProto()
+		protoBlocks[i] = blocks[i]
 	}
 
-	payload, err := proto.Marshal(&message.ChainPayload{
+	payload, err := rlp.EncodeToBytes(&message.ChainPayload{
 		Blocks: protoBlocks,
 	})
 	if err != nil {
@@ -64,7 +63,7 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 func DecodeChainPayload(rawPayload []byte) (*message.ChainPayload, error) {
 	payload := &message.ChainPayload{}
 
-	err := proto.Unmarshal(rawPayload, payload)
+	err := rlp.DecodeBytes(rawPayload, payload)
 	if err != nil {
 		return nil, err
 	}

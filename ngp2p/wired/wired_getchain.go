@@ -5,10 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngp2p/message"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -24,7 +24,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 		to = ngtypes.GetEmptyHash()
 	}
 
-	payload, err := proto.Marshal(&message.GetChainPayload{
+	payload, err := rlp.EncodeToBytes(&message.GetChainPayload{
 		From: from,
 		To:   to,
 	})
@@ -81,7 +81,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 
 	getChainPayload := &message.GetChainPayload{}
 
-	err := proto.Unmarshal(msg.Payload, getChainPayload)
+	err := rlp.DecodeBytes(msg.Payload, getChainPayload)
 	if err != nil {
 		w.sendReject(msg.Header.MessageId, stream, err)
 		return
@@ -162,7 +162,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		}
 
 		for i := 0; i < len(getChainPayload.GetFrom())-1-samepointIndex; i++ {
-			blockHeight := cur.Header.GetHeight() + 1
+			blockHeight := cur.Header.Height + 1
 			cur, err = w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
 				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
@@ -181,7 +181,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 				break
 			}
 
-			nextHeight := cur.Header.GetHeight() + 1
+			nextHeight := cur.Header.Height + 1
 			cur, err = w.chain.GetBlockByHeight(nextHeight)
 			if err != nil {
 				log.Debugf("local chain lacks block@%d: %s", nextHeight, err)

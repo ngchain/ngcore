@@ -2,10 +2,9 @@ package ngblocks
 
 import (
 	"fmt"
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/dgraph-io/badger/v3"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -50,7 +49,7 @@ func putTxs(txn *badger.Txn, block *ngtypes.Block) error {
 	for i := range block.Txs {
 		hash := block.Txs[i].GetHash()
 
-		raw, err := proto.Marshal(block.Txs[i].GetProto())
+		raw, err := rlp.EncodeToBytes(block.Txs[i])
 		if err != nil {
 			return err
 		}
@@ -65,7 +64,7 @@ func putTxs(txn *badger.Txn, block *ngtypes.Block) error {
 }
 
 func putBlock(txn *badger.Txn, hash []byte, block *ngtypes.Block) error {
-	raw, err := proto.Marshal(block.GetProto())
+	raw, err := rlp.EncodeToBytes(block)
 	if err != nil {
 		return err
 	}

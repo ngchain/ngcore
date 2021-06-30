@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
 
@@ -150,13 +148,13 @@ var action = func(c *cli.Context) error {
 		log.Warn("running on non-strict mode")
 	}
 
-	var network = ngproto.NetworkType_TESTNET
+	var network = ngtypes.TESTNET
 	if c.Bool(testNetFlag.Name) {
-		network = ngproto.NetworkType_TESTNET
+		network = ngtypes.TESTNET
 	}
 
 	if c.Bool(regTestNetFlag.Name) {
-		network = ngproto.NetworkType_ZERONET // use zero net as the regression test network
+		network = ngtypes.ZERONET // use zero net as the regression test network
 	}
 
 	if withProfile {
@@ -213,7 +211,7 @@ var action = func(c *cli.Context) error {
 		P2PKeyFile:       p2pKeyFile,
 		Network:          network,
 		Port:             p2pTCPPort,
-		DisableDiscovery: network == ngproto.NetworkType_ZERONET,
+		DisableDiscovery: network == ngtypes.ZERONET,
 	})
 	localNode.GoServe()
 
@@ -229,7 +227,7 @@ var action = func(c *cli.Context) error {
 			Network:                     network,
 			StrictMode:                  strictMode,
 			SnapshotMode:                snapshotMode,
-			DisableConnectingBootstraps: isBootstrapNode || network == ngproto.NetworkType_ZERONET,
+			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.ZERONET,
 			MiningThread:                mining,
 			PrivateKey:                  key,
 		},

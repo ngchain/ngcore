@@ -8,7 +8,7 @@ import (
 )
 
 type jsonTx struct {
-	Network      uint8      `json:"network"`
+	Network      string     `json:"network"`
 	Type         uint8      `json:"type"`
 	Height       uint64     `json:"prevBlockHash"`
 	Convener     AccountNum `json:"convener"`
@@ -26,7 +26,7 @@ type jsonTx struct {
 func (x *Tx) MarshalJSON() ([]byte, error) {
 
 	return utils.JSON.Marshal(jsonTx{
-		Network:      x.Network,
+		Network:      x.Network.String(),
 		Type:         x.Type,
 		Height:       x.Height,
 		Convener:     x.Convener,
@@ -64,7 +64,7 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 	}
 
 	*x = *NewTx(
-		tx.Network,
+		GetNetwork(tx.Network),
 		tx.Type,
 		tx.Height,
 		tx.Convener,

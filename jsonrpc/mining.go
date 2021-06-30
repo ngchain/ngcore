@@ -2,11 +2,9 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -48,7 +46,7 @@ type getWorkReply struct {
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	blockTemplate := s.pow.GetBlockTemplate()
 
-	rawBlock, err := proto.Marshal(blockTemplate.GetProto())
+	rawBlock, err := rlp.EncodeToBytes(blockTemplate)
 	if err != nil {
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -94,16 +92,16 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var protoBlock ngproto.Block
-	err = proto.Unmarshal(rawBlock, &protoBlock)
+	var newBlock ngtypes.Block
+	err = rlp.DecodeBytes(rawBlock, &newBlock)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	protoBlock.Header.Nonce = nonce
+	newBlock.Header.Nonce = nonce
 
-	err = s.pow.MinedNewBlock(ngtypes.NewBlockFromProto(&protoBlock))
+	err = s.pow.MinedNewBlock(&newBlock)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

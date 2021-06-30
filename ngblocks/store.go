@@ -3,7 +3,7 @@ package ngblocks
 import (
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 const (
@@ -27,11 +27,11 @@ var (
 // then load the origin in bootstrap process
 type BlockStore struct {
 	*badger.DB
-	Network ngproto.NetworkType
+	Network ngtypes.Network
 }
 
 // Init will do all initialization for the block store.
-func Init(db *badger.DB, network ngproto.NetworkType) *BlockStore {
+func Init(db *badger.DB, network ngtypes.Network) *BlockStore {
 	store := &BlockStore{
 		DB:      db,
 		Network: network,

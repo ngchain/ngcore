@@ -8,7 +8,7 @@ import (
 var big2 = big.NewInt(2)
 
 // GetNextDiff is a helper to get next pow block Diff field.
-func GetNextDiff(blockHeight uint64, blockTime int64, tailBlock *Block) *big.Int {
+func GetNextDiff(blockHeight uint64, blockTime uint64, tailBlock *Block) *big.Int {
 	diff := new(big.Int).SetBytes(tailBlock.Header.Difficulty)
 	if !tailBlock.IsTail() {
 		return diff
@@ -30,7 +30,7 @@ func GetNextDiff(blockHeight uint64, blockTime int64, tailBlock *Block) *big.Int
 
 	// reload the diff
 	diff = new(big.Int).SetBytes(tailBlock.Header.Difficulty)
-	d := blockTime - int64(tailBlock.Header.Timestamp) - int64(TargetTime/time.Second)
+	d := int64(blockTime) - int64(tailBlock.Header.Timestamp) - int64(TargetTime/time.Second)
 	delta.Div(diff, big.NewInt(2048))
 	delta.Mul(delta, big.NewInt(max(1-(d)/10, -99)))
 	diff.Add(diff, delta)

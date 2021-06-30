@@ -55,13 +55,13 @@ func getGenesisToolsCommand() *cli.Command {
 
 				gtx := ngtypes.GetGenesisGenerateTx(network)
 				if err := gtx.CheckGenerate(0); err != nil {
-					fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing... \n", gtx.Proto.Sign, err)
+					fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing... \n", gtx.Sign, err)
 					err = gtx.Signature(localKey)
 					if err != nil {
 						panic(err)
 					}
 
-					fmt.Printf("Genesis Generate Tx Sign: %x \n", gtx.Proto.Sign)
+					fmt.Printf("Genesis Generate Tx Sign: %x \n", gtx.Sign)
 				} else {
 					fmt.Printf("Genesis block's generate tx is healthy \n")
 				}
@@ -108,7 +108,7 @@ func getGenesisToolsCommand() *cli.Command {
 }
 
 func genBlockNonce(b *ngtypes.Block) {
-	diff := new(big.Int).SetBytes(b.Header.GetDifficulty())
+	diff := new(big.Int).SetBytes(b.Header.Difficulty)
 	genesisTarget := new(big.Int).Div(ngtypes.MaxTarget, diff)
 	fmt.Printf("Genesis block's diff %d, target %x \n", diff, genesisTarget.Bytes())
 
@@ -132,7 +132,7 @@ func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh ch
 	if err != nil {
 		panic(err)
 	}
-	randomx.InitCache(cache, b.Header.GetPrevBlockHash())
+	randomx.InitCache(cache, b.Header.PrevBlockHash)
 	ds, err := randomx.AllocDataset(randomx.FlagJIT)
 	if err != nil {
 		panic(err)

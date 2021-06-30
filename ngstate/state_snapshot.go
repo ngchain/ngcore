@@ -2,15 +2,13 @@ package ngstate
 
 import (
 	"encoding/hex"
+	"github.com/c0mm4nd/rlp"
+	"math/big"
 	"sync"
 
 	"github.com/dgraph-io/badger/v3"
-	"github.com/mr-tron/base58"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 )
 
 //var snapshot *atomic.Value
@@ -74,8 +72,8 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 
 // generateSnapshot when the block is a checkpoint
 func (state *State) generateSnapshot(txn *badger.Txn) error {
-	accounts := make(map[uint64]*ngproto.Account)
-	anonymous := make(map[string][]byte)
+	accounts := make([]*ngtypes.Account, 0)
+	balances := make([]*ngtypes.Balance, 0)
 	latestBlock, err := ngblocks.GetLatestBlock(txn)
 	if err != nil {
 		return err
@@ -90,13 +88,13 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 			return err
 		}
 
-		var account ngproto.Account
-		err = proto.Unmarshal(rawAccount, &account)
+		var account ngtypes.Account
+		err = rlp.DecodeBytes(rawAccount, &account)
 		if err != nil {
 			return err
 		}
 
-		accounts[account.Num] = &account
+		accounts = append(accounts, &account)
 	}
 
 	it = txn.NewIterator(badger.DefaultIteratorOptions)
@@ -109,10 +107,13 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 			return err
 		}
 
-		anonymous[base58.FastBase58Encoding(addr)] = rawBalance
+		balances = append(balances, &ngtypes.Balance{
+			Address: addr,
+			Amount:  new(big.Int).SetBytes(rawBalance),
+		})
 	}
 
-	sheet := ngtypes.NewSheet(state.Network, latestBlock.Header.Height, latestBlock.GetHash(), accounts, anonymous)
+	sheet := ngtypes.NewSheet(state.Network, latestBlock.Header.Height, latestBlock.GetHash(), balances, accounts)
 	state.SnapshotManager.PutSnapshot(latestBlock.Header.Height, latestBlock.GetHash(), sheet)
 	return nil
 }

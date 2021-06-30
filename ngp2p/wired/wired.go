@@ -2,9 +2,8 @@ package wired
 
 import (
 	"fmt"
-
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-	"google.golang.org/protobuf/proto"
+	"github.com/c0mm4nd/rlp"
+	"github.com/ngchain/ngcore/ngtypes"
 
 	"github.com/libp2p/go-libp2p-core/protocol"
 
@@ -24,7 +23,7 @@ var log = logging.Logger("wired")
 
 // Wired type
 type Wired struct {
-	network ngproto.NetworkType
+	network ngtypes.Network
 	host    core.Host // local host
 
 	protocolID protocol.ID
@@ -32,7 +31,7 @@ type Wired struct {
 	chain *blockchain.Chain
 }
 
-func NewWiredProtocol(host core.Host, network ngproto.NetworkType, chain *blockchain.Chain) *Wired {
+func NewWiredProtocol(host core.Host, network ngtypes.Network, chain *blockchain.Chain) *Wired {
 	w := &Wired{
 		network: network,
 		host:    host,
@@ -68,7 +67,7 @@ func (w *Wired) handleStream(stream network.Stream) {
 	// unmarshal it
 	var msg = &message.Message{}
 
-	err = proto.Unmarshal(raw, msg)
+	err = rlp.DecodeBytes(raw, msg)
 	if err != nil {
 		log.Error(err)
 		return
