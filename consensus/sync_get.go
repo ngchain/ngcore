@@ -3,7 +3,6 @@ package consensus
 import (
 	"fmt"
 
-	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngp2p/wired"
 
 	core "github.com/libp2p/go-libp2p-core"
@@ -28,8 +27,8 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 		return err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_PONG:
+	switch reply.Header.Type {
+	case wired.PongMsg:
 		pongPayload, err := wired.DecodePongPayload(reply.Payload)
 		if err != nil {
 			return err
@@ -37,16 +36,16 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 
 		if _, exists := mod.store[peerID]; !exists {
 			mod.putRemote(peerID, NewRemoteRecord(peerID, pongPayload.Origin, pongPayload.Latest,
-				pongPayload.CheckpointHash, pongPayload.CheckpointActualDiff))
+				pongPayload.CheckpointHash, pongPayload.CheckpointDiff))
 		} else {
 			mod.store[peerID].update(pongPayload.Origin, pongPayload.Latest,
-				pongPayload.CheckpointHash, pongPayload.CheckpointActualDiff)
+				pongPayload.CheckpointHash, pongPayload.CheckpointDiff)
 		}
 
-	case message.MessageType_REJECT:
+	case wired.RejectMsg:
 		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
 	default:
-		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 
 	return nil
@@ -66,8 +65,8 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_CHAIN:
+	switch reply.Header.Type {
+	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to send ping: %s", err)
@@ -76,14 +75,11 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 		// TODO: add support for hashes etc
 		return chainPayload.Blocks, err
 
-	case message.MessageType_REJECT:
+	case wired.RejectMsg:
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
 
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("chain is not found in remote")
-
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 }
 
@@ -99,8 +95,8 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_CHAIN:
+	switch reply.Header.Type {
+	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to send ping: %s", err)
@@ -109,14 +105,11 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		// TODO: add support for hashes etc
 		return chainPayload.Blocks, err
 
-	case message.MessageType_REJECT:
+	case wired.RejectMsg:
 		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
 
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("chain is not found in remote")
-
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 }
 
@@ -131,8 +124,8 @@ func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_SHEET:
+	switch reply.Header.Type {
+	case wired.SheetMsg:
 		sheetPayload, err := wired.DecodeSheetPayload(reply.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to send ping: %s", err)
@@ -141,13 +134,10 @@ func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes
 		// TODO: add support for hashes etc
 		return sheetPayload.Sheet, err
 
-	case message.MessageType_REJECT:
+	case wired.RejectMsg:
 		return nil, fmt.Errorf("getsheet is rejected by remote: %s", string(reply.Payload))
 
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("checkpoint's sheet is not found in remote")
-
 	default:
-		return nil, fmt.Errorf("remote replies with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, fmt.Errorf("remote replies with invalid messgae type: %s", reply.Header.Type)
 	}
 }

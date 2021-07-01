@@ -4,8 +4,6 @@ import (
 	"github.com/c0mm4nd/rlp"
 	"github.com/libp2p/go-libp2p-core/network"
 
-	"github.com/ngchain/ngcore/ngp2p/message"
-
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -24,7 +22,7 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 		protoBlocks[i] = blocks[i]
 	}
 
-	payload, err := rlp.EncodeToBytes(&message.ChainPayload{
+	payload, err := rlp.EncodeToBytes(&ChainPayload{
 		Blocks: protoBlocks,
 	})
 	if err != nil {
@@ -33,8 +31,8 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 	}
 
 	// create message data
-	resp := &message.Message{
-		Header:  NewHeader(w.host, w.network, uuid, message.MessageType_CHAIN),
+	resp := &Message{
+		Header:  NewHeader(w.host, w.network, uuid, ChainMsg),
 		Payload: payload,
 	}
 
@@ -50,23 +48,23 @@ func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes
 
 	err = Reply(stream, resp)
 	if err != nil {
-		log.Debugf("sendChain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+		log.Debugf("sendChain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.ID)
 		return false
 	}
 
-	log.Debugf("sendChain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("sendChain to: %s was sent. Message Id: %x", stream.Conn().RemotePeer(), resp.Header.ID)
 
 	return true
 }
 
 // DecodeChainPayload unmarshal the raw and return the *pb.ChainPayload.
-func DecodeChainPayload(rawPayload []byte) (*message.ChainPayload, error) {
-	payload := &message.ChainPayload{}
+func DecodeChainPayload(rawPayload []byte) (*ChainPayload, error) {
+	var payload ChainPayload
 
-	err := rlp.DecodeBytes(rawPayload, payload)
+	err := rlp.DecodeBytes(rawPayload, &payload)
 	if err != nil {
 		return nil, err
 	}
 
-	return payload, nil
+	return &payload, nil
 }

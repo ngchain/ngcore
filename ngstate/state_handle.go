@@ -72,7 +72,7 @@ func (state *State) handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) 
 
 func (state *State) handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
-	publicKey := ngtypes.Address(tx.Participants[0]).PubKey()
+	publicKey := tx.Participants[0].PubKey()
 	if err = tx.Verify(publicKey); err != nil {
 		return err
 	}

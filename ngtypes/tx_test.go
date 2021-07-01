@@ -65,7 +65,7 @@ func TestTransaction_Signature(t *testing.T) {
 func TestGetGenesisGenerate(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		gg := ngtypes.GetGenesisGenerateTx(net)
-		if err := gg.Verify(ngtypes.Address(gg.Participants[0]).PubKey()); err != nil {
+		if err := gg.Verify(gg.Participants[0].PubKey()); err != nil {
 			t.Log(err)
 			t.Fail()
 		}

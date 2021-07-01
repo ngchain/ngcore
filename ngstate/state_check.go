@@ -111,7 +111,7 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 // checkGenerate checks the generate tx
 func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) error {
 
-	item, err := txn.Get(append(numToAccountPrefix, ngtypes.AccountNum(generateTx.Convener).Bytes()...))
+	item, err := txn.Get(append(numToAccountPrefix, generateTx.Convener.Bytes()...))
 	if err != nil {
 		return fmt.Errorf("cannot find convener %d: %s", generateTx.Convener, err)
 	}
@@ -207,7 +207,7 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 
 // checkTransaction checks normal transaction tx
 func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(transactionTx.Convener))
+	convener, err := getAccountByNum(txn, transactionTx.Convener)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
 
 // checkAppend checks append tx
 func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(appendTx.Convener))
+	convener, err := getAccountByNum(txn, appendTx.Convener)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 
 // checkDelete checks delete tx
 func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, ngtypes.AccountNum(deleteTx.Convener))
+	convener, err := getAccountByNum(txn, deleteTx.Convener)
 	if err != nil {
 		return err
 	}

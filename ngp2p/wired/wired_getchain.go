@@ -8,7 +8,6 @@ import (
 	"github.com/c0mm4nd/rlp"
 
 	"github.com/ngchain/ngcore/ngp2p/defaults"
-	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -24,7 +23,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 		to = ngtypes.GetEmptyHash()
 	}
 
-	payload, err := rlp.EncodeToBytes(&message.GetChainPayload{
+	payload, err := rlp.EncodeToBytes(&GetChainPayload{
 		From: from,
 		To:   to,
 	})
@@ -37,8 +36,8 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 	id, _ = uuid.New().MarshalBinary()
 
 	// create message data
-	req := &message.Message{
-		Header:  NewHeader(w.host, w.network, id, message.MessageType_GETCHAIN),
+	req := &Message{
+		Header:  NewHeader(w.host, w.network, id, GetChainMsg),
 		Payload: payload,
 	}
 
@@ -59,9 +58,9 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 		return nil, nil, err
 	}
 
-	log.Debugf("getchain to: %s was sent. Message Id: %x, request blocks: %s to %s", peerID, req.Header.MessageId, fmtFromField(from), string(to))
+	log.Debugf("getchain to: %s was sent. Message Id: %x, request blocks: %s to %s", peerID, req.Header.ID, fmtFromField(from), string(to))
 
-	return req.Header.MessageId, stream, nil
+	return req.Header.ID, stream, nil
 }
 
 // RULE:
@@ -76,56 +75,56 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 // sync mode:
 // parse request to [[peerHeight], to]
 // return [peerHeight+1, ..., to]
-func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
+func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 	log.Debugf("Received getchain request from %s.", stream.Conn().RemotePeer())
 
-	getChainPayload := &message.GetChainPayload{}
+	getChainPayload := &GetChainPayload{}
 
 	err := rlp.DecodeBytes(msg.Payload, getChainPayload)
 	if err != nil {
-		w.sendReject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.ID, stream, err)
 		return
 	}
 
 	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
 
-	if getChainPayload.GetFrom() == nil || len(getChainPayload.GetFrom()) == 0 && len(getChainPayload.To) == 16 {
+	if getChainPayload.From == nil || len(getChainPayload.From) == 0 && len(getChainPayload.To) == 16 {
 		// fetching mode
-		from := binary.LittleEndian.Uint64(getChainPayload.GetTo()[0:8])
-		to := binary.LittleEndian.Uint64(getChainPayload.GetTo()[8:16])
+		from := binary.LittleEndian.Uint64(getChainPayload.To[0:8])
+		to := binary.LittleEndian.Uint64(getChainPayload.To[8:16])
 		for blockHeight := from; blockHeight <= to; blockHeight++ {
 			cur, err := w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
 				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
 				log.Error(err)
-				w.sendReject(msg.Header.MessageId, stream, err)
+				w.sendReject(msg.Header.ID, stream, err)
 				return
 			}
 
 			blocks = append(blocks, cur)
 		}
 
-		w.sendChain(msg.Header.MessageId, stream, blocks...)
+		w.sendChain(msg.Header.ID, stream, blocks...)
 		return
 	}
 
-	log.Debugf("getchain requests from %x to %x", getChainPayload.GetFrom()[0], getChainPayload.GetTo())
+	log.Debugf("getchain requests from %x to %x", getChainPayload.From[0], getChainPayload.To)
 
 	// init cur
-	cur, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[0])
+	cur, err := w.chain.GetBlockByHash(getChainPayload.From[0])
 	if err != nil {
-		err = fmt.Errorf("cannot get block by hash %x: %s", getChainPayload.GetFrom()[0], err)
+		err = fmt.Errorf("cannot get block by hash %x: %s", getChainPayload.From[0], err)
 		log.Error(err)
-		w.sendReject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.ID, stream, err)
 		return
 	}
 
 	// run converging mode
-	if len(getChainPayload.GetTo()) == 16 {
+	if len(getChainPayload.To) == 16 {
 		var samepointIndex int
 		// do hashes check first
-		for samepointIndex < len(getChainPayload.GetFrom()) {
-			_, err := w.chain.GetBlockByHash(getChainPayload.GetFrom()[samepointIndex])
+		for samepointIndex < len(getChainPayload.From) {
+			_, err := w.chain.GetBlockByHash(getChainPayload.From[samepointIndex])
 			if err == nil {
 				// err == nil means found the samepoint
 				break
@@ -134,50 +133,50 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 			samepointIndex++
 		}
 
-		if samepointIndex == len(getChainPayload.GetFrom()) {
+		if samepointIndex == len(getChainPayload.From) {
 			// not found samepoint, return nil
-			from := binary.LittleEndian.Uint64(getChainPayload.GetTo()[0:8])
-			to := binary.LittleEndian.Uint64(getChainPayload.GetTo()[8:16])
+			from := binary.LittleEndian.Uint64(getChainPayload.To[0:8])
+			to := binary.LittleEndian.Uint64(getChainPayload.To[8:16])
 			for blockHeight := from; blockHeight <= to; blockHeight++ {
 				cur, err = w.chain.GetBlockByHeight(blockHeight)
 				if err != nil {
 					err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
 					log.Debug(err)
-					w.sendReject(msg.Header.MessageId, stream, err)
+					w.sendReject(msg.Header.ID, stream, err)
 					return
 				}
 
 				blocks = append(blocks, cur)
 			}
 
-			w.sendChain(msg.Header.MessageId, stream, blocks...)
+			w.sendChain(msg.Header.ID, stream, blocks...)
 			return
 		}
 
 		// not include this point
-		cur, err = w.chain.GetBlockByHash(getChainPayload.GetFrom()[samepointIndex])
+		cur, err = w.chain.GetBlockByHash(getChainPayload.From[samepointIndex])
 		if err != nil {
-			w.sendReject(msg.Header.MessageId, stream, err)
+			w.sendReject(msg.Header.ID, stream, err)
 			return
 		}
 
-		for i := 0; i < len(getChainPayload.GetFrom())-1-samepointIndex; i++ {
+		for i := 0; i < len(getChainPayload.From)-1-samepointIndex; i++ {
 			blockHeight := cur.Header.Height + 1
 			cur, err = w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
 				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
 				log.Debug(err)
-				w.sendReject(msg.Header.MessageId, stream, err)
+				w.sendReject(msg.Header.ID, stream, err)
 				return
 			}
 
 			blocks = append(blocks, cur)
 		}
-	} else if len(getChainPayload.GetTo()) == 32 {
+	} else if len(getChainPayload.To) == 32 {
 		// fetch mode
 		for i := 0; i < defaults.MaxBlocks; i++ {
 			// never reach To
-			if bytes.Equal(cur.GetHash(), getChainPayload.GetTo()) {
+			if bytes.Equal(cur.GetHash(), getChainPayload.To) {
 				break
 			}
 
@@ -192,7 +191,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *message.Message) {
 		}
 	}
 
-	w.sendChain(msg.Header.MessageId, stream, blocks...)
+	w.sendChain(msg.Header.ID, stream, blocks...)
 }
 
 func fmtFromField(from [][]byte) string {

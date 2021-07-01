@@ -49,6 +49,8 @@ const (
 	TimestampSize = 8
 	// HashSize is the length of a hash bytes
 	HashSize = 32
+	// DiffSize is the length of a difficulty
+	DiffSize = 32
 	// NonceSize is the length of a nonce bytes
 	NonceSize = 8 // nonce uses 8 bytes
 

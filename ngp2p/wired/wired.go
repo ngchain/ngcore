@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-msgio"
 
 	"github.com/ngchain/ngcore/ngp2p/defaults"
-	"github.com/ngchain/ngcore/ngp2p/message"
 
 	"github.com/libp2p/go-libp2p-core/network"
 )
@@ -65,28 +64,28 @@ func (w *Wired) handleStream(stream network.Stream) {
 	}
 
 	// unmarshal it
-	var msg = &message.Message{}
+	var msg Message
 
-	err = rlp.DecodeBytes(raw, msg)
+	err = rlp.DecodeBytes(raw, &msg)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	if !Verify(stream.Conn().RemotePeer(), msg) {
-		w.sendReject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
+	if !Verify(stream.Conn().RemotePeer(), &msg) {
+		w.sendReject(msg.Header.ID, stream, fmt.Errorf("message is invalid"))
 		return
 	}
 
-	switch msg.Header.MessageType {
-	case message.MessageType_PING:
-		w.onPing(stream, msg)
-	case message.MessageType_GETCHAIN:
-		w.onGetChain(stream, msg)
-	case message.MessageType_GETSHEET:
-		w.onGetChain(stream, msg)
+	switch msg.Header.Type {
+	case PingMsg:
+		w.onPing(stream, &msg)
+	case GetChainMsg:
+		w.onGetChain(stream, &msg)
+	case GetSheetMsg:
+		w.onGetChain(stream, &msg)
 	default:
-		w.sendReject(msg.Header.MessageId, stream, fmt.Errorf("unsupported protocol method"))
+		w.sendReject(msg.Header.ID, stream, fmt.Errorf("unsupported protocol method"))
 	}
 
 	err = stream.Close()

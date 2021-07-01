@@ -7,14 +7,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-
-	"github.com/ngchain/ngcore/ngp2p/message"
 )
 
 func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpointHash []byte) (id []byte, stream network.Stream, err error) {
-	payload, err := rlp.EncodeToBytes(&message.GetSheetPayload{
-		CheckpointHeight: checkpointHeight,
-		CheckpointHash:   checkpointHash,
+	payload, err := rlp.EncodeToBytes(&GetSheetPayload{
+		Height: checkpointHeight,
+		Hash:   checkpointHash,
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to sign pb data: %s", err)
@@ -25,8 +23,8 @@ func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpoint
 	id, _ = uuid.New().MarshalBinary()
 
 	// create message data
-	req := &message.Message{
-		Header:  NewHeader(w.host, w.network, id, message.MessageType_GETCHAIN),
+	req := &Message{
+		Header:  NewHeader(w.host, w.network, id, GetChainMsg),
 		Payload: payload,
 	}
 
@@ -47,29 +45,29 @@ func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpoint
 		return nil, nil, err
 	}
 
-	log.Debugf("getsheet to: %s was sent. Message Id: %x, request sheet @%d: %x", peerID, req.Header.MessageId, checkpointHeight, checkpointHash)
+	log.Debugf("getsheet to: %s was sent. Message Id: %x, request sheet @%d: %x", peerID, req.Header.ID, checkpointHeight, checkpointHash)
 
-	return req.Header.MessageId, stream, nil
+	return req.Header.ID, stream, nil
 }
 
-func (w *Wired) onGetSheet(stream network.Stream, msg *message.Message) {
+func (w *Wired) onGetSheet(stream network.Stream, msg *Message) {
 	log.Debugf("Received getsheet request from %s.", stream.Conn().RemotePeer())
 
-	getSheetPayload := &message.GetSheetPayload{}
+	var getSheetPayload GetSheetPayload
 
-	err := rlp.DecodeBytes(msg.Payload, getSheetPayload)
+	err := rlp.DecodeBytes(msg.Payload, &getSheetPayload)
 	if err != nil {
-		w.sendReject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.ID, stream, err)
 		return
 	}
 
-	log.Debugf("getsheet requests sheet@%d: %x", getSheetPayload.CheckpointHeight, getSheetPayload.CheckpointHash)
+	log.Debugf("getsheet requests sheet@%d: %x", getSheetPayload.Height, getSheetPayload.Hash)
 
-	sheet := w.chain.GetSnapshot(getSheetPayload.CheckpointHeight, getSheetPayload.CheckpointHash)
+	sheet := w.chain.GetSnapshot(getSheetPayload.Height, getSheetPayload.Hash)
 	if sheet == nil {
 		err = fmt.Errorf("cannot find the snapshot on such height")
-		w.sendReject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.ID, stream, err)
 	}
 
-	w.sendSheet(msg.Header.MessageId, stream, sheet)
+	w.sendSheet(msg.Header.ID, stream, sheet)
 }

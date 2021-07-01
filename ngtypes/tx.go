@@ -226,7 +226,7 @@ func (x *Tx) CheckGenerate(blockHeight uint64) error {
 		return fmt.Errorf("generate's fee should be ZERO")
 	}
 
-	publicKey := Address(x.Participants[0]).PubKey()
+	publicKey := x.Participants[0].PubKey()
 	err := x.Verify(publicKey)
 	if err != nil {
 		return err
@@ -265,7 +265,7 @@ func (x *Tx) CheckRegister() error {
 		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
 	}
 
-	publicKey := Address(x.Participants[0]).PubKey()
+	publicKey := x.Participants[0].PubKey()
 	err := x.Verify(publicKey)
 	if err != nil {
 		return err

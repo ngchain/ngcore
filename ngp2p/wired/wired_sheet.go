@@ -4,14 +4,13 @@ import (
 	"github.com/c0mm4nd/rlp"
 	"github.com/libp2p/go-libp2p-core/network"
 
-	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.Sheet) bool {
 	log.Debugf("sending sheet to %s. Message id: %x...", stream.Conn().RemotePeer(), uuid)
 
-	pongPayload := &message.SheetPayload{
+	pongPayload := &SheetPayload{
 		Sheet: sheet,
 	}
 
@@ -20,8 +19,8 @@ func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.She
 		return false
 	}
 
-	resp := &message.Message{
-		Header:  NewHeader(w.host, w.network, uuid, message.MessageType_PONG),
+	resp := &Message{
+		Header:  NewHeader(w.host, w.network, uuid, PongMsg),
 		Payload: rawPayload,
 	}
 
@@ -42,19 +41,19 @@ func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.She
 		return false
 	}
 
-	log.Debugf("sent sheet to: %s with message id: %x", stream.Conn().RemotePeer(), resp.Header.MessageId)
+	log.Debugf("sent sheet to: %s with message id: %x", stream.Conn().RemotePeer(), resp.Header.ID)
 
 	return true
 }
 
 // DecodeSheetPayload unmarshal the raw and return the *message.PongPayload.
-func DecodeSheetPayload(rawPayload []byte) (*message.SheetPayload, error) {
-	sheetPayload := &message.SheetPayload{}
+func DecodeSheetPayload(rawPayload []byte) (*SheetPayload, error) {
+	var sheetPayload SheetPayload
 
-	err := rlp.DecodeBytes(rawPayload, sheetPayload)
+	err := rlp.DecodeBytes(rawPayload, &sheetPayload)
 	if err != nil {
 		return nil, err
 	}
 
-	return sheetPayload, nil
+	return &sheetPayload, nil
 }

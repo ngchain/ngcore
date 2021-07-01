@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -54,8 +53,8 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_CHAIN:
+	switch reply.Header.Type {
+	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to send ping: %s", err)
@@ -73,13 +72,10 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 
 		return chainPayload.Blocks[0], err
 
-	case message.MessageType_REJECT:
-		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
-
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("chain is not found in remote")
+	case wired.RejectMsg:
+		return nil, fmt.Errorf("getchain is rejected by remote, reason: %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 }
