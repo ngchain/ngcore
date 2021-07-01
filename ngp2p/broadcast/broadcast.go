@@ -2,13 +2,13 @@ package broadcast
 
 import (
 	"context"
+
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngtypes"
-
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 type Broadcast struct {

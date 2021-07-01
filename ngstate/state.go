@@ -1,8 +1,9 @@
 package ngstate
 
 import (
-	"github.com/c0mm4nd/rlp"
 	"sync"
+
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
@@ -34,7 +35,7 @@ type State struct {
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
 // this func is written for snapshot sync/converging when initializing from non-genesis
 // checkpoint
-func InitStateFromSheet(db *badger.DB, network uint8, sheet *ngtypes.Sheet) *State {
+func InitStateFromSheet(db *badger.DB, network ngtypes.Network, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB: db,
 		SnapshotManager: &SnapshotManager{

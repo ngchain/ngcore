@@ -3,21 +3,19 @@ package ngp2p
 import (
 	"context"
 	"fmt"
-	multiplex "github.com/libp2p/go-libp2p-mplex"
-	yamux "github.com/libp2p/go-libp2p-yamux"
-	"github.com/ngchain/ngcore/keytools"
-
-	"github.com/ngchain/ngcore/blockchain"
-
-	"github.com/ngchain/ngcore/ngp2p/broadcast"
-	"github.com/ngchain/ngcore/ngp2p/wired"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
+	multiplex "github.com/libp2p/go-libp2p-mplex"
+	yamux "github.com/libp2p/go-libp2p-yamux"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-tcp-transport"
 
+	"github.com/ngchain/ngcore/blockchain"
+	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngp2p/broadcast"
+	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

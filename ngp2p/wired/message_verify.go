@@ -7,7 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// Verify verifies the data and sign in message
+// Verify verifies the data and sign in message.
 func Verify(peerID peer.ID, message *Message) bool {
 	sign := message.Header.Sign
 	message.Header.Sign = nil
@@ -49,7 +49,6 @@ func verifyMessageData(data, signature []byte, peerID peer.ID, pubKeyData []byte
 
 	// extract node id from the provided public key
 	idFromKey, err := peer.IDFromPublicKey(key)
-
 	if err != nil {
 		log.Error(err, "Failed to extract peer id from public key")
 		return false

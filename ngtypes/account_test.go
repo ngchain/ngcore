@@ -6,9 +6,10 @@ import (
 
 	"github.com/NebulousLabs/fastrand"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/secp256k1"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/ngchain/secp256k1"
 )
 
 var log = logging.Logger("ngtypes_test")

@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
+
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/ngchain/go-schnorr"
 	"github.com/ngchain/secp256k1"
@@ -49,12 +50,12 @@ type Tx struct {
 	Values       []*big.Int // each value is a free-length slice
 
 	Extra []byte
-	Sign  []byte
+	Sign  []byte `rlp:"optional"`
 }
 
 // NewTx is the default constructor for ngtypes.Tx
 func NewTx(network Network, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
-	extraData, sign, hash []byte) *Tx {
+	extraData, sign []byte) *Tx {
 	tx := &Tx{
 		Network:      network,
 		Type:         txType,
@@ -75,7 +76,7 @@ func NewTx(network Network, txType uint8, height uint64, convener AccountNum, pa
 func NewUnsignedTx(network Network, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
 	extraData []byte) *Tx {
 
-	return NewTx(network, txType, height, convener, participants, values, fee, extraData, nil, nil)
+	return NewTx(network, txType, height, convener, participants, values, fee, extraData, nil)
 }
 
 // IsSigned will return whether the op has been signed.
@@ -94,14 +95,13 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	}
 
 	hash := [32]byte{}
-	copy(hash[:], x.GetHash())
+	copy(hash[:], x.GetUnsignedHash())
 
 	var signature [64]byte
 	copy(signature[:], x.Sign)
 
 	var key [33]byte
 	copy(key[:], publicKey.SerializeCompressed())
-
 	if ok, err := schnorr.Verify(key, hash, signature); !ok {
 		if err != nil {
 			return err
@@ -137,6 +137,22 @@ func (x *Tx) GetHash() []byte {
 
 	return hash
 }
+
+// GetHash mainly for calculating the tire root of txs and sign tx.
+func (x *Tx) GetUnsignedHash() []byte {
+	sign := x.Sign
+	x.Sign = nil
+	raw, err := rlp.EncodeToBytes(x)
+	if err != nil {
+		panic(err)
+	}
+
+	x.Sign = sign
+	hash := sha3.Sum256(raw)
+
+	return hash[:]
+}
+
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) CalculateHash() ([]byte, error) {
@@ -241,7 +257,7 @@ func (x *Tx) CheckRegister() error {
 		return errors.New("register is missing header")
 	}
 
-	if x.Convener != 01 {
+	if x.Convener != 0o1 {
 		return fmt.Errorf("register's convener should be 1")
 	}
 
@@ -356,11 +372,11 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	}
 
 	// check this on chain
-	//var appendExtra AppendExtra
-	//err = rlp.DecodeBytes(x.Extra, &appendExtra)
-	//if err != nil {
+	// var appendExtra AppendExtra
+	// err = rlp.DecodeBytes(x.Extra, &appendExtra)
+	// if err != nil {
 	//	return err
-	//}
+	// }
 
 	return nil
 }
@@ -399,7 +415,7 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	}
 
 	hash := [32]byte{}
-	copy(hash[:], x.GetHash())
+	copy(hash[:], x.GetUnsignedHash())
 
 	sign, err := schnorr.AggregateSignatures(ds, hash)
 	if err != nil {
@@ -407,7 +423,6 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	}
 
 	x.Sign = sign[:]
-
 	return
 }
 

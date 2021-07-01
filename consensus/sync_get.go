@@ -3,14 +3,13 @@ package consensus
 import (
 	"fmt"
 
-	"github.com/ngchain/ngcore/ngp2p/wired"
-
 	core "github.com/libp2p/go-libp2p-core"
 
+	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// GetRemoteStatus just get the remote status from remote, and then put it into sync.store
+// GetRemoteStatus just get the remote status from remote, and then put it into sync.store.
 func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	origin := mod.pow.Chain.GetOriginBlock()
 	latest := mod.pow.Chain.GetLatestBlock()
@@ -51,7 +50,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	return nil
 }
 
-// getRemoteChainFromLocalLatest just get the remote status from remote
+// getRemoteChainFromLocalLatest just get the remote status from remote.
 func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chain []*ngtypes.Block, err error) {
 	latestHash := mod.pow.Chain.GetLatestBlockHash()
 
@@ -83,7 +82,7 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 	}
 }
 
-// getRemoteChain get the chain from remote node
+// getRemoteChain get the chain from remote node.
 func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.Block, err error) {
 	id, s, err := mod.localNode.SendGetChain(peerID, from, to)
 	if s == nil {

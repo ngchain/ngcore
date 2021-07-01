@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/mr-tron/base58"
-
 	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -28,6 +27,7 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 				panic(err)
 			}
 		}
+
 		filename = GetDefaultFile()
 	}
 
@@ -48,7 +48,7 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	return key
 }
 
-// NewLocalKey will create a privateKey only
+// NewLocalKey will create a privateKey only.
 func NewLocalKey() *secp256k1.PrivateKey {
 	key, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
@@ -70,6 +70,7 @@ func CreateLocalKey(filename, password string) *secp256k1.PrivateKey {
 				panic(err)
 			}
 		}
+
 		filename = GetDefaultFile()
 	}
 
@@ -108,6 +109,7 @@ func RecoverLocalKey(filename, password, privateKey string) *secp256k1.PrivateKe
 				panic(err)
 			}
 		}
+
 		filename = GetDefaultFile()
 	}
 

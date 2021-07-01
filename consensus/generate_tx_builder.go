@@ -7,7 +7,7 @@ import (
 )
 
 // createGenerateTx will create a generate Tx for new Block.
-// generate Tx is disallowed to edit external so use more local var
+// generate Tx is disallowed to edit external so use more local var.
 func (pow *PoWork) createGenerateTx(height uint64, extraData []byte) *ngtypes.Tx {
 	addr := ngtypes.NewAddress(pow.PrivateKey)
 	fee := big.NewInt(0)

@@ -2,10 +2,11 @@ package wired
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes"
 	"time"
 
 	core "github.com/libp2p/go-libp2p-core"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 type MsgType uint8
@@ -15,7 +16,7 @@ const (
 	PingMsg
 	PongMsg
 	RejectMsg
-	//MsgNotFound - deleted because Reject can cover not-found msg
+	// MsgNotFound - deleted because Reject can cover not-found msg.
 )
 
 func (mt MsgType) String() string {
@@ -46,7 +47,7 @@ const (
 	InvalidChain ChainType = iota
 	BlockChain
 	HeaderChain
-	//HashChain // insecure
+	// HashChain // insecure.
 )
 
 type MsgHeader struct {
@@ -64,7 +65,7 @@ type Message struct {
 	Payload []byte
 }
 
-// NewHeader is a helper method: generate message data shared between all node's p2p protocols
+// NewHeader is a helper method: generate message data shared between all node's p2p protocols.
 func NewHeader(host core.Host, network ngtypes.Network, msgID []byte, msgType MsgType) *MsgHeader {
 	peerKey, err := host.Peerstore().PubKey(host.ID()).Bytes()
 	if err != nil {

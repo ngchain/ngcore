@@ -2,8 +2,8 @@ package wired
 
 import (
 	"context"
-	"github.com/c0mm4nd/rlp"
 
+	"github.com/c0mm4nd/rlp"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -42,11 +42,11 @@ func Reply(stream network.Stream, data interface{}) error {
 		return err
 	}
 
-	//// close the stream and waits to read an EOF from the other side.
-	//err = stream.Close()
-	//if err != nil {
+	// // close the stream and waits to read an EOF from the other side.
+	// err = stream.Close()
+	// if err != nil {
 	//	return err
-	//}
+	// }
 
 	return nil
 }

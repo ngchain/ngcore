@@ -3,6 +3,7 @@ package ngtypes
 import (
 	"bytes"
 	"errors"
+
 	"github.com/c0mm4nd/rlp"
 	"github.com/cbergoon/merkletree"
 	"golang.org/x/crypto/sha3"

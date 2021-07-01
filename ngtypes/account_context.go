@@ -3,8 +3,9 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/ngchain/ngcore/utils"
 	"sync"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 type AccountContext struct {

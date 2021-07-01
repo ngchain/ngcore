@@ -49,7 +49,7 @@ func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, 
 	return req.Header.ID, stream
 }
 
-// remote peer requests handler
+// remote peer requests handler.
 func (w *Wired) onPing(stream network.Stream, msg *Message) {
 	log.Debugf("Received remoteStatus request from %s.", stream.Conn().RemotePeer())
 	var remoteStatus StatusPayload

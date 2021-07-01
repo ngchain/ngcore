@@ -3,6 +3,7 @@ package blockchain
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

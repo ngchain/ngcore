@@ -3,7 +3,6 @@ package ngtypes
 import (
 	"encoding/hex"
 	"fmt"
-
 	"math/big"
 
 	"github.com/ngchain/ngcore/utils"
@@ -90,10 +89,10 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		[]*BlockHeader{}, // TODO
 	)
 
-	//err = x.verifyNonce()
-	//if err != nil {
+	// err = x.verifyNonce()
+	// if err != nil {
 	//	return err
-	//}
+	// }
 
 	return nil
 }

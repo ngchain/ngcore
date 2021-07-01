@@ -6,7 +6,6 @@ import (
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
-
 	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -19,7 +18,7 @@ import (
 
 var log = logging.Logger("pow")
 
-// PoWork is a proof on work consensus manager
+// PoWork is a proof on work consensus manager.
 type PoWork struct {
 	PoWorkConfig
 
@@ -106,13 +105,13 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 	return newBlock
 }
 
-// GoLoop ignites all loops
+// GoLoop ignites all loops.
 func (pow *PoWork) GoLoop() {
 	go pow.eventLoop()
 	go pow.SyncMod.loop()
 }
 
-// channel receiver for broadcasts events
+// channel receiver for broadcasts events.
 func (pow *PoWork) eventLoop() {
 	for {
 		select {
@@ -135,7 +134,6 @@ func (pow *PoWork) eventLoop() {
 			}
 		default:
 			// miner
-
 		}
 	}
 }

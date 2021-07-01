@@ -3,6 +3,7 @@ package ngblocks
 import (
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -38,8 +39,8 @@ func Init(db *badger.DB, network ngtypes.Network) *BlockStore {
 	}
 
 	store.initWithGenesis()
-	//err := store.initWithBlockchain(blocks...)
-	//if err != nil {
+	// err := store.initWithBlockchain(blocks...)
+	// if err != nil {
 	//		panic(err)
 	//	}
 

@@ -18,5 +18,4 @@ func TestInitStorage(t *testing.T) {
 		t.Error("failed to init db on mem")
 		return
 	}
-
 }

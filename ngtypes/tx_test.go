@@ -2,10 +2,11 @@ package ngtypes_test
 
 import (
 	"encoding/hex"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/ngchain/secp256k1"
 
@@ -70,7 +71,6 @@ func TestGetGenesisGenerate(t *testing.T) {
 			t.Fail()
 		}
 	}
-
 }
 
 func TestTxJSON(t *testing.T) {

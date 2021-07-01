@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
+
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/dgraph-io/badger/v3"
 
@@ -26,7 +27,7 @@ func (state *State) rollback(txn *badger.Txn, block *ngtypes.Block) error {
 	// TODO: run reverse Txs
 	panic("todo")
 
-	//return nil
+	// return nil
 }
 
 func (state *State) reverseTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
@@ -251,16 +252,16 @@ func (state *State) reverseAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener.Contract = utils.CutBytes(convener.Contract, int(appendExtra.Pos), int(appendExtra.Pos)+len(appendExtra.Content))
 
 	// TODO: migrate to Lock
-	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
-	//if err != nil {
+	// account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	// if err != nil {
 	//	return err
-	//}
-	//vm, err := NewVM(txn, account)
-	//if err != nil {
+	// }
+	// vm, err := NewVM(txn, account)
+	// if err != nil {
 	//	return err
-	//}
+	// }
 	//
-	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
+	// state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {
@@ -300,16 +301,16 @@ func (state *State) reverseDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener.Contract = utils.InsertBytes(convener.Contract, int(deleteExtra.Pos), deleteExtra.Content...)
 
 	// TODO: migrate to Lock
-	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
-	//if err != nil {
+	// account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	// if err != nil {
 	//	return err
-	//}
-	//vm, err := NewVM(txn, account)
-	//if err != nil {
+	// }
+	// vm, err := NewVM(txn, account)
+	// if err != nil {
 	//	return err
-	//}
+	// }
 	//
-	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
+	// state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {

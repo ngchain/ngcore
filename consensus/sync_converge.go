@@ -10,9 +10,9 @@ import (
 )
 
 // MustConverge detection ignites the forking in local node
-// then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one)
+// then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one).
 func (mod *syncModule) MustConverge(slice []*RemoteRecord) []*RemoteRecord {
-	var ret = make([]*RemoteRecord, 0)
+	ret := make([]*RemoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	latestCheckPoint := mod.pow.Chain.GetLatestCheckpoint()
 
@@ -26,7 +26,7 @@ func (mod *syncModule) MustConverge(slice []*RemoteRecord) []*RemoteRecord {
 }
 
 // force local chain be same as the remote record
-// converge is a danger operation so all msg are warn level
+// converge is a danger operation so all msg are warn level.
 func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	if mod.Locker.IsLocked() {
 		return nil
@@ -41,8 +41,8 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 		return fmt.Errorf("failed to get blocks for converging: %s", err)
 	}
 
-	//localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
-	//log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Height, chain[1].Hash(), localSamepoint.Hash())
+	// localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
+	// log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Height, chain[1].Hash(), localSamepoint.Hash())
 
 	err = mod.pow.Chain.ForceApplyBlocks(chain)
 	if err != nil {
@@ -64,7 +64,7 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	return nil
 }
 
-// getBlocksForConverging gets the blocks since the diffpoint (inclusive) by comparing hashes between local and remote
+// getBlocksForConverging gets the blocks since the diffpoint (inclusive) by comparing hashes between local and remote.
 func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.Block, error) {
 	blocks := make([]*ngtypes.Block, 0)
 

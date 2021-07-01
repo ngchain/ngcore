@@ -6,7 +6,6 @@ import (
 	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngstate"
-
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

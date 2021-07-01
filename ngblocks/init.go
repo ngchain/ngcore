@@ -2,8 +2,8 @@ package ngblocks
 
 import (
 	"bytes"
-	"github.com/c0mm4nd/rlp"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -56,7 +56,7 @@ func (store *BlockStore) initWithGenesis() {
 
 // hasGenesisBlock checks whether the genesis block is in db.
 func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
-	var has = false
+	has := false
 
 	if err := store.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(0)...))
@@ -84,7 +84,7 @@ func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
 
 // hasOrigin checks whether the genesis vault is in db.
 func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
-	var has = false
+	has := false
 
 	if err := store.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, originHeightTag...))
@@ -132,7 +132,7 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 }
 
 // initWithBlockchain initialize the store by importing the external store.
-//func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
+// func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
 //	/* Put start */
 //	err := store.Update(func(txn *badger.Txn) error {
 //		for i := 0; i < len(blocks); i++ {
@@ -161,7 +161,7 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 //	})
 //
 //	return err
-//}
+// }
 
 func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
 	err := store.Update(func(txn *badger.Txn) error {

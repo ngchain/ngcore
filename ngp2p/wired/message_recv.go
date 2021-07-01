@@ -3,13 +3,13 @@ package wired
 import (
 	"bytes"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-msgio"
 )
 
-// ReceiveReply will receive the correct reply message from the stream
+// ReceiveReply will receive the correct reply message from the stream.
 func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 	r := msgio.NewReader(stream)
 	raw, err := r.ReadMsg()

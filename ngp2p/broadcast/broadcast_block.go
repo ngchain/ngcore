@@ -3,9 +3,10 @@ package broadcast
 import (
 	"context"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 
+	"github.com/c0mm4nd/rlp"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 

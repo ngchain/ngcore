@@ -3,8 +3,9 @@ package ngstate
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
+
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/dgraph-io/badger/v3"
 
@@ -261,16 +262,16 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener.Contract = utils.InsertBytes(convener.Contract, int(appendExtra.Pos), appendExtra.Content...)
 
 	// TODO: migrate to Lock
-	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
-	//if err != nil {
+	// account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	// if err != nil {
 	//	return err
-	//}
-	//vm, err := NewVM(txn, account)
-	//if err != nil {
+	// }
+	// vm, err := NewVM(txn, account)
+	// if err != nil {
 	//	return err
-	//}
+	// }
 	//
-	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
+	// state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {
@@ -316,16 +317,16 @@ func (state *State) handleDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	convener.Contract = utils.CutBytes(convener.Contract, int(deleteExtra.Pos), int(deleteExtra.Pos)+len(deleteExtra.Content))
 
 	// TODO: migrate to Lock
-	//account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
-	//if err != nil {
+	// account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
+	// if err != nil {
 	//	return err
-	//}
-	//vm, err := NewVM(txn, account)
-	//if err != nil {
+	// }
+	// vm, err := NewVM(txn, account)
+	// if err != nil {
 	//	return err
-	//}
+	// }
 	//
-	//state.vms[ngtypes.AccountNum(tx.Convener)] = vm
+	// state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {

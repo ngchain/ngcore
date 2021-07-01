@@ -3,8 +3,8 @@ package ngblocks
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -37,7 +37,6 @@ func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
 }
 
 func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
-
 	key := append(blockPrefix, hash...)
 	item, err := txn.Get(key)
 	if err == badger.ErrKeyNotFound {

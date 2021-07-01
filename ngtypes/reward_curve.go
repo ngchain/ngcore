@@ -12,13 +12,17 @@ const (
 	registerFeeNG = maxBlockRewardNG
 )
 
-var minReward = new(big.Int).Mul(NG, big.NewInt(minBlockRewardNG))           // 2NG
-var floatingReward = new(big.Int).Mul(NG, big.NewInt(floatingBlockRewardNG)) // 8NG
+var (
+	minReward      = new(big.Int).Mul(NG, big.NewInt(minBlockRewardNG))      // 2NG
+	floatingReward = new(big.Int).Mul(NG, big.NewInt(floatingBlockRewardNG)) // 8NG
+)
 
 var RegisterFee = new(big.Int).Mul(NG, big.NewInt(registerFeeNG))
 
-var big1 = big.NewInt(1)
-var big10 = big.NewInt(10000)
+var (
+	big1  = big.NewInt(1)
+	big10 = big.NewInt(10000)
+)
 
 // GetBlockReward returns the block reward in a specific height
 // reward = 2 + 8*(0.9)^Era

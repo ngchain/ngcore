@@ -5,14 +5,13 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/c0mm4nd/rlp"
-
-	"github.com/ngchain/ngcore/ngp2p/defaults"
-
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -74,7 +73,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 //
 // sync mode:
 // parse request to [[peerHeight], to]
-// return [peerHeight+1, ..., to]
+// return [peerHeight+1, ..., to].
 func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 	log.Debugf("Received getchain request from %s.", stream.Conn().RemotePeer())
 

@@ -10,7 +10,7 @@ const (
 	defaultKeyFile   = "ngcore.key" // "~/.ngkeys/ngcore.key"
 )
 
-// GetDefaultFolder returns the default folder storing keyfile
+// GetDefaultFolder returns the default folder storing keyfile.
 func GetDefaultFolder() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -20,7 +20,7 @@ func GetDefaultFolder() string {
 	return filepath.Join(home, defaultKeyFolder)
 }
 
-// GetDefaultFile returns the default location storing keyfile
+// GetDefaultFile returns the default location storing keyfile.
 func GetDefaultFile() string {
 	home, err := os.UserHomeDir()
 	if err != nil {

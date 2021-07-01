@@ -1,7 +1,7 @@
 package ngstate_test
 
 // TODO: uncomment when new engine done
-//func TestNewWasmVM(t *testing.T) {
+// func TestNewWasmVM(t *testing.T) {
 //	// requires the consensus here
 //	db := storage.InitMemStorage()
 //
@@ -40,4 +40,4 @@ package ngstate_test
 //		return nil
 //	})
 //
-//}
+// }

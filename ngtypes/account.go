@@ -2,6 +2,7 @@ package ngtypes
 
 import (
 	"bytes"
+
 	"github.com/c0mm4nd/rlp"
 )
 

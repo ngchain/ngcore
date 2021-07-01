@@ -10,7 +10,7 @@ import (
 // FIXME: before initializing new network, should manually init PK & Sign
 // 	use `go run ./cmd/ngcore gentools check` check and generate valid values
 const (
-	GenesisAddressBase58 = "QVSdpMLFwUtECb3SxgLt8YeQwkHGmzh5ZexjGCUB2E5koFhJ"
+	GenesisAddressBase58 = "2Reeyjud1sS7Pq5BMtsK3pSmDnJPfaz4jiffTWwmJdzBvTbq"
 )
 
 // decoded genesis variables
@@ -37,8 +37,10 @@ const (
 var (
 	minimumBigDifficulty = big.NewInt(minimumDifficulty)
 	// MaxTarget is the Max value of mining target
-	MaxTarget = new(big.Int).SetBytes([]byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255})
+	MaxTarget = new(big.Int).SetBytes([]byte{
+		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+		255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+	})
 )
 
 // Maximum sizes
@@ -54,8 +56,11 @@ const (
 	// NonceSize is the length of a nonce bytes
 	NonceSize = 8 // nonce uses 8 bytes
 
+	// PrivSize is the length of one private key in bytes
+	PrivSize = 32
 	// AddressSize some for tx
 	AddressSize = 35
+
 
 	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
 	SignatureSize = 64
@@ -68,8 +73,8 @@ const (
 )
 
 // Units variables:
-//https://en.wikipedia.org/wiki/Unit_prefix
-//https://en.wikipedia.org/wiki/Metric_prefix
+// https://en.wikipedia.org/wiki/Unit_prefix
+// https://en.wikipedia.org/wiki/Metric_prefix
 var (
 	NG           = new(big.Int).SetUint64(pico)
 	NGSymbol     = "NG"
@@ -85,10 +90,10 @@ func GetEmptyHash() []byte {
 func GetGenesisGenerateTxSignature(network Network) []byte {
 	switch network {
 	case ZERONET:
-		genesisGenerateTxSign, _ := hex.DecodeString("1aca22bb998d0bea643f75c126b8be259839aa4c2c13829d737c57c8f20371edbc7014a79e2af97e8119c92fcc9f4642c5f42639cad59429fbc4336ee8dcc858")
+		genesisGenerateTxSign, _ := hex.DecodeString("4994ae32b1e6665f2bcf2231e1d11785e3e177d79f8eacfe19e1e3267c94da8c5aac5df3a7748ba834f2ffb8d76655fd65dde3fe7425ca6e43d5b047cec373f7")
 		return genesisGenerateTxSign
 	case TESTNET:
-		genesisGenerateTxSign, _ := hex.DecodeString("5ca0c8099874dd61b4ebbfb6e984f5f1e7f6287d1093f05d3ed973a5fb3f3352bf7fc3c78d93dcaf077f98602338445e4187ae5f225a2d79ff9b36ec8c61b98a")
+		genesisGenerateTxSign, _ := hex.DecodeString("ca92849de30ba67ceb9586c3781e78504de37dc8c591056e0048ac1b62ed322f693f87159f09ed7c2468a2e47aa3bc9f963b4b43335342ef277b7ea1b550c58a")
 		return genesisGenerateTxSign
 	case MAINNET:
 		panic("not ready for mainnet")
@@ -100,10 +105,10 @@ func GetGenesisGenerateTxSignature(network Network) []byte {
 func GetGenesisBlockNonce(network Network) []byte {
 	switch network {
 	case ZERONET:
-		genesisBlockNonce, _ := hex.DecodeString("84e1be18c794f125")
+		genesisBlockNonce, _ := hex.DecodeString("1d0b4960bc05828a")
 		return genesisBlockNonce
 	case TESTNET:
-		genesisBlockNonce, _ := hex.DecodeString("55e0414311982f0e")
+		genesisBlockNonce, _ := hex.DecodeString("628d06d30f4c8e49")
 		return genesisBlockNonce
 	case MAINNET:
 		panic("not ready for mainnet")

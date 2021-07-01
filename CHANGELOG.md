@@ -93,7 +93,7 @@
 
 ## v0.0.11
 
-- DONE: Introducing Address to avoid potential public key collision 
+- DONE: Introducing Address to avoid potential public key collision
 - DONE: Finish new ngstate
 - TODO: Unit tests for ngstate
 

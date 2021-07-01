@@ -5,7 +5,7 @@ import (
 )
 
 // online available for initial sync
-// TODO: init from a checkpoint, not genesisblock
+// TODO: init from a checkpoint, not genesisblock.
 func (mod *syncModule) doSnapshotSync(record *RemoteRecord) error {
 	if mod.Locker.IsLocked() {
 		return nil

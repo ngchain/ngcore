@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// convert local origin to remote checkpoint
+// convert local origin to remote checkpoint.
 func (mod *syncModule) switchToRemoteCheckpoint(record *RemoteRecord) error {
 	if mod.Locker.IsLocked() {
 		return nil
@@ -65,10 +65,10 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 			return nil, fmt.Errorf("invalid blocks payload length: should be 1 but got %d", len(chainPayload.Blocks))
 		}
 
-		//checkpoint := chainPayload.Blocks[0]
-		//if !bytes.Equal(checkpoint.Hash(), record.checkpointHash) {
+		// checkpoint := chainPayload.Blocks[0]
+		// if !bytes.Equal(checkpoint.Hash(), record.checkpointHash) {
 		//	return nil, fmt.Errorf("invalid checkpoint: should be %x, but got %x", record.checkpointHash, checkpoint.Hash())
-		//}
+		// }
 
 		return chainPayload.Blocks[0], err
 

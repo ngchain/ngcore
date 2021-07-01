@@ -2,25 +2,22 @@ package wired
 
 import (
 	"fmt"
+
 	"github.com/c0mm4nd/rlp"
-	"github.com/ngchain/ngcore/ngtypes"
-
-	"github.com/libp2p/go-libp2p-core/protocol"
-
-	"github.com/ngchain/ngcore/blockchain"
-
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-msgio"
 
+	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
-
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var log = logging.Logger("wired")
 
-// Wired type
+// Wired type.
 type Wired struct {
 	network ngtypes.Network
 	host    core.Host // local host

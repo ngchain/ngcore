@@ -1,19 +1,17 @@
 package consensus_test
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
 	"testing"
 
 	"github.com/ngchain/ngcore/blockchain"
-	"github.com/ngchain/ngcore/ngpool"
-
-	"github.com/ngchain/ngcore/storage"
-
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 func TestNewConsensusManager(t *testing.T) {

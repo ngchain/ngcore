@@ -24,7 +24,6 @@ type jsonTx struct {
 }
 
 func (x *Tx) MarshalJSON() ([]byte, error) {
-
 	return utils.JSON.Marshal(jsonTx{
 		Network:      x.Network.String(),
 		Type:         x.Type,
@@ -58,11 +57,6 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	hash, err := hex.DecodeString(tx.Hash)
-	if err != nil {
-		return err
-	}
-
 	*x = *NewTx(
 		GetNetwork(tx.Network),
 		tx.Type,
@@ -73,7 +67,6 @@ func (x *Tx) UnmarshalJSON(b []byte) error {
 		tx.Fee,
 		extra,
 		sign,
-		hash,
 	)
 
 	return nil

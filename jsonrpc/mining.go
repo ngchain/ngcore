@@ -2,9 +2,10 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"github.com/c0mm4nd/rlp"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/c0mm4nd/rlp"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
@@ -25,7 +26,7 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.GetHash())
 }
 
-// getBlockTemplateFunc provides the block template in JSON format for easier read and debug
+// getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	blockTemplate := s.pow.GetBlockTemplate()
 
@@ -42,7 +43,7 @@ type getWorkReply struct {
 	RawBlock  string `json:"block"`
 }
 
-// getBlockTemplateFunc provides the block template in JSON format for easier read and debug
+// getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	blockTemplate := s.pow.GetBlockTemplate()
 
@@ -51,7 +52,7 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var reply = getWorkReply{
+	reply := getWorkReply{
 		RawHeader: hex.EncodeToString(blockTemplate.GetPoWRawHeader(nil)),
 		RawBlock:  hex.EncodeToString(rawBlock),
 	}
@@ -70,7 +71,7 @@ type submitWorkParams struct {
 	RawBlock string `json:"block"`
 }
 
-// getBlockTemplateFunc provides the block template in JSON format for easier read and debug
+// getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
 func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params submitWorkParams
 
@@ -108,8 +109,4 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, nil)
-}
-
-type switchMiningParams struct {
-	Mode string `json:"mode"`
 }

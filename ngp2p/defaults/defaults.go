@@ -6,7 +6,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// MaxBlocks limits the max number of blocks which are transfered on p2p network
+// MaxBlocks limits the max number of blocks which are transfered on p2p network.
 const MaxBlocks = 1000
 
 // pattern: /ngp2p/protocol-name/version

@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ngchain/ngcore/ngblocks"
-
 	"github.com/dgraph-io/badger/v3"
 
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -23,7 +22,7 @@ func (chain *Chain) GetLatestBlock() *ngtypes.Block {
 	return block
 }
 
-// GetLatestBlockHash will fetch the latest block from chain and then calc its hash
+// GetLatestBlockHash will fetch the latest block from chain and then calc its hash.
 func (chain *Chain) GetLatestBlockHash() []byte {
 	var latestHash []byte
 
@@ -43,7 +42,7 @@ func (chain *Chain) GetLatestBlockHash() []byte {
 	return latestHash
 }
 
-// GetLatestBlockHeight will fetch the latest block from chain and then return its height
+// GetLatestBlockHeight will fetch the latest block from chain and then return its height.
 func (chain *Chain) GetLatestBlockHeight() uint64 {
 	var latestHeight uint64
 
@@ -63,13 +62,13 @@ func (chain *Chain) GetLatestBlockHeight() uint64 {
 	return latestHeight
 }
 
-// GetLatestCheckpointHash returns the hash of latest checkpoint
+// GetLatestCheckpointHash returns the hash of latest checkpoint.
 func (chain *Chain) GetLatestCheckpointHash() []byte {
 	cp := chain.GetLatestCheckpoint()
 	return cp.GetHash()
 }
 
-// GetLatestCheckpoint returns the latest checkpoint block
+// GetLatestCheckpoint returns the latest checkpoint block.
 func (chain *Chain) GetLatestCheckpoint() *ngtypes.Block {
 	b := chain.GetLatestBlock()
 	if b.IsGenesis() || b.IsHead() {
@@ -85,13 +84,13 @@ func (chain *Chain) GetLatestCheckpoint() *ngtypes.Block {
 	return b
 }
 
-// GetBlockByHeight returns a block by height inputted
+// GetBlockByHeight returns a block by height inputted.
 func (chain *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	if height == 0 {
 		return ngtypes.GetGenesisBlock(chain.Network), nil
 	}
 
-	var block = &ngtypes.Block{}
+	block := &ngtypes.Block{}
 
 	if err := chain.View(func(txn *badger.Txn) error {
 		var err error
@@ -108,7 +107,7 @@ func (chain *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 	return block, nil
 }
 
-// GetBlockByHash returns a block by hash inputted
+// GetBlockByHash returns a block by hash inputted.
 func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	if bytes.Equal(hash, ngtypes.GetGenesisBlockHash(chain.Network)) {
 		return ngtypes.GetGenesisBlock(chain.Network), nil
@@ -118,7 +117,7 @@ func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 		return nil, fmt.Errorf("%x is not a legal hash", hash)
 	}
 
-	var block = &ngtypes.Block{}
+	block := &ngtypes.Block{}
 
 	if err := chain.View(func(txn *badger.Txn) error {
 		var err error
@@ -135,7 +134,7 @@ func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	return block, nil
 }
 
-// GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node
+// GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node.
 func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 	var origin *ngtypes.Block
 	err := chain.View(func(txn *badger.Txn) error {
@@ -161,9 +160,9 @@ func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
 	if err := chain.Update(func(txn *badger.Txn) error {
 		for i := 0; i < len(blocks); i++ {
 			block := blocks[i]
-			//if err := chain.CheckBlock(block); err != nil {
+			// if err := chain.CheckBlock(block); err != nil {
 			//	return err
-			//}
+			// }
 			// Todo: enhance error check here(based on blocks rather than db)
 			if err := block.CheckError(); err != nil {
 				return err

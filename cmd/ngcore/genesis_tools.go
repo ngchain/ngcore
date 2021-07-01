@@ -17,21 +17,20 @@ import (
 )
 
 func getGenesisToolsCommand() *cli.Command {
-
-	var filenameFlag = &cli.StringFlag{
+	filenameFlag := &cli.StringFlag{
 		Name:    "filename",
 		Aliases: []string{"f"},
 		Value:   "genesis.key",
 		Usage:   "the genesis.key file",
 	}
 
-	var passwordFlag = &cli.StringFlag{
+	passwordFlag := &cli.StringFlag{
 		Name:    "password",
 		Aliases: []string{"p"},
 		Usage:   "the password to genesis.key file",
 	}
 
-	var checkCommand = &cli.Command{
+	checkCommand := &cli.Command{
 		Name:        "check",
 		Flags:       []cli.Flag{filenameFlag, passwordFlag},
 		Description: "check genesis blocks and generateTx and re-generate them if error occurs",
@@ -56,6 +55,7 @@ func getGenesisToolsCommand() *cli.Command {
 				gtx := ngtypes.GetGenesisGenerateTx(network)
 				if err := gtx.CheckGenerate(0); err != nil {
 					fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing... \n", gtx.Sign, err)
+
 					err = gtx.Signature(localKey)
 					if err != nil {
 						panic(err)
@@ -84,7 +84,7 @@ func getGenesisToolsCommand() *cli.Command {
 		},
 	}
 
-	var displayCommand = &cli.Command{
+	displayCommand := &cli.Command{
 		Name:        "display",
 		Flags:       nil,
 		Description: "check genesis blocks and generateTx and re-generate them if error occurs",
@@ -139,7 +139,7 @@ func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh ch
 	}
 	count := randomx.DatasetItemCount()
 	var wg sync.WaitGroup
-	var workerNum = uint32(runtime.NumCPU())
+	workerNum := uint32(runtime.NumCPU())
 	for i := uint32(0); i < workerNum; i++ {
 		wg.Add(1)
 		a := (count * i) / workerNum

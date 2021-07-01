@@ -3,8 +3,9 @@ package ngstate
 import (
 	"bytes"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
+
+	"github.com/c0mm4nd/rlp"
 
 	"github.com/dgraph-io/badger/v3"
 
@@ -128,7 +129,7 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 
 // AccountIsRegistered checks whether the account is registered in state
 func (state *State) AccountIsRegistered(num uint64) bool {
-	var exists = true // block register action by default
+	exists := true // block register action by default
 
 	_ = state.View(func(txn *badger.Txn) error {
 		exists = accountNumExists(txn, ngtypes.AccountNum(num))

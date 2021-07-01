@@ -2,12 +2,15 @@ package ngtypes
 
 import (
 	"fmt"
-	"github.com/mr-tron/base58"
 	"math/big"
+
+	"github.com/mr-tron/base58"
 )
 
-var genesisBalances []*Balance
-var genesisSheet *Sheet
+var (
+	genesisBalances []*Balance
+	genesisSheet    *Sheet
+)
 
 func init() {
 	strMap := map[string]string{

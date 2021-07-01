@@ -8,7 +8,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// Testing hex string to []byte
+// Testing hex string to []byte.
 func TestBytes2Hex(t *testing.T) {
 	b := make([]byte, 10000)
 	_, err := rand.Read(b)

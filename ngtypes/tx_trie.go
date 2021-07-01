@@ -1,9 +1,10 @@
 package ngtypes
 
 import (
+	"sort"
+
 	"github.com/cbergoon/merkletree"
 	"golang.org/x/crypto/sha3"
-	"sort"
 )
 
 // TxTrie is a fixed ordered tx container to get the trie root hash.

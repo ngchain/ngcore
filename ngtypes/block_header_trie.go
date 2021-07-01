@@ -1,10 +1,11 @@
 package ngtypes
 
 import (
-	"github.com/cbergoon/merkletree"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"sort"
+
+	"github.com/cbergoon/merkletree"
+	"golang.org/x/crypto/sha3"
 )
 
 // HeaderTrie is a fixed ordered block header container of the subBlocks

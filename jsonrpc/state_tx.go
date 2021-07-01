@@ -3,11 +3,11 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
 	"reflect"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/c0mm4nd/rlp"
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/secp256k1"
 
@@ -62,7 +62,7 @@ type signTxParams struct {
 	PrivateKeys []string `json:"privateKeys"`
 }
 
-// signTxFunc receives the Proto encoded bytes of unsigned Tx and return the Proto encoded bytes of signed Tx
+// signTxFunc receives the Proto encoded bytes of unsigned Tx and return the Proto encoded bytes of signed Tx.
 func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params signTxParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -124,7 +124,7 @@ type genTransactionParams struct {
 	Extra        string        `json:"extra"`
 }
 
-// all genTx should reply protobuf encoded bytes
+// all genTx should reply protobuf encoded bytes.
 func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genTransactionParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -133,7 +133,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var participants = make([]ngtypes.Address, len(params.Participants))
+	participants := make([]ngtypes.Address, len(params.Participants))
 	for i := range params.Participants {
 		switch p := params.Participants[i].(type) {
 		case string:
@@ -152,11 +152,10 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 			participants[i] = account.Owner
 		default:
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("unknown participant type: %s", reflect.TypeOf(p))))
-
 		}
 	}
 
-	var values = make([]*big.Int, len(params.Values))
+	values := make([]*big.Int, len(params.Values))
 	for i := range params.Values {
 		values[i] = new(big.Int).SetUint64(uint64(params.Values[i] * ngtypes.FloatNG))
 	}

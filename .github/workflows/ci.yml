@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [master]
+    branches: [ master ]
 defaults:
   run:
     shell: bash
@@ -13,61 +13,61 @@ jobs:
     strategy:
       matrix:
         include:
-        - build: x86_64-linux
-          os: ubuntu-latest
-        - build: x86_64-macos
-          os: macos-latest
-        - build: x86_64-windows
-          os: windows-latest
-          target: x86_64-pc-windows-gnu
-        - build: aarch64-linux
-          os: ubuntu-latest
-          target: aarch64-unknown-linux-gnu
-          gcc_package: gcc-aarch64-linux-gnu
-          gcc: aarch64-linux-gnu-gcc
-          qemu: qemu-aarch64 -L /usr/aarch64-linux-gnu
-          qemu_target: aarch64-linux-user
+          - build: x86_64-linux
+            os: ubuntu-latest
+          - build: x86_64-macos
+            os: macos-latest
+          - build: x86_64-windows
+            os: windows-latest
+            target: x86_64-pc-windows-gnu
+          - build: aarch64-linux
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            gcc_package: gcc-aarch64-linux-gnu
+            gcc: aarch64-linux-gnu-gcc
+            qemu: qemu-aarch64 -L /usr/aarch64-linux-gnu
+            qemu_target: aarch64-linux-user
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-go@v2
-    - name: Install cross-compilation tools
-      run: |
-        set -ex
-        sudo apt-get update
-        sudo apt-get install -y ${{ matrix.gcc_package }}
-        # Download and build qemu from source since the most recent release is
-        # way faster at arm emulation than the current version github actions'
-        # ubuntu image uses. Disable as much as we can to get it to build
-        # quickly.
-        curl https://download.qemu.org/qemu-5.0.0.tar.xz | tar xJf -
-        cd qemu-5.0.0
-        ./configure --target-list=${{ matrix.qemu_target }} --prefix=$HOME/qemu --disable-tools --disable-slirp --disable-fdt --disable-capstone --disable-docs
-        make -j$(nproc) install
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+      - name: Install cross-compilation tools
+        run: |
+          set -ex
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.gcc_package }}
+          # Download and build qemu from source since the most recent release is
+          # way faster at arm emulation than the current version github actions'
+          # ubuntu image uses. Disable as much as we can to get it to build
+          # quickly.
+          curl https://download.qemu.org/qemu-5.0.0.tar.xz | tar xJf -
+          cd qemu-5.0.0
+          ./configure --target-list=${{ matrix.qemu_target }} --prefix=$HOME/qemu --disable-tools --disable-slirp --disable-fdt --disable-capstone --disable-docs
+          make -j$(nproc) install
 
-        upcase=$(echo ${{ matrix.target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
-      if: matrix.target != '' && matrix.os == 'ubuntu-latest'
+          upcase=$(echo ${{ matrix.target }} | awk '{ print toupper($0) }' | sed 's/-/_/g')
+        if: matrix.target != '' && matrix.os == 'ubuntu-latest'
 
-    - name: Analysis ngcore
-      run: go vet ./...
+      - name: Analysis ngcore
+        run: go vet ./...
 
-    - name: Test ngcore
-      run: go test -p 1 ./...
+      - name: Test ngcore
+        run: go test -p 1 ./...
 
-    - name: Build ngcore
-      run: go build ./cmd/ngcore
+      - name: Build ngcore
+        run: go build ./cmd/ngcore
 
 
-    # ... and now perform some goop to move all the relevant artifacts into
-    # something that we'll upload from this action.
-    - run: mkdir dist
+      # ... and now perform some goop to move all the relevant artifacts into
+      # something that we'll upload from this action.
+      - run: mkdir dist
 
-    # Move `ngcore` or `ngcore.exe` to dist folder
-    - run: cp ngcore* dist
+      # Move `ngcore` or `ngcore.exe` to dist folder
+      - run: cp ngcore* dist
 
-    - uses: actions/upload-artifact@v1
-      with:
-        name: ngcore-${{ matrix.build }}
-        path: dist
+      - uses: actions/upload-artifact@v1
+        with:
+          name: ngcore-${{ matrix.build }}
+          path: dist
 
   # Consumes all published artifacts from all the previous build steps, creates
   # a bunch of tarballs for all of them, and then publishes the tarballs
@@ -75,60 +75,60 @@ jobs:
   # github releases and/or tags for pushes.
   publish:
     name: Publish
-    needs: [build]
+    needs: [ build ]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Download x86_64 macOS binaries
-      uses: actions/download-artifact@v1
-      with:
-        name: ngcore-x86_64-macos
-    - name: Download x86_64 Linux binaries
-      uses: actions/download-artifact@v1
-      with:
-        name: ngcore-x86_64-linux
-    - name: Download AArch64 Linux binaries
-      uses: actions/download-artifact@v1
-      with:
-        name: ngcore-aarch64-linux
-    - name: Download x86_64 Windows MinGW binaries
-      uses: actions/download-artifact@v1
-      with:
-        name: ngcore-x86_64-windows
+      - name: Download x86_64 macOS binaries
+        uses: actions/download-artifact@v1
+        with:
+          name: ngcore-x86_64-macos
+      - name: Download x86_64 Linux binaries
+        uses: actions/download-artifact@v1
+        with:
+          name: ngcore-x86_64-linux
+      - name: Download AArch64 Linux binaries
+        uses: actions/download-artifact@v1
+        with:
+          name: ngcore-aarch64-linux
+      - name: Download x86_64 Windows MinGW binaries
+        uses: actions/download-artifact@v1
+        with:
+          name: ngcore-x86_64-windows
 
-    # Assemble all the build artifacts into tarballs and zip archives.
-    - name: Assemble tarballs
-      run: |
-        bash ./.github/tools/build-tarballs.sh x86_64-linux
-        bash ./.github/tools/build-tarballs.sh x86_64-windows zip
-        bash ./.github/tools/build-tarballs.sh x86_64-macos
-        bash ./.github/tools/build-tarballs.sh aarch64-linux
-    # Upload all assembled tarballs as an artifact of the github action run, so
-    # that way even PRs can inspect the output.
-    - uses: actions/upload-artifact@v1
-      with:
-        name: tarballs
-        path: dist
+      # Assemble all the build artifacts into tarballs and zip archives.
+      - name: Assemble tarballs
+        run: |
+          bash ./.github/tools/build-tarballs.sh x86_64-linux
+          bash ./.github/tools/build-tarballs.sh x86_64-windows zip
+          bash ./.github/tools/build-tarballs.sh x86_64-macos
+          bash ./.github/tools/build-tarballs.sh aarch64-linux
+      # Upload all assembled tarballs as an artifact of the github action run, so
+      # that way even PRs can inspect the output.
+      - uses: actions/upload-artifact@v1
+        with:
+          name: tarballs
+          path: dist
 
-    - name: Calculate tag name
-      run: |
-        name=dev
-        if [[ $GITHUB_REF == refs/tags/v* ]]; then
-          name=${GITHUB_REF:10}
-        fi
-        echo ::set-output name=val::$name
-        echo name=TAG::$name >> $GITHUB_ENV
-      id: tagname
+      - name: Calculate tag name
+        run: |
+          name=dev
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            name=${GITHUB_REF:10}
+          fi
+          echo ::set-output name=val::$name
+          echo name=TAG::$name >> $GITHUB_ENV
+        id: tagname
 
-    # ... and if this was an actual push (tag or `master`) then we publish a
-    # new release. This'll automatically publish a tag release or update `dev`
-    # with this `sha`
-    - name: Publish Release
-      uses: ./.github/actions/github-release
-      if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
-      with:
-        files: "dist/*"
-        name: ${{ steps.tagname.outputs.val }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+      # ... and if this was an actual push (tag or `master`) then we publish a
+      # new release. This'll automatically publish a tag release or update `dev`
+      # with this `sha`
+      - name: Publish Release
+        uses: ./.github/actions/github-release
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+        with:
+          files: "dist/*"
+          name: ${{ steps.tagname.outputs.val }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 

@@ -31,7 +31,7 @@ https://goreportcard.com/report/github.com/ngchain/ngcore)
 - Powerful and scalable types of tx
 - Support **Multi-Tx**, sending coins to different places in the same time
 - Powerful **WASM** VM support based on account state(contract).
-- **Libp2p(ipfs)** powered p2p networking 
+- **Libp2p(ipfs)** powered p2p networking
 - Available **anonymous** address for saving balance
 - Using the **schnorr signature**, allowing Multi-Sig when sending and receiving
 - ...
@@ -40,7 +40,7 @@ https://goreportcard.com/report/github.com/ngchain/ngcore)
 
 go version >= 1.14
 
-**NOTICE**: go build on Windows you should use `-buildmode=exe` flag (go version >= 1.15) 
+**NOTICE**: go build on Windows you should use `-buildmode=exe` flag (go version >= 1.15)
 
 ## Build
 
@@ -73,6 +73,7 @@ If you wanna start mining(proof of work), try `--mining <Thread Num>` flag
 ```
 
 You can view more flags and options with `--help` flag
+
 ```bash
 ./ngcore --help
 ```

@@ -11,10 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
-
-	"github.com/dgraph-io/badger/v3"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -31,7 +30,7 @@ import (
 
 var nonStrictModeFlag = &cli.BoolFlag{
 	Name: "non-strict",
-	//Value: true, // local chain will be able to start from a checkpoint if false
+	// Value: true, // local chain will be able to start from a checkpoint if false
 	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
@@ -148,7 +147,7 @@ var action = func(c *cli.Context) error {
 		log.Warn("running on non-strict mode")
 	}
 
-	var network = ngtypes.TESTNET
+	network := ngtypes.TESTNET
 	if c.Bool(testNetFlag.Name) {
 		network = ngtypes.TESTNET
 	}

@@ -1,20 +1,23 @@
 package ngblocks
 
 import (
-	"fmt"
-	"github.com/c0mm4nd/rlp"
+	"errors"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
+
+var ErrPutEmptyBlock = errors.New("putting empty block into the db")
 
 // PutNewBlock puts a new block into db and updates the tags.
 // should check block before putting
 // dev should continue upgrading the state after PutNewBlock
 func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 	if block == nil {
-		return fmt.Errorf("block is nil")
+		return ErrPutEmptyBlock
 	}
 
 	hash := block.GetHash()

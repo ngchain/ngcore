@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/c0mm4nd/rlp"
 
 	"github.com/dgraph-io/badger/v3"
@@ -110,7 +111,6 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 
 // checkGenerate checks the generate tx
 func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) error {
-
 	item, err := txn.Get(append(numToAccountPrefix, generateTx.Convener.Bytes()...))
 	if err != nil {
 		return fmt.Errorf("cannot find convener %d: %s", generateTx.Convener, err)
@@ -198,9 +198,9 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 	}
 
 	// TODO
-	//if len(convener.Context) != 0 {
+	// if len(convener.Context) != 0 {
 	//	return fmt.Errorf("you should clear your context before logout")
-	//}
+	// }
 
 	return nil
 }

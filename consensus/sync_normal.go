@@ -3,7 +3,7 @@ package consensus
 import "fmt"
 
 // MustSync will start a sync and stop until reaching the latest height
-// RULE: checkpoint converging: when a node mined a checkpoint, all other node are forced to start sync
+// RULE: checkpoint converging: when a node mined a checkpoint, all other node are forced to start sync.
 func (mod *syncModule) MustSync(slice []*RemoteRecord) []*RemoteRecord {
 	ret := make([]*RemoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()

@@ -4,11 +4,11 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
-
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/dgraph-io/badger/v3"
+
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -17,6 +17,7 @@ func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 	raw, err := utils.JSON.Marshal(height)
 	if err != nil {
 		log.Error(err)
+
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -29,6 +30,7 @@ func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 	raw, err := utils.JSON.Marshal(hash)
 	if err != nil {
 		log.Error(err)
+
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -41,6 +43,7 @@ func (s *Server) getLatestBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
 		log.Error(err)
+
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 

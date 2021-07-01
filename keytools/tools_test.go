@@ -10,8 +10,9 @@ import (
 )
 
 func TestKeyMgr_ReadLocalKey(t *testing.T) {
-	privKey := keytools.CreateLocalKey("ngtest.key", "test")
+	t.Parallel()
 
+	privKey := keytools.CreateLocalKey("ngtest.key", "test")
 	privKey2 := keytools.ReadLocalKey("ngtest.key", "test")
 
 	if !reflect.DeepEqual(privKey, privKey2) {

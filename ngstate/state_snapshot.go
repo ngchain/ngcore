@@ -2,16 +2,18 @@ package ngstate
 
 import (
 	"encoding/hex"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
 	"sync"
 
+	"github.com/c0mm4nd/rlp"
+
 	"github.com/dgraph-io/badger/v3"
+
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-//var snapshot *atomic.Value
+// var snapshot *atomic.Value
 
 type SnapshotManager struct {
 	sync.RWMutex
@@ -30,7 +32,7 @@ func (sm *SnapshotManager) PutSnapshot(height uint64, hash []byte, sheet *ngtype
 }
 
 // GetSnapshot return the snapshot in a balance sheet at a height, and doo hash check
-//for external use with security ensure
+// for external use with security ensure
 func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Sheet {
 	sm.RLock()
 	defer sm.RLocker()
@@ -61,8 +63,8 @@ func (sm *SnapshotManager) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
 	return sm.hashToSnapshot[hexHash]
 }
 
-//GetSnapshotByHash return the snapshot in a balance sheet with the hash
-//for internal use only
+// GetSnapshotByHash return the snapshot in a balance sheet with the hash
+// for internal use only
 func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 	sm.RLock()
 	defer sm.RLocker()

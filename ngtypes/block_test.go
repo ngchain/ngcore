@@ -2,8 +2,9 @@ package ngtypes_test
 
 import (
 	"bytes"
-	"github.com/c0mm4nd/rlp"
 	"testing"
+
+	"github.com/c0mm4nd/rlp"
 
 	"golang.org/x/crypto/sha3"
 
@@ -55,7 +56,6 @@ func TestBlock_IsGenesis(t *testing.T) {
 			return
 		}
 	}
-
 }
 
 // TestBlock_Marshal test func GetGenesisBlock()'s Marshal().

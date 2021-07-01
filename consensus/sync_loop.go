@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// main loop of sync module
+// main loop of sync module.
 func (mod *syncModule) loop() {
 	ticker := time.NewTicker(10 * time.Second)
 

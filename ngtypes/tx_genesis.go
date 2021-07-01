@@ -7,18 +7,15 @@ import (
 var genesisGenerateTx *Tx
 
 func GetGenesisGenerateTx(network Network) *Tx {
-	if genesisGenerateTx == nil {
+	if genesisGenerateTx == nil || genesisGenerateTx.Network != network {
 		ggtx := NewTx(network, GenerateTx, 0, 0, []Address{GenesisAddress},
 			[]*big.Int{GetBlockReward(0)},
 			big.NewInt(0),
 			nil,
 			nil,
-			nil,
 		)
 
-		ggtx.ManuallySetSignature(
-			GetGenesisGenerateTxSignature(network))
-		ggtx.GetHash()
+		ggtx.ManuallySetSignature(GetGenesisGenerateTxSignature(network))
 
 		genesisGenerateTx = ggtx
 	}

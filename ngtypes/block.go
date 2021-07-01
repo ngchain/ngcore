@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/c0mm4nd/rlp"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/c0mm4nd/rlp"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/go-randomx"
@@ -54,7 +55,7 @@ func NewBlockFromHeader(blockHeader *BlockHeader, txs []*Tx, subs []*BlockHeader
 
 // NewBlockFromPoWRaw will apply the raw pow of header and txs to the block.
 func NewBlockFromPoWRaw(raw []byte, txs []*Tx, subs []*BlockHeader) (*Block, error) {
-	//lenRaw := NetSize +  // 1
+	// lenRaw := NetSize +  // 1
 	//	HeightSize+        // 8
 	//	TimestampSize +    // +
 	//	HashSize +         // 32
@@ -132,7 +133,7 @@ func (x *Block) IsGenesis() bool {
 // GetPoWRawHeader will return a complete raw for block hash.
 // When nonce is not nil, the RawHeader will use the nonce param not the x.Nonce.
 func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
-	//lenRaw := NetSize +  // 1
+	// lenRaw := NetSize +  // 1
 	//	HeightSize+        // 8
 	//	TimestampSize +    // +
 	//	HashSize +         // 32
@@ -177,7 +178,7 @@ func (x *Block) PowHash() []byte {
 
 	count := randomx.DatasetItemCount()
 	var wg sync.WaitGroup
-	var workerNum = uint32(runtime.NumCPU())
+	workerNum := uint32(runtime.NumCPU())
 	for i := uint32(0); i < workerNum; i++ {
 		wg.Add(1)
 		a := (count * i) / workerNum
@@ -259,9 +260,9 @@ func (x *Block) GetTxs() []*Tx {
 
 // CheckError will check the errors in block inner fields.
 func (x *Block) CheckError() error {
-	//if x.Network != Network {
+	// if x.Network != Network {
 	//	return fmt.Errorf("block's network id is incorrect")
-	//}
+	// }
 	// DONE: do network check on consensus
 
 	if len(x.Header.PrevBlockHash) != HashSize {

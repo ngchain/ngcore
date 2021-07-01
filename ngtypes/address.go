@@ -27,7 +27,8 @@ func NewAddressFromMultiKeys(privKeys ...*secp256k1.PrivateKey) (Address, error)
 	}
 
 	pubKeys := make([]secp256k1.PublicKey, len(privKeys))
-	allKeyBytes := make([]byte, 0, len(privKeys)*32)
+	allKeyBytes := make([]byte, 0, len(privKeys)*PrivSize)
+
 	for i := 0; i < len(privKeys); i++ {
 		pubKeys[i] = *privKeys[i].PubKey()
 		allKeyBytes = append(allKeyBytes, privKeys[i].Serialize()...)

@@ -7,7 +7,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// sendChain will send peer the specific vault's sendChain, which's len is not must be full BlockCheckRound num
+// sendChain will send peer the specific vault's sendChain, which's len is not must be full BlockCheckRound num.
 func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
 	if len(blocks) == 0 {
 		return false

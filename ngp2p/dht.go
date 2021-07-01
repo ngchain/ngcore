@@ -2,21 +2,20 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/ngchain/ngcore/ngtypes"
 	"sync"
-
-	"github.com/libp2p/go-libp2p-core/protocol"
-
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
 	"go.uber.org/atomic"
+
+	"github.com/ngchain/ngcore/ngp2p/defaults"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var p2pDHT *dht.IpfsDHT

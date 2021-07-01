@@ -2,7 +2,7 @@ package wired
 
 import "github.com/ngchain/ngcore/ngtypes"
 
-// StatusPayload is the payload used when ping pong
+// StatusPayload is the payload used when ping pong.
 type StatusPayload struct {
 	Origin         uint64
 	Latest         uint64
@@ -22,6 +22,8 @@ type ChainPayload struct {
 	Blocks  []*ngtypes.Block       `rlp:"optional"`
 }
 
+// GetSheetPayload is the payload for getting a sheet from remote
+// Design:
 // fast-sync for state
 // support checkpoint height only
 // when fast-sync:
