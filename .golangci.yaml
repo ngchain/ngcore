@@ -82,6 +82,14 @@ linters:
     - maligned # deprecated
     - scopelint # deprecated
     - interfacer # deprecated
+  enable:
+    - goerr113
+    - durationcheck
+    - errcheck
+    - errorlint
+    - nilerr
+    - lll
+    - typecheck
   presets:
     - bugs
     - complexity

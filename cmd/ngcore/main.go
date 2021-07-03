@@ -26,7 +26,7 @@ func main() {
 
 		inMemFlag, dbFolderFlag,
 
-		testNetFlag, regTestNetFlag,
+		testNetFlag, zeroNetFlag,
 	}
 
 	app.Commands = []*cli.Command{

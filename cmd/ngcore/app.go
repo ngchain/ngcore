@@ -74,8 +74,8 @@ var testNetFlag = &cli.BoolFlag{
 	Usage: "Run node on the test network",
 }
 
-var regTestNetFlag = &cli.BoolFlag{
-	Name:  "reg-testnet",
+var zeroNetFlag = &cli.BoolFlag{
+	Name:  "zeronet",
 	Usage: "Run node on the regression test network",
 }
 
@@ -152,7 +152,7 @@ var action = func(c *cli.Context) error {
 		network = ngtypes.TESTNET
 	}
 
-	if c.Bool(regTestNetFlag.Name) {
+	if c.Bool(zeroNetFlag.Name) {
 		network = ngtypes.ZERONET // use zero net as the regression test network
 	}
 
