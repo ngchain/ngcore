@@ -7,7 +7,6 @@ import (
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/jsonrpc"
-	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
@@ -20,7 +19,6 @@ import (
 func TestNewRPCServer(t *testing.T) {
 	network := ngtypes.ZERONET
 
-	key := keytools.NewLocalKey()
 	db := storage.InitMemStorage()
 	defer func() {
 		err := db.Close()
@@ -54,8 +52,6 @@ func TestNewRPCServer(t *testing.T) {
 		consensus.PoWorkConfig{
 			Network:                     network,
 			DisableConnectingBootstraps: true,
-			MiningThread:                -1,
-			PrivateKey:                  key,
 		},
 	)
 	pow.GoLoop()

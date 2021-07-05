@@ -5,7 +5,6 @@ import (
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/consensus"
-	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
@@ -15,8 +14,6 @@ import (
 )
 
 func TestNewConsensusManager(t *testing.T) {
-	key := keytools.NewLocalKey()
-
 	db := storage.InitMemStorage()
 
 	defer func() {
@@ -41,7 +38,5 @@ func TestNewConsensusManager(t *testing.T) {
 	consensus.InitPoWConsensus(db, chain, pool, state, localNode, consensus.PoWorkConfig{
 		Network:                     net,
 		DisableConnectingBootstraps: true,
-		MiningThread:                1,
-		PrivateKey:                  key,
 	})
 }

@@ -4,12 +4,13 @@ import (
 	"math/big"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/secp256k1"
 )
 
 // createGenerateTx will create a generate Tx for new Block.
 // generate Tx is disallowed to edit external so use more local var.
-func (pow *PoWork) createGenerateTx(height uint64, extraData []byte) *ngtypes.Tx {
-	addr := ngtypes.NewAddress(pow.PrivateKey)
+func (pow *PoWork) createGenerateTx(privateKey *secp256k1.PrivateKey, height uint64, extraData []byte) *ngtypes.Tx {
+	addr := ngtypes.NewAddress(privateKey)
 	fee := big.NewInt(0)
 	gen := ngtypes.NewUnsignedTx(
 		pow.Network,
@@ -22,7 +23,7 @@ func (pow *PoWork) createGenerateTx(height uint64, extraData []byte) *ngtypes.Tx
 		extraData,
 	)
 
-	err := gen.Signature(pow.PrivateKey)
+	err := gen.Signature(privateKey)
 	if err != nil {
 		log.Error(err)
 	}

@@ -2,12 +2,14 @@ package jsonrpc
 
 import (
 	"encoding/hex"
+	"math/big"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
+	"github.com/ngchain/secp256k1"
 )
 
 func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -26,9 +28,27 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.GetHash())
 }
 
+type getBlockTemplateParams struct {
+	PrivateKey string `json:"private_key"`
+}
+
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	blockTemplate := s.pow.GetBlockTemplate()
+	var params getBlockTemplateParams
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	rawPrivateKey, err := hex.DecodeString(params.PrivateKey)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	privateKey := secp256k1.NewPrivateKey(new(big.Int).SetBytes(rawPrivateKey))
+	blockTemplate := s.pow.GetBlockTemplate(privateKey)
 
 	raw, err := utils.JSON.Marshal(blockTemplate)
 	if err != nil {
@@ -38,6 +58,10 @@ func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
+type getWorkParams struct {
+	PrivateKey string `json:"private_key"`
+}
+
 type getWorkReply struct {
 	RawHeader string `json:"raw"` // seed is in [17:49]
 	RawBlock  string `json:"block"`
@@ -45,7 +69,21 @@ type getWorkReply struct {
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	blockTemplate := s.pow.GetBlockTemplate()
+	var params getWorkParams
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	rawPrivateKey, err := hex.DecodeString(params.PrivateKey)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	privateKey := secp256k1.NewPrivateKey(new(big.Int).SetBytes(rawPrivateKey))
+	blockTemplate := s.pow.GetBlockTemplate(privateKey)
 
 	rawBlock, err := rlp.EncodeToBytes(blockTemplate)
 	if err != nil {

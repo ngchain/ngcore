@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
-	"runtime"
 	"runtime/pprof"
 	"strings"
 	"time"
@@ -102,13 +100,6 @@ var p2pKeyFileFlag = &cli.StringFlag{
 	Value: "",
 }
 
-var miningFlag = &cli.IntFlag{
-	Name: "mining",
-	Usage: "The worker number on mining. Mining starts when value is not negative. " +
-		"And when value equals to 0, use all cpu cores",
-	Value: defaultMiningThread,
-}
-
 var inMemFlag = &cli.BoolFlag{
 	Name:  "in-mem",
 	Usage: "Run the database of blocks, vaults in memory",
@@ -123,11 +114,7 @@ var dbFolderFlag = &cli.StringFlag{
 var log = logging.Logger("main")
 
 var action = func(c *cli.Context) error {
-	isBootstrapNode := c.Bool("bootstrap")
-	mining := c.Int("mining")
-	if mining == 0 {
-		mining = runtime.NumCPU()
-	}
+	isBootstrapNode := c.Bool(isBootstrapFlag.Name)
 
 	strictMode := isBootstrapNode || !c.Bool(nonStrictModeFlag.Name)
 	snapshotMode := c.Bool(snapshotModeFlag.Name)
@@ -227,8 +214,6 @@ var action = func(c *cli.Context) error {
 			StrictMode:                  strictMode,
 			SnapshotMode:                snapshotMode,
 			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.ZERONET,
-			MiningThread:                mining,
-			PrivateKey:                  key,
 		},
 	)
 	pow.GoLoop()

@@ -6,7 +6,6 @@ import (
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngblocks"
@@ -14,6 +13,7 @@ import (
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/secp256k1"
 )
 
 var log = logging.Logger("pow")
@@ -40,9 +40,6 @@ type PoWorkConfig struct {
 	StrictMode                  bool
 	SnapshotMode                bool
 	DisableConnectingBootstraps bool
-
-	MiningThread int
-	PrivateKey   *secp256k1.PrivateKey
 }
 
 // InitPoWConsensus creates and initializes the PoW consensus.
@@ -73,7 +70,7 @@ func InitPoWConsensus(db *badger.DB, chain *blockchain.Chain, pool *ngpool.TxPoo
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
-func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
+func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) *ngtypes.Block {
 	currentBlock := pow.Chain.GetLatestBlock()
 
 	currentBlockHash := currentBlock.GetHash()
@@ -93,7 +90,7 @@ func (pow *PoWork) GetBlockTemplate() *ngtypes.Block {
 
 	var extraData []byte // FIXME
 
-	genTx := pow.createGenerateTx(blockHeight, extraData)
+	genTx := pow.createGenerateTx(privateKey, blockHeight, extraData)
 	txs := pow.Pool.GetPack(blockHeight)
 	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
 

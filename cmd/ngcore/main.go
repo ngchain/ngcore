@@ -20,7 +20,6 @@ func main() {
 		nonStrictModeFlag, snapshotModeFlag,
 		p2pTCPPortFlag, p2pKeyFileFlag,
 		rpcHostFlag, rpcPortFlag, rpcDisableFlag,
-		miningFlag,
 		isBootstrapFlag, profileFlag,
 		keyFileNameFlag, keyPassFlag,
 
