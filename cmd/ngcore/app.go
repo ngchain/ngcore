@@ -176,7 +176,7 @@ var action = func(c *cli.Context) error {
 	if inMem {
 		db = storage.InitMemStorage()
 	} else {
-		db = storage.InitStorage(dbFolder)
+		db = storage.InitStorage(network, dbFolder)
 	}
 
 	defer func() {

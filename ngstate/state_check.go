@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/c0mm4nd/rlp"
-
 	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngtypes"

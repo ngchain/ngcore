@@ -8,13 +8,11 @@ import (
 	"math/big"
 
 	"github.com/c0mm4nd/rlp"
-
+	"github.com/cbergoon/merkletree"
+	"github.com/mr-tron/base58"
 	"github.com/ngchain/go-schnorr"
 	"github.com/ngchain/secp256k1"
 	"golang.org/x/crypto/sha3"
-
-	"github.com/cbergoon/merkletree"
-	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/utils"
 )
@@ -152,7 +150,6 @@ func (x *Tx) GetUnsignedHash() []byte {
 
 	return hash[:]
 }
-
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
 func (x *Tx) CalculateHash() ([]byte, error) {

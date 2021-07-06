@@ -7,12 +7,10 @@ import (
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
-
 	"github.com/dgraph-io/badger/v3"
+	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngtypes"
-
-	logging "github.com/ipfs/go-log/v2"
 )
 
 // VM is a vm based on wasmtime, which acts as a sandbox env to exec native func

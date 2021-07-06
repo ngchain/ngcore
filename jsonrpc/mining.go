@@ -7,9 +7,10 @@ import (
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
 
+	"github.com/ngchain/secp256k1"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/ngchain/secp256k1"
 )
 
 func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {

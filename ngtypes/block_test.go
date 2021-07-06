@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/c0mm4nd/rlp"
-
 	"golang.org/x/crypto/sha3"
 
 	"github.com/ngchain/ngcore/ngtypes"

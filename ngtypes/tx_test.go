@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/c0mm4nd/rlp"
-
 	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/ngtypes"

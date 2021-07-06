@@ -8,7 +8,7 @@ import (
 
 // GenesisAddressBase58 is the genesis address in base58 str
 // FIXME: before initializing new network, should manually init PK & Sign
-// 	use `go run ./cmd/ngcore gentools check` check and generate valid values
+// 	use nggenesis tool to check and generate valid values
 const (
 	GenesisAddressBase58 = "2Reeyjud1sS7Pq5BMtsK3pSmDnJPfaz4jiffTWwmJdzBvTbq"
 )
@@ -60,8 +60,6 @@ const (
 	PrivSize = 32
 	// AddressSize some for tx
 	AddressSize = 35
-
-
 	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
 	SignatureSize = 64
 )

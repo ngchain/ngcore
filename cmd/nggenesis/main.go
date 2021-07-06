@@ -1,21 +1,26 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/mr-tron/base58"
+	"github.com/urfave/cli/v2"
+
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/urfave/cli/v2"
 )
 
 const (
 	usage       = "Helper for generating initial variables for genesis items in ngchain"
-	description = ""
-	version     = ""
+	description = `This tool is set for chain developers to check the correctness of the genesis information (e.g. tx, block ...). 
+And it will give suggestion values to help correct the chain's genesis info'`
+	version = ""
 )
+
+var ErrGenesisKeyFileMissing = errors.New("file genesis.key is missing, try to create one first")
 
 var filenameFlag = &cli.StringFlag{
 	Name:    "filename",
@@ -27,7 +32,8 @@ var filenameFlag = &cli.StringFlag{
 var passwordFlag = &cli.StringFlag{
 	Name:    "password",
 	Aliases: []string{"p"},
-	Usage:   "the password to genesis.key file",
+	Value:   "",
+	Usage:   "the password to genesis.key file (default: \"\")",
 }
 
 var checkCommand = &cli.Command{
@@ -40,8 +46,7 @@ var checkCommand = &cli.Command{
 
 		localKey := keytools.ReadLocalKey(filename, password)
 		if localKey == nil {
-			err := fmt.Errorf("genesis.key is missing, using keytools to create one first")
-			panic(err)
+			panic(ErrGenesisKeyFileMissing)
 		}
 
 		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
@@ -102,7 +107,7 @@ var displayCommand = &cli.Command{
 func main() {
 	app := cli.NewApp()
 
-	app.Name = "genesisutil"
+	app.Name = "nggenesis"
 	app.Usage = usage
 	app.Description = description
 	app.Version = version

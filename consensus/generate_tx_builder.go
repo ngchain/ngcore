@@ -3,8 +3,9 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/secp256k1"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // createGenerateTx will create a generate Tx for new Block.

@@ -8,11 +8,12 @@ import (
 
 	"github.com/NebulousLabs/fastrand"
 	"github.com/ngchain/go-randomx"
+
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // 	return &cli.App{
-// 		Name:        "gentools",
+// 		Name:        "nggenesis",
 // 		Flags:       nil,
 // 		Description: "built-in helper func for generate initial variables for genesis items",
 // 		Subcommands: []*cli.Command{checkCommand, displayCommand},

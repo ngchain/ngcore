@@ -10,10 +10,8 @@ import (
 	"time"
 
 	"github.com/c0mm4nd/rlp"
-
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/go-randomx"
-
 	"golang.org/x/crypto/sha3"
 
 	"github.com/ngchain/ngcore/utils"
