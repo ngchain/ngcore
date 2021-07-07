@@ -6,7 +6,6 @@ import (
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
-
 	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/blockchain"

@@ -6,7 +6,6 @@ import (
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
-
 	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/ngtypes"

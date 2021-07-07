@@ -1,13 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"runtime/pprof"
+	_ "net/http/pprof"
 	"strings"
-	"time"
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
@@ -144,29 +141,14 @@ var action = func(c *cli.Context) error {
 	}
 
 	if withProfile {
-		var f *os.File
-		var err error
-
-		f, err = os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
-		if err != nil {
-			panic(err)
-		}
-
-		err = pprof.StartCPUProfile(f)
-		if err != nil {
-			panic(err)
-		}
-
 		go func() {
-			listener, err := net.Listen("tcp", ":0")
+			listener, err := net.Listen("tcp", "localhost:0")
 			if err != nil {
 				panic(err)
 			}
 			log.Warnf("profiling on http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
 			panic(http.Serve(listener, nil))
 		}()
-
-		defer pprof.StopCPUProfile()
 	}
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))

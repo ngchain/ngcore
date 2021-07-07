@@ -99,7 +99,6 @@ linters:
     - metalinter
     - module
     - performance
-  fast: true
 
 issues:
   fix: true

@@ -127,6 +127,7 @@ func (x *Tx) ID() string {
 }
 
 // GetHash mainly for calculating the tire root of txs and sign tx.
+// The returned hash is sha3_256(tx_with_sign)
 func (x *Tx) GetHash() []byte {
 	hash, err := x.CalculateHash()
 	if err != nil {
@@ -136,7 +137,8 @@ func (x *Tx) GetHash() []byte {
 	return hash
 }
 
-// GetHash mainly for calculating the tire root of txs and sign tx.
+// GetUnsignedHash mainly for signing and verifying.
+// The returned hash is sha3_256(tx_without_sign)
 func (x *Tx) GetUnsignedHash() []byte {
 	sign := x.Sign
 	x.Sign = nil
