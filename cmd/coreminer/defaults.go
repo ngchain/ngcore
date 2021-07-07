@@ -1,9 +1,12 @@
 package main
 
 const (
-	usage       = "Helper for generating initial variables for genesis items in ngchain"
-	description = `This tool is set for chain developers to check the correctness of the genesis information (e.g. tx, block ...). 
-And it will give suggestion values to help correct the chain's genesis info'`
+	name        = "coreminer"
+	usage       = "Miner for ngchain PoW protocol"
+	description = `This is the mining software for solo/local mining, 
+the mining share from which will all get sent to the local ngcore.
+For pool mining, please 
+`
 )
 
 var (

@@ -2,6 +2,7 @@ package main
 
 const (
 	// app.
+	name        = "ngcore"
 	usage       = "Brand-new golang daemon implement of ngchain network node"
 	description = "The ngchain is a radically updating brand-new blockchain network, " +
 		"which is not a fork of ethereum or any other chain."

@@ -10,7 +10,7 @@ import (
 func main() {
 	app := cli.NewApp()
 
-	app.Name = "ngcore"
+	app.Name = name
 	app.Usage = usage
 	app.Description = description
 	app.Version = Version

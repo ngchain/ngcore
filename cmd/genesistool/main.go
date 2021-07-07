@@ -100,7 +100,7 @@ var displayCommand = &cli.Command{
 func main() {
 	app := cli.NewApp()
 
-	app.Name = "nggenesis"
+	app.Name = name
 	app.Usage = usage
 	app.Description = description
 	app.Version = Version

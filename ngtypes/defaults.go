@@ -8,7 +8,7 @@ import (
 
 // GenesisAddressBase58 is the genesis address in base58 str
 // FIXME: before initializing new network, should manually init PK & Sign
-// 	use nggenesis tool to check and generate valid values
+// 	use genesistool tool to check and generate valid values
 const (
 	GenesisAddressBase58 = "2Reeyjud1sS7Pq5BMtsK3pSmDnJPfaz4jiffTWwmJdzBvTbq"
 )
