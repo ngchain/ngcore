@@ -3,6 +3,8 @@ package main
 import (
 	"net"
 	"net/http"
+
+	// #nosec
 	_ "net/http/pprof"
 	"strings"
 
@@ -150,6 +152,8 @@ var action = func(c *cli.Context) error {
 			panic(http.Serve(listener, nil))
 		}()
 	}
+
+	log.Warnf("ngcore version %s", Version)
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
 	log.Warnf("use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))

@@ -13,13 +13,6 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-const (
-	usage       = "Helper for generating initial variables for genesis items in ngchain"
-	description = `This tool is set for chain developers to check the correctness of the genesis information (e.g. tx, block ...). 
-And it will give suggestion values to help correct the chain's genesis info'`
-	version = ""
-)
-
 var ErrGenesisKeyFileMissing = errors.New("file genesis.key is missing, try to create one first")
 
 var filenameFlag = &cli.StringFlag{
@@ -110,7 +103,7 @@ func main() {
 	app.Name = "nggenesis"
 	app.Usage = usage
 	app.Description = description
-	app.Version = version
+	app.Version = Version
 	app.Action = nil
 	app.Commands = []*cli.Command{checkCommand, displayCommand}
 

@@ -13,9 +13,8 @@ func main() {
 	app.Name = "ngcore"
 	app.Usage = usage
 	app.Description = description
-	app.Version = version
+	app.Version = Version
 	app.Action = action
-
 	app.Flags = []cli.Flag{
 		nonStrictModeFlag, snapshotModeFlag,
 		p2pTCPPortFlag, p2pKeyFileFlag,

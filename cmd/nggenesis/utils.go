@@ -12,14 +12,6 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// 	return &cli.App{
-// 		Name:        "nggenesis",
-// 		Flags:       nil,
-// 		Description: "built-in helper func for generate initial variables for genesis items",
-// 		Subcommands: []*cli.Command{checkCommand, displayCommand},
-// 	}
-// }
-
 func genBlockNonce(b *ngtypes.Block) {
 	diff := new(big.Int).SetBytes(b.Header.Difficulty)
 	genesisTarget := new(big.Int).Div(ngtypes.MaxTarget, diff)
