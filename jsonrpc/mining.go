@@ -5,34 +5,19 @@ import (
 	"math/big"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
-	"github.com/c0mm4nd/rlp"
+	"github.com/ngchain/ngcore/jsonrpc/workpool"
 	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var block ngtypes.Block
-
-	err := utils.JSON.Unmarshal(*msg.Params, &block)
-	if err != nil {
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	err = s.pow.MinedNewBlock(&block)
-	if err != nil {
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.GetHash())
-}
-
 type getBlockTemplateParams struct {
 	PrivateKey string `json:"private_key"`
 }
 
-// getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
+// getBlockTemplateFunc provides the whole block template in JSON format
+// for further development e.g. customizing mining jobs.
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params getBlockTemplateParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -58,16 +43,35 @@ func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
+// submitBlockFunc receive the whole mined block and try to broadcast it.
+func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var block ngtypes.Block
+
+	err := utils.JSON.Unmarshal(*msg.Params, &block)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = s.pow.MinedNewBlock(&block)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.GetHash())
+}
+
 type getWorkParams struct {
 	PrivateKey string `json:"private_key"`
 }
 
+var workPool = workpool.GetWorkerPool()
+
 type getWorkReply struct {
-	RawHeader string `json:"raw"` // seed is in [17:49]
-	RawBlock  string `json:"block"`
+	RawHeader string `json:"header"`
 }
 
-// getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
+// getBlockTemplateFunc provides a more simple way to mining the block.
+// The client will get a rlp-encoded block, just finding the location of bytes
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params getWorkParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -85,14 +89,12 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 	privateKey := secp256k1.NewPrivateKey(new(big.Int).SetBytes(rawPrivateKey))
 	blockTemplate := s.pow.GetBlockTemplate(privateKey)
 
-	rawBlock, err := rlp.EncodeToBytes(blockTemplate)
-	if err != nil {
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
+	header := hex.EncodeToString(blockTemplate.GetPoWRawHeader(nil))
+
+	workPool.Put(header, blockTemplate)
 
 	reply := getWorkReply{
-		RawHeader: hex.EncodeToString(blockTemplate.GetPoWRawHeader(nil)),
-		RawBlock:  hex.EncodeToString(rawBlock),
+		RawHeader: header,
 	}
 
 	raw, err := utils.JSON.Marshal(reply)
@@ -105,8 +107,8 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 }
 
 type submitWorkParams struct {
-	Nonce    string `json:"nonce"`
-	RawBlock string `json:"block"`
+	Nonce     string `json:"nonce"`
+	RawHeader string `json:"header"`
 }
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
@@ -119,28 +121,20 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
+	block, err := workPool.Get(params.RawHeader)
+	if err != nil {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
 	nonce, err := hex.DecodeString(params.Nonce)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	rawBlock, err := hex.DecodeString(params.RawBlock)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
+	block.Header.Nonce = nonce
 
-	var newBlock ngtypes.Block
-	err = rlp.DecodeBytes(rawBlock, &newBlock)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	newBlock.Header.Nonce = nonce
-
-	err = s.pow.MinedNewBlock(&newBlock)
+	err = s.pow.MinedNewBlock(block)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
