@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -30,9 +31,6 @@ type PoWork struct {
 	LocalNode *ngp2p.LocalNode
 
 	db *badger.DB
-
-	// for miner
-	foundBlockCh chan *ngtypes.Block
 }
 
 type PoWorkConfig struct {
@@ -53,8 +51,6 @@ func InitPoWConsensus(db *badger.DB, chain *blockchain.Chain, pool *ngpool.TxPoo
 		LocalNode:    localNode,
 
 		db: db,
-
-		foundBlockCh: make(chan *ngtypes.Block),
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update
@@ -113,29 +109,29 @@ func (pow *PoWork) eventLoop() {
 	for {
 		select {
 		case block := <-pow.LocalNode.OnBlock:
-			err := pow.ImportBlock(block)
-			if err != nil {
-				log.Warnf("failed to put new block from p2p: %s", err)
-				continue
-			}
-		case tx := <-pow.LocalNode.OnTx:
-			err := pow.Pool.PutTx(tx)
-			if err != nil {
-				log.Warnf("failed to put new tx from p2p network: %s", err)
-			}
+			go func() {
+				err := pow.ImportBlock(block)
+				if err != nil {
+					log.Warnf("failed to put new block from p2p: %s", err)
+				}
+			}()
 
-		case newBlock := <-pow.foundBlockCh:
-			err := pow.MinedNewBlock(newBlock)
-			if err != nil {
-				log.Warnf("error on handling the mined block: %s", err)
-			}
+		case tx := <-pow.LocalNode.OnTx:
+			go func() {
+				err := pow.Pool.PutTx(tx)
+				if err != nil {
+					log.Warnf("failed to put new tx from p2p network: %s", err)
+				}
+			}()
+
 		default:
-			// miner
+			runtime.Gosched()
 		}
 	}
 }
 
-// MinedNewBlock means the consensus mined new block and need to add it into the chain.
+// MinedNewBlock means the local (from rpc) mined new block and need to add it into the chain.
+// called by submitBlock and submitWork
 func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	if pow.SyncMod.Locker.IsLocked() {
 		return fmt.Errorf("cannot import mined block: chain is syncing")
