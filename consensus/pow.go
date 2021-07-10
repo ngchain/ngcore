@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
@@ -106,28 +105,23 @@ func (pow *PoWork) GoLoop() {
 
 // channel receiver for broadcasts events.
 func (pow *PoWork) eventLoop() {
-	for {
-		select {
-		case block := <-pow.LocalNode.OnBlock:
-			go func() {
-				err := pow.ImportBlock(block)
-				if err != nil {
-					log.Warnf("failed to put new block from p2p: %s", err)
-				}
-			}()
-
-		case tx := <-pow.LocalNode.OnTx:
-			go func() {
-				err := pow.Pool.PutTx(tx)
-				if err != nil {
-					log.Warnf("failed to put new tx from p2p network: %s", err)
-				}
-			}()
-
-		default:
-			runtime.Gosched()
+	go func() {
+		for {
+			block := <-pow.LocalNode.OnBlock
+			err := pow.ImportBlock(block)
+			if err != nil {
+				log.Warnf("failed to put new block from p2p: %s", err)
+			}
 		}
-	}
+	}()
+
+	go func() {
+		tx := <-pow.LocalNode.OnTx
+		err := pow.Pool.PutTx(tx)
+		if err != nil {
+			log.Warnf("failed to put new tx from p2p network: %s", err)
+		}
+	} ()
 }
 
 // MinedNewBlock means the local (from rpc) mined new block and need to add it into the chain.
