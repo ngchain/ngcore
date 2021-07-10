@@ -1,19 +1,16 @@
 package consensus
 
 import (
-	"sync"
+	"runtime"
 	"time"
 )
 
-var reporterOnce sync.Once
-
 func (pow *PoWork) reportLoop() {
-	reporterOnce.Do(func() {
-		interval := time.NewTicker(time.Minute)
-		for {
-			<-interval.C
-			latestBlock := pow.Chain.GetLatestBlock()
-			log.Warnf("local latest block@%d: %x", latestBlock.Header.Height, latestBlock.GetHash())
-		}
-	})
+	interval := time.NewTicker(time.Minute)
+	for {
+		<-interval.C
+		latestBlock := pow.Chain.GetLatestBlock()
+		log.Warnf("local latest block@%d: %x", latestBlock.Header.Height, latestBlock.GetHash())
+		runtime.Gosched()
+	}
 }
