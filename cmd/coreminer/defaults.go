@@ -5,8 +5,11 @@ const (
 	usage       = "Miner for ngchain PoW protocol"
 	description = `This is the mining software for solo/local mining, 
 the mining share from which will all get sent to the local ngcore.
-For pool mining, please 
+For pool mining, please download from https://github.com/ngchain/ngminer
 `
+
+	defaultRPCHost = "127.0.0.1"
+	defaultRPCPort = 52521
 )
 
 var (
