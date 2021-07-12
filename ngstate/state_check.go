@@ -7,9 +7,12 @@ import (
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
+
+var ErrTxrBalanceInsufficient = errors.New("account's balance is not sufficient for the tx")
 
 // CheckBlockTxs will check all requirements for txs in block
 func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
@@ -17,12 +20,12 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 		tx := block.Txs[i]
 		// check tx is signed
 		if !tx.IsSigned() {
-			return fmt.Errorf("tx is not signed")
+			return ngtypes.ErrTxUnsigned
 		}
 
 		// check the tx's extra size is necessary
 		if len(tx.Extra) > ngtypes.TxMaxExtraSize {
-			return fmt.Errorf("tx is too large")
+			return ngtypes.ErrTxExtraExcess
 		}
 
 		switch tx.Type {
@@ -56,7 +59,7 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("invalid tx type")
+			return ngtypes.ErrTxInvalidType
 		}
 	}
 
@@ -67,17 +70,17 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 	// check tx is signed
 	if !tx.IsSigned() {
-		return fmt.Errorf("tx is not signed")
+		return ngtypes.ErrTxWrongSign
 	}
 
 	// check the tx's extra size is necessary
 	if len(tx.Extra) > ngtypes.TxMaxExtraSize {
-		return fmt.Errorf("tx is too large")
+		return ngtypes.ErrTxExtraExcess
 	}
 
 	switch tx.Type {
 	case ngtypes.GenerateTx: // generate
-		return fmt.Errorf("cannot check generate tx with CheckTx")
+		panic("shouldnt check generate tx in this func")
 
 	case ngtypes.RegisterTx: // register
 		if err := checkRegister(txn, tx); err != nil {
@@ -112,12 +115,12 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) error {
 	item, err := txn.Get(append(numToAccountPrefix, generateTx.Convener.Bytes()...))
 	if err != nil {
-		return fmt.Errorf("cannot find convener %d: %s", generateTx.Convener, err)
+		return errors.Wrapf(err, "cannot find convener %d", generateTx.Convener)
 	}
 
 	rawConvener, err := item.ValueCopy(nil)
 	if err != nil {
-		return fmt.Errorf("cannot get convener account %d: %s", generateTx.Convener, err)
+		return errors.Wrapf(err, "cannot get convener account %d", generateTx.Convener)
 	}
 
 	var convener ngtypes.Account
@@ -152,7 +155,7 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 
 	expenditure := registerTx.TotalExpenditure()
 	if payerBalance.Cmp(expenditure) < 0 {
-		return fmt.Errorf("balance is insufficient for register")
+		return ErrTxrBalanceInsufficient
 	}
 
 	// check existing ownership
@@ -189,7 +192,7 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return fmt.Errorf("balance is insufficient for logout")
+		return ErrTxrBalanceInsufficient
 	}
 
 	if len(convener.Contract) != 0 {
@@ -224,7 +227,7 @@ func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return fmt.Errorf("balance is insufficient for transaction")
+		return ErrTxrBalanceInsufficient
 	}
 
 	return nil
@@ -250,7 +253,7 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return fmt.Errorf("balance is insufficient for append")
+		return ErrTxrBalanceInsufficient
 	}
 
 	var appendExtra ngtypes.AppendExtra
@@ -286,7 +289,7 @@ func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
 	}
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
-		return fmt.Errorf("balance is insufficient for delete")
+		return ErrTxrBalanceInsufficient
 	}
 
 	var appendExtra ngtypes.DeleteExtra

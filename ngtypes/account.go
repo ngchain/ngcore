@@ -2,10 +2,9 @@ package ngtypes
 
 import (
 	"bytes"
-
-	"github.com/c0mm4nd/rlp"
 )
 
+// Account is the shell of the address to process the txs and contracts
 type Account struct {
 	Num      uint64
 	Owner    []byte
@@ -32,10 +31,7 @@ func GetGenesisStyleAccount(num AccountNum) *Account {
 	return NewAccount(num, GenesisAddress, nil, nil)
 }
 
-func (x *Account) Marshal() ([]byte, error) {
-	return rlp.EncodeToBytes(x)
-}
-
+// Equals returns whether the other is equals to the Account
 func (x *Account) Equals(other *Account) (bool, error) {
 	if !(x.Num == other.Num) {
 		return false, nil

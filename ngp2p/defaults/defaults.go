@@ -15,7 +15,7 @@ const (
 )
 
 func getGenesisBlockHash(network ngtypes.Network) string {
-	return hex.EncodeToString(ngtypes.GetGenesisBlockHash(network))
+	return hex.EncodeToString(ngtypes.GetGenesisBlock(network).GetHash())
 }
 
 func GetWiredProtocol(network ngtypes.Network) string {

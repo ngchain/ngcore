@@ -212,6 +212,9 @@ func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err erro
 			}
 
 			ins, err := vm.Instantiate(tx)
+			if err != nil {
+				return err
+			}
 
 			vm.CallOnTx(ins)
 		}

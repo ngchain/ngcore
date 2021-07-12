@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -121,14 +122,16 @@ func (pow *PoWork) eventLoop() {
 		if err != nil {
 			log.Warnf("failed to put new tx from p2p network: %s", err)
 		}
-	} ()
+	}()
 }
+
+var ErrBlockOnSyncing = errors.New("chain is syncing")
 
 // MinedNewBlock means the local (from rpc) mined new block and need to add it into the chain.
 // called by submitBlock and submitWork
 func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	if pow.SyncMod.Locker.IsLocked() {
-		return fmt.Errorf("cannot import mined block: chain is syncing")
+		return fmt.Errorf("cannot import mined block: %w", ErrBlockOnSyncing)
 	}
 
 	// check block first
@@ -162,7 +165,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 
 	err = pow.LocalNode.BroadcastBlock(block)
 	if err != nil {
-		return fmt.Errorf("failed to broadcast the new mined block")
+		return fmt.Errorf("%w: failed to broadcast the new mined block", err)
 	}
 
 	return nil

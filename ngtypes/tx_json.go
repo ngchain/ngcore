@@ -9,7 +9,7 @@ import (
 
 type jsonTx struct {
 	Network      string     `json:"network"`
-	Type         uint8      `json:"type"`
+	Type         TxType     `json:"type"`
 	Height       uint64     `json:"prevBlockHash"`
 	Convener     AccountNum `json:"convener"`
 	Participants []Address  `json:"participants"`
@@ -23,6 +23,7 @@ type jsonTx struct {
 	Hash string `json:"hash,omitempty"`
 }
 
+// MarshalJSON encodes the tx into the json bytes
 func (x *Tx) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonTx{
 		Network:      x.Network.String(),
@@ -40,6 +41,7 @@ func (x *Tx) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON decodes the Tx from the json bytes
 func (x *Tx) UnmarshalJSON(b []byte) error {
 	var tx jsonTx
 	err := utils.JSON.Unmarshal(b, &tx)

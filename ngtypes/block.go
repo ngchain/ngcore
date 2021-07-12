@@ -12,6 +12,7 @@ import (
 	"github.com/c0mm4nd/rlp"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/go-randomx"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/ngchain/ngcore/utils"
@@ -19,12 +20,15 @@ import (
 
 var log = logging.Logger("types")
 
+// Block is the base unit of the block chain and the container of the txs, which
+// provides the safety assurance by the hashes in the header
 type Block struct {
 	Header *BlockHeader
 	Txs    []*Tx
 	Subs   []*BlockHeader
 }
 
+// NewBlock creates a new Block
 func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, txTrieHash, subTrieHash, difficulty,
 	nonce []byte, txs []*Tx, subs []*BlockHeader) *Block {
 	return &Block{
@@ -43,6 +47,7 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 	}
 }
 
+// NewBlockFromHeader creates a new Block
 func NewBlockFromHeader(blockHeader *BlockHeader, txs []*Tx, subs []*BlockHeader) *Block {
 	return &Block{
 		Header: blockHeader,
@@ -51,19 +56,22 @@ func NewBlockFromHeader(blockHeader *BlockHeader, txs []*Tx, subs []*BlockHeader
 	}
 }
 
+// ErrInvalidPoWRawLen means the length of the PoW raw is not 153 bytes
+var ErrInvalidPoWRawLen = fmt.Errorf("wrong length of PoW raw bytes")
+
 // NewBlockFromPoWRaw will apply the raw pow of header and txs to the block.
 func NewBlockFromPoWRaw(raw []byte, txs []*Tx, subs []*BlockHeader) (*Block, error) {
 	// lenRaw := NetSize +  // 1
-	//	HeightSize+        // 8
-	//	TimestampSize +    // +
-	//	HashSize +         // 32
-	//	HashSize +         // +
-	//	HashSize +         // +
-	//  DiffSize +         // +
-	//	NonceSize          // 8
-	//                     // = 145
+	//   HeightSize+        // 8
+	//   TimestampSize +    // +
+	//   HashSize +         // 32
+	//   HashSize +         // +
+	//   HashSize +         // +
+	//   DiffSize +         // +
+	//   NonceSize          // 8
+	//   1+8*2+32*4+8       // = 153
 	if len(raw) != 153 {
-		return nil, fmt.Errorf("wrong length of PoW raw bytes")
+		return nil, ErrInvalidPoWRawLen
 	}
 
 	newBlock := NewBlock(
@@ -125,21 +133,21 @@ func (x *Block) IsTail() bool {
 
 // IsGenesis will check whether the Block is the genesis block.
 func (x *Block) IsGenesis() bool {
-	return bytes.Equal(x.GetHash(), GetGenesisBlockHash(x.Header.Network))
+	return bytes.Equal(x.GetHash(), GetGenesisBlock(x.Header.Network).GetHash())
 }
 
 // GetPoWRawHeader will return a complete raw for block hash.
 // When nonce is not nil, the RawHeader will use the nonce param not the x.Nonce.
 func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 	// lenRaw := NetSize +  // 1
-	//	HeightSize+        // 8
-	//	TimestampSize +    // +
-	//	HashSize +         // 32
-	//	HashSize +         // +
-	//	HashSize +         // +
-	//  DiffSize +         // +
-	//	NonceSize          // 8
-	//                     // = 145
+	//   HeightSize+        // 8
+	//   TimestampSize +    // +
+	//   HashSize +         // 32
+	//   HashSize +         // +
+	//   HashSize +         // +
+	//   DiffSize +         // +
+	//   NonceSize          // 8
+	//                      // = 153
 	raw := make([]byte, 153)
 
 	raw[0] = byte(x.Header.Network)
@@ -197,15 +205,20 @@ func (x *Block) PowHash() []byte {
 	return randomx.CalculateHash(vm, x.GetPoWRawHeader(nil))
 }
 
+var (
+	ErrBlockNoGen      = errors.New("the first tx in one block is required to be a generate tx")
+	ErrBlockOnlyOneGen = errors.New("tx should have only one tx")
+)
+
 // ToUnsealing converts a bare block to an unsealing block
 func (x *Block) ToUnsealing(txsWithGen []*Tx) error {
 	if txsWithGen[0].Type != GenerateTx {
-		return fmt.Errorf("first tx shall be a generate")
+		return ErrBlockNoGen
 	}
 
 	for i := 1; i < len(txsWithGen); i++ {
 		if txsWithGen[i].Type == GenerateTx {
-			return fmt.Errorf("except first, other tx shall not be a generate")
+			return ErrBlockOnlyOneGen
 		}
 	}
 
@@ -216,14 +229,19 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) error {
 	return nil
 }
 
+var (
+	ErrBlockSealBare = errors.New("sealing a bare block")
+	ErrInvalidNonce  = errors.New("nonce is invalid")
+)
+
 // ToSealed converts an unsealing block to a sealed block.
 func (x *Block) ToSealed(nonce []byte) (*Block, error) {
 	if !x.IsUnsealing() {
-		return nil, fmt.Errorf("the block is bare")
+		return nil, ErrBlockSealBare
 	}
 
 	if len(nonce) != NonceSize {
-		return nil, fmt.Errorf("nonce length %d is incorrect", len(nonce))
+		return nil, errors.Wrapf(ErrInvalidNonce, "nonce length %d is incorrect", len(nonce))
 	}
 
 	x.Header.Nonce = nonce
@@ -240,7 +258,7 @@ func (x *Block) verifyNonce() error {
 		return nil
 	}
 
-	return fmt.Errorf("block@%d's nonce %x is invalid", x.Header.Height, x.Header.Nonce)
+	return errors.Wrapf(ErrInvalidNonce, "block@%d's nonce %x is invalid", x.Header.Height, x.Header.Nonce)
 }
 
 // GetActualDiff returns the diff decided by nonce.
@@ -248,13 +266,12 @@ func (x *Block) GetActualDiff() *big.Int {
 	return new(big.Int).Div(MaxTarget, new(big.Int).SetBytes(x.PowHash()))
 }
 
-func (x *Block) GetHeader() *BlockHeader {
-	return x.Header
-}
-
-func (x *Block) GetTxs() []*Tx {
-	return x.Txs
-}
+var (
+	ErrInvalidPrevHash   = errors.New("invalid prev hash")
+	ErrInvalidTxTrieHash = errors.New("invalid tx trie hash")
+	ErrInvalidTimestamp  = errors.New("invalid timestamp")
+)
+var ErrBlockNotSealed = errors.New("the block is not sealed")
 
 // CheckError will check the errors in block inner fields.
 func (x *Block) CheckError() error {
@@ -264,28 +281,28 @@ func (x *Block) CheckError() error {
 	// DONE: do network check on consensus
 
 	if len(x.Header.PrevBlockHash) != HashSize {
-		return fmt.Errorf("block%d's PrevBlockHash length is incorrect", x.Header.Height)
+		return errors.Wrapf(ErrInvalidPrevHash, "block%d's PrevBlockHash length is incorrect", x.Header.Height)
 	}
 
 	if len(x.Header.TxTrieHash) != HashSize {
-		return fmt.Errorf("block%d's TrieHash length is incorrect", x.Header.Height)
+		return errors.Wrapf(ErrInvalidTxTrieHash, "block%d's TrieHash length is incorrect", x.Header.Height)
 	}
 
 	if len(x.Header.Nonce) != NonceSize {
-		return fmt.Errorf("block%d's Nonce length is incorrect", x.Header.Height)
+		return errors.Wrapf(ErrInvalidNonce, "block%d's Nonce length is incorrect", x.Header.Height)
 	}
 
 	if x.Header.Timestamp > uint64(time.Now().Unix()) {
-		return fmt.Errorf("block%d's timestamp %d is invalid", x.Header.Height, x.Header.Timestamp)
+		return errors.Wrapf(ErrInvalidTimestamp, "block%d's timestamp %d is invalid", x.Header.Height, x.Header.Timestamp)
 	}
 
 	if !x.IsSealed() {
-		return fmt.Errorf("block@%d has not sealed with nonce", x.Header.Height)
+		return errors.Wrapf(ErrBlockNotSealed, "block@%d has not sealed with nonce", x.Header.Height)
 	}
 
 	txTrie := NewTxTrie(x.Txs)
 	if !bytes.Equal(txTrie.TrieRoot(), x.Header.TxTrieHash) {
-		return fmt.Errorf("the merkle tree in block@%d is invalid", x.Header.Height)
+		return errors.Wrapf(ErrInvalidTxTrieHash, "the tx merkle tree in block@%d is invalid", x.Header.Height)
 	}
 
 	err := x.verifyNonce()

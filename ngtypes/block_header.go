@@ -9,6 +9,8 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// BlockHeader is the fix-sized header of the block, which is able to
+// describe itself.
 type BlockHeader struct {
 	Network Network // 1
 
@@ -23,6 +25,8 @@ type BlockHeader struct {
 	Nonce      []byte `rlp:"tail"` // 8
 }
 
+// CalculateHash calcs the hash of the Block header with sha3_256, aiming to
+// get the merkletree hash when summarizing subs into the header.
 func (x *BlockHeader) CalculateHash() ([]byte, error) {
 	raw, err := rlp.EncodeToBytes(x)
 	if err != nil {
@@ -34,10 +38,14 @@ func (x *BlockHeader) CalculateHash() ([]byte, error) {
 	return hash[:], nil
 }
 
+// ErrNotBlockHeader means the var is not a block header
+var ErrNotBlockHeader = errors.New("not a block header")
+
+// Equals checks whether the block headers equal
 func (x *BlockHeader) Equals(other merkletree.Content) (bool, error) {
 	header, ok := other.(*BlockHeader)
 	if !ok {
-		return false, errors.New("invalid transaction type")
+		return false, ErrNotBlockHeader
 	}
 
 	if x.Network != header.Network {

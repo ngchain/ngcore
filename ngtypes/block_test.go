@@ -96,22 +96,22 @@ func TestBlockJSON(t *testing.T) {
 
 		t.Log(string(jsonBlock))
 
-		block_ := &ngtypes.Block{}
-		err = utils.JSON.Unmarshal(jsonBlock, &block_)
+		block2 := &ngtypes.Block{}
+		err = utils.JSON.Unmarshal(jsonBlock, &block2)
 		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		if eq, _ := block.Equals(block_); !eq {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 
-		if eq, _ := block.Equals(block_); !eq {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 	}
@@ -122,20 +122,20 @@ func TestBlockRawPoW(t *testing.T) {
 		block := ngtypes.GetGenesisBlock(net)
 		raw := block.GetPoWRawHeader(nil)
 		txs := block.Txs
-		block_, err := ngtypes.NewBlockFromPoWRaw(raw, txs, nil)
+		block2, err := ngtypes.NewBlockFromPoWRaw(raw, txs, nil)
 		if err != nil {
 			panic(err)
 		}
 
-		if eq, _ := block.Equals(block_); !eq {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 
-		if eq, _ := block.Equals(block_); !eq {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 	}

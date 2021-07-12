@@ -2,7 +2,6 @@ package broadcast
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/c0mm4nd/rlp"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -13,7 +12,7 @@ import (
 func (b *Broadcast) BroadcastBlock(block *ngtypes.Block) error {
 	raw, err := rlp.EncodeToBytes(block)
 	if err != nil {
-		return fmt.Errorf("failed to sign pb data")
+		return err
 	}
 
 	err = b.topics[b.blockTopic].Publish(context.Background(), raw)

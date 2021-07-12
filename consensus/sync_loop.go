@@ -42,7 +42,7 @@ func (mod *syncModule) loop() {
 		})
 
 		var err error
-		if records := mod.MustSync(slice); records != nil && len(records) != 0 {
+		if records := mod.MustSync(slice); len(records) != 0 {
 			for _, record := range records {
 				if mod.pow.SnapshotMode {
 					err = mod.doSnapshotSync(record)
@@ -61,7 +61,7 @@ func (mod *syncModule) loop() {
 			continue
 		}
 
-		if records := mod.MustConverge(slice); records != nil && len(records) != 0 {
+		if records := mod.MustConverge(slice); len(records) != 0 {
 			for _, record := range records {
 				if mod.pow.SnapshotMode {
 					err = mod.doSnapshotConverging(record)

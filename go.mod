@@ -25,6 +25,7 @@ require (
 	github.com/ngchain/go-randomx v0.1.9
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
+	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/atomic v1.7.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a

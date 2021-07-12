@@ -82,23 +82,18 @@ linters:
     - maligned # deprecated
     - scopelint # deprecated
     - interfacer # deprecated
+    - deadcode # allow
+    - unused
   enable:
     - goerr113
     - durationcheck
     - errcheck
     - errorlint
     - nilerr
-    - lll
     - typecheck
-  presets:
-    - bugs
-    - complexity
-    - error 
-    - format
-    - import
-    - metalinter
-    - module
-    - performance
+    - gofumpt
+    - goimports
+    - revive
 
 issues:
   fix: true

@@ -17,6 +17,7 @@ var (
 	floatingReward = new(big.Int).Mul(NG, big.NewInt(floatingBlockRewardNG)) // 8NG
 )
 
+// RegisterFee is the fee for registering a new account
 var RegisterFee = new(big.Int).Mul(NG, big.NewInt(registerFeeNG))
 
 var (

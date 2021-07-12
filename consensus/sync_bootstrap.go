@@ -54,13 +54,13 @@ func (mod *syncModule) bootstrap() {
 
 	// catch error
 	var err error
-	if records := mod.MustSync(slice); records != nil && len(records) != 0 {
+	if records := mod.MustSync(slice); len(records) != 0 {
 		for _, record := range records {
 			if !mod.pow.StrictMode && mod.pow.Chain.GetLatestBlockHeight() == 0 {
 				//
 				err = mod.switchToRemoteCheckpoint(record)
 				if err != nil {
-					panic(fmt.Errorf("failed to fast sync via checkpoint: %s", err))
+					panic(fmt.Errorf("failed to fast sync via checkpoint: %w", err))
 				}
 			}
 
@@ -79,7 +79,7 @@ func (mod *syncModule) bootstrap() {
 	}
 
 	// do converge check after sync check
-	if records := mod.MustConverge(slice); records != nil && len(records) != 0 {
+	if records := mod.MustConverge(slice); len(records) != 0 {
 		for _, record := range records {
 			if mod.pow.SnapshotMode {
 				err = mod.doSnapshotConverging(record)

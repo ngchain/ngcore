@@ -29,7 +29,3 @@ func GetGenesisBlock(network Network) *Block {
 
 	return genesisBlock
 }
-
-func GetGenesisBlockHash(network Network) []byte {
-	return GetGenesisBlock(network).GetHash()
-}

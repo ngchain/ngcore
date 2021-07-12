@@ -6,6 +6,7 @@ import (
 
 var genesisGenerateTx *Tx
 
+// GetGenesisGenerateTx provides the genesis generate tx under current network
 func GetGenesisGenerateTx(network Network) *Tx {
 	if genesisGenerateTx == nil || genesisGenerateTx.Network != network {
 		ggtx := NewTx(network, GenerateTx, 0, 0, []Address{GenesisAddress},

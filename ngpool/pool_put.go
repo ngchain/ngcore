@@ -1,9 +1,8 @@
 package ngpool
 
 import (
-	"fmt"
-
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -38,6 +37,8 @@ func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
+var ErrTxInvalidHeight = errors.New("invalid tx height")
+
 // PutTx puts txs from network(p2p) or RPC into txpool, should check error before putting.
 func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 	pool.Lock()
@@ -45,7 +46,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 
 	err := pool.db.View(func(txn *badger.Txn) error {
 		if err := ngstate.CheckTx(txn, tx); err != nil {
-			return fmt.Errorf("malformed tx, rejected: %v", err)
+			return errors.Wrap(err, "malformed tx, rejected")
 		}
 
 		return nil
@@ -57,7 +58,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 	latestBlock := pool.chain.GetLatestBlock()
 
 	if tx.Height != latestBlock.Header.Height {
-		return fmt.Errorf("tx %x does not belong to current State, found %d, require %d",
+		return errors.Wrapf(ErrTxInvalidHeight, "tx %x does not belong to current State, found %d, require %d",
 			tx.GetHash(), tx.Height, latestBlock.Header.Height)
 	}
 

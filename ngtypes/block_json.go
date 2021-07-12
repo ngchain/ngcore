@@ -2,7 +2,7 @@ package ngtypes
 
 import (
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"math/big"
 
 	"github.com/ngchain/ngcore/utils"
@@ -29,6 +29,7 @@ type jsonBlock struct {
 	Txn     int    `json:"txn,omitempty"`
 }
 
+// MarshalJSON encodes the Block into the json bytes
 func (x *Block) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonBlock{
 		Network:       x.Header.Network.String(),
@@ -39,7 +40,7 @@ func (x *Block) MarshalJSON() ([]byte, error) {
 		SubTrieHash:   hex.EncodeToString(x.Header.SubTrieHash),
 		Difficulty:    new(big.Int).SetBytes(x.Header.Difficulty).String(),
 		Nonce:         hex.EncodeToString(x.Header.Nonce),
-		Txs:           x.GetTxs(),
+		Txs:           x.Txs,
 
 		Hash:    hex.EncodeToString(x.GetHash()),
 		PoWHash: hex.EncodeToString(x.PowHash()),
@@ -47,6 +48,10 @@ func (x *Block) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// ErrInvalidDiff means the diff cannot load from the string
+var ErrInvalidDiff = errors.New("failed to parse blockHeader's difficulty")
+
+// UnmarshalJSON decode the Block from the json bytes
 func (x *Block) UnmarshalJSON(data []byte) error {
 	var b jsonBlock
 	err := utils.JSON.Unmarshal(data, &b)
@@ -68,7 +73,7 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 	}
 	bigDifficulty, ok := new(big.Int).SetString(b.Difficulty, 10)
 	if !ok {
-		return fmt.Errorf("failed to parse blockHeader's difficulty")
+		return ErrInvalidDiff
 	}
 	difficulty := bigDifficulty.Bytes()
 	nonce, err := hex.DecodeString(b.Nonce)

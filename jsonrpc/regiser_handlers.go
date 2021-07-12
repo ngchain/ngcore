@@ -1,9 +1,8 @@
 package jsonrpc
 
 import (
-	"fmt"
-
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/ngchain/ngcore/consensus"
 )
 
 // registerHTTPHandler will register jsonrpc functions onto the Server.
@@ -59,7 +58,7 @@ func registerHTTPHandler(s *Server) {
 func (s *Server) requireSynced(f func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage) func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	if s.pow.SyncMod.IsLocked() {
 		return func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("chain is syncing")))
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, consensus.ErrBlockOnSyncing))
 		}
 	}
 

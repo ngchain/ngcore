@@ -17,19 +17,21 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+type TxType uint8
+
 const (
-	InvalidTx  = 0
-	GenerateTx = 1
-	RegisterTx = 2
-	DestroyTx  = 3 // renamed from logout
+	InvalidTx TxType = iota
+	GenerateTx
+	RegisterTx
+	DestroyTx // renamed from logout
 
-	TransactTx = 4
+	TransactTx
 
-	AppendTx = 5 // add content to the tail of contract
-	DeleteTx = 6
+	AppendTx // add content to the tail of contract
+	DeleteTx
 
-	LockTx   = 7 // TODO: cannot assign nor append, but can run vm
-	UnlockTx = 8 // TODO: disable vm, but enable assign and append
+	LockTx   // TODO: cannot assign nor append, but can run vm
+	UnlockTx // TODO: disable vm, but enable assign and append
 )
 
 // Errors for Tx
@@ -40,7 +42,7 @@ var (
 
 type Tx struct {
 	Network      Network
-	Type         uint8
+	Type         TxType
 	Height       uint64 // lock the tx on the specific height, rather than the hash, to make the tx can act on forking
 	Convener     AccountNum
 	Participants []Address
@@ -52,7 +54,7 @@ type Tx struct {
 }
 
 // NewTx is the default constructor for ngtypes.Tx
-func NewTx(network Network, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
+func NewTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
 	extraData, sign []byte) *Tx {
 	tx := &Tx{
 		Network:      network,
@@ -71,7 +73,7 @@ func NewTx(network Network, txType uint8, height uint64, convener AccountNum, pa
 }
 
 // NewUnsignedTx will return an unsigned tx, must using Signature().
-func NewUnsignedTx(network Network, txType uint8, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
+func NewUnsignedTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
 	extraData []byte) *Tx {
 
 	return NewTx(network, txType, height, convener, participants, values, fee, extraData, nil)
@@ -82,14 +84,21 @@ func (x *Tx) IsSigned() bool {
 	return x.Sign != nil
 }
 
+var (
+	ErrTxInvalidType    = errors.New("invalid tx type")
+	ErrTxUnsigned       = errors.New("unsigned tx")
+	ErrInvalidPublicKey = errors.New("invalid public key")
+	ErrTxExtraExcess    = errors.New("the size of the tx extra is too large")
+)
+
 // Verify helps verify the transaction whether signed by the public key owner.
 func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	if x.Sign == nil {
-		return fmt.Errorf("unsigned transaction")
+		return ErrTxUnsigned
 	}
 
 	if publicKey.X == nil || publicKey.Y == nil {
-		return fmt.Errorf("illegal public key")
+		return ErrInvalidPublicKey
 	}
 
 	hash := [32]byte{}
@@ -97,6 +106,10 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 
 	var signature [64]byte
 	copy(signature[:], x.Sign)
+
+	if len(x.Extra) > TxMaxExtraSize {
+		return ErrTxExtraExcess
+	}
 
 	var key [33]byte
 	copy(key[:], publicKey.SerializeCompressed())
@@ -380,14 +393,20 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	return nil
 }
 
+var (
+	ErrNoDelTxHeader            = errors.New("deleteTx is missing header")
+	ErrInvalidDelTxConvener     = errors.New("invalid delete tx convener")
+	ErrInvalidDelTxParticipants = errors.New("invalid delete tx convener")
+)
+
 // CheckDelete does a self check for delete tx
 func (x *Tx) CheckDelete(publicKey secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("deleteTx is missing header")
+		return ErrNoDelTxHeader
 	}
 
 	if x.Convener == 0 {
-		return fmt.Errorf("deleteTx's convener should NOT be 0")
+		return fmt.Errorf("%w: should NOT be 0", ErrInvalidDelTxConvener)
 	}
 
 	if len(x.Participants) != 0 {

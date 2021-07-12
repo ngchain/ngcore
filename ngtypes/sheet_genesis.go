@@ -83,11 +83,11 @@ func init() {
 		"coutNLcFDZ283CxwtQHkFtF5ngAptjEkUSkVVaS6kFT9QCj":  "558281168483068014434913",
 	}
 
-	genesisBalances := make([]*Balance, 0, len(strMap))
+	genesisBalances = make([]*Balance, 0, len(strMap))
 	for strAddr, strBal := range strMap {
 		bal, ok := new(big.Int).SetString(strBal, 10)
 		if !ok {
-			panic(fmt.Errorf("failed to load balance: %s", strBal))
+			panic(fmt.Sprintf("failed to load balance: %s", strBal))
 		}
 
 		addr, err := base58.FastBase58Decoding(strAddr)
@@ -111,7 +111,7 @@ func GetGenesisSheet(network Network) *Sheet {
 			accounts = append(accounts, GetGenesisStyleAccount(AccountNum(i)))
 		}
 
-		genesisSheet = NewSheet(network, 0, GetGenesisBlockHash(network), genesisBalances, accounts)
+		genesisSheet = NewSheet(network, 0, GetGenesisBlock(network).GetHash(), genesisBalances, accounts)
 	}
 
 	return genesisSheet

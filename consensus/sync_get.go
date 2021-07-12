@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -56,7 +57,7 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 
 	id, s, err := mod.localNode.SendGetChain(record.id, [][]byte{latestHash}, nil) // nil means get MaxBlocks number blocks
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getchain: %s", err)
+		return nil, fmt.Errorf("failed to send getchain: %w", err)
 	}
 
 	reply, err := wired.ReceiveReply(id, s)
@@ -68,7 +69,7 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
+			return nil, fmt.Errorf("failed to send ping: %w", err)
 		}
 
 		// TODO: add support for hashes etc
@@ -82,11 +83,16 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 	}
 }
 
+var (
+	ErrMsgRejected    = errors.New("message get rejected")
+	ErrInvalidMsgType = errors.New("invalid message type")
+)
+
 // getRemoteChain get the chain from remote node.
 func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.Block, err error) {
 	id, s, err := mod.localNode.SendGetChain(peerID, from, to)
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getchain: %s", err)
+		return nil, fmt.Errorf("failed to send getchain: %w", err)
 	}
 
 	reply, err := wired.ReceiveReply(id, s)
@@ -98,17 +104,17 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
+			return nil, errors.Wrap(err, "failed to send ping")
 		}
 
 		// TODO: add support for hashes etc
 		return chainPayload.Blocks, err
 
 	case wired.RejectMsg:
-		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
+		return nil, errors.Wrapf(ErrMsgRejected, "getchain failed with %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
+		return nil, errors.Wrapf(ErrInvalidMsgType, "remote replies ping with messgae type %s", reply.Header.Type)
 	}
 }
 

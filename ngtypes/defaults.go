@@ -74,10 +74,10 @@ const (
 // https://en.wikipedia.org/wiki/Unit_prefix
 // https://en.wikipedia.org/wiki/Metric_prefix
 var (
-	NG           = new(big.Int).SetUint64(pico)
-	NGSymbol     = "NG"
-	picoNG       = big.NewInt(1)
-	picoNGSymbol = "pNG"
+	NG       = new(big.Int).SetUint64(pico)
+	NGSymbol = "NG"
+	// picoNG       = big.NewInt(1)
+	// picoNGSymbol = "pNG"
 )
 
 // GetEmptyHash return an empty hash

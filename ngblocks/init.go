@@ -2,6 +2,7 @@ package ngblocks
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
@@ -70,12 +71,12 @@ func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
 		if hash != nil {
 			has = true
 		}
-		if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash(network)) {
+		if !bytes.Equal(hash, ngtypes.GetGenesisBlock(network).GetHash()) {
 			panic("wrong genesis block in db")
 		}
 
 		return nil
-	}); err != nil && err != badger.ErrKeyNotFound {
+	}); err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
 		panic(err)
 	}
 
@@ -124,7 +125,7 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 		has = has && originBlock.Header.Network == network
 
 		return nil
-	}); err != nil && err != badger.ErrKeyNotFound {
+	}); err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
 		panic(err)
 	}
 

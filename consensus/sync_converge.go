@@ -38,7 +38,7 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	log.Warnf("start converging chain from remote node %s, target height: %d", record.id, record.latest)
 	chain, err := mod.getBlocksForConverging(record)
 	if err != nil {
-		return fmt.Errorf("failed to get blocks for converging: %s", err)
+		return fmt.Errorf("failed to get blocks for converging: %w", err)
 	}
 
 	// localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
@@ -107,7 +107,7 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 			for i := range blockHashes {
 				block, err := mod.pow.Chain.GetBlockByHash(blockHashes[i])
 				if err != nil {
-					return nil, fmt.Errorf("failed on constructing local chain: %s", err)
+					return nil, fmt.Errorf("failed on constructing local chain: %w", err)
 				}
 				localChain = append(localChain, block)
 			}

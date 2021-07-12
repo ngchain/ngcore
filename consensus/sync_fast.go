@@ -57,7 +57,7 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
+			return nil, fmt.Errorf("failed to send ping: %w", err)
 		}
 
 		if len(chainPayload.Blocks) != 1 {

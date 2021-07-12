@@ -14,6 +14,7 @@ type jsonAccount struct {
 	Context  *AccountContext `json:"context"`
 }
 
+// MarshalJSON converts the Account into json bytes
 func (x *Account) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonAccount{
 		Num:   x.Num,
@@ -24,6 +25,7 @@ func (x *Account) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON recovers the Account from the json bytes
 func (x *Account) UnmarshalJSON(data []byte) error {
 	var account jsonAccount
 	err := utils.JSON.Unmarshal(data, &account)

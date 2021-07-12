@@ -8,6 +8,8 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+// AccountContext is the Context field of the Account, which
+// is a in-mem (on-chain) k-v storage
 type AccountContext struct {
 	Keys   []string
 	Values [][]byte
@@ -16,6 +18,7 @@ type AccountContext struct {
 	valMap map[string][]byte
 }
 
+// NewAccountContext craetes a new empty AccountContext
 func NewAccountContext() *AccountContext {
 	return &AccountContext{
 		Keys:   make([]string, 0),
@@ -24,6 +27,7 @@ func NewAccountContext() *AccountContext {
 	}
 }
 
+// Set the k-v data
 func (ctx *AccountContext) Set(key string, val []byte) {
 	ctx.mu.Lock()
 
@@ -49,6 +53,7 @@ func (ctx *AccountContext) splitMap() {
 	ctx.Values = values
 }
 
+// Get the value by key
 func (ctx *AccountContext) Get(key string) []byte {
 	ctx.mu.RLock()
 	ret := ctx.valMap[key]
@@ -56,6 +61,7 @@ func (ctx *AccountContext) Get(key string) []byte {
 	return ret
 }
 
+// Equals checks whether the other is same with this AccountContext
 func (ctx *AccountContext) Equals(other *AccountContext) (bool, error) {
 	if len(ctx.valMap) != len(other.valMap) {
 		return false, nil
@@ -70,6 +76,7 @@ func (ctx *AccountContext) Equals(other *AccountContext) (bool, error) {
 	return true, nil
 }
 
+// MarshalJSON encodes the context as a map, with hex-encoded values
 func (ctx *AccountContext) MarshalJSON() ([]byte, error) {
 	json := make(map[string]string, len(ctx.valMap))
 	for k, v := range ctx.valMap {
@@ -79,6 +86,7 @@ func (ctx *AccountContext) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(json)
 }
 
+// UnmarshalJSON decodes the AccountContext from the map with hex values
 func (ctx *AccountContext) UnmarshalJSON(raw []byte) error {
 	var json map[string]string
 	err := utils.JSON.Unmarshal(raw, &json)

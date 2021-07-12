@@ -1,9 +1,8 @@
 package ngblocks
 
 import (
-	"fmt"
-
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -12,7 +11,7 @@ import (
 // should check block self before putting
 func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 	if block == nil {
-		return fmt.Errorf("block is nil")
+		panic("block is nil")
 	}
 
 	hash := block.GetHash()
@@ -21,35 +20,35 @@ func (store *BlockStore) ForcePutNewBlock(txn *badger.Txn, block *ngtypes.Block)
 	if blockHeightExists(txn, block.Header.Height) {
 		b, err := GetBlockByHeight(txn, block.Header.Height)
 		if err != nil {
-			return fmt.Errorf("failed to get existing block@%d: %s", block.Header.Height, err)
+			return errors.Wrapf(err, "failed to get existing block@%d", block.Header.Height)
 		}
 
 		err = delTxs(txn, b.Txs...)
 		if err != nil {
-			return fmt.Errorf("failed to del txs: %s", err)
+			return errors.Wrap(err, "failed to del txs")
 		}
 	}
 
 	if !blockPrevHashExists(txn, block.Header.Height, block.Header.PrevBlockHash) {
-		return fmt.Errorf("no prev block in storage: %x", block.GetPrevHash())
+		return errors.Wrapf(ErrPrevBlockNotExist, "cannot find block %x", block.GetPrevHash())
 	}
 
 	log.Infof("putting block@%d: %x", block.Header.Height, hash)
 	err := putBlock(txn, hash, block)
 	if err != nil {
-		return fmt.Errorf("failed to pub block: %s", err)
+		return errors.Wrap(err, "failed to put block")
 	}
 
 	// put txs
 	err = putTxs(txn, block)
 	if err != nil {
-		return fmt.Errorf("failed to put txs: %s", err)
+		return errors.Wrap(err, "failed to put txs")
 	}
 
 	// update helper
 	err = putLatestTags(txn, block.Header.Height, hash)
 	if err != nil {
-		return fmt.Errorf("failed to update tags: %s", err)
+		return errors.Wrap(err, "failed to update tags")
 	}
 	return nil
 }
@@ -60,7 +59,7 @@ func delTxs(txn *badger.Txn, txs ...*ngtypes.Tx) error {
 
 		err := txn.Delete(append(txPrefix, hash...))
 		if err != nil {
-			return fmt.Errorf("failed to delete tx %x: %s", hash, err)
+			return errors.Wrapf(err, "failed to delete tx %x", hash)
 		}
 	}
 
