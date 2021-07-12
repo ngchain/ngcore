@@ -6,6 +6,7 @@ import (
 
 	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/pkg/errors"
 )
 
 // convert local origin to remote checkpoint.
@@ -62,7 +63,8 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 
 		if len(chainPayload.Blocks) != 1 {
 			log.Debugf("%#v", chainPayload.Blocks)
-			return nil, fmt.Errorf("invalid blocks payload length: should be 1 but got %d", len(chainPayload.Blocks))
+			return nil, errors.Wrapf(wired.ErrMsgPayloadInvalid,
+				"invalid blocks payload length: should be 1 but got %d", len(chainPayload.Blocks))
 		}
 
 		// checkpoint := chainPayload.Blocks[0]
@@ -73,9 +75,9 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 		return chainPayload.Blocks[0], err
 
 	case wired.RejectMsg:
-		return nil, fmt.Errorf("getchain is rejected by remote, reason: %s", string(reply.Payload))
+		return nil, errors.Wrapf(ErrMsgRejected, "getchain is rejected by remote by reason: %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
+		return nil, errors.Wrapf(wired.ErrMsgTypeInvalid, "remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 }

@@ -3,7 +3,6 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -19,6 +18,21 @@ import (
 )
 
 var log = logging.Logger("types")
+
+var (
+	// ErrInvalidPoWRawLen means the length of the PoW raw is not 153 bytes
+	ErrInvalidPoWRawLen = errors.New("wrong length of PoW raw bytes")
+	ErrBlockNoGen       = errors.New("the first tx in one block is required to be a generate tx")
+	ErrBlockOnlyOneGen  = errors.New("tx should have only one tx")
+
+	ErrBlockNoHeader          = errors.New("block header is nil")
+	ErrBlockDiffInvalid       = errors.New("invalid block diff")
+	ErrBlockPrevHashInvalid   = errors.New("invalid block prev hash")
+	ErrBlockTxTrieHashInvalid = errors.New("invalid block tx trie hash")
+	ErrBlockTimestampInvalid  = errors.New("invalid block timestamp")
+
+	ErrBlockNotSealed = errors.New("the block is not sealed")
+)
 
 // Block is the base unit of the block chain and the container of the txs, which
 // provides the safety assurance by the hashes in the header
@@ -55,9 +69,6 @@ func NewBlockFromHeader(blockHeader *BlockHeader, txs []*Tx, subs []*BlockHeader
 		Subs:   subs,
 	}
 }
-
-// ErrInvalidPoWRawLen means the length of the PoW raw is not 153 bytes
-var ErrInvalidPoWRawLen = fmt.Errorf("wrong length of PoW raw bytes")
 
 // NewBlockFromPoWRaw will apply the raw pow of header and txs to the block.
 func NewBlockFromPoWRaw(raw []byte, txs []*Tx, subs []*BlockHeader) (*Block, error) {
@@ -205,11 +216,6 @@ func (x *Block) PowHash() []byte {
 	return randomx.CalculateHash(vm, x.GetPoWRawHeader(nil))
 }
 
-var (
-	ErrBlockNoGen      = errors.New("the first tx in one block is required to be a generate tx")
-	ErrBlockOnlyOneGen = errors.New("tx should have only one tx")
-)
-
 // ToUnsealing converts a bare block to an unsealing block
 func (x *Block) ToUnsealing(txsWithGen []*Tx) error {
 	if txsWithGen[0].Type != GenerateTx {
@@ -266,13 +272,6 @@ func (x *Block) GetActualDiff() *big.Int {
 	return new(big.Int).Div(MaxTarget, new(big.Int).SetBytes(x.PowHash()))
 }
 
-var (
-	ErrInvalidPrevHash   = errors.New("invalid prev hash")
-	ErrInvalidTxTrieHash = errors.New("invalid tx trie hash")
-	ErrInvalidTimestamp  = errors.New("invalid timestamp")
-)
-var ErrBlockNotSealed = errors.New("the block is not sealed")
-
 // CheckError will check the errors in block inner fields.
 func (x *Block) CheckError() error {
 	// if x.Network != Network {
@@ -281,11 +280,11 @@ func (x *Block) CheckError() error {
 	// DONE: do network check on consensus
 
 	if len(x.Header.PrevBlockHash) != HashSize {
-		return errors.Wrapf(ErrInvalidPrevHash, "block%d's PrevBlockHash length is incorrect", x.Header.Height)
+		return errors.Wrapf(ErrBlockPrevHashInvalid, "block%d's PrevBlockHash length is incorrect", x.Header.Height)
 	}
 
 	if len(x.Header.TxTrieHash) != HashSize {
-		return errors.Wrapf(ErrInvalidTxTrieHash, "block%d's TrieHash length is incorrect", x.Header.Height)
+		return errors.Wrapf(ErrBlockTxTrieHashInvalid, "block%d's TrieHash length is incorrect", x.Header.Height)
 	}
 
 	if len(x.Header.Nonce) != NonceSize {
@@ -293,7 +292,7 @@ func (x *Block) CheckError() error {
 	}
 
 	if x.Header.Timestamp > uint64(time.Now().Unix()) {
-		return errors.Wrapf(ErrInvalidTimestamp, "block%d's timestamp %d is invalid", x.Header.Height, x.Header.Timestamp)
+		return errors.Wrapf(ErrBlockTimestampInvalid, "block%d's timestamp %d is invalid", x.Header.Height, x.Header.Timestamp)
 	}
 
 	if !x.IsSealed() {
@@ -302,7 +301,7 @@ func (x *Block) CheckError() error {
 
 	txTrie := NewTxTrie(x.Txs)
 	if !bytes.Equal(txTrie.TrieRoot(), x.Header.TxTrieHash) {
-		return errors.Wrapf(ErrInvalidTxTrieHash, "the tx merkle tree in block@%d is invalid", x.Header.Height)
+		return errors.Wrapf(ErrBlockTxTrieHashInvalid, "the tx merkle tree in block@%d is invalid", x.Header.Height)
 	}
 
 	err := x.verifyNonce()

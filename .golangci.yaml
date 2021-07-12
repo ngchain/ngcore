@@ -58,7 +58,7 @@ linters-settings:
 
   gofmt:
     # simplify code: gofmt with `-s` option, true by default
-    simplify: true
+    simplify: false
 
   gofumpt:
     # Choose whether or not to use the extra rules that are disabled
@@ -85,18 +85,20 @@ linters:
     - deadcode # allow
     - unused
   enable:
+    - govet
     - goerr113
     - durationcheck
     - errcheck
     - errorlint
     - nilerr
     - typecheck
-    - gofumpt
-    - goimports
+    # - gci
+    # - gofumpt # having bug
+    # - goimports
     - revive
 
 issues:
-  fix: true
+  fix: false
 
 severity:
   # Default value is empty string.

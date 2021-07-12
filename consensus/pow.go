@@ -1,13 +1,13 @@
 package consensus
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/secp256k1"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngblocks"
@@ -125,13 +125,13 @@ func (pow *PoWork) eventLoop() {
 	}()
 }
 
-var ErrBlockOnSyncing = errors.New("chain is syncing")
+var ErrChainOnSyncing = errors.New("chain is syncing")
 
 // MinedNewBlock means the local (from rpc) mined new block and need to add it into the chain.
 // called by submitBlock and submitWork
 func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	if pow.SyncMod.Locker.IsLocked() {
-		return fmt.Errorf("cannot import mined block: %w", ErrBlockOnSyncing)
+		return fmt.Errorf("cannot import mined block: %w", ErrChainOnSyncing)
 	}
 
 	// check block first
@@ -173,7 +173,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 
 func (pow *PoWork) ImportBlock(block *ngtypes.Block) error {
 	if pow.SyncMod.Locker.IsLocked() {
-		return fmt.Errorf("cannot import external block: chain is syncing")
+		return errors.Wrap(ErrChainOnSyncing, "cannot import external block")
 	}
 
 	err := pow.Chain.ApplyBlock(block)

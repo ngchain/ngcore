@@ -2,11 +2,11 @@ package ngstate
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math/big"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -18,7 +18,7 @@ func (state *State) HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 		tx := txs[i]
 		switch tx.Type {
 		case ngtypes.InvalidTx:
-			return fmt.Errorf("invalid tx")
+			return ngtypes.ErrTxTypeInvalid
 		case ngtypes.GenerateTx:
 			if err := state.handleGenerate(txn, tx); err != nil {
 				return err
@@ -44,7 +44,7 @@ func (state *State) HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 				return err
 			}
 		default:
-			return fmt.Errorf("unknown tx type")
+			return errors.Wrapf(ngtypes.ErrTxTypeInvalid, "unknown tx type %d", tx.Type)
 		}
 	}
 
@@ -85,7 +85,7 @@ func (state *State) handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) 
 	}
 
 	if balance.Cmp(totalExpense) < 0 {
-		return fmt.Errorf("balance is insufficient for register")
+		return ErrTxrBalanceInsufficient
 	}
 
 	err = setBalance(txn, tx.Participants[0], new(big.Int).Sub(balance, totalExpense))
@@ -133,7 +133,7 @@ func (state *State) handleDestroy(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	if balance.Cmp(totalExpense) < 0 {
-		return fmt.Errorf("balance is insufficient for logout")
+		return ErrTxrBalanceInsufficient
 	}
 
 	err = setBalance(txn, convener.Owner, new(big.Int).Sub(balance, totalExpense))
@@ -180,7 +180,7 @@ func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err erro
 	}
 
 	if convenerBalance.Cmp(totalExpense) < 0 {
-		return fmt.Errorf("balance is insufficient for transaction")
+		return ErrTxrBalanceInsufficient
 	}
 	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, totalExpense))
 	if err != nil {
@@ -246,7 +246,7 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	if convenerBalance.Cmp(tx.Fee) < 0 {
-		return fmt.Errorf("balance is insufficient for appendTx")
+		return ErrTxrBalanceInsufficient
 	}
 
 	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))
@@ -301,7 +301,7 @@ func (state *State) handleDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	}
 
 	if convenerBalance.Cmp(tx.Fee) < 0 {
-		return fmt.Errorf("balance is insufficient for deleteTx")
+		return ErrTxrBalanceInsufficient
 	}
 
 	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))

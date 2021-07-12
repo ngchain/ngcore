@@ -5,11 +5,11 @@ import (
 	"math/big"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
-	"github.com/ngchain/ngcore/jsonrpc/workpool"
-	"github.com/ngchain/secp256k1"
 
+	"github.com/ngchain/ngcore/jsonrpc/workpool"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
+	"github.com/ngchain/secp256k1"
 )
 
 type getBlockTemplateParams struct {

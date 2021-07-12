@@ -1,12 +1,12 @@
 package wired
 
 import (
-	"fmt"
-
 	"github.com/c0mm4nd/rlp"
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ngchain/ngcore/ngstate"
+	"github.com/pkg/errors"
 )
 
 func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpointHash []byte) (id []byte, stream network.Stream, err error) {
@@ -15,7 +15,7 @@ func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpoint
 		Hash:   checkpointHash,
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to sign pb data: %s", err)
+		err = errors.Wrapf(err, "failed to encode data into rlp")
 		log.Debug(err)
 		return nil, nil, err
 	}
@@ -31,7 +31,7 @@ func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpoint
 	// sign the data
 	signature, err := Signature(w.host, req)
 	if err != nil {
-		err = fmt.Errorf("failed to sign pb data: %s", err)
+		err = errors.Wrap(err, "failed to sign pb data")
 		log.Debug(err)
 		return nil, nil, err
 	}
@@ -65,8 +65,7 @@ func (w *Wired) onGetSheet(stream network.Stream, msg *Message) {
 
 	sheet := w.chain.GetSnapshot(getSheetPayload.Height, getSheetPayload.Hash)
 	if sheet == nil {
-		err = fmt.Errorf("cannot find the snapshot on such height")
-		w.sendReject(msg.Header.ID, stream, err)
+		w.sendReject(msg.Header.ID, stream, ngstate.ErrSnapshotNofFound)
 	}
 
 	w.sendSheet(msg.Header.ID, stream, sheet)

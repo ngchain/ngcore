@@ -5,7 +5,7 @@ Package ngtypes implements the block structure and related types.
 
 ## Account
 
-Account is not an unlimited resource, the account is created when register tx and removed with logout tx
+Account is not an unlimited resource, the account is created when register tx and removed with destroy tx
 
 ## Block
 
@@ -36,7 +36,7 @@ and it can also have multi-participants.
 
 2. Register Tx: register the account
 
-3. Logout Tx: logout the account
+3. Destroy Tx: destroy the account
 
 4. Transaction: normal tx, can be used for sending money, or trigger the vm's onTx function
 

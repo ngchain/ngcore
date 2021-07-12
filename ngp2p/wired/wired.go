@@ -1,8 +1,6 @@
 package wired
 
 import (
-	"fmt"
-
 	"github.com/c0mm4nd/rlp"
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
@@ -70,7 +68,7 @@ func (w *Wired) handleStream(stream network.Stream) {
 	}
 
 	if !Verify(stream.Conn().RemotePeer(), &msg) {
-		w.sendReject(msg.Header.ID, stream, fmt.Errorf("message is invalid"))
+		w.sendReject(msg.Header.ID, stream, ErrMsgSignInvalid)
 		return
 	}
 
@@ -82,7 +80,7 @@ func (w *Wired) handleStream(stream network.Stream) {
 	case GetSheetMsg:
 		w.onGetChain(stream, &msg)
 	default:
-		w.sendReject(msg.Header.ID, stream, fmt.Errorf("unsupported protocol method"))
+		w.sendReject(msg.Header.ID, stream, ErrMsgTypeInvalid)
 	}
 
 	err = stream.Close()

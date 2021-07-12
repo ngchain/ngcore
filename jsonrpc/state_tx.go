@@ -2,7 +2,6 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"reflect"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/c0mm4nd/rlp"
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/secp256k1"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -151,7 +151,8 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 			}
 			participants[i] = account.Owner
 		default:
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("unknown participant type: %s", reflect.TypeOf(p))))
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0,
+				errors.Wrapf(ngtypes.ErrTxParticipantsInvalid, "unknown participant type: %s", reflect.TypeOf(p))))
 		}
 	}
 
@@ -237,14 +238,14 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type genLogoutParams struct {
+type genDestroyParams struct {
 	Convener  uint64  `json:"convener"`
 	Fee       float64 `json:"fee"`
 	PublicKey string  `json:"publicKey"` // compressed publicKey, beginning with 02 or 03 (not 04).
 }
 
 func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genLogoutParams
+	var params genDestroyParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)

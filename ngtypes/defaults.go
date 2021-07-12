@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // GenesisAddressBase58 is the genesis address in base58 str
@@ -63,6 +65,8 @@ const (
 	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
 	SignatureSize = 64
 )
+
+var ErrHashSize = errors.New("the length of hash is wrong ")
 
 // Unit const
 const (

@@ -2,11 +2,11 @@ package ngstate
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -76,7 +76,7 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 
 		matureSnapshot := state.GetSnapshotByHeight(ngtypes.GetMatureHeight(currentHeight))
 		if matureSnapshot == nil {
-			return fmt.Errorf("cannot find the mature snapshot") // abnormal
+			return errors.Wrap(ErrSnapshotNofFound, "cannot find the mature snapshot") // abnormal
 		}
 
 		for i := range matureSnapshot.Balances {
@@ -108,7 +108,7 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 
 		matureSnapshot := state.GetSnapshotByHeight(ngtypes.GetMatureHeight(currentHeight))
 		if matureSnapshot == nil {
-			return fmt.Errorf("cannot find the mature snapshot") // abnormal
+			return errors.Wrap(ErrSnapshotNofFound, "cannot find the mature snapshot") // abnormal
 		}
 
 		for i := range matureSnapshot.Balances {

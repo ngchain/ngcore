@@ -52,7 +52,7 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 	// RULE: there are 3 choices
 	// 1. regenerate the state(time-consuming)
 	// 2. download the state from remote(maybe unreliable)
-	// 3. flash back(require remove logout and assign tx)
+	// 3. flash back(require remove destroy and assign tx)
 	// Currently choose the No.1
 	log.Warnf("regenerateing local state")
 	err = mod.pow.State.RebuildFromBlockStore()

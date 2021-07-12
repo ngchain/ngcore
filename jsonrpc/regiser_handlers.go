@@ -33,7 +33,7 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("sendTx", s.sendTxFunc)
 	s.RegisterJsonRpcHandleFunc("signTx", s.signTxFunc)
 	s.RegisterJsonRpcHandleFunc("genRegister", s.genRegisterFunc)
-	s.RegisterJsonRpcHandleFunc("genLogout", s.genDestroyFunc)
+	s.RegisterJsonRpcHandleFunc("genDestroy", s.genDestroyFunc)
 	s.RegisterJsonRpcHandleFunc("genTransaction", s.genTransactionFunc)
 	s.RegisterJsonRpcHandleFunc("genAppend", s.genAppendFunc)
 	s.RegisterJsonRpcHandleFunc("genDelete", s.genDeleteFunc)
@@ -58,7 +58,7 @@ func registerHTTPHandler(s *Server) {
 func (s *Server) requireSynced(f func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage) func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	if s.pow.SyncMod.IsLocked() {
 		return func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, consensus.ErrBlockOnSyncing))
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, consensus.ErrChainOnSyncing))
 		}
 	}
 

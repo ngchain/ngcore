@@ -43,9 +43,9 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 		}
 
 	case wired.RejectMsg:
-		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
+		return errors.Wrapf(ErrMsgRejected, "ping is rejected by remote: %s", string(reply.Payload))
 	default:
-		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
+		return errors.Wrapf(ErrInvalidMsgType, "remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 
 	return nil
@@ -76,10 +76,10 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 		return chainPayload.Blocks, err
 
 	case wired.RejectMsg:
-		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
+		return nil, errors.Wrapf(ErrMsgRejected, "getchain is rejected by remote: %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.Type)
+		return nil, errors.Wrapf(ErrInvalidMsgType, "remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 }
 
@@ -121,7 +121,7 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes.Sheet, err error) {
 	id, s, err := mod.localNode.SendGetSheet(record.id, record.checkpointHeight, record.checkpointHash)
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getsheet: %s", err)
+		return nil, errors.Wrap(err, "failed to send getsheet")
 	}
 
 	reply, err := wired.ReceiveReply(id, s)
@@ -133,16 +133,16 @@ func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes
 	case wired.SheetMsg:
 		sheetPayload, err := wired.DecodeSheetPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
+			return nil, errors.Wrap(err, "failed to send ping: %s")
 		}
 
 		// TODO: add support for hashes etc
 		return sheetPayload.Sheet, err
 
 	case wired.RejectMsg:
-		return nil, fmt.Errorf("getsheet is rejected by remote: %s", string(reply.Payload))
+		return nil, errors.Wrapf(ErrMsgRejected, "getsheet is rejected by remote: %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies with invalid messgae type: %s", reply.Header.Type)
+		return nil, errors.Wrapf(ErrInvalidMsgType, "remote replies with invalid messgae type: %s", reply.Header.Type)
 	}
 }

@@ -1,6 +1,6 @@
 package consensus
 
-import "fmt"
+import "github.com/pkg/errors"
 
 // MustSync will start a sync and stop until reaching the latest height
 // RULE: checkpoint converging: when a node mined a checkpoint, all other node are forced to start sync.
@@ -37,7 +37,7 @@ func (mod *syncModule) doSync(record *RemoteRecord) error {
 		for i := 0; i < len(chain); i++ {
 			err = mod.pow.Chain.ApplyBlock(chain[i])
 			if err != nil {
-				return fmt.Errorf("failed on applying block@%d: %s", chain[i].Header.Height, err)
+				return errors.Wrapf(err, "failed on applying block@%d", chain[i].Header.Height)
 			}
 		}
 	}

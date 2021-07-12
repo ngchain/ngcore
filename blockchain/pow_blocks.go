@@ -2,9 +2,9 @@ package blockchain
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -114,7 +114,7 @@ func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 	}
 
 	if len(hash) != 32 {
-		return nil, fmt.Errorf("%x is not a legal hash", hash)
+		return nil, errors.Wrapf(ngtypes.ErrHashSize, "%x is not a legal hash", hash)
 	}
 
 	block := &ngtypes.Block{}
@@ -170,7 +170,7 @@ func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
 
 			err := chain.ForcePutNewBlock(txn, block)
 			if err != nil {
-				return fmt.Errorf("failed to force putting new block: %s", err)
+				return errors.Wrap(err, "failed to force putting new block")
 			}
 		}
 

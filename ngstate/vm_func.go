@@ -1,7 +1,6 @@
 package ngstate
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
@@ -23,7 +22,7 @@ func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
 	}
 
 	if convenerBalance.Cmp(bigValue) < 0 {
-		return fmt.Errorf("balance is insufficient for transaction")
+		return ErrTxrBalanceInsufficient
 	}
 	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, bigValue))
 	if err != nil {

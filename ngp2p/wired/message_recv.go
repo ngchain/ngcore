@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	ErrMsgMalformed   = errors.New("malformed message")
-	ErrMsgInvalidID   = errors.New("message id is invalid")
-	ErrMsgInvalidType = errors.New("message type is invalid")
-	ErrMsgInvalidSign = errors.New("message sign is invalid")
+	ErrMsgMalformed      = errors.New("malformed message")
+	ErrMsgIDInvalid      = errors.New("message id is invalid")
+	ErrMsgTypeInvalid    = errors.New("message type is invalid")
+	ErrMsgSignInvalid    = errors.New("message sign is invalid")
+	ErrMsgPayloadInvalid = errors.New("message payload is invalid")
 )
 
 // ReceiveReply will receive the correct reply message from the stream.
@@ -40,15 +41,15 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 	}
 
 	if msg.Header.Type == InvalidMsg {
-		return nil, errors.Wrap(ErrMsgInvalidType, "invalid message type")
+		return nil, errors.Wrap(ErrMsgTypeInvalid, "invalid message type")
 	}
 
 	if !bytes.Equal(msg.Header.ID, uuid) {
-		return nil, errors.Wrap(ErrMsgInvalidID, "invalid message id")
+		return nil, errors.Wrap(ErrMsgIDInvalid, "invalid message id")
 	}
 
 	if !Verify(stream.Conn().RemotePeer(), &msg) {
-		return nil, errors.Wrap(ErrMsgInvalidSign, "failed to verify the sign of message")
+		return nil, errors.Wrap(ErrMsgSignInvalid, "failed to verify the sign of message")
 	}
 
 	return &msg, nil

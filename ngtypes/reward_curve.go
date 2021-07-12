@@ -1,6 +1,10 @@
 package ngtypes
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/pkg/errors"
+)
 
 const (
 	rewardEra = 1_000_000
@@ -24,6 +28,8 @@ var (
 	big1  = big.NewInt(1)
 	big10 = big.NewInt(10000)
 )
+
+var ErrRewardInvalid = errors.New("block reward is invalid")
 
 // GetBlockReward returns the block reward in a specific height
 // reward = 2 + 8*(0.9)^Era

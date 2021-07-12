@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -27,7 +27,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 		To:   to,
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to sign pb data: %s", err)
+		err = errors.Wrap(err, "failed to encode data into rlp")
 		log.Debug(err)
 		return nil, nil, err
 	}
@@ -43,7 +43,7 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 	// sign the data
 	signature, err := Signature(w.host, req)
 	if err != nil {
-		err = fmt.Errorf("failed to sign pb data: %s", err)
+		err = errors.Wrap(err, "failed to sign pb data")
 		log.Debug(err)
 		return nil, nil, err
 	}
@@ -94,7 +94,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 		for blockHeight := from; blockHeight <= to; blockHeight++ {
 			cur, err := w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
-				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
+				err := errors.Wrapf(err, "chain lacks block@%d", blockHeight)
 				log.Error(err)
 				w.sendReject(msg.Header.ID, stream, err)
 				return
@@ -112,7 +112,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 	// init cur
 	cur, err := w.chain.GetBlockByHash(getChainPayload.From[0])
 	if err != nil {
-		err = fmt.Errorf("cannot get block by hash %x: %s", getChainPayload.From[0], err)
+		err = errors.Wrapf(err, "cannot get block by hash %x", getChainPayload.From[0])
 		log.Error(err)
 		w.sendReject(msg.Header.ID, stream, err)
 		return
@@ -139,7 +139,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 			for blockHeight := from; blockHeight <= to; blockHeight++ {
 				cur, err = w.chain.GetBlockByHeight(blockHeight)
 				if err != nil {
-					err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
+					err := errors.Wrapf(err, "chain lacks block@%d", blockHeight)
 					log.Debug(err)
 					w.sendReject(msg.Header.ID, stream, err)
 					return
@@ -163,7 +163,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 			blockHeight := cur.Header.Height + 1
 			cur, err = w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
-				err := fmt.Errorf("chain lacks block@%d: %s", blockHeight, err)
+				err := errors.Wrapf(err, "chain lacks block@%d", blockHeight)
 				log.Debug(err)
 				w.sendReject(msg.Header.ID, stream, err)
 				return

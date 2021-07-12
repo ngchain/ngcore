@@ -24,7 +24,7 @@ func (chain *Chain) CheckHealth(network ngtypes.Network) {
 		}
 
 		if !bytes.Equal(b.Header.PrevBlockHash, prevBlockHash) {
-			panic(fmt.Errorf("prev block hash %x is incorrect, shall be %x", b.Header.PrevBlockHash, prevBlockHash))
+			panic(fmt.Sprintf("prev block hash %x is incorrect, shall be %x", b.Header.PrevBlockHash, prevBlockHash))
 		}
 
 		prevBlockHash = b.GetHash()

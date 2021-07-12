@@ -3,8 +3,6 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/c0mm4nd/rlp"
@@ -12,6 +10,7 @@ import (
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/go-schnorr"
 	"github.com/ngchain/secp256k1"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/ngchain/ngcore/utils"
@@ -32,12 +31,6 @@ const (
 
 	LockTx   // TODO: cannot assign nor append, but can run vm
 	UnlockTx // TODO: disable vm, but enable assign and append
-)
-
-// Errors for Tx
-var (
-	// ErrTxWrongSign occurs when the signature of the Tx doesnt match the Tx 's caller/account
-	ErrTxWrongSign = errors.New("the signer of transaction is not the own of the account")
 )
 
 type Tx struct {
@@ -84,13 +77,6 @@ func (x *Tx) IsSigned() bool {
 	return x.Sign != nil
 }
 
-var (
-	ErrTxInvalidType    = errors.New("invalid tx type")
-	ErrTxUnsigned       = errors.New("unsigned tx")
-	ErrInvalidPublicKey = errors.New("invalid public key")
-	ErrTxExtraExcess    = errors.New("the size of the tx extra is too large")
-)
-
 // Verify helps verify the transaction whether signed by the public key owner.
 func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 	if x.Sign == nil {
@@ -118,7 +104,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 			return err
 		}
 
-		return ErrTxWrongSign
+		return ErrTxSignInvalid
 	}
 
 	return nil
@@ -182,7 +168,7 @@ func (x *Tx) CalculateHash() ([]byte, error) {
 func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 	tx, ok := other.(*Tx)
 	if !ok {
-		return false, errors.New("invalid transaction type")
+		panic("comparing with non-tx struct")
 	}
 
 	if x.Network != tx.Network {
@@ -235,23 +221,23 @@ func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 // CheckGenerate does a self check for generate tx
 func (x *Tx) CheckGenerate(blockHeight uint64) error {
 	if x == nil {
-		return errors.New("generate is missing header")
+		return ErrBlockNoHeader
 	}
 
 	if x.Convener != 0 {
-		return fmt.Errorf("generate's convener should be 0")
+		return errors.Wrap(ErrTxConvenerInvalid, "generate's convener should be 0")
 	}
 
 	if len(x.Values) != len(x.Participants) {
-		return fmt.Errorf("generate should have same len with participants")
+		return errors.Wrap(ErrTxParticipantsInvalid, "generate should have same len with participants")
 	}
 
 	if !(x.TotalExpenditure().Cmp(GetBlockReward(blockHeight)) == 0) {
-		return fmt.Errorf("wrong block reward: expect %s but value is %s", GetBlockReward(blockHeight), x.TotalExpenditure())
+		return errors.Wrapf(ErrRewardInvalid, "expect %s but reward is %s", GetBlockReward(blockHeight), x.TotalExpenditure())
 	}
 
 	if x.Fee.Cmp(big.NewInt(0)) != 0 {
-		return fmt.Errorf("generate's fee should be ZERO")
+		return errors.Wrap(ErrTxFeeInvalid, "generate's fee should be ZERO")
 	}
 
 	publicKey := x.Participants[0].PubKey()
@@ -266,31 +252,31 @@ func (x *Tx) CheckGenerate(blockHeight uint64) error {
 // CheckRegister does a self check for register tx
 func (x *Tx) CheckRegister() error {
 	if x == nil {
-		return errors.New("register is missing header")
+		return ErrTxNoHeader
 	}
 
 	if x.Convener != 0o1 {
-		return fmt.Errorf("register's convener should be 1")
+		return errors.Wrap(ErrTxConvenerInvalid, "register's convener should be 1")
 	}
 
 	if len(x.Participants) != 1 {
-		return fmt.Errorf("register should have only one participant")
+		return errors.Wrap(ErrTxParticipantsInvalid, "register should have only one participant")
 	}
 
 	if len(x.Values) != 1 {
-		return fmt.Errorf("register should have only one value")
+		return errors.Wrap(ErrTxValuesInvalid, "register should have only one value")
 	}
 
 	if x.Values[0].Cmp(big.NewInt(0)) != 0 {
-		return fmt.Errorf("register should have only one value, the amount of which is 0")
+		return errors.Wrap(ErrTxValuesInvalid, "register should have only one value, the amount of which is 0")
 	}
 
 	if x.Fee.Cmp(RegisterFee) < 0 {
-		return fmt.Errorf("register should have at least 10NG(one block reward) fee")
+		return errors.Wrap(ErrTxFeeInvalid, "register should have at least 10NG(one block reward) fee")
 	}
 
 	if len(x.Extra) != 1<<3 {
-		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
+		return errors.Wrap(ErrTxExtraInvalid, "register should have uint64 little-endian bytes as extra")
 	}
 
 	publicKey := x.Participants[0].PubKey()
@@ -302,26 +288,26 @@ func (x *Tx) CheckRegister() error {
 	return nil
 }
 
-// CheckLogout does a self check for logout tx
-func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
+// CheckDestroy does a self check for destroy tx
+func (x *Tx) CheckDestroy(publicKey secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("logout is missing header")
+		return ErrTxNoHeader
 	}
 
 	if len(x.Participants) != 0 {
-		return fmt.Errorf("logout should have NO participant")
+		return errors.Wrap(ErrTxParticipantsInvalid, "destroy should have NO participant")
 	}
 
 	if x.Convener == 0 {
-		return fmt.Errorf("logout's convener should NOT be 0")
+		return errors.Wrap(ErrTxConvenerInvalid, "destroy's convener should NOT be 0")
+	}
+
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "destroy should have no participants")
 	}
 
 	if len(x.Values) != 0 {
-		return fmt.Errorf("logout should have NO value")
-	}
-
-	if len(x.Values) != len(x.Participants) {
-		return fmt.Errorf("logout should have same len with participants")
+		return errors.Wrap(ErrTxValuesInvalid, "destroy should have NO value")
 	}
 
 	err := x.Verify(publicKey)
@@ -329,10 +315,10 @@ func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
 		return err
 	}
 
-	// RULE: logout should takes owner's pubKey in Extra for verify and recording to make Tx reversible
-	_publicKey := utils.Bytes2PublicKey(x.Extra)
-	if !publicKey.IsEqual(&_publicKey) {
-		return fmt.Errorf("invalid raw bytes public key in logout's Extra field")
+	// RULE: destroy should takes owner's pubKey in Extra for verify and recording to make Tx reversible
+	publicKeyFromExtra := utils.Bytes2PublicKey(x.Extra)
+	if !publicKey.IsEqual(&publicKeyFromExtra) {
+		return errors.Wrap(ErrTxExtraInvalid, "invalid raw bytes public key in destroy's Extra field")
 	}
 
 	return nil
@@ -341,15 +327,15 @@ func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
 // CheckTransaction does a self check for normal transaction tx
 func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("transaction is missing header")
+		return ErrTxNoHeader
 	}
 
 	if x.Convener == 0 {
-		return fmt.Errorf("transaction's convener should NOT be 0")
+		return errors.Wrap(ErrTxConvenerInvalid, "transact's convener should NOT be 0")
 	}
 
 	if len(x.Values) != len(x.Participants) {
-		return fmt.Errorf("transaction should have same len with participants")
+		return errors.Wrap(ErrTxParticipantsInvalid, "transact should have same len with participants")
 	}
 
 	err := x.Verify(publicKey)
@@ -363,19 +349,19 @@ func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 // CheckAppend does a self check for append tx
 func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("append is missing header")
-	}
-
-	if len(x.Participants) != 0 {
-		return fmt.Errorf("append should have NO participant")
+		return ErrTxNoHeader
 	}
 
 	if x.Convener == 0 {
-		return fmt.Errorf("append's convener should NOT be 0")
+		return errors.Wrap(ErrTxConvenerInvalid, "append's convener should NOT be 0")
+	}
+
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "append should have NO participant")
 	}
 
 	if len(x.Values) != 0 {
-		return fmt.Errorf("append should have NO value")
+		return errors.Wrap(ErrTxValuesInvalid, "append should have NO value")
 	}
 
 	err := x.Verify(key)
@@ -393,28 +379,22 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	return nil
 }
 
-var (
-	ErrNoDelTxHeader            = errors.New("deleteTx is missing header")
-	ErrInvalidDelTxConvener     = errors.New("invalid delete tx convener")
-	ErrInvalidDelTxParticipants = errors.New("invalid delete tx convener")
-)
-
 // CheckDelete does a self check for delete tx
 func (x *Tx) CheckDelete(publicKey secp256k1.PublicKey) error {
 	if x == nil {
-		return ErrNoDelTxHeader
+		return ErrTxNoHeader
 	}
 
 	if x.Convener == 0 {
-		return fmt.Errorf("%w: should NOT be 0", ErrInvalidDelTxConvener)
+		return errors.Wrap(ErrTxConvenerInvalid, "deleteTx convener should NOT be 0")
 	}
 
 	if len(x.Participants) != 0 {
-		return fmt.Errorf("deleteTx should have NO participant")
+		return errors.Wrap(ErrTxParticipantsInvalid, "deleteTx should have NO participant")
 	}
 
 	if len(x.Values) != 0 {
-		return fmt.Errorf("deleteTx should have NO value")
+		return errors.Wrap(ErrTxValuesInvalid, "deleteTx should have NO value")
 	}
 
 	err := x.Verify(publicKey)

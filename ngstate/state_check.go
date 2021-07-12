@@ -3,7 +3,6 @@ package ngstate
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
@@ -39,12 +38,12 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 				return err
 			}
 
-		case ngtypes.DestroyTx: // logout
-			if err := checkLogout(txn, tx); err != nil {
+		case ngtypes.DestroyTx: // destroy
+			if err := checkDestroy(txn, tx); err != nil {
 				return err
 			}
 
-		case ngtypes.TransactTx: // transaction
+		case ngtypes.TransactTx: // transact
 			if err := checkTransaction(txn, tx); err != nil {
 				return err
 			}
@@ -59,7 +58,7 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 				return err
 			}
 		default:
-			return ngtypes.ErrTxInvalidType
+			return ngtypes.ErrTxTypeInvalid
 		}
 	}
 
@@ -70,7 +69,7 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 	// check tx is signed
 	if !tx.IsSigned() {
-		return ngtypes.ErrTxWrongSign
+		return ngtypes.ErrTxSignInvalid
 	}
 
 	// check the tx's extra size is necessary
@@ -87,8 +86,8 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 			return err
 		}
 
-	case ngtypes.DestroyTx: // logout
-		if err := checkLogout(txn, tx); err != nil {
+	case ngtypes.DestroyTx: // destroy
+		if err := checkDestroy(txn, tx); err != nil {
 			return err
 		}
 
@@ -139,6 +138,11 @@ func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) 
 	return nil
 }
 
+var (
+	ErrTxRegExcess = errors.New("one address can only register one accounts")
+	ErrTxRegExist  = errors.New("account is already registered by others")
+)
+
 // checkRegister checks the register tx
 func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 	// check structure and key
@@ -160,32 +164,34 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 
 	// check existing ownership
 	if addrHasAccount(txn, payerAddr) {
-		return fmt.Errorf("one address cannot repeat registering accounts")
+		return ErrTxRegExcess
 	}
 
 	// check newAccountNum
 	newAccountNum := binary.LittleEndian.Uint64(registerTx.Extra)
 	if accountNumExists(txn, ngtypes.AccountNum(newAccountNum)) {
-		return fmt.Errorf("failed to register account@%d, account is already used by others", newAccountNum)
+		return errors.Wrapf(ErrTxRegExist, "failed to register account@%d", newAccountNum)
 	}
 
 	return nil
 }
 
-// checkLogout checks logout tx
-func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
-	convener, err := getAccountByNum(txn, logoutTx.Convener)
+var ErrDestroyAccountContractNotEmpty = errors.New("contract should be empty on destroy tx")
+
+// checkDestroy checks destroy tx
+func checkDestroy(txn *badger.Txn, destroyTx *ngtypes.Tx) error {
+	convener, err := getAccountByNum(txn, destroyTx.Convener)
 	if err != nil {
 		return err
 	}
 
 	// check structure and key
-	if err = logoutTx.CheckLogout(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = destroyTx.CheckDestroy(ngtypes.Address(convener.Owner).PubKey()); err != nil {
 		return err
 	}
 
 	// check balance
-	totalCharge := logoutTx.TotalExpenditure()
+	totalCharge := destroyTx.TotalExpenditure()
 	convenerBalance, err := getBalance(txn, convener.Owner)
 	if err != nil {
 		return err
@@ -196,12 +202,12 @@ func checkLogout(txn *badger.Txn, logoutTx *ngtypes.Tx) error {
 	}
 
 	if len(convener.Contract) != 0 {
-		return fmt.Errorf("you should clear your contract before logout")
+		return ErrDestroyAccountContractNotEmpty
 	}
 
 	// TODO
 	// if len(convener.Context) != 0 {
-	//	return fmt.Errorf("you should clear your context before logout")
+	//	return fmt.Errorf("you should clear your context before destroy")
 	// }
 
 	return nil
@@ -233,6 +239,12 @@ func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
 	return nil
 }
 
+var (
+	ErrPosOutOfBound = errors.New("pos out of bound")
+	ErrLenExcess     = errors.New("length is excess")
+	ErrLenInvalid    = errors.New("length is invalid")
+)
+
 // checkAppend checks append tx
 func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 	convener, err := getAccountByNum(txn, appendTx.Convener)
@@ -263,7 +275,7 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 	}
 
 	if appendExtra.Pos >= uint64(len(convener.Contract)) {
-		return fmt.Errorf("append pos is out of bound")
+		return ErrPosOutOfBound
 	}
 
 	return nil
@@ -299,17 +311,17 @@ func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
 	}
 
 	if appendExtra.Pos >= uint64(len(convener.Contract)) {
-		return fmt.Errorf("delete pos is out of bound")
+		return ErrPosOutOfBound
 	}
 
 	if appendExtra.Pos+uint64(len(appendExtra.Content)) >= uint64(len(convener.Contract)) {
-		return fmt.Errorf("delete content length is out of bound")
+		return ErrLenExcess
 	}
 
 	if !bytes.Equal(
 		convener.Contract[int(appendExtra.Pos):int(appendExtra.Pos)+len(appendExtra.Content)],
 		appendExtra.Content) {
-		return fmt.Errorf("delete content length is invalid")
+		return ErrLenInvalid
 	}
 
 	return nil
