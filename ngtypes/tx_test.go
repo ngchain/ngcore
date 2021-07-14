@@ -3,49 +3,47 @@ package ngtypes_test
 import (
 	"encoding/hex"
 	"math/big"
+	"reflect"
 	"testing"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/ngchain/secp256k1"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // TestDeserialize test unsigned transaction whether it is possible to deserialize.
 func TestDeserialize(t *testing.T) {
 	tx := ngtypes.NewUnsignedTx(
-		ngproto.NetworkType_TESTNET,
-		ngproto.TxType_GENERATE,
-		nil,
+		ngtypes.TESTNET,
+		ngtypes.GenerateTx,
 		0,
-		[][]byte{ngtypes.GenesisAddress},
+		0,
+		[]ngtypes.Address{ngtypes.GenesisAddress},
 		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
 		big.NewInt(0),
 		nil,
 	)
 
-	t.Log(proto.Size(tx.GetProto()))
-
-	raw, _ := proto.Marshal(tx.GetProto())
+	raw, _ := rlp.EncodeToBytes(tx)
+	t.Log(len(raw))
 	result := hex.EncodeToString(raw)
 	t.Log(result)
 
-	var otherTxProto ngproto.Tx
-	_ = proto.Unmarshal(raw, &otherTxProto)
-	otherTx := ngtypes.NewTxFromProto(&otherTxProto)
+	var otherTx ngtypes.Tx
+	_ = rlp.DecodeBytes(raw, &otherTx)
 	t.Logf("%#v", otherTx)
 }
 
 // TestTransaction_Signature test generated Key pair.
 func TestTransaction_Signature(t *testing.T) {
 	o := ngtypes.NewUnsignedTx(
-		ngproto.NetworkType_TESTNET,
+		ngtypes.TESTNET,
 		0,
-		nil,
+		0,
 		1,
-		[][]byte{ngtypes.GenesisAddress},
+		[]ngtypes.Address{ngtypes.GenesisAddress},
 		[]*big.Int{big.NewInt(0)},
 		big.NewInt(0),
 		nil,
@@ -67,12 +65,11 @@ func TestTransaction_Signature(t *testing.T) {
 func TestGetGenesisGenerate(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		gg := ngtypes.GetGenesisGenerateTx(net)
-		if err := gg.Verify(ngtypes.Address(gg.Proto.GetParticipants()[0]).PubKey()); err != nil {
+		if err := gg.Verify(gg.Participants[0].PubKey()); err != nil {
 			t.Log(err)
 			t.Fail()
 		}
 	}
-
 }
 
 func TestTxJSON(t *testing.T) {
@@ -97,7 +94,7 @@ func TestTxJSON(t *testing.T) {
 			t.Errorf("tx \n 2 %#v \n is different from \n 1 %#v", tx2, tx1)
 		}
 
-		if !proto.Equal(tx1.GetProto(), tx2.GetProto()) {
+		if !reflect.DeepEqual(tx1, tx2) {
 			t.Errorf("tx \n 2 %#v \n is different from \n 1 %#v", tx2, tx1)
 		}
 	}

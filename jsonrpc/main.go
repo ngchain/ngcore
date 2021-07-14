@@ -18,7 +18,7 @@ type ServerConfig struct {
 	DisableMiningMethods bool
 }
 
-// Server is a json-rpc v2 server
+// Server is a json-rpc v2 server.
 type Server struct {
 	*ServerConfig
 	*jsonrpc2http.Server
@@ -26,7 +26,7 @@ type Server struct {
 	pow *consensus.PoWork
 }
 
-// NewServer will create a new Server, with registered *jsonrpc2http.HTTPHandler. But not running
+// NewServer will create a new Server, with registered *jsonrpc2http.HTTPHandler. But not running.
 func NewServer(pow *consensus.PoWork, config ServerConfig) *Server {
 	s := &Server{
 		ServerConfig: &config,
@@ -46,7 +46,7 @@ func NewServer(pow *consensus.PoWork, config ServerConfig) *Server {
 	return s
 }
 
-// Serve will make the server running
+// Serve will make the server running.
 func (s *Server) Serve() {
 	log.Warnf("JSON RPC listening on: %s \n", s.Addr)
 	err := s.ListenAndServe()

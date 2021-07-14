@@ -4,6 +4,10 @@
 
 - BUGFIX: fix balance bug in the genesis list
 - DONE: remove built-in miner
+- DONE: optimize daemon running
+- DONE: upgrade errors to go1.13 version
+- DONE: introduce subs
+- TODO: add quill protocol to manage the contract
 
 ## v0.0.20
 
@@ -93,7 +97,7 @@
 
 ## v0.0.11
 
-- DONE: Introducing Address to avoid potential public key collision 
+- DONE: Introducing Address to avoid potential public key collision
 - DONE: Finish new ngstate
 - TODO: Unit tests for ngstate
 

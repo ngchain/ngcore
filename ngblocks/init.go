@@ -2,10 +2,9 @@ package ngblocks
 
 import (
 	"bytes"
+	"errors"
 
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-	"google.golang.org/protobuf/proto"
-
+	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -21,18 +20,18 @@ func (store *BlockStore) initWithGenesis() {
 
 		if err := store.Update(func(txn *badger.Txn) error {
 			hash := block.GetHash()
-			raw, _ := proto.Marshal(block.GetProto())
-			log.Infof("putting block@%d: %x", block.Header.GetHeight(), hash)
+			raw, _ := rlp.EncodeToBytes(block)
+			log.Infof("putting block@%d: %x", block.Header.Height, hash)
 			err := txn.Set(append(blockPrefix, hash...), raw)
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.GetHeight())...), hash)
+			err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
 			if err != nil {
 				return err
 			}
 
-			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
+			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 			if err != nil {
 				return err
 			}
@@ -41,7 +40,7 @@ func (store *BlockStore) initWithGenesis() {
 				return err
 			}
 
-			err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
+			err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.Height))
 			if err != nil {
 				return err
 			}
@@ -57,8 +56,8 @@ func (store *BlockStore) initWithGenesis() {
 }
 
 // hasGenesisBlock checks whether the genesis block is in db.
-func (store *BlockStore) hasGenesisBlock(network ngproto.NetworkType) bool {
-	var has = false
+func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
+	has := false
 
 	if err := store.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(0)...))
@@ -72,12 +71,12 @@ func (store *BlockStore) hasGenesisBlock(network ngproto.NetworkType) bool {
 		if hash != nil {
 			has = true
 		}
-		if !bytes.Equal(hash, ngtypes.GetGenesisBlockHash(network)) {
+		if !bytes.Equal(hash, ngtypes.GetGenesisBlock(network).GetHash()) {
 			panic("wrong genesis block in db")
 		}
 
 		return nil
-	}); err != nil && err != badger.ErrKeyNotFound {
+	}); err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
 		panic(err)
 	}
 
@@ -85,8 +84,8 @@ func (store *BlockStore) hasGenesisBlock(network ngproto.NetworkType) bool {
 }
 
 // hasOrigin checks whether the genesis vault is in db.
-func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
-	var has = false
+func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
+	has := false
 
 	if err := store.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(append(blockPrefix, originHeightTag...))
@@ -117,16 +116,16 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 			return err
 		}
 
-		var originBlock ngproto.Block
-		err = proto.Unmarshal(rawBlock, &originBlock)
+		var originBlock ngtypes.Block
+		err = rlp.DecodeBytes(rawBlock, &originBlock)
 		if err != nil {
 			return err
 		}
 
-		has = has && originBlock.Header.GetNetwork() == network
+		has = has && originBlock.Header.Network == network
 
 		return nil
-	}); err != nil && err != badger.ErrKeyNotFound {
+	}); err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
 		panic(err)
 	}
 
@@ -134,13 +133,13 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 }
 
 // initWithBlockchain initialize the store by importing the external store.
-//func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
+// func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
 //	/* Put start */
 //	err := store.Update(func(txn *badger.Txn) error {
 //		for i := 0; i < len(blocks); i++ {
 //			block := blocks[i]
 //			hash := block.Hash()
-//			raw, _ := proto.Marshal(block)
+//			raw, _ := rlp.EncodeToBytes(block)
 //			log.Infof("putting block@%d: %x", block.Height, hash)
 //			err := txn.Set(append(blockPrefix, hash...), raw)
 //			if err != nil {
@@ -163,23 +162,23 @@ func (store *BlockStore) hasOrigin(network ngproto.NetworkType) bool {
 //	})
 //
 //	return err
-//}
+// }
 
 func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
 	err := store.Update(func(txn *badger.Txn) error {
 		hash := block.GetHash()
-		raw, _ := proto.Marshal(block.GetProto())
-		log.Infof("putting block@%d: %x", block.Header.GetHeight(), hash)
+		raw, _ := rlp.EncodeToBytes(block)
+		log.Infof("putting block@%d: %x", block.Header.Height, hash)
 		err := txn.Set(append(blockPrefix, hash...), raw)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.GetHeight())...), hash)
+		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
 		if err != nil {
 			return err
 		}
 
-		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
+		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
 		if err != nil {
 			return err
 		}
@@ -188,7 +187,7 @@ func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
 			return err
 		}
 
-		err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.GetHeight()))
+		err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.Height))
 		if err != nil {
 			return err
 		}

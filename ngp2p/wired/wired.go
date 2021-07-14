@@ -1,30 +1,23 @@
 package wired
 
 import (
-	"fmt"
-
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-	"google.golang.org/protobuf/proto"
-
-	"github.com/libp2p/go-libp2p-core/protocol"
-
-	"github.com/ngchain/ngcore/blockchain"
-
+	"github.com/c0mm4nd/rlp"
 	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-msgio"
 
+	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngp2p/defaults"
-	"github.com/ngchain/ngcore/ngp2p/message"
-
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var log = logging.Logger("wired")
 
-// Wired type
+// Wired type.
 type Wired struct {
-	network ngproto.NetworkType
+	network ngtypes.Network
 	host    core.Host // local host
 
 	protocolID protocol.ID
@@ -32,7 +25,7 @@ type Wired struct {
 	chain *blockchain.Chain
 }
 
-func NewWiredProtocol(host core.Host, network ngproto.NetworkType, chain *blockchain.Chain) *Wired {
+func NewWiredProtocol(host core.Host, network ngtypes.Network, chain *blockchain.Chain) *Wired {
 	w := &Wired{
 		network: network,
 		host:    host,
@@ -66,28 +59,28 @@ func (w *Wired) handleStream(stream network.Stream) {
 	}
 
 	// unmarshal it
-	var msg = &message.Message{}
+	var msg Message
 
-	err = proto.Unmarshal(raw, msg)
+	err = rlp.DecodeBytes(raw, &msg)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	if !Verify(stream.Conn().RemotePeer(), msg) {
-		w.sendReject(msg.Header.MessageId, stream, fmt.Errorf("message is invalid"))
+	if !Verify(stream.Conn().RemotePeer(), &msg) {
+		w.sendReject(msg.Header.ID, stream, ErrMsgSignInvalid)
 		return
 	}
 
-	switch msg.Header.MessageType {
-	case message.MessageType_PING:
-		w.onPing(stream, msg)
-	case message.MessageType_GETCHAIN:
-		w.onGetChain(stream, msg)
-	case message.MessageType_GETSHEET:
-		w.onGetChain(stream, msg)
+	switch msg.Header.Type {
+	case PingMsg:
+		w.onPing(stream, &msg)
+	case GetChainMsg:
+		w.onGetChain(stream, &msg)
+	case GetSheetMsg:
+		w.onGetChain(stream, &msg)
 	default:
-		w.sendReject(msg.Header.MessageId, stream, fmt.Errorf("unsupported protocol method"))
+		w.sendReject(msg.Header.ID, stream, ErrMsgTypeInvalid)
 	}
 
 	err = stream.Close()

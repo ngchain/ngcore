@@ -2,19 +2,20 @@ package ngblocks
 
 import (
 	"encoding/binary"
-	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
-	"google.golang.org/protobuf/proto"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
+var ErrNoTxInHash = errors.New("cannot find tx by the hash")
+
 func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
 	item, err := txn.Get(append(txPrefix, hash...))
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err // export the keynotfound
 	}
 	if err != nil {
@@ -25,86 +26,85 @@ func GetTxByHash(txn *badger.Txn, hash []byte) (*ngtypes.Tx, error) {
 		return nil, err
 	}
 	if hash == nil {
-		return nil, fmt.Errorf("no such tx in hash")
+		return nil, ErrNoTxInHash
 	}
 
-	var tx ngproto.Tx
-	err = proto.Unmarshal(raw, &tx)
+	var tx ngtypes.Tx
+	err = rlp.DecodeBytes(raw, &tx)
 	if err != nil {
 		return nil, err
 	}
 
-	return ngtypes.NewTxFromProto(&tx), nil
+	return &tx, nil
 }
 
 func GetBlockByHash(txn *badger.Txn, hash []byte) (*ngtypes.Block, error) {
-
 	key := append(blockPrefix, hash...)
 	item, err := txn.Get(key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err // export the keynotfound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get item by key %x: %s", key, err)
+		return nil, errors.Wrapf(err, "failed to get item by key %x", key)
 	}
 	raw, err := item.ValueCopy(nil)
 	if err != nil {
-		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
+		return nil, errors.Wrapf(err, "no such block in hash %x", hash)
 	}
 
-	var b ngproto.Block
-	err = proto.Unmarshal(raw, &b)
+	var b ngtypes.Block
+	err = rlp.DecodeBytes(raw, &b)
 	if err != nil {
 		return nil, err
 	}
 
-	return ngtypes.NewBlockFromProto(&b), nil
+	return &b, nil
 }
 
 func GetBlockByHeight(txn *badger.Txn, height uint64) (*ngtypes.Block, error) {
 	key := append(blockPrefix, utils.PackUint64LE(height)...)
 	item, err := txn.Get(key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err // export the keynotfound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get item by key %x: %s", key, err)
+		return nil, errors.Wrapf(err, "failed to get item by key %x", key)
 	}
 	hash, err := item.ValueCopy(nil)
 	if err != nil || hash == nil {
-		return nil, fmt.Errorf("no such block in height %d: %s", height, err)
+		return nil, errors.Wrapf(err, "no such block in height %d", height)
 	}
 	key = append(blockPrefix, hash...)
 	item, err = txn.Get(key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get item by key %x: %s", key, err)
+		return nil, errors.Wrapf(err, "failed to get item by key %x", key)
 	}
 	raw, err := item.ValueCopy(nil)
 	if err != nil || raw == nil {
-		return nil, fmt.Errorf("no such block in hash %x: %s", hash, err)
+		return nil, errors.Wrapf(err, "no such block in hash %x", hash)
 	}
 
-	var b ngproto.Block
-	err = proto.Unmarshal(raw, &b)
+	var b ngtypes.Block
+	err = rlp.DecodeBytes(raw, &b)
 	if err != nil {
 		return nil, err
 	}
 
-	return ngtypes.NewBlockFromProto(&b), nil
+	return &b, nil
 }
 
 func GetLatestHeight(txn *badger.Txn) (uint64, error) {
 	key := append(blockPrefix, latestHeightTag...)
 	item, err := txn.Get(key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return 0, err // export the keynotfound
 	}
 	if err != nil {
-		return 0, fmt.Errorf("failed to get latest height: %s", err)
+		return 0, errors.Wrap(err, "failed to get latest height")
 	}
 	raw, err := item.ValueCopy(nil)
 	if err != nil {
-		return 0, fmt.Errorf("no such height in latestTag: %s", err)
+		return 0, errors.Wrap(err, "no such height in latestTag")
 	}
 
 	return binary.LittleEndian.Uint64(raw), nil
@@ -113,15 +113,15 @@ func GetLatestHeight(txn *badger.Txn) (uint64, error) {
 func GetLatestHash(txn *badger.Txn) ([]byte, error) {
 	key := append(blockPrefix, latestHashTag...)
 	item, err := txn.Get(key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err // export the keynotfound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest hash: %s", err)
+		return nil, errors.Wrap(err, "failed to get latest hash")
 	}
 	hash, err := item.ValueCopy(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest hash: %s", err)
+		return nil, errors.Wrap(err, "failed to get latest hash")
 	}
 
 	return hash, nil
@@ -144,15 +144,15 @@ func GetLatestBlock(txn *badger.Txn) (*ngtypes.Block, error) {
 func GetOriginHeight(txn *badger.Txn) (uint64, error) {
 	key := append(blockPrefix, originHeightTag...)
 	item, err := txn.Get(key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return 0, err // export the keynotfound
 	}
 	if err != nil {
-		return 0, fmt.Errorf("failed to get latest height: %s", err)
+		return 0, errors.Wrap(err, "failed to get latest height")
 	}
 	raw, err := item.ValueCopy(nil)
 	if err != nil {
-		return 0, fmt.Errorf("no such height in latestTag: %s", err)
+		return 0, errors.Wrap(err, "no such height in latestTag")
 	}
 
 	return binary.LittleEndian.Uint64(raw), nil
@@ -161,15 +161,15 @@ func GetOriginHeight(txn *badger.Txn) (uint64, error) {
 func GetOriginHash(txn *badger.Txn) ([]byte, error) {
 	key := append(blockPrefix, originHashTag...)
 	item, err := txn.Get(key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err // export the keynotfound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest hash: %s", err)
+		return nil, errors.Wrap(err, "failed to get latest hash")
 	}
 	hash, err := item.ValueCopy(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest hash: %s", err)
+		return nil, errors.Wrap(err, "failed to get latest hash")
 	}
 
 	return hash, nil
@@ -178,34 +178,34 @@ func GetOriginHash(txn *badger.Txn) ([]byte, error) {
 func GetOriginBlock(txn *badger.Txn) (*ngtypes.Block, error) {
 	key := append(blockPrefix, originHashTag...)
 	item, err := txn.Get(key)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err // export the keynotfound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get origin block hash: %s", err)
+		return nil, errors.Wrap(err, "failed to get origin block hash")
 	}
 	hash, err := item.ValueCopy(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get origin block hash: %s", err)
+		return nil, errors.Wrap(err, "failed to get origin block hash")
 	}
 
 	item, err = txn.Get(append(blockPrefix, hash...))
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return nil, err // export the keynotfound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get origin block hash: %s", err)
+		return nil, errors.Wrap(err, "failed to get origin block hash")
 	}
 	rawBlock, err := item.ValueCopy(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get origin block: %s", err)
+		return nil, errors.Wrap(err, "failed to get origin block")
 	}
 
-	var block ngproto.Block
-	err = proto.Unmarshal(rawBlock, &block)
+	var block ngtypes.Block
+	err = rlp.DecodeBytes(rawBlock, &block)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get origin block: %s", err)
+		return nil, errors.Wrap(err, "failed to get origin block")
 	}
 
-	return ngtypes.NewBlockFromProto(&block), nil
+	return &block, nil
 }

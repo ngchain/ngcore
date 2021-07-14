@@ -3,18 +3,17 @@ package consensus
 import (
 	"sync"
 
-	"github.com/ngchain/ngcore/utils"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/utils"
 )
 
 const (
 	minDesiredPeerCount = 3 // TODO: add peer num requirement, avoid mining alone
 )
 
-// syncModule is a submodule to the pow, managing the sync of blocks
+// syncModule is a submodule to the pow, managing the sync of blocks.
 type syncModule struct {
 	pow *PoWork
 
@@ -26,7 +25,7 @@ type syncModule struct {
 	*utils.Locker
 }
 
-// newSyncModule creates a new sync module
+// newSyncModule creates a new sync module.
 func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	syncMod := &syncModule{
 		pow:       pow,
@@ -43,7 +42,7 @@ func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	return syncMod
 }
 
-// put the peer and its remote status into mod
+// put the peer and its remote status into mod.
 func (mod *syncModule) putRemote(id peer.ID, remote *RemoteRecord) {
 	mod.storeMu.Lock()
 	defer mod.storeMu.Unlock()

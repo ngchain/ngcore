@@ -2,10 +2,10 @@ package blockchain
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngstate"
@@ -29,11 +29,11 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 			panic(err)
 		}
 
-		if !bytes.Equal(block.Header.GetPrevBlockHash(), originHash) {
-			prevBlock, err := chain.GetBlockByHash(block.Header.GetPrevBlockHash())
+		if !bytes.Equal(block.Header.PrevBlockHash, originHash) {
+			prevBlock, err := chain.GetBlockByHash(block.Header.PrevBlockHash)
 			if err != nil {
-				return fmt.Errorf("failed to get the prev block@%d %x: %s",
-					block.Header.GetHeight()-1, block.Header.GetPrevBlockHash(), err)
+				return errors.Wrapf(err, "failed to get the prev block@%d %x",
+					block.Header.Height-1, block.Header.PrevBlockHash)
 			}
 
 			if err := checkBlockTarget(block, prevBlock); err != nil {
@@ -44,25 +44,25 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 		return ngstate.CheckBlockTxs(txn, block)
 	})
 	if err != nil {
-		return fmt.Errorf("block txs are invalid: %s", err)
+		return errors.Wrap(err, "block txs are invalid")
 	}
 
 	return nil
 }
 
 func checkBlockTarget(block, prevBlock *ngtypes.Block) error {
-	correctDiff := ngtypes.GetNextDiff(block.Header.GetHeight(), block.Header.GetTimestamp(), prevBlock)
-	blockDiff := new(big.Int).SetBytes(block.Header.GetDifficulty())
+	correctDiff := ngtypes.GetNextDiff(block.Header.Height, block.Header.Timestamp, prevBlock)
+	blockDiff := new(big.Int).SetBytes(block.Header.Difficulty)
 	actualDiff := block.GetActualDiff()
 
 	if blockDiff.Cmp(correctDiff) != 0 {
-		return fmt.Errorf("wrong block diff for block@%d, diff in block: %x shall be %x",
-			block.Header.GetHeight(), blockDiff, correctDiff)
+		return errors.Wrapf(ngtypes.ErrBlockDiffInvalid, "wrong block diff for block@%d, diff in block: %x shall be %x",
+			block.Header.Height, blockDiff, correctDiff)
 	}
 
 	if actualDiff.Cmp(correctDiff) < 0 {
-		return fmt.Errorf("wrong block diff for block@%d, actual diff in block: %x shall be large than %x",
-			block.Header.GetHeight(), actualDiff, correctDiff)
+		return errors.Wrapf(ngtypes.ErrBlockDiffInvalid, "wrong block diff for block@%d, actual diff in block: %x shall be large than %x",
+			block.Header.Height, actualDiff, correctDiff)
 	}
 
 	return nil

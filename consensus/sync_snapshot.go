@@ -1,11 +1,9 @@
 package consensus
 
-import (
-	"fmt"
-)
+import "github.com/pkg/errors"
 
 // online available for initial sync
-// TODO: init from a checkpoint, not genesisblock
+// TODO: init from a checkpoint, not genesisblock.
 func (mod *syncModule) doSnapshotSync(record *RemoteRecord) error {
 	if mod.Locker.IsLocked() {
 		return nil
@@ -34,7 +32,7 @@ func (mod *syncModule) doSnapshotSync(record *RemoteRecord) error {
 	}
 	err = mod.pow.State.RebuildFromSheet(sheet)
 	if err != nil {
-		return fmt.Errorf("failed on rebuilding state with sheet %x: %s", sheet.BlockHash, err)
+		return errors.Wrapf(err, "failed on rebuilding state with sheet %x", sheet.BlockHash)
 	}
 
 	height := mod.pow.Chain.GetLatestBlockHeight()
@@ -68,7 +66,7 @@ func (mod *syncModule) doSnapshotConverging(record *RemoteRecord) error {
 	// RULE: there are 3 choices
 	// 1. regenerate the state(time-consuming)
 	// 2. download the state from remote(maybe unreliable)
-	// 3. flash back(require remove logout and assign tx)
+	// 3. flash back(require remove destroy and assign tx)
 	// Currently choose the No.1
 	sheet, err := mod.getRemoteStateSheet(record)
 	if err != nil {

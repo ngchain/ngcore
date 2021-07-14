@@ -1,14 +1,13 @@
 package ngpool
 
 import (
-	"bytes"
 	"sort"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // GetPack will gives a sorted TxTire.
-func (pool *TxPool) GetPack(prevBlockHash []byte) *ngtypes.TxTrie {
+func (pool *TxPool) GetPack(height uint64) ngtypes.TxTrie {
 	txs := make([]*ngtypes.Tx, 0)
 	accountNums := make([]uint64, 0)
 
@@ -19,7 +18,7 @@ func (pool *TxPool) GetPack(prevBlockHash []byte) *ngtypes.TxTrie {
 	sort.Slice(accountNums, func(i, j int) bool { return accountNums[i] < accountNums[j] })
 
 	for _, num := range accountNums {
-		if pool.txMap[num] != nil && bytes.Equal(pool.txMap[num].Proto.PrevBlockHash, prevBlockHash) {
+		if pool.txMap[num] != nil && pool.txMap[num].Height == height {
 			txs = append(txs, pool.txMap[num])
 		}
 	}

@@ -48,7 +48,7 @@ func initLogImports(vm *VM) error {
 func initCoinImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("coin", "transfer", func(ins *wasman.Instance) interface{} {
 		return func(to, value int64) int32 {
-			err := vmTransfer(vm.txn, vm.self.Proto.GetNum(), uint64(to), uint64(value))
+			err := vmTransfer(vm.txn, vm.self.Num, uint64(to), uint64(value))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

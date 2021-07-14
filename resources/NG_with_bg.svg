@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Generator: Adobe Illustrator 25.2.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 1000 1000" style="enable-background:new 0 0 1000 1000;" xml:space="preserve">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+     viewBox="0 0 1000 1000" style="enable-background:new 0 0 1000 1000;" xml:space="preserve">
 <style type="text/css">
 	.st0{fill:#3C3C3C;}
 	.st1{fill:#464646;}
 	.st2{fill:#505050;}
 	.st3{fill:#323232;}
 </style>
-<path class="st0" d="M1633,733"/>
-<path class="st1" d="M644,212l72,72H357"/>
-<path class="st2" d="M284,212v360l72-72l1-216"/>
-<path class="st3" d="M644,212v504l72-72V284"/>
-<path class="st1" d="M284,716l288,72l72-72l-288-72"/>
+    <path class="st0" d="M1633,733"/>
+    <path class="st1" d="M644,212l72,72H357"/>
+    <path class="st2" d="M284,212v360l72-72l1-216"/>
+    <path class="st3" d="M644,212v504l72-72V284"/>
+    <path class="st1" d="M284,716l288,72l72-72l-288-72"/>
 </svg>

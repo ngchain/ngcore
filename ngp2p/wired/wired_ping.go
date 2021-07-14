@@ -1,21 +1,19 @@
 package wired
 
 import (
+	"github.com/c0mm4nd/rlp"
 	"github.com/google/uuid"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"google.golang.org/protobuf/proto"
-
-	"github.com/ngchain/ngcore/ngp2p/message"
 )
 
 func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) (id []byte,
 	stream network.Stream) {
-	payload, err := proto.Marshal(&message.PingPayload{
-		Origin:               origin,
-		Latest:               latest,
-		CheckpointHash:       checkpointHash,
-		CheckpointActualDiff: checkpointActualDiff,
+	payload, err := rlp.EncodeToBytes(&StatusPayload{
+		Origin:         origin,
+		Latest:         latest,
+		CheckpointHash: checkpointHash,
+		CheckpointDiff: checkpointActualDiff,
 	})
 	if err != nil {
 		log.Debugf("failed to sign pb data")
@@ -25,8 +23,8 @@ func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, 
 	id, _ = uuid.New().MarshalBinary()
 
 	// create message data
-	req := &message.Message{
-		Header:  NewHeader(w.host, w.network, id, message.MessageType_PING),
+	req := &Message{
+		Header:  NewHeader(w.host, w.network, id, PingMsg),
 		Payload: payload,
 	}
 
@@ -40,7 +38,7 @@ func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, 
 	// add the signature to the message
 	req.Header.Sign = signature
 
-	log.Debugf("Sent ping to: %s was sent. Message Id: %x", peerID, req.Header.MessageId)
+	log.Debugf("Sent ping to: %s was sent. Message Id: %x", peerID, req.Header.ID)
 
 	stream, err = Send(w.host, w.protocolID, peerID, req)
 	if err != nil {
@@ -48,17 +46,17 @@ func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, 
 		return nil, nil
 	}
 
-	return req.Header.MessageId, stream
+	return req.Header.ID, stream
 }
 
-// remote peer requests handler
-func (w *Wired) onPing(stream network.Stream, msg *message.Message) {
-	log.Debugf("Received ping request from %s.", stream.Conn().RemotePeer())
-	ping := &message.PingPayload{}
+// remote peer requests handler.
+func (w *Wired) onPing(stream network.Stream, msg *Message) {
+	log.Debugf("Received remoteStatus request from %s.", stream.Conn().RemotePeer())
+	var remoteStatus StatusPayload
 
-	err := proto.Unmarshal(msg.Payload, ping)
+	err := rlp.DecodeBytes(msg.Payload, remoteStatus)
 	if err != nil {
-		w.sendReject(msg.Header.MessageId, stream, err)
+		w.sendReject(msg.Header.ID, stream, err)
 		return
 	}
 
@@ -66,5 +64,5 @@ func (w *Wired) onPing(stream network.Stream, msg *message.Message) {
 	origin := w.chain.GetOriginBlock()
 	latest := w.chain.GetLatestBlock()
 	checkpoint := w.chain.GetLatestCheckpoint()
-	w.sendPong(msg.Header.MessageId, stream, origin.Header.GetHeight(), latest.Header.GetHeight(), checkpoint.GetHash(), checkpoint.GetActualDiff().Bytes())
+	w.sendPong(msg.Header.ID, stream, origin.Header.Height, latest.Header.Height, checkpoint.GetHash(), checkpoint.GetActualDiff().Bytes())
 }

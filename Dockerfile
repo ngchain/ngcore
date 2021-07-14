@@ -15,7 +15,7 @@ COPY . /build
 WORKDIR /build
 
 RUN apt install gcc -y
-RUN GOPROXY=$GOPROXY go build ./cmd/ngcore
+RUN GOPROXY=$GOPROXY make build
 
 # MAIN
 FROM ubuntu:latest

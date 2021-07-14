@@ -9,24 +9,24 @@ import (
 )
 
 func getKeyToolsCommand() *cli.Command {
-	var filenameFlag = &cli.StringFlag{
+	filenameFlag := &cli.StringFlag{
 		Name:    "filename",
 		Aliases: []string{"f"},
 		Value:   "",
 		Usage:   "when empty, keyfile will be written into " + keytools.GetDefaultFile(),
 	}
 
-	var passwordFlag = &cli.StringFlag{
+	passwordFlag := &cli.StringFlag{
 		Name:    "password",
 		Aliases: []string{"p"},
 	}
 
-	var privateKeyFlag = &cli.StringFlag{
+	privateKeyFlag := &cli.StringFlag{
 		Name:    "privateKey",
 		Aliases: []string{"pk"},
 	}
 
-	var newKeyCommand = &cli.Command{
+	newKeyCommand := &cli.Command{
 		Name:  "new",
 		Usage: "create a new key pair only",
 		Flags: nil,
@@ -37,7 +37,7 @@ func getKeyToolsCommand() *cli.Command {
 		},
 	}
 
-	var createKeyCommand = &cli.Command{
+	createKeyCommand := &cli.Command{
 		Name:  "create",
 		Usage: "create a new key pair and save into the key file",
 		Flags: []cli.Flag{filenameFlag, passwordFlag},
@@ -48,7 +48,7 @@ func getKeyToolsCommand() *cli.Command {
 		},
 	}
 
-	var recoverKeyCommand = &cli.Command{
+	recoverKeyCommand := &cli.Command{
 		Name:  "recover",
 		Usage: "recover the keyfile from a privateKey string",
 		Flags: []cli.Flag{filenameFlag, passwordFlag, privateKeyFlag},
@@ -63,7 +63,7 @@ func getKeyToolsCommand() *cli.Command {
 		},
 	}
 
-	var parseKeyCommand = &cli.Command{
+	parseKeyCommand := &cli.Command{
 		Name:  "parse",
 		Usage: "parse keys from a key file",
 		Flags: []cli.Flag{filenameFlag, passwordFlag},

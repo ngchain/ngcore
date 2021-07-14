@@ -2,25 +2,21 @@ package ngtypes
 
 import (
 	"math/big"
-
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 )
 
 var genesisGenerateTx *Tx
 
-func GetGenesisGenerateTx(network ngproto.NetworkType) *Tx {
-	if genesisGenerateTx == nil {
-		ggtx := NewTx(network, ngproto.TxType_GENERATE, nil, 0, [][]byte{GenesisAddress},
-			BigIntsToBytesList([]*big.Int{GetBlockReward(0)}),
-			big.NewInt(0).Bytes(),
-			nil,
+// GetGenesisGenerateTx provides the genesis generate tx under current network
+func GetGenesisGenerateTx(network Network) *Tx {
+	if genesisGenerateTx == nil || genesisGenerateTx.Network != network {
+		ggtx := NewTx(network, GenerateTx, 0, 0, []Address{GenesisAddress},
+			[]*big.Int{GetBlockReward(0)},
+			big.NewInt(0),
 			nil,
 			nil,
 		)
 
-		ggtx.ManuallySetSignature(
-			GetGenesisGenerateTxSignature(network))
-		ggtx.GetHash()
+		ggtx.ManuallySetSignature(GetGenesisGenerateTxSignature(network))
 
 		genesisGenerateTx = ggtx
 	}

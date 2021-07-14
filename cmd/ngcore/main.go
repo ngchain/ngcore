@@ -10,27 +10,25 @@ import (
 func main() {
 	app := cli.NewApp()
 
-	app.Name = "ngcore"
+	app.Name = name
 	app.Usage = usage
 	app.Description = description
-	app.Version = version
+	app.Version = Version
 	app.Action = action
-
 	app.Flags = []cli.Flag{
 		nonStrictModeFlag, snapshotModeFlag,
 		p2pTCPPortFlag, p2pKeyFileFlag,
 		rpcHostFlag, rpcPortFlag, rpcDisableFlag,
-		miningFlag,
 		isBootstrapFlag, profileFlag,
 		keyFileNameFlag, keyPassFlag,
 
 		inMemFlag, dbFolderFlag,
 
-		testNetFlag, regTestNetFlag,
+		testNetFlag, zeroNetFlag,
 	}
 
 	app.Commands = []*cli.Command{
-		getKeyToolsCommand(), getGenesisToolsCommand(),
+		getKeyToolsCommand(),
 	}
 
 	err := app.Run(os.Args)

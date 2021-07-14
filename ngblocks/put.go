@@ -1,21 +1,23 @@
 package ngblocks
 
 import (
-	"fmt"
+	"errors"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/dgraph-io/badger/v3"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
+
+var ErrPutEmptyBlock = errors.New("putting empty block into the db")
 
 // PutNewBlock puts a new block into db and updates the tags.
 // should check block before putting
 // dev should continue upgrading the state after PutNewBlock
 func PutNewBlock(txn *badger.Txn, block *ngtypes.Block) error {
 	if block == nil {
-		return fmt.Errorf("block is nil")
+		return ErrPutEmptyBlock
 	}
 
 	hash := block.GetHash()
@@ -50,7 +52,7 @@ func putTxs(txn *badger.Txn, block *ngtypes.Block) error {
 	for i := range block.Txs {
 		hash := block.Txs[i].GetHash()
 
-		raw, err := proto.Marshal(block.Txs[i].GetProto())
+		raw, err := rlp.EncodeToBytes(block.Txs[i])
 		if err != nil {
 			return err
 		}
@@ -65,7 +67,7 @@ func putTxs(txn *badger.Txn, block *ngtypes.Block) error {
 }
 
 func putBlock(txn *badger.Txn, hash []byte, block *ngtypes.Block) error {
-	raw, err := proto.Marshal(block.GetProto())
+	raw, err := rlp.EncodeToBytes(block)
 	if err != nil {
 		return err
 	}

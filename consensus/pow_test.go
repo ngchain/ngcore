@@ -1,24 +1,19 @@
 package consensus_test
 
 import (
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"testing"
 
 	"github.com/ngchain/ngcore/blockchain"
-	"github.com/ngchain/ngcore/ngpool"
-
-	"github.com/ngchain/ngcore/storage"
-
 	"github.com/ngchain/ngcore/consensus"
-	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 func TestNewConsensusManager(t *testing.T) {
-	key := keytools.NewLocalKey()
-
 	db := storage.InitMemStorage()
 
 	defer func() {
@@ -28,7 +23,7 @@ func TestNewConsensusManager(t *testing.T) {
 		}
 	}()
 
-	net := ngproto.NetworkType_ZERONET
+	net := ngtypes.ZERONET
 	store := ngblocks.Init(db, net)
 	state := ngstate.InitStateFromGenesis(db, net)
 	chain := blockchain.Init(db, net, store, nil)
@@ -43,7 +38,5 @@ func TestNewConsensusManager(t *testing.T) {
 	consensus.InitPoWConsensus(db, chain, pool, state, localNode, consensus.PoWorkConfig{
 		Network:                     net,
 		DisableConnectingBootstraps: true,
-		MiningThread:                1,
-		PrivateKey:                  key,
 	})
 }

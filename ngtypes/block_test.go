@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/c0mm4nd/rlp"
 	"golang.org/x/crypto/sha3"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -36,39 +35,36 @@ func TestBlock_IsGenesis(t *testing.T) {
 			return
 		}
 
-		raw, err := proto.Marshal(g.GetProto())
+		raw, err := rlp.EncodeToBytes(g)
 		if err != nil {
 			panic(err)
 		}
-		gg := new(ngproto.Block)
-		err = proto.Unmarshal(raw, gg)
+		gg := new(ngtypes.Block)
+		err = rlp.DecodeBytes(raw, gg)
 		if err != nil {
 			panic(err)
 		}
 
-		ggg := ngtypes.NewBlockFromProto(gg)
-
-		if !ggg.IsGenesis() {
+		if !gg.IsGenesis() {
 			t.Error("failed unmarshalling back to genesis block structure")
 			return
 		}
 
-		if err := ggg.CheckError(); err != nil {
+		if err := gg.CheckError(); err != nil {
 			t.Error(err)
 			return
 		}
 	}
-
 }
 
 // TestBlock_Marshal test func GetGenesisBlock()'s Marshal().
 func TestBlock_Marshal(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
-		rawBlock, _ := ngtypes.GetGenesisBlock(net).Marshal()
+		rawBlock, _ := rlp.EncodeToBytes(ngtypes.GetGenesisBlock(net))
 
-		var genesisBlock ngproto.Block
-		_ = proto.Unmarshal(rawBlock, &genesisBlock)
-		_block, _ := proto.Marshal(&genesisBlock)
+		var genesisBlock ngtypes.Block
+		_ = rlp.DecodeBytes(rawBlock, &genesisBlock)
+		_block, _ := rlp.EncodeToBytes(&genesisBlock)
 
 		if !bytes.Equal(rawBlock, _block) {
 			t.Fail()
@@ -80,7 +76,7 @@ func TestBlock_Marshal(t *testing.T) {
 func TestGetGenesisBlock(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		t.Logf(string(net))
-		d, _ := proto.Marshal(ngtypes.GetGenesisBlock(net).GetProto())
+		d, _ := rlp.EncodeToBytes(ngtypes.GetGenesisBlock(net))
 		hash := sha3.Sum256(d)
 
 		t.Logf("GenesisBlock hex: %x", d)
@@ -100,22 +96,22 @@ func TestBlockJSON(t *testing.T) {
 
 		t.Log(string(jsonBlock))
 
-		block_ := &ngtypes.Block{}
-		err = utils.JSON.Unmarshal(jsonBlock, &block_)
+		block2 := &ngtypes.Block{}
+		err = utils.JSON.Unmarshal(jsonBlock, &block2)
 		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		if eq, _ := block.Equals(block_); !eq {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 
-		if !proto.Equal(block.GetProto(), block_.GetProto()) {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 	}
@@ -126,20 +122,20 @@ func TestBlockRawPoW(t *testing.T) {
 		block := ngtypes.GetGenesisBlock(net)
 		raw := block.GetPoWRawHeader(nil)
 		txs := block.Txs
-		block_, err := ngtypes.NewBlockFromPoWRawWithTxs(raw, txs)
+		block2, err := ngtypes.NewBlockFromPoWRaw(raw, txs, nil)
 		if err != nil {
 			panic(err)
 		}
 
-		if eq, _ := block.Equals(block_); !eq {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 
-		if !proto.Equal(block.GetProto(), block_.GetProto()) {
+		if eq, _ := block.Equals(block2); !eq {
 			log.Errorf("block  %#v", block)
-			log.Errorf("block_ %#v", block_)
+			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
 	}

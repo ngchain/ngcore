@@ -59,7 +59,7 @@ func GetP2PKey(path string) crypto.PrivKey {
 			panic(err)
 		}
 
-		//log.Info("creating bootstrap key")
+		// log.Info("creating bootstrap key")
 
 		f, err := os.Create(path)
 		if err != nil {

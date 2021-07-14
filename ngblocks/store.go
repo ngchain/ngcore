@@ -3,7 +3,8 @@ package ngblocks
 import (
 	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 const (
@@ -16,9 +17,9 @@ const (
 var log = logging.Logger("blocks")
 
 var (
-	blockPrefix   = []byte("b:")
-	txPrefix      = []byte("t:")
-	blockTxPrefix = []byte("bt:")
+	blockPrefix = []byte("b:")
+	txPrefix    = []byte("t:")
+	// blockTxPrefix = []byte("bt:") // TODO: add block-tx relationship
 )
 
 // BlockStore managers a badger DB, which stores vaults and blocks and some helper tags for managing.
@@ -27,19 +28,19 @@ var (
 // then load the origin in bootstrap process
 type BlockStore struct {
 	*badger.DB
-	Network ngproto.NetworkType
+	Network ngtypes.Network
 }
 
 // Init will do all initialization for the block store.
-func Init(db *badger.DB, network ngproto.NetworkType) *BlockStore {
+func Init(db *badger.DB, network ngtypes.Network) *BlockStore {
 	store := &BlockStore{
 		DB:      db,
 		Network: network,
 	}
 
 	store.initWithGenesis()
-	//err := store.initWithBlockchain(blocks...)
-	//if err != nil {
+	// err := store.initWithBlockchain(blocks...)
+	// if err != nil {
 	//		panic(err)
 	//	}
 

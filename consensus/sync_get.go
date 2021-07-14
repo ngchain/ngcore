@@ -3,21 +3,20 @@ package consensus
 import (
 	"fmt"
 
-	"github.com/ngchain/ngcore/ngp2p/message"
-	"github.com/ngchain/ngcore/ngp2p/wired"
-
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/pkg/errors"
 
+	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// GetRemoteStatus just get the remote status from remote, and then put it into sync.store
+// GetRemoteStatus just get the remote status from remote, and then put it into sync.store.
 func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	origin := mod.pow.Chain.GetOriginBlock()
 	latest := mod.pow.Chain.GetLatestBlock()
 	cp := mod.pow.Chain.GetLatestCheckpoint()
 
-	id, stream := mod.localNode.SendPing(peerID, origin.Header.GetHeight(), latest.Header.GetHeight(), cp.GetHash(), cp.GetActualDiff().Bytes())
+	id, stream := mod.localNode.SendPing(peerID, origin.Header.Height, latest.Header.Height, cp.GetHash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
 		log.Infof("failed to send ping, cannot get remote status from %s", peerID) // level down this
 		return nil
@@ -28,8 +27,8 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 		return err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_PONG:
+	switch reply.Header.Type {
+	case wired.PongMsg:
 		pongPayload, err := wired.DecodePongPayload(reply.Payload)
 		if err != nil {
 			return err
@@ -37,28 +36,28 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 
 		if _, exists := mod.store[peerID]; !exists {
 			mod.putRemote(peerID, NewRemoteRecord(peerID, pongPayload.Origin, pongPayload.Latest,
-				pongPayload.CheckpointHash, pongPayload.CheckpointActualDiff))
+				pongPayload.CheckpointHash, pongPayload.CheckpointDiff))
 		} else {
 			mod.store[peerID].update(pongPayload.Origin, pongPayload.Latest,
-				pongPayload.CheckpointHash, pongPayload.CheckpointActualDiff)
+				pongPayload.CheckpointHash, pongPayload.CheckpointDiff)
 		}
 
-	case message.MessageType_REJECT:
-		return fmt.Errorf("ping is rejected by remote: %s", string(reply.Payload))
+	case wired.RejectMsg:
+		return errors.Wrapf(ErrMsgRejected, "ping is rejected by remote: %s", string(reply.Payload))
 	default:
-		return fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return errors.Wrapf(ErrInvalidMsgType, "remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 
 	return nil
 }
 
-// getRemoteChainFromLocalLatest just get the remote status from remote
+// getRemoteChainFromLocalLatest just get the remote status from remote.
 func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chain []*ngtypes.Block, err error) {
 	latestHash := mod.pow.Chain.GetLatestBlockHash()
 
 	id, s, err := mod.localNode.SendGetChain(record.id, [][]byte{latestHash}, nil) // nil means get MaxBlocks number blocks
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getchain: %s", err)
+		return nil, fmt.Errorf("failed to send getchain: %w", err)
 	}
 
 	reply, err := wired.ReceiveReply(id, s)
@@ -66,37 +65,34 @@ func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chai
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_CHAIN:
+	switch reply.Header.Type {
+	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
-		}
-
-		blocks := make([]*ngtypes.Block, len(chainPayload.Blocks))
-		for i := 0; i < len(chainPayload.Blocks); i++ {
-			blocks[i] = ngtypes.NewBlockFromProto(chainPayload.Blocks[i])
+			return nil, fmt.Errorf("failed to send ping: %w", err)
 		}
 
 		// TODO: add support for hashes etc
-		return blocks, err
+		return chainPayload.Blocks, err
 
-	case message.MessageType_REJECT:
-		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
-
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("chain is not found in remote")
+	case wired.RejectMsg:
+		return nil, errors.Wrapf(ErrMsgRejected, "getchain is rejected by remote: %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, errors.Wrapf(ErrInvalidMsgType, "remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 }
 
-// getRemoteChain get the chain from remote node
+var (
+	ErrMsgRejected    = errors.New("message get rejected")
+	ErrInvalidMsgType = errors.New("invalid message type")
+)
+
+// getRemoteChain get the chain from remote node.
 func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.Block, err error) {
 	id, s, err := mod.localNode.SendGetChain(peerID, from, to)
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getchain: %s", err)
+		return nil, fmt.Errorf("failed to send getchain: %w", err)
 	}
 
 	reply, err := wired.ReceiveReply(id, s)
@@ -104,35 +100,28 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_CHAIN:
+	switch reply.Header.Type {
+	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
-		}
-		blocks := make([]*ngtypes.Block, len(chainPayload.Blocks))
-		for i := 0; i < len(chainPayload.Blocks); i++ {
-			blocks[i] = ngtypes.NewBlockFromProto(chainPayload.Blocks[i])
+			return nil, errors.Wrap(err, "failed to send ping")
 		}
 
 		// TODO: add support for hashes etc
-		return blocks, err
+		return chainPayload.Blocks, err
 
-	case message.MessageType_REJECT:
-		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
-
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("chain is not found in remote")
+	case wired.RejectMsg:
+		return nil, errors.Wrapf(ErrMsgRejected, "getchain failed with %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, errors.Wrapf(ErrInvalidMsgType, "remote replies ping with messgae type %s", reply.Header.Type)
 	}
 }
 
 func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes.Sheet, err error) {
 	id, s, err := mod.localNode.SendGetSheet(record.id, record.checkpointHeight, record.checkpointHash)
 	if s == nil {
-		return nil, fmt.Errorf("failed to send getsheet: %s", err)
+		return nil, errors.Wrap(err, "failed to send getsheet")
 	}
 
 	reply, err := wired.ReceiveReply(id, s)
@@ -140,23 +129,20 @@ func (mod *syncModule) getRemoteStateSheet(record *RemoteRecord) (sheet *ngtypes
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_SHEET:
+	switch reply.Header.Type {
+	case wired.SheetMsg:
 		sheetPayload, err := wired.DecodeSheetPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
+			return nil, errors.Wrap(err, "failed to send ping: %s")
 		}
 
 		// TODO: add support for hashes etc
-		return ngtypes.NewSheetFromProto(sheetPayload.Sheet), err
+		return sheetPayload.Sheet, err
 
-	case message.MessageType_REJECT:
-		return nil, fmt.Errorf("getsheet is rejected by remote: %s", string(reply.Payload))
-
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("checkpoint's sheet is not found in remote")
+	case wired.RejectMsg:
+		return nil, errors.Wrapf(ErrMsgRejected, "getsheet is rejected by remote: %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, errors.Wrapf(ErrInvalidMsgType, "remote replies with invalid messgae type: %s", reply.Header.Type)
 	}
 }

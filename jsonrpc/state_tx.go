@@ -2,16 +2,14 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"reflect"
 
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/c0mm4nd/rlp"
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/secp256k1"
-	"google.golang.org/protobuf/proto"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -37,16 +35,14 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var protoTx ngproto.Tx
-	err = proto.Unmarshal(signedTxRaw, &protoTx)
+	var tx ngtypes.Tx
+	err = rlp.DecodeBytes(signedTxRaw, &tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	tx := ngtypes.NewTxFromProto(&protoTx)
-
-	err = s.pow.Pool.PutNewTxFromLocal(tx)
+	err = s.pow.Pool.PutNewTxFromLocal(&tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -66,7 +62,7 @@ type signTxParams struct {
 	PrivateKeys []string `json:"privateKeys"`
 }
 
-// signTxFunc receives the Proto encoded bytes of unsigned Tx and return the Proto encoded bytes of signed Tx
+// signTxFunc receives the Proto encoded bytes of unsigned Tx and return the Proto encoded bytes of signed Tx.
 func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params signTxParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -81,13 +77,12 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var protoTx ngproto.Tx
-	err = proto.Unmarshal(unsignedTxRaw, &protoTx)
+	var tx ngtypes.Tx
+	err = rlp.DecodeBytes(unsignedTxRaw, &tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	tx := ngtypes.NewTxFromProto(&protoTx)
 
 	privateKeys := make([]*secp256k1.PrivateKey, len(params.PrivateKeys))
 	for i := range params.PrivateKeys {
@@ -106,7 +101,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	rawTx, err := proto.Marshal(tx.GetProto())
+	rawTx, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -129,7 +124,7 @@ type genTransactionParams struct {
 	Extra        string        `json:"extra"`
 }
 
-// all genTx should reply protobuf encoded bytes
+// all genTx should reply protobuf encoded bytes.
 func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genTransactionParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -138,7 +133,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var participants = make([][]byte, len(params.Participants))
+	participants := make([]ngtypes.Address, len(params.Participants))
 	for i := range params.Participants {
 		switch p := params.Participants[i].(type) {
 		case string:
@@ -154,14 +149,14 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
-			participants[i] = account.Proto.Owner
+			participants[i] = account.Owner
 		default:
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, fmt.Errorf("unknown participant type: %s", reflect.TypeOf(p))))
-
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0,
+				errors.Wrapf(ngtypes.ErrTxParticipantsInvalid, "unknown participant type: %s", reflect.TypeOf(p))))
 		}
 	}
 
-	var values = make([]*big.Int, len(params.Values))
+	values := make([]*big.Int, len(params.Values))
 	for i := range params.Values {
 		values[i] = new(big.Int).SetUint64(uint64(params.Values[i] * ngtypes.FloatNG))
 	}
@@ -176,9 +171,9 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngproto.TxType_TRANSACT,
-		s.pow.Chain.GetLatestBlockHash(),
-		params.Convener,
+		ngtypes.TransactTx,
+		s.pow.Chain.GetLatestBlockHeight(),
+		ngtypes.AccountNum(params.Convener),
 		participants,
 		values,
 		fee,
@@ -187,7 +182,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	// providing Proto encoded bytes
 	// Reason: 1. avoid accident client modification 2. less length
-	rawTx, err := proto.Marshal(tx.GetProto())
+	rawTx, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -217,10 +212,10 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngproto.TxType_REGISTER,
-		s.pow.Chain.GetLatestBlockHash(),
+		ngtypes.RegisterTx,
+		s.pow.Chain.GetLatestBlockHeight(),
 		1,
-		[][]byte{
+		[]ngtypes.Address{
 			params.Owner,
 		},
 		[]*big.Int{big.NewInt(0)},
@@ -228,7 +223,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		utils.PackUint64LE(params.Num),
 	)
 
-	rawTx, err := proto.Marshal(tx.GetProto())
+	rawTx, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -243,14 +238,14 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type genLogoutParams struct {
+type genDestroyParams struct {
 	Convener  uint64  `json:"convener"`
 	Fee       float64 `json:"fee"`
 	PublicKey string  `json:"publicKey"` // compressed publicKey, beginning with 02 or 03 (not 04).
 }
 
-func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genLogoutParams
+func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genDestroyParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
@@ -267,16 +262,16 @@ func (s *Server) genLogoutFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngproto.TxType_LOGOUT,
-		s.pow.Chain.GetLatestBlockHash(),
-		params.Convener,
+		ngtypes.DestroyTx,
+		s.pow.Chain.GetLatestBlockHeight(),
+		ngtypes.AccountNum(params.Convener),
 		nil,
 		nil,
 		fee,
 		extra,
 	)
 
-	rawTx, err := proto.Marshal(tx.GetProto())
+	rawTx, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -314,12 +309,12 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	extra := &ngproto.DeleteExtra{
+	extra := &ngtypes.DeleteExtra{
 		Pos:     params.ExtraPos,
 		Content: extraContent,
 	}
 
-	rawExtra, err := proto.Marshal(extra)
+	rawExtra, err := rlp.EncodeToBytes(extra)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -327,16 +322,16 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngproto.TxType_APPEND,
-		s.pow.Chain.GetLatestBlockHash(),
-		params.Convener,
+		ngtypes.AppendTx,
+		s.pow.Chain.GetLatestBlockHeight(),
+		ngtypes.AccountNum(params.Convener),
 		nil,
 		nil,
 		fee,
 		rawExtra,
 	)
 
-	rawTx, err := proto.Marshal(tx.GetProto())
+	rawTx, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -375,12 +370,12 @@ func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	extra := &ngproto.DeleteExtra{
+	extra := &ngtypes.DeleteExtra{
 		Pos:     params.ExtraPos,
 		Content: extraContent,
 	}
 
-	rawExtra, err := proto.Marshal(extra)
+	rawExtra, err := rlp.EncodeToBytes(extra)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -388,16 +383,16 @@ func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngproto.TxType_APPEND,
-		s.pow.Chain.GetLatestBlockHash(),
-		params.Convener,
+		ngtypes.DeleteTx,
+		s.pow.Chain.GetLatestBlockHeight(),
+		ngtypes.AccountNum(params.Convener),
 		nil,
 		nil,
 		fee,
 		rawExtra,
 	)
 
-	rawTx, err := proto.Marshal(tx.GetProto())
+	rawTx, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

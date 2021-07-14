@@ -4,13 +4,12 @@ import (
 	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngblocks"
-
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // GetTxByHash gets the tx with hash from db, so the tx must be applied.
 func (chain *Chain) GetTxByHash(hash []byte) (*ngtypes.Tx, error) {
-	var tx = &ngtypes.Tx{}
+	tx := &ngtypes.Tx{}
 
 	if err := chain.View(func(txn *badger.Txn) error {
 		var err error

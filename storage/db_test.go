@@ -3,11 +3,12 @@ package storage_test
 import (
 	"testing"
 
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
 
 func TestInitStorage(t *testing.T) {
-	db := storage.InitStorage("ngdb")
+	db := storage.InitStorage(ngtypes.ZERONET, "ngdb")
 	if db == nil {
 		t.Error("failed to init db on home dir")
 		return
@@ -18,5 +19,4 @@ func TestInitStorage(t *testing.T) {
 		t.Error("failed to init db on mem")
 		return
 	}
-
 }

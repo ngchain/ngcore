@@ -9,7 +9,7 @@ import (
 func initAccountImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("account", "get_host", func(ins *wasman.Instance) interface{} {
 		return func() uint64 {
-			return vm.self.Proto.Num // host means the account which is hosting the contract
+			return vm.self.Num // host means the account which is hosting the contract
 		}
 	})
 	if err != nil {
@@ -33,7 +33,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, acc.Proto.Owner)
+			l, err := cp(ins, ptr, acc.Owner)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -54,7 +54,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(acc.Proto.Contract))
+			return uint32(len(acc.Contract))
 		}
 	})
 	if err != nil {
@@ -69,7 +69,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, acc.Proto.Contract)
+			l, err := cp(ins, ptr, acc.Contract)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -82,44 +82,23 @@ func initAccountImports(vm *VM) error {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("account", "get_context_size", func(ins *wasman.Instance) interface{} {
-		return func(accountNum uint64) uint32 {
-			acc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(accountNum))
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
+	// err = vm.linker.DefineAdvancedFunc("account", "get_context_size", func(ins *wasman.Instance) interface{} {
+	//	return func(accountNum uint64) uint32 {
+	//		acc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(accountNum))
+	//		if err != nil {
+	//			vm.logger.Error(err)
+	//			return 0
+	//		}
+	//
+	//		return uint32(len(acc.Context))
+	//	}
+	// })
+	// if err != nil {
+	//	return err
+	// }
 
-			return uint32(len(acc.Proto.Context))
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("account", "get_context", func(ins *wasman.Instance) interface{} {
-		return func(accountNum uint64, ptr uint32) uint32 {
-			acc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(accountNum))
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			l, err := cp(ins, ptr, acc.Proto.Context)
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			return l
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	//TODO:  write to Context when num is self
-	//err = vm.linker.DefineAdvancedFunc("account", "write_context", func(ins *wasman.Instance) interface{} {
+	// TODO: use kv setter and getter
+	// err = vm.linker.DefineAdvancedFunc("account", "get_context", func(ins *wasman.Instance) interface{} {
 	//	return func(accountNum uint64, ptr uint32) uint32 {
 	//		acc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(accountNum))
 	//		if err != nil {
@@ -135,10 +114,32 @@ func initAccountImports(vm *VM) error {
 	//
 	//		return l
 	//	}
-	//})
-	//if err != nil {
+	// })
+	// if err != nil {
 	//	return err
-	//}
+	// }
+
+	// TODO:  write to Context when num is self
+	// err = vm.linker.DefineAdvancedFunc("account", "write_context", func(ins *wasman.Instance) interface{} {
+	//	return func(accountNum uint64, ptr uint32) uint32 {
+	//		acc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(accountNum))
+	//		if err != nil {
+	//			vm.logger.Error(err)
+	//			return 0
+	//		}
+	//
+	//		l, err := cp(ins, ptr, acc.Context)
+	//		if err != nil {
+	//			vm.logger.Error(err)
+	//			return 0
+	//		}
+	//
+	//		return l
+	//	}
+	// })
+	// if err != nil {
+	//	return err
+	// }
 
 	return nil
 }

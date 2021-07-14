@@ -3,22 +3,19 @@ package ngp2p
 import (
 	"context"
 	"fmt"
-	multiplex "github.com/libp2p/go-libp2p-mplex"
-	yamux "github.com/libp2p/go-libp2p-yamux"
-	"github.com/ngchain/ngcore/keytools"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-
-	"github.com/ngchain/ngcore/blockchain"
-
-	"github.com/ngchain/ngcore/ngp2p/broadcast"
-	"github.com/ngchain/ngcore/ngp2p/wired"
 
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
+	multiplex "github.com/libp2p/go-libp2p-mplex"
+	yamux "github.com/libp2p/go-libp2p-yamux"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-tcp-transport"
 
+	"github.com/ngchain/ngcore/blockchain"
+	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngp2p/broadcast"
+	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -27,7 +24,7 @@ var log = logging.Logger("ngp2p")
 // LocalNode is the local host on p2p network
 type LocalNode struct {
 	host.Host // lib-p2p host
-	network   ngproto.NetworkType
+	network   ngtypes.Network
 	P2PConfig P2PConfig
 
 	*wired.Wired
@@ -36,7 +33,7 @@ type LocalNode struct {
 
 type P2PConfig struct {
 	P2PKeyFile       string
-	Network          ngproto.NetworkType
+	Network          ngtypes.Network
 	Port             int
 	DisableDiscovery bool
 }

@@ -2,13 +2,14 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"fmt"
-
-	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
+
+	"github.com/ngchain/ngcore/ngblocks"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -17,6 +18,7 @@ func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 	raw, err := utils.JSON.Marshal(height)
 	if err != nil {
 		log.Error(err)
+
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -29,6 +31,7 @@ func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 	raw, err := utils.JSON.Marshal(hash)
 	if err != nil {
 		log.Error(err)
+
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -41,6 +44,7 @@ func (s *Server) getLatestBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	raw, err := utils.JSON.Marshal(block)
 	if err != nil {
 		log.Error(err)
+
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
@@ -133,7 +137,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 
 	tx, err := s.pow.Chain.GetTxByHash(hash)
-	if err != nil && err != badger.ErrKeyNotFound {
+	if err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
@@ -165,7 +169,7 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 	}
 
-	err = fmt.Errorf("cannot find the tx with hash %x", hash)
+	err = errors.Wrapf(ngblocks.ErrNoTxInHash, "cannot find the tx with hash %x", hash)
 	log.Error(err)
 	return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 }

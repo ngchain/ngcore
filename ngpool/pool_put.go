@@ -1,14 +1,10 @@
 package ngpool
 
 import (
-	"bytes"
-	"fmt"
-	"math/big"
-
 	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngstate"
-
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -41,6 +37,8 @@ func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
+var ErrTxInvalidHeight = errors.New("invalid tx height")
+
 // PutTx puts txs from network(p2p) or RPC into txpool, should check error before putting.
 func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 	pool.Lock()
@@ -48,7 +46,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 
 	err := pool.db.View(func(txn *badger.Txn) error {
 		if err := ngstate.CheckTx(txn, tx); err != nil {
-			return fmt.Errorf("malformed tx, rejected: %v", err)
+			return errors.Wrap(err, "malformed tx, rejected")
 		}
 
 		return nil
@@ -59,14 +57,14 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 
 	latestBlock := pool.chain.GetLatestBlock()
 
-	if !bytes.Equal(tx.Proto.PrevBlockHash, latestBlock.GetHash()) {
-		return fmt.Errorf("tx %x does not belong to current State, found %x, require %x",
-			tx.GetHash(), tx.Proto.PrevBlockHash, latestBlock.GetHash())
+	if tx.Height != latestBlock.Header.Height {
+		return errors.Wrapf(ErrTxInvalidHeight, "tx %x does not belong to current State, found %d, require %d",
+			tx.GetHash(), tx.Height, latestBlock.Header.Height)
 	}
 
-	if pool.txMap[tx.Proto.Convener] == nil ||
-		new(big.Int).SetBytes(pool.txMap[tx.Proto.Convener].Proto.Fee).Cmp(new(big.Int).SetBytes(tx.Proto.Fee)) < 0 {
-		pool.txMap[tx.Proto.Convener] = tx
+	if pool.txMap[uint64(tx.Convener)] == nil ||
+		pool.txMap[uint64(tx.Convener)].Fee.Cmp(tx.Fee) < 0 {
+		pool.txMap[uint64(tx.Convener)] = tx
 	}
 
 	return nil

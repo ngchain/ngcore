@@ -2,15 +2,17 @@ package ngtypes
 
 import (
 	"fmt"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"math/big"
+
+	"github.com/mr-tron/base58"
 )
 
-var genesisBalances map[string][]byte
-var genesisSheet *Sheet
+var (
+	genesisBalances []*Balance
+	genesisSheet    *Sheet
+)
 
 func init() {
-	genesisBalances = make(map[string][]byte)
 	strMap := map[string]string{
 		"23gC8K2FTR9FreVkkUTNYptg5S7i9VH7aa9zQLYyiwXDkPbG": "184000000000000000000",
 		"2bM9VjWGp5sfXxD14St39WjqscNqmc4Hu8UP4VJRHfkMAqR4": "360000000000000000000",
@@ -81,26 +83,35 @@ func init() {
 		"coutNLcFDZ283CxwtQHkFtF5ngAptjEkUSkVVaS6kFT9QCj":  "558281168483068014434913",
 	}
 
+	genesisBalances = make([]*Balance, 0, len(strMap))
 	for strAddr, strBal := range strMap {
 		bal, ok := new(big.Int).SetString(strBal, 10)
 		if !ok {
-			panic(fmt.Errorf("failed to load balance: %s", strBal))
+			panic(fmt.Sprintf("failed to load balance: %s", strBal))
 		}
 
-		genesisBalances[strAddr] = bal.Bytes()
+		addr, err := base58.FastBase58Decoding(strAddr)
+		if err != nil {
+			panic(err)
+		}
+
+		genesisBalances = append(genesisBalances, &Balance{
+			Address: addr,
+			Amount:  bal,
+		})
 	}
 }
 
 // GetGenesisSheet returns a genesis sheet
-func GetGenesisSheet(network ngproto.NetworkType) *Sheet {
+func GetGenesisSheet(network Network) *Sheet {
 	if genesisSheet == nil {
-		accounts := make(map[uint64]*ngproto.Account)
+		accounts := make([]*Account, 0, 100)
 
 		for i := uint64(0); i <= 100; i++ {
-			accounts[i] = GetGenesisStyleAccount(AccountNum(i)).GetProto()
+			accounts = append(accounts, GetGenesisStyleAccount(AccountNum(i)))
 		}
 
-		genesisSheet = NewSheet(network, 0, GetGenesisBlockHash(network), accounts, genesisBalances)
+		genesisSheet = NewSheet(network, 0, GetGenesisBlock(network).GetHash(), genesisBalances, accounts)
 	}
 
 	return genesisSheet

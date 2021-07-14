@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// AES256GCMEncrypt is used for file encrypt
+// AES256GCMEncrypt is used for file encrypt.
 func AES256GCMEncrypt(raw []byte, password []byte) (encrypted []byte) {
 	hashPassword := sha3.Sum256(password)
 
@@ -28,7 +28,7 @@ func AES256GCMEncrypt(raw []byte, password []byte) (encrypted []byte) {
 	return gcm.Seal(nonce, nonce, raw, nil)
 }
 
-// AES256GCMDecrypt is used for file decrypt
+// AES256GCMDecrypt is used for file decrypt.
 func AES256GCMDecrypt(raw []byte, password []byte) (decrypted []byte) {
 	hashPassword := sha3.Sum256(password)
 

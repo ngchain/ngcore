@@ -3,116 +3,108 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"math/big"
 
-	"github.com/ngchain/go-schnorr"
-	"github.com/ngchain/secp256k1"
-	"golang.org/x/crypto/sha3"
-	"google.golang.org/protobuf/proto"
-
+	"github.com/c0mm4nd/rlp"
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
+	"github.com/ngchain/go-schnorr"
+	"github.com/ngchain/secp256k1"
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/sha3"
 
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
-// Errors for Tx
-var (
-	// ErrTxWrongSign occurs when the signature of the Tx doesnt match the Tx 's caller/account
-	ErrTxWrongSign = errors.New("the signer of transaction is not the own of the account")
+type TxType uint8
+
+const (
+	InvalidTx TxType = iota
+	GenerateTx
+	RegisterTx
+	DestroyTx // renamed from logout
+
+	TransactTx
+
+	AppendTx // add content to the tail of contract
+	DeleteTx
+
+	LockTx   // TODO: cannot assign nor append, but can run vm
+	UnlockTx // TODO: disable vm, but enable assign and append
 )
 
 type Tx struct {
-	Proto *ngproto.Tx
-	Hash  []byte
+	Network      Network
+	Type         TxType
+	Height       uint64 // lock the tx on the specific height, rather than the hash, to make the tx can act on forking
+	Convener     AccountNum
+	Participants []Address
+	Fee          *big.Int
+	Values       []*big.Int // each value is a free-length slice
+
+	Extra []byte
+	Sign  []byte `rlp:"optional"`
 }
 
 // NewTx is the default constructor for ngtypes.Tx
-func NewTx(network ngproto.NetworkType, txType ngproto.TxType, prevBlockHash []byte,
-	convener uint64, participants [][]byte, values [][]byte, fee,
-	extraData, sign, hash []byte) *Tx {
+func NewTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
+	extraData, sign []byte) *Tx {
 	tx := &Tx{
-		Proto: &ngproto.Tx{
-			Network:       network,
-			Type:          txType,
-			PrevBlockHash: prevBlockHash,
-			Convener:      convener,
-			Participants:  participants,
-			Fee:           fee,
-			Values:        values,
-			Extra:         extraData,
-			Sign:          sign,
-		},
-		Hash: hash,
+		Network:      network,
+		Type:         txType,
+		Height:       height,
+		Convener:     convener,
+		Participants: participants,
+		Fee:          fee,
+		Values:       values,
+
+		Extra: extraData,
+		Sign:  sign,
 	}
 
 	return tx
 }
 
-// NewTxFromProto implement the Tx from its parent
-func NewTxFromProto(protoTx *ngproto.Tx) *Tx {
-	return &Tx{
-		Proto: protoTx,
-		Hash:  nil,
-	}
-}
-
 // NewUnsignedTx will return an unsigned tx, must using Signature().
-func NewUnsignedTx(network ngproto.NetworkType, txType ngproto.TxType, prevBlockHash []byte,
-	convener uint64, participants [][]byte, values []*big.Int, fee *big.Int,
+func NewUnsignedTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
 	extraData []byte) *Tx {
 
-	return NewTx(network, txType, prevBlockHash, convener, participants, BigIntsToBytesList(values), fee.Bytes(), extraData, nil, nil)
-}
-
-// GetProto will return Tx's parent
-func (x *Tx) GetProto() *ngproto.Tx {
-	return x.Proto
-}
-
-func (*Tx) ProtoMessage() error {
-	return fmt.Errorf("not a proto")
-}
-
-func (x *Tx) Marshal() ([]byte, error) {
-	protoTx := proto.Clone(x.GetProto()).(*ngproto.Tx)
-
-	return proto.Marshal(protoTx)
+	return NewTx(network, txType, height, convener, participants, values, fee, extraData, nil)
 }
 
 // IsSigned will return whether the op has been signed.
 func (x *Tx) IsSigned() bool {
-	return x.Proto.Sign != nil
+	return x.Sign != nil
 }
 
 // Verify helps verify the transaction whether signed by the public key owner.
 func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
-	if x.Proto.Sign == nil {
-		return fmt.Errorf("unsigned transaction")
+	if x.Sign == nil {
+		return ErrTxUnsigned
 	}
 
 	if publicKey.X == nil || publicKey.Y == nil {
-		return fmt.Errorf("illegal public key")
+		return ErrInvalidPublicKey
 	}
 
 	hash := [32]byte{}
-	copy(hash[:], x.GetHash())
+	copy(hash[:], x.GetUnsignedHash())
 
 	var signature [64]byte
-	copy(signature[:], x.Proto.Sign)
+	copy(signature[:], x.Sign)
+
+	if len(x.Extra) > TxMaxExtraSize {
+		return ErrTxExtraExcess
+	}
 
 	var key [33]byte
 	copy(key[:], publicKey.SerializeCompressed())
-
 	if ok, err := schnorr.Verify(key, hash, signature); !ok {
 		if err != nil {
 			return err
 		}
 
-		return ErrTxWrongSign
+		return ErrTxSignInvalid
 	}
 
 	return nil
@@ -120,7 +112,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 
 // BS58 is a tx's Readable Raw in string.
 func (x *Tx) BS58() string {
-	b, err := x.Marshal()
+	b, err := rlp.EncodeToBytes(x)
 	if err != nil {
 		log.Error(err)
 	}
@@ -134,6 +126,7 @@ func (x *Tx) ID() string {
 }
 
 // GetHash mainly for calculating the tire root of txs and sign tx.
+// The returned hash is sha3_256(tx_with_sign)
 func (x *Tx) GetHash() []byte {
 	hash, err := x.CalculateHash()
 	if err != nil {
@@ -143,110 +136,111 @@ func (x *Tx) GetHash() []byte {
 	return hash
 }
 
-// CalculateHash mainly for calculating the tire root of txs and sign tx.
-func (x *Tx) CalculateHash() ([]byte, error) {
-	if x.Hash == nil {
-		tx := proto.Clone(x.Proto).(*ngproto.Tx)
-		tx.Sign = nil
-
-		raw, err := proto.Marshal(tx)
-		if err != nil {
-			return nil, err
-		}
-
-		hash := sha3.Sum256(raw)
-
-		x.Hash = hash[:]
+// GetUnsignedHash mainly for signing and verifying.
+// The returned hash is sha3_256(tx_without_sign)
+func (x *Tx) GetUnsignedHash() []byte {
+	sign := x.Sign
+	x.Sign = nil
+	raw, err := rlp.EncodeToBytes(x)
+	if err != nil {
+		panic(err)
 	}
 
-	return x.Hash, nil
+	x.Sign = sign
+	hash := sha3.Sum256(raw)
+
+	return hash[:]
+}
+
+// CalculateHash mainly for calculating the tire root of txs and sign tx.
+func (x *Tx) CalculateHash() ([]byte, error) {
+	raw, err := rlp.EncodeToBytes(x)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := sha3.Sum256(raw)
+
+	return hash[:], nil
 }
 
 // Equals mainly for calculating the tire root of txs.
 func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 	tx, ok := other.(*Tx)
 	if !ok {
-		return false, errors.New("invalid transaction type")
+		panic("comparing with non-tx struct")
 	}
 
-	if x.Proto.Network != tx.Proto.Network {
+	if x.Network != tx.Network {
 		return false, nil
 	}
 
-	if x.Proto.Convener != tx.Proto.Convener {
+	if x.Convener != tx.Convener {
 		return false, nil
 	}
 
-	if !bytes.Equal(x.Proto.PrevBlockHash, tx.Proto.PrevBlockHash) {
+	if x.Height != tx.Height {
 		return false, nil
 	}
 
-	if !utils.BytesListEquals(x.Proto.Participants, tx.Proto.Participants) {
+	if len(x.Participants) != len(tx.Participants) {
 		return false, nil
 	}
 
-	if !utils.BytesListEquals(x.Proto.Values, tx.Proto.Values) {
+	for i := range x.Participants {
+		if !bytes.Equal(x.Participants[i], tx.Participants[i]) {
+			return false, nil
+		}
+	}
+
+	if len(x.Values) != len(tx.Values) {
 		return false, nil
 	}
 
-	if !bytes.Equal(x.Proto.Fee, tx.Proto.Fee) {
+	for i := range x.Values {
+		if x.Values[i].Cmp(tx.Values[i]) != 0 {
+			return false, nil
+		}
+	}
+
+	if x.Fee.Cmp(tx.Fee) != 0 {
 		return false, nil
 	}
 
-	if !bytes.Equal(x.Proto.Sign, tx.Proto.Sign) {
+	if !bytes.Equal(x.Sign, tx.Sign) {
 		return false, nil
 	}
 
-	if !bytes.Equal(x.Proto.Extra, tx.Proto.Extra) {
+	if !bytes.Equal(x.Extra, tx.Extra) {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-// txsToMerkleTreeContents make a []merkletree.Content whose values is from txs.
-func txsToMerkleTreeContents(txs []*Tx) []merkletree.Content {
-	mtc := make([]merkletree.Content, len(txs))
-	for i := range txs {
-		mtc[i] = txs[i]
-	}
-
-	return mtc
-}
-
-// BigIntsToBytesList is a helper converts bigInts to raw bytes slice.
-func BigIntsToBytesList(bigInts []*big.Int) [][]byte {
-	bytesList := make([][]byte, len(bigInts))
-	for i := 0; i < len(bigInts); i++ {
-		bytesList[i] = bigInts[i].Bytes()
-	}
-
-	return bytesList
-}
-
 // CheckGenerate does a self check for generate tx
 func (x *Tx) CheckGenerate(blockHeight uint64) error {
 	if x == nil {
-		return errors.New("generate is missing header")
+		return ErrBlockNoHeader
 	}
 
-	if x.Proto.GetConvener() != 0 {
-		return fmt.Errorf("generate's convener should be 0")
+	if x.Convener != 0 {
+		return errors.Wrap(ErrTxConvenerInvalid, "generate's convener should be 0")
 	}
 
-	if len(x.Proto.GetValues()) != len(x.Proto.GetParticipants()) {
-		return fmt.Errorf("generate should have same len with participants")
+	if len(x.Values) != len(x.Participants) {
+		return errors.Wrap(ErrTxParticipantsInvalid, "generate should have same len with participants")
 	}
 
 	if !(x.TotalExpenditure().Cmp(GetBlockReward(blockHeight)) == 0) {
-		return fmt.Errorf("wrong block reward: expect %s but value is %s", GetBlockReward(blockHeight), x.TotalExpenditure())
+		return errors.Wrapf(ErrRewardInvalid, "expect %s but reward is %s", GetBlockReward(blockHeight), x.TotalExpenditure())
 	}
 
-	if !bytes.Equal(x.Proto.GetFee(), big.NewInt(0).Bytes()) {
-		return fmt.Errorf("generate's fee should be ZERO")
+	if x.Fee.Cmp(big.NewInt(0)) != 0 {
+		return errors.Wrap(ErrTxFeeInvalid, "generate's fee should be ZERO")
 	}
 
-	publicKey := Address(x.Proto.GetParticipants()[0]).PubKey()
+	publicKey := x.Participants[0].PubKey()
 	err := x.Verify(publicKey)
 	if err != nil {
 		return err
@@ -258,34 +252,34 @@ func (x *Tx) CheckGenerate(blockHeight uint64) error {
 // CheckRegister does a self check for register tx
 func (x *Tx) CheckRegister() error {
 	if x == nil {
-		return errors.New("register is missing header")
+		return ErrTxNoHeader
 	}
 
-	if x.Proto.GetConvener() != 01 {
-		return fmt.Errorf("register's convener should be 1")
+	if x.Convener != 0o1 {
+		return errors.Wrap(ErrTxConvenerInvalid, "register's convener should be 1")
 	}
 
-	if len(x.Proto.GetParticipants()) != 1 {
-		return fmt.Errorf("register should have only one participant")
+	if len(x.Participants) != 1 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "register should have only one participant")
 	}
 
-	if len(x.Proto.GetValues()) != 1 {
-		return fmt.Errorf("register should have only one value")
+	if len(x.Values) != 1 {
+		return errors.Wrap(ErrTxValuesInvalid, "register should have only one value")
 	}
 
-	if !bytes.Equal(x.Proto.GetValues()[0], big.NewInt(0).Bytes()) {
-		return fmt.Errorf("register should have only one 0 value")
+	if x.Values[0].Cmp(big.NewInt(0)) != 0 {
+		return errors.Wrap(ErrTxValuesInvalid, "register should have only one value, the amount of which is 0")
 	}
 
-	if new(big.Int).SetBytes(x.Proto.GetFee()).Cmp(RegisterFee) < 0 {
-		return fmt.Errorf("register should have at least 10NG(one block reward) fee")
+	if x.Fee.Cmp(RegisterFee) < 0 {
+		return errors.Wrap(ErrTxFeeInvalid, "register should have at least 10NG(one block reward) fee")
 	}
 
-	if len(x.Proto.GetExtra()) != 1<<3 {
-		return fmt.Errorf("register should have uint64 little-endian bytes as extra")
+	if len(x.Extra) != 1<<3 {
+		return errors.Wrap(ErrTxExtraInvalid, "register should have uint64 little-endian bytes as extra")
 	}
 
-	publicKey := Address(x.Proto.GetParticipants()[0]).PubKey()
+	publicKey := x.Participants[0].PubKey()
 	err := x.Verify(publicKey)
 	if err != nil {
 		return err
@@ -294,26 +288,26 @@ func (x *Tx) CheckRegister() error {
 	return nil
 }
 
-// CheckLogout does a self check for logout tx
-func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
+// CheckDestroy does a self check for destroy tx
+func (x *Tx) CheckDestroy(publicKey secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("logout is missing header")
+		return ErrTxNoHeader
 	}
 
-	if len(x.Proto.GetParticipants()) != 0 {
-		return fmt.Errorf("logout should have NO participant")
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "destroy should have NO participant")
 	}
 
-	if x.Proto.GetConvener() == 0 {
-		return fmt.Errorf("logout's convener should NOT be 0")
+	if x.Convener == 0 {
+		return errors.Wrap(ErrTxConvenerInvalid, "destroy's convener should NOT be 0")
 	}
 
-	if len(x.Proto.GetValues()) != 0 {
-		return fmt.Errorf("logout should have NO value")
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "destroy should have no participants")
 	}
 
-	if len(x.Proto.GetValues()) != len(x.Proto.GetParticipants()) {
-		return fmt.Errorf("logout should have same len with participants")
+	if len(x.Values) != 0 {
+		return errors.Wrap(ErrTxValuesInvalid, "destroy should have NO value")
 	}
 
 	err := x.Verify(publicKey)
@@ -321,10 +315,10 @@ func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
 		return err
 	}
 
-	// RULE: logout should takes owner's pubKey in Extra for verify and recording to make Tx reversible
-	_publicKey := utils.Bytes2PublicKey(x.Proto.GetExtra())
-	if !publicKey.IsEqual(&_publicKey) {
-		return fmt.Errorf("invalid raw bytes public key in logout's Extra field")
+	// RULE: destroy should takes owner's pubKey in Extra for verify and recording to make Tx reversible
+	publicKeyFromExtra := utils.Bytes2PublicKey(x.Extra)
+	if !publicKey.IsEqual(&publicKeyFromExtra) {
+		return errors.Wrap(ErrTxExtraInvalid, "invalid raw bytes public key in destroy's Extra field")
 	}
 
 	return nil
@@ -333,15 +327,15 @@ func (x *Tx) CheckLogout(publicKey secp256k1.PublicKey) error {
 // CheckTransaction does a self check for normal transaction tx
 func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("transaction is missing header")
+		return ErrTxNoHeader
 	}
 
-	if x.Proto.GetConvener() == 0 {
-		return fmt.Errorf("transaction's convener should NOT be 0")
+	if x.Convener == 0 {
+		return errors.Wrap(ErrTxConvenerInvalid, "transact's convener should NOT be 0")
 	}
 
-	if len(x.Proto.GetValues()) != len(x.Proto.GetParticipants()) {
-		return fmt.Errorf("transaction should have same len with participants")
+	if len(x.Values) != len(x.Participants) {
+		return errors.Wrap(ErrTxParticipantsInvalid, "transact should have same len with participants")
 	}
 
 	err := x.Verify(publicKey)
@@ -355,19 +349,19 @@ func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 // CheckAppend does a self check for append tx
 func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("append is missing header")
+		return ErrTxNoHeader
 	}
 
-	if len(x.Proto.GetParticipants()) != 0 {
-		return fmt.Errorf("append should have NO participant")
+	if x.Convener == 0 {
+		return errors.Wrap(ErrTxConvenerInvalid, "append's convener should NOT be 0")
 	}
 
-	if x.Proto.GetConvener() == 0 {
-		return fmt.Errorf("append's convener should NOT be 0")
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "append should have NO participant")
 	}
 
-	if len(x.Proto.GetValues()) != 0 {
-		return fmt.Errorf("append should have NO value")
+	if len(x.Values) != 0 {
+		return errors.Wrap(ErrTxValuesInvalid, "append should have NO value")
 	}
 
 	err := x.Verify(key)
@@ -376,11 +370,11 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 	}
 
 	// check this on chain
-	//var appendExtra AppendExtra
-	//err = proto.Unmarshal(x.Extra, &appendExtra)
-	//if err != nil {
+	// var appendExtra AppendExtra
+	// err = rlp.DecodeBytes(x.Extra, &appendExtra)
+	// if err != nil {
 	//	return err
-	//}
+	// }
 
 	return nil
 }
@@ -388,19 +382,19 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 // CheckDelete does a self check for delete tx
 func (x *Tx) CheckDelete(publicKey secp256k1.PublicKey) error {
 	if x == nil {
-		return errors.New("deleteTx is missing header")
+		return ErrTxNoHeader
 	}
 
-	if x.Proto.GetConvener() == 0 {
-		return fmt.Errorf("deleteTx's convener should NOT be 0")
+	if x.Convener == 0 {
+		return errors.Wrap(ErrTxConvenerInvalid, "deleteTx convener should NOT be 0")
 	}
 
-	if len(x.Proto.GetParticipants()) != 0 {
-		return fmt.Errorf("deleteTx should have NO participant")
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "deleteTx should have NO participant")
 	}
 
-	if len(x.Proto.GetValues()) != 0 {
-		return fmt.Errorf("deleteTx should have NO value")
+	if len(x.Values) != 0 {
+		return errors.Wrap(ErrTxValuesInvalid, "deleteTx should have NO value")
 	}
 
 	err := x.Verify(publicKey)
@@ -419,29 +413,28 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	}
 
 	hash := [32]byte{}
-	copy(hash[:], x.GetHash())
+	copy(hash[:], x.GetUnsignedHash())
 
 	sign, err := schnorr.AggregateSignatures(ds, hash)
 	if err != nil {
 		panic(err)
 	}
 
-	x.Proto.Sign = sign[:]
-
+	x.Sign = sign[:]
 	return
 }
 
 func (x *Tx) ManuallySetSignature(sign []byte) {
-	x.Proto.Sign = sign
+	x.Sign = sign
 }
 
 // TotalExpenditure helps calculate the total expenditure which the tx caller should pay
 func (x *Tx) TotalExpenditure() *big.Int {
 	total := big.NewInt(0)
 
-	for i := range x.Proto.GetValues() {
-		total.Add(total, new(big.Int).SetBytes(x.Proto.GetValues()[i]))
+	for i := range x.Values {
+		total.Add(total, x.Values[i])
 	}
 
-	return new(big.Int).Add(new(big.Int).SetBytes(x.Proto.GetFee()), total)
+	return new(big.Int).Add(x.Fee, total)
 }

@@ -21,7 +21,7 @@ type getAddressReply struct {
 	Address ngtypes.Address
 }
 
-// publicKeyToAddressFunc helps client to get the schnorr publickey of private keys
+// publicKeyToAddressFunc helps client to get the schnorr publickey of private keys.
 func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params getAddressParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)

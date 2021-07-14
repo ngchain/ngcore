@@ -1,22 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
+
+	// #nosec
 	_ "net/http/pprof"
-	"os"
-	"runtime"
-	"runtime/pprof"
 	"strings"
-	"time"
-
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
-
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/mr-tron/base58"
 
 	"github.com/dgraph-io/badger/v3"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/mr-tron/base58"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -33,7 +27,7 @@ import (
 
 var nonStrictModeFlag = &cli.BoolFlag{
 	Name: "non-strict",
-	//Value: true, // local chain will be able to start from a checkpoint if false
+	// Value: true, // local chain will be able to start from a checkpoint if false
 	Usage: "Enable forcing ngcore starts from the genesis block",
 }
 
@@ -77,8 +71,8 @@ var testNetFlag = &cli.BoolFlag{
 	Usage: "Run node on the test network",
 }
 
-var regTestNetFlag = &cli.BoolFlag{
-	Name:  "reg-testnet",
+var zeroNetFlag = &cli.BoolFlag{
+	Name:  "zeronet",
 	Usage: "Run node on the regression test network",
 }
 
@@ -105,13 +99,6 @@ var p2pKeyFileFlag = &cli.StringFlag{
 	Value: "",
 }
 
-var miningFlag = &cli.IntFlag{
-	Name: "mining",
-	Usage: "The worker number on mining. Mining starts when value is not negative. " +
-		"And when value equals to 0, use all cpu cores",
-	Value: defaultMiningThread,
-}
-
 var inMemFlag = &cli.BoolFlag{
 	Name:  "in-mem",
 	Usage: "Run the database of blocks, vaults in memory",
@@ -126,11 +113,7 @@ var dbFolderFlag = &cli.StringFlag{
 var log = logging.Logger("main")
 
 var action = func(c *cli.Context) error {
-	isBootstrapNode := c.Bool("bootstrap")
-	mining := c.Int("mining")
-	if mining == 0 {
-		mining = runtime.NumCPU()
-	}
+	isBootstrapNode := c.Bool(isBootstrapFlag.Name)
 
 	strictMode := isBootstrapNode || !c.Bool(nonStrictModeFlag.Name)
 	snapshotMode := c.Bool(snapshotModeFlag.Name)
@@ -150,40 +133,27 @@ var action = func(c *cli.Context) error {
 		log.Warn("running on non-strict mode")
 	}
 
-	var network = ngproto.NetworkType_TESTNET
+	network := ngtypes.TESTNET
 	if c.Bool(testNetFlag.Name) {
-		network = ngproto.NetworkType_TESTNET
+		network = ngtypes.TESTNET
 	}
 
-	if c.Bool(regTestNetFlag.Name) {
-		network = ngproto.NetworkType_ZERONET // use zero net as the regression test network
+	if c.Bool(zeroNetFlag.Name) {
+		network = ngtypes.ZERONET // use zero net as the regression test network
 	}
 
 	if withProfile {
-		var f *os.File
-		var err error
-
-		f, err = os.Create(fmt.Sprintf("%d.cpu.profile", time.Now().Unix()))
-		if err != nil {
-			panic(err)
-		}
-
-		err = pprof.StartCPUProfile(f)
-		if err != nil {
-			panic(err)
-		}
-
 		go func() {
-			listener, err := net.Listen("tcp", ":0")
+			listener, err := net.Listen("tcp", "localhost:0")
 			if err != nil {
 				panic(err)
 			}
 			log.Warnf("profiling on http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
 			panic(http.Serve(listener, nil))
 		}()
-
-		defer pprof.StopCPUProfile()
 	}
+
+	log.Warnf("ngcore version %s", Version)
 
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
 	log.Warnf("use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
@@ -192,7 +162,7 @@ var action = func(c *cli.Context) error {
 	if inMem {
 		db = storage.InitMemStorage()
 	} else {
-		db = storage.InitStorage(dbFolder)
+		db = storage.InitStorage(network, dbFolder)
 	}
 
 	defer func() {
@@ -213,7 +183,7 @@ var action = func(c *cli.Context) error {
 		P2PKeyFile:       p2pKeyFile,
 		Network:          network,
 		Port:             p2pTCPPort,
-		DisableDiscovery: network == ngproto.NetworkType_ZERONET,
+		DisableDiscovery: network == ngtypes.ZERONET,
 	})
 	localNode.GoServe()
 
@@ -229,9 +199,7 @@ var action = func(c *cli.Context) error {
 			Network:                     network,
 			StrictMode:                  strictMode,
 			SnapshotMode:                snapshotMode,
-			DisableConnectingBootstraps: isBootstrapNode || network == ngproto.NetworkType_ZERONET,
-			MiningThread:                mining,
-			PrivateKey:                  key,
+			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.ZERONET,
 		},
 	)
 	pow.GoLoop()

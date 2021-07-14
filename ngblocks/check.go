@@ -2,18 +2,23 @@ package ngblocks
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 
 	"github.com/dgraph-io/badger/v3"
 )
 
+var (
+	ErrBlockHeightConflict = errors.New("already has a block on the same height")
+	ErrPrevBlockNotExist   = errors.New("prev block does not exist")
+)
+
 func checkBlock(txn *badger.Txn, height uint64, prevHash []byte) error {
 	if blockHeightExists(txn, height) {
-		return fmt.Errorf("already has a block@%d", height)
+		return ErrBlockHeightConflict
 	}
 
 	if !blockPrevHashExists(txn, height, prevHash) {
-		return fmt.Errorf("no prev block in ngblocks: %x", prevHash)
+		return ErrPrevBlockNotExist
 	}
 
 	return nil
@@ -24,7 +29,7 @@ func blockHeightExists(txn *badger.Txn, height uint64) bool {
 		return true
 	}
 	_, err := GetBlockByHeight(txn, height)
-	if err == badger.ErrKeyNotFound {
+	if errors.Is(err, badger.ErrKeyNotFound) {
 		return false
 	}
 
@@ -45,7 +50,7 @@ func blockPrevHashExists(txn *badger.Txn, height uint64, prevHash []byte) bool {
 		return false
 	}
 
-	if b.Header.GetHeight() == height-1 {
+	if b.Header.Height == height-1 {
 		return true
 	}
 

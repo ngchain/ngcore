@@ -16,7 +16,7 @@ var log = logging.Logger("ngpool")
 
 // TxPool is a little mem db which stores **signed** tx.
 // RULE: One Account can only send one Tx, all Txs will be accepted
-// Every time the state updated, the old pool will be deprecated
+// Every time the state updated, the old pool will be deprecated.
 type TxPool struct {
 	sync.Mutex
 
@@ -51,7 +51,7 @@ func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) 
 	return false, nil
 }
 
-// Reset cleans all txs inside the pool
+// Reset cleans all txs inside the pool.
 func (pool *TxPool) Reset() {
 	pool.txMap = make(map[uint64]*ngtypes.Tx)
 }

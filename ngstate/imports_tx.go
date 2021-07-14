@@ -41,8 +41,8 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("tx", "get_prev_hash", func(ins *wasman.Instance) interface{} {
-		return func(hashPtr uint32, ptr uint32) uint32 {
+	err = vm.linker.DefineAdvancedFunc("tx", "get_height", func(ins *wasman.Instance) interface{} {
+		return func(hashPtr uint32) uint64 {
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
 			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
@@ -51,13 +51,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, tx.Proto.GetPrevBlockHash())
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			return l
+			return tx.Height
 		}
 	})
 	if err != nil {
@@ -74,7 +68,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			return tx.Proto.Convener
+			return uint64(tx.Convener)
 		}
 	})
 	if err != nil {
@@ -83,7 +77,7 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_network", func(ins *wasman.Instance) interface{} {
 		return func() uint32 {
-			return uint32(vm.caller.Proto.Network)
+			return uint32(vm.caller.Network)
 		}
 	})
 	if err != nil {
@@ -109,7 +103,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, tx.Proto.Sign)
+			l, err := cp(ins, ptr, tx.Sign)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -132,7 +126,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(tx.Proto.Extra))
+			return uint32(len(tx.Extra))
 		}
 	})
 	if err != nil {
@@ -149,7 +143,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, tx.Proto.Extra)
+			l, err := cp(ins, ptr, tx.Extra)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -172,7 +166,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(tx.Proto.Fee))
+			return uint32(len(tx.Fee.Bytes()))
 		}
 	})
 	if err != nil {
@@ -189,7 +183,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, tx.Proto.Fee)
+			l, err := cp(ins, ptr, tx.Fee.Bytes())
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -212,7 +206,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(tx.Proto.Participants))
+			return uint32(len(tx.Participants))
 		}
 	})
 	if err != nil {
@@ -238,7 +232,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, tx.Proto.Participants[i])
+			l, err := cp(ins, ptr, tx.Participants[i])
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -261,7 +255,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(tx.Proto.Values[i]))
+			return uint32(len(tx.Values[i].Bytes()))
 		}
 	})
 	if err != nil {
@@ -278,7 +272,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, tx.Proto.Values[i])
+			l, err := cp(ins, ptr, tx.Values[i].Bytes())
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

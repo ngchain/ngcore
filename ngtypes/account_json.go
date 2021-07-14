@@ -10,20 +10,22 @@ type jsonAccount struct {
 	Num   uint64  `json:"num"`
 	Owner Address `json:"owner"`
 
-	Contract string `json:"contract"`
-	Context  string `json:"state"`
+	Contract string          `json:"contract"`
+	Context  *AccountContext `json:"context"`
 }
 
+// MarshalJSON converts the Account into json bytes
 func (x *Account) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonAccount{
-		Num:   x.Proto.GetNum(),
-		Owner: x.Proto.GetOwner(),
+		Num:   x.Num,
+		Owner: x.Owner,
 
-		Contract: hex.EncodeToString(x.Proto.GetContract()),
-		Context:  hex.EncodeToString(x.Proto.GetContext()),
+		Contract: hex.EncodeToString(x.Contract),
+		Context:  x.Context,
 	})
 }
 
+// UnmarshalJSON recovers the Account from the json bytes
 func (x *Account) UnmarshalJSON(data []byte) error {
 	var account jsonAccount
 	err := utils.JSON.Unmarshal(data, &account)
@@ -36,16 +38,11 @@ func (x *Account) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	context, err := hex.DecodeString(account.Context)
-	if err != nil {
-		return err
-	}
-
 	*x = *NewAccount(
 		AccountNum(account.Num),
 		account.Owner,
 		contract,
-		context,
+		account.Context,
 	)
 
 	return nil

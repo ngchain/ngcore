@@ -1,28 +1,26 @@
 package ngtypes
 
 import (
-	"bytes"
 	"encoding/hex"
-	"fmt"
-	"google.golang.org/protobuf/proto"
+	"errors"
 	"math/big"
 
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"github.com/ngchain/ngcore/utils"
 )
 
 type jsonBlock struct {
-	Network int `json:"network"`
+	Network string `json:"network"`
 
-	Height        uint64 `json:"height"`
-	Timestamp     int64  `json:"timestamp"`
+	Height    uint64 `json:"height"`
+	Timestamp uint64 `json:"timestamp"`
+
 	PrevBlockHash string `json:"prevBlockHash"`
-	TrieHash      string `json:"trieHash"`
-	//PrevSheetHash string `json:"prevSheetHash"`
+	TxTrieHash    string `json:"txTrieHash"`
+	SubTrieHash   string `json:"subTrieHash"`
+
 	Difficulty string `json:"difficulty"`
 	Nonce      string `json:"nonce"`
 
-	//PrevSheet *Sheet `json:"prevSheet"`
 	Txs []*Tx `json:"txs"`
 
 	// some helper fields
@@ -31,16 +29,18 @@ type jsonBlock struct {
 	Txn     int    `json:"txn,omitempty"`
 }
 
+// MarshalJSON encodes the Block into the json bytes
 func (x *Block) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonBlock{
-		Network:       int(x.Header.GetNetwork()),
-		Height:        x.Header.GetHeight(),
-		Timestamp:     x.Header.GetTimestamp(),
-		PrevBlockHash: hex.EncodeToString(x.Header.GetPrevBlockHash()),
-		TrieHash:      hex.EncodeToString(x.Header.GetTrieHash()),
-		Difficulty:    new(big.Int).SetBytes(x.Header.GetDifficulty()).String(),
-		Nonce:         hex.EncodeToString(x.Header.GetNonce()),
-		Txs:           x.GetTxs(),
+		Network:       x.Header.Network.String(),
+		Height:        x.Header.Height,
+		Timestamp:     x.Header.Timestamp,
+		PrevBlockHash: hex.EncodeToString(x.Header.PrevBlockHash),
+		TxTrieHash:    hex.EncodeToString(x.Header.TxTrieHash),
+		SubTrieHash:   hex.EncodeToString(x.Header.SubTrieHash),
+		Difficulty:    new(big.Int).SetBytes(x.Header.Difficulty).String(),
+		Nonce:         hex.EncodeToString(x.Header.Nonce),
+		Txs:           x.Txs,
 
 		Hash:    hex.EncodeToString(x.GetHash()),
 		PoWHash: hex.EncodeToString(x.PowHash()),
@@ -48,6 +48,10 @@ func (x *Block) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// ErrInvalidDiff means the diff cannot load from the string
+var ErrInvalidDiff = errors.New("failed to parse blockHeader's difficulty")
+
+// UnmarshalJSON decode the Block from the json bytes
 func (x *Block) UnmarshalJSON(data []byte) error {
 	var b jsonBlock
 	err := utils.JSON.Unmarshal(data, &b)
@@ -55,19 +59,21 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	network := ngproto.NetworkType(b.Network)
-
 	prevBlockHash, err := hex.DecodeString(b.PrevBlockHash)
 	if err != nil {
 		return err
 	}
-	trieHash, err := hex.DecodeString(b.TrieHash)
+	txTrieHash, err := hex.DecodeString(b.TxTrieHash)
+	if err != nil {
+		return err
+	}
+	subTrieHash, err := hex.DecodeString(b.SubTrieHash)
 	if err != nil {
 		return err
 	}
 	bigDifficulty, ok := new(big.Int).SetString(b.Difficulty, 10)
 	if !ok {
-		return fmt.Errorf("failed to parse blockHeader's difficulty")
+		return ErrInvalidDiff
 	}
 	difficulty := bigDifficulty.Bytes()
 	nonce, err := hex.DecodeString(b.Nonce)
@@ -75,54 +81,23 @@ func (x *Block) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	hash, err := hex.DecodeString(b.Hash)
-	if err != nil {
-		return err
-	}
-
 	*x = *NewBlock(
-		network,
+		GetNetwork(b.Network),
 		b.Height,
 		b.Timestamp,
 		prevBlockHash,
-		trieHash,
+		txTrieHash,
+		subTrieHash,
 		difficulty,
 		nonce,
-		[]*ngproto.BlockHeader{}, // TODO
 		b.Txs,
-		hash,
+		[]*BlockHeader{}, // TODO
 	)
 
-	err = x.verifyNonce()
-	if err != nil {
-		return err
-	}
-
-	err = x.verifyHash()
-	if err != nil {
-		return err
-	}
+	// err = x.verifyNonce()
+	// if err != nil {
+	//	return err
+	// }
 
 	return nil
-}
-
-func (x *Block) Equals(other *Block) (bool, error) {
-	if !proto.Equal(x.Header, other.Header) {
-		return false, nil
-	}
-	if len(x.Txs) != len(other.Txs) {
-		return false, nil
-	}
-
-	for i := 0; i < len(x.Txs); i++ {
-		if eq, err := x.Txs[i].Equals(other.Txs[i]); !eq {
-			return false, err
-		}
-	}
-
-	if !bytes.Equal(x.Hash, other.Hash) {
-		return false, nil
-	}
-
-	return true, nil
 }

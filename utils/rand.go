@@ -14,7 +14,7 @@ func RandUint64() uint64 {
 }
 
 // RandUint32 generates a random uint32 number(0 to 4294967295).
-// Useful when getting a random port number
+// Useful when getting a random port number.
 func RandUint32() uint32 {
 	raw := make([]byte, 4)
 	_, _ = rand.Read(raw)
@@ -23,7 +23,7 @@ func RandUint32() uint32 {
 }
 
 // RandUint16 generates a random uint16 number(0 to 65535).
-// Useful when getting a random port number
+// Useful when getting a random port number.
 func RandUint16() uint16 {
 	raw := make([]byte, 2)
 	_, _ = rand.Read(raw)

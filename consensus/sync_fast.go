@@ -4,12 +4,12 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/ngchain/ngcore/ngp2p/message"
 	"github.com/ngchain/ngcore/ngp2p/wired"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/pkg/errors"
 )
 
-// convert local origin to remote checkpoint
+// convert local origin to remote checkpoint.
 func (mod *syncModule) switchToRemoteCheckpoint(record *RemoteRecord) error {
 	if mod.Locker.IsLocked() {
 		return nil
@@ -54,32 +54,30 @@ func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block
 		return nil, err
 	}
 
-	switch reply.Header.MessageType {
-	case message.MessageType_CHAIN:
+	switch reply.Header.Type {
+	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to send ping: %s", err)
+			return nil, fmt.Errorf("failed to send ping: %w", err)
 		}
 
 		if len(chainPayload.Blocks) != 1 {
 			log.Debugf("%#v", chainPayload.Blocks)
-			return nil, fmt.Errorf("invalid blocks payload length: should be 1 but got %d", len(chainPayload.Blocks))
+			return nil, errors.Wrapf(wired.ErrMsgPayloadInvalid,
+				"invalid blocks payload length: should be 1 but got %d", len(chainPayload.Blocks))
 		}
 
-		//checkpoint := chainPayload.Blocks[0]
-		//if !bytes.Equal(checkpoint.Hash(), record.checkpointHash) {
+		// checkpoint := chainPayload.Blocks[0]
+		// if !bytes.Equal(checkpoint.Hash(), record.checkpointHash) {
 		//	return nil, fmt.Errorf("invalid checkpoint: should be %x, but got %x", record.checkpointHash, checkpoint.Hash())
-		//}
+		// }
 
-		return ngtypes.NewBlockFromProto(chainPayload.Blocks[0]), err
+		return chainPayload.Blocks[0], err
 
-	case message.MessageType_REJECT:
-		return nil, fmt.Errorf("getchain is rejected by remote: %s", string(reply.Payload))
-
-	case message.MessageType_NOTFOUND:
-		return nil, fmt.Errorf("chain is not found in remote")
+	case wired.RejectMsg:
+		return nil, errors.Wrapf(ErrMsgRejected, "getchain is rejected by remote by reason: %s", string(reply.Payload))
 
 	default:
-		return nil, fmt.Errorf("remote replies ping with invalid messgae type: %s", reply.Header.MessageType)
+		return nil, errors.Wrapf(wired.ErrMsgTypeInvalid, "remote replies ping with invalid messgae type: %s", reply.Header.Type)
 	}
 }

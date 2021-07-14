@@ -2,26 +2,25 @@ package ngp2p
 
 import (
 	"context"
-	"github.com/ngchain/ngcore/ngtypes/ngproto"
 	"sync"
-
-	"github.com/libp2p/go-libp2p-core/protocol"
-
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/ngchain/ngcore/ngp2p/defaults"
 
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
 	"go.uber.org/atomic"
+
+	"github.com/ngchain/ngcore/ngp2p/defaults"
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var p2pDHT *dht.IpfsDHT
 
-func getPublicRouter(network ngproto.NetworkType) libp2p.Option {
+func getPublicRouter(network ngtypes.Network) libp2p.Option {
 	return libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		var err error
 		p2pDHT, err = dht.New(
