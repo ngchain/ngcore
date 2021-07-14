@@ -33,6 +33,7 @@ const (
 	UnlockTx // TODO: disable vm, but enable assign and append
 )
 
+// Tx is the basic transaction, or operation, in ngchain network
 type Tx struct {
 	Network      Network
 	Type         TxType
@@ -49,6 +50,26 @@ type Tx struct {
 // NewTx is the default constructor for ngtypes.Tx
 func NewTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
 	extraData, sign []byte) *Tx {
+	if participants == nil {
+		participants = []Address{}
+	}
+
+	if values == nil {
+		values = []*big.Int{}
+	}
+
+	if fee == nil {
+		fee = big.NewInt(0)
+	}
+
+	if extraData == nil {
+		extraData = []byte{}
+	}
+
+	if sign == nil {
+		sign = []byte{}
+	}
+
 	tx := &Tx{
 		Network:      network,
 		Type:         txType,

@@ -99,3 +99,31 @@ func TestTxJSON(t *testing.T) {
 		}
 	}
 }
+
+func TestTxRLP(t *testing.T) {
+	for _, net := range ngtypes.AvailableNetworks {
+		tx1 := ngtypes.GetGenesisGenerateTx(net)
+		rlpTx, err := rlp.EncodeToBytes(tx1)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		t.Logf("%x", rlpTx)
+
+		tx2 := &ngtypes.Tx{}
+		err = rlp.DecodeBytes(rlpTx, &tx2)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		if eq, _ := tx1.Equals(tx2); !eq {
+			t.Errorf("tx \n 2 %#v \n is different from \n 1 %#v", tx2, tx1)
+		}
+
+		if !reflect.DeepEqual(tx1, tx2) {
+			t.Errorf("tx \n 2 %#v \n is different from \n 1 %#v", tx2, tx1)
+		}
+	}
+}
