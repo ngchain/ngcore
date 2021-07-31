@@ -59,7 +59,6 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 			<-timeCh.C
 			job := client.GetWork()
 			task.ExitJob()
-			currentJob = job
 			task.Mining(*job)
 		}
 	}()

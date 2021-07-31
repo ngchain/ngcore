@@ -102,6 +102,9 @@ func (c *Client) SubmitWork(rawHeader string, nonce []byte) {
 
 	msg := jsonrpc2.NewJsonRpcRequest(time.Now().UnixNano(), "submitWork", submitWork)
 	req, err := jsonrpc2http.NewClientRequest(c.baseURL, msg)
+	if err != nil {
+		panic(err)
+	}
 
 	res, err := c.client.Do(req)
 	if err != nil {
