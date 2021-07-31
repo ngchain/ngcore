@@ -52,9 +52,9 @@ func (w *Wired) SendPing(peerID peer.ID, origin, latest uint64, checkpointHash, 
 // remote peer requests handler.
 func (w *Wired) onPing(stream network.Stream, msg *Message) {
 	log.Debugf("Received remoteStatus request from %s.", stream.Conn().RemotePeer())
-	var remoteStatus StatusPayload
 
-	err := rlp.DecodeBytes(msg.Payload, remoteStatus)
+	var remoteStatus StatusPayload
+	err := rlp.DecodeBytes(msg.Payload, &remoteStatus)
 	if err != nil {
 		w.sendReject(msg.Header.ID, stream, err)
 		return

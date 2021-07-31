@@ -31,7 +31,7 @@ func ReceiveReply(uuid []byte, stream network.Stream) (*Message, error) {
 	}
 
 	var msg Message
-	err = rlp.DecodeBytes(raw, msg)
+	err = rlp.DecodeBytes(raw, &msg)
 	if err != nil {
 		return nil, err
 	}

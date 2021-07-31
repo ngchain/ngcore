@@ -123,7 +123,7 @@ func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) 
 	}
 
 	var convener ngtypes.Account
-	err = rlp.DecodeBytes(rawConvener, convener)
+	err = rlp.DecodeBytes(rawConvener, &convener)
 	if err != nil {
 		return err
 	}

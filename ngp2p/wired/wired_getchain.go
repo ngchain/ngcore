@@ -77,9 +77,9 @@ func (w *Wired) SendGetChain(peerID peer.ID, from [][]byte, to []byte) (id []byt
 func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 	log.Debugf("Received getchain request from %s.", stream.Conn().RemotePeer())
 
-	getChainPayload := &GetChainPayload{}
+	var getChainPayload GetChainPayload
 
-	err := rlp.DecodeBytes(msg.Payload, getChainPayload)
+	err := rlp.DecodeBytes(msg.Payload, &getChainPayload)
 	if err != nil {
 		w.sendReject(msg.Header.ID, stream, err)
 		return
