@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/jsonrpc/workpool"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -12,21 +13,21 @@ import (
 	"github.com/ngchain/secp256k1"
 )
 
-type getBlockTemplateParams struct {
+type GetBlockTemplateParams struct {
 	PrivateKey string `json:"private_key"`
 }
 
 // getBlockTemplateFunc provides the whole block template in JSON format
 // for further development e.g. customizing mining jobs.
 func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params getBlockTemplateParams
+	var params GetBlockTemplateParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	rawPrivateKey, err := hex.DecodeString(params.PrivateKey)
+	rawPrivateKey, err := base58.FastBase58Decoding(params.PrivateKey)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -60,27 +61,27 @@ func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, block.GetHash())
 }
 
-type getWorkParams struct {
+type GetWorkParams struct {
 	PrivateKey string `json:"private_key"`
 }
 
 var workPool = workpool.GetWorkerPool()
 
-type getWorkReply struct {
+type GetWorkReply struct {
 	RawHeader string `json:"header"`
 }
 
 // getBlockTemplateFunc provides a more simple way to mining the block.
 // The client will get a rlp-encoded block, just finding the location of bytes
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params getWorkParams
+	var params GetWorkParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	rawPrivateKey, err := hex.DecodeString(params.PrivateKey)
+	rawPrivateKey, err := base58.FastBase58Decoding(params.PrivateKey)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -93,7 +94,7 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 
 	workPool.Put(header, blockTemplate)
 
-	reply := getWorkReply{
+	reply := GetWorkReply{
 		RawHeader: header,
 	}
 
@@ -106,14 +107,14 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type submitWorkParams struct {
+type SubmitWorkParams struct {
 	Nonce     string `json:"nonce"`
 	RawHeader string `json:"header"`
 }
 
 // getBlockTemplateFunc provides the block template in JSON format for easier read and debug.
 func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params submitWorkParams
+	var params SubmitWorkParams
 
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
@@ -123,6 +124,7 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	block, err := workPool.Get(params.RawHeader)
 	if err != nil {
+		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
