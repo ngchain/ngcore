@@ -37,7 +37,7 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 			}
 
 			if err := checkBlockTarget(block, prevBlock); err != nil {
-				return err
+				return errors.Wrapf(err, "failed on checking block target")
 			}
 		}
 

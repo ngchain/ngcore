@@ -48,9 +48,11 @@ func (m *ExpirableMap) Put(k string, v interface{}) {
 
 func (m *ExpirableMap) Get(k string) (v interface{}, ok bool) {
 	m.l.RLock()
-	if it, ok := m.m[k]; ok {
+	var it *Entry
+	if it, ok = m.m[k]; ok {
 		v = it.Value
 		it.Timestamp = time.Now().Unix() // update the last use time
+		m.m[k] = it
 	}
 	m.l.RUnlock()
 	return
