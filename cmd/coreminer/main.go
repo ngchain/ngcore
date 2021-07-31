@@ -13,8 +13,8 @@ func main() {
 	app.Usage = usage
 	app.Description = description
 	app.Version = Version
-	app.Action = nil
-	app.Flags = []cli.Flag{coreAddrFlag, corePortFlag}
+	app.Action = mining
+	app.Flags = []cli.Flag{coreAddrFlag, corePortFlag, keyFileFlag}
 
 	app.Commands = []*cli.Command{}
 
@@ -23,5 +23,6 @@ func main() {
 		panic(err)
 	}
 
-	os.Exit(0)
+	select {}
+	// os.Exit(0)
 }
