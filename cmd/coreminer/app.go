@@ -39,22 +39,18 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 	priv := keytools.ReadLocalKey(context.String(keyFileFlag.Name), context.String(keyPassFlag.Name))
 	client := NewClient(context.String(coreAddrFlag.Name), context.Int(corePortFlag.Name), priv)
 
-	foundCh := make(chan Job, 1)
+	foundCh := make(chan Job)
 
-	threadNum := 1 // TODO
+	threadNum := 2 // TODO
 
-	currentJob := client.GetWork()
-	timeCh := time.NewTicker(time.Second * 2)
-	allExitCh := make(chan struct{})
+	timeCh := time.NewTicker(time.Second * 10)
+	allExitCh := make(chan struct{}, 1)
 	task := NewMiner(threadNum, foundCh, allExitCh)
 
 	go func() {
 		for {
-			select {
-			case job := <-foundCh:
-				client.SubmitWork(job.RawHeader, job.Nonce)
-				task.AllExitCh <- struct{}{}
-			}
+			job := <-foundCh
+			client.SubmitWork(job.RawHeader, job.Nonce)
 		}
 	}()
 
@@ -62,11 +58,9 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 		for {
 			<-timeCh.C
 			job := client.GetWork()
-			if eq, _ := currentJob.Equals(job.Block); !eq {
-				task.AllExitCh <- struct{}{}
-				currentJob = job
-				task.Mining(*job)
-			}
+			task.ExitJob()
+			currentJob = job
+			task.Mining(*job)
 		}
 	}()
 

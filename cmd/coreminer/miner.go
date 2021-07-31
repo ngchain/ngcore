@@ -13,6 +13,7 @@ import (
 )
 
 type Task struct {
+	running   *atomic.Bool
 	threadNum int
 
 	hashes     *atomic.Int64
@@ -28,11 +29,17 @@ func NewMiner(threadNum int, foundCh chan Job, allExitCh chan struct{}) *Task {
 
 	log.Printf("start mining with %d thread(s)", threadNum)
 
+	quitChPool := make([]chan struct{}, threadNum)
+	for i := range quitChPool {
+		quitChPool[i] = make(chan struct{}, 1)
+	}
+
 	m := &Task{
+		running:    atomic.NewBool(false),
 		threadNum:  threadNum,
 		hashes:     atomic.NewInt64(0),
 		foundCh:    foundCh,
-		quitChPool: make([]chan struct{}, threadNum),
+		quitChPool: quitChPool,
 		AllExitCh:  allExitCh,
 	}
 
@@ -56,7 +63,12 @@ func NewMiner(threadNum int, foundCh chan Job, allExitCh chan struct{}) *Task {
 	return m
 }
 
-func (m *Task) Mining(work Job) {
+func (t *Task) Mining(work Job) {
+	ok := t.running.CAS(false, true)
+	if !ok {
+		panic("try over mining")
+	}
+
 	diff := new(big.Int).SetBytes(work.Header.Difficulty)
 	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
@@ -91,9 +103,8 @@ func (m *Task) Mining(work Job) {
 	log.Println("mining ready")
 
 	var miningWG sync.WaitGroup
-	for threadID := 0; threadID < m.threadNum; threadID++ {
+	for threadID := 0; threadID < t.threadNum; threadID++ {
 		miningWG.Add(1)
-		m.quitChPool[threadID] = make(chan struct{})
 
 		go func(threadID int) {
 			defer miningWG.Done()
@@ -107,7 +118,7 @@ func (m *Task) Mining(work Job) {
 
 			for {
 				select {
-				case <-m.quitChPool[threadID]:
+				case <-t.quitChPool[threadID]:
 					return
 				default:
 					// Compute the PoW value of this nonce
@@ -119,12 +130,12 @@ func (m *Task) Mining(work Job) {
 
 					hash := randomx.CalculateHash(vm, work.GetPoWRawHeader(nonce))
 
-					m.hashes.Inc()
+					t.hashes.Inc()
 
 					if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
 						log.Printf("thread %d found nonce %x for block @ %d", threadID, nonce, work.Header.Height)
 						work.SetNonce(nonce)
-						m.foundCh <- work
+						t.foundCh <- work
 						return
 					}
 				}
@@ -132,5 +143,20 @@ func (m *Task) Mining(work Job) {
 		}(threadID)
 	}
 	miningWG.Wait()
-	m.AllExitCh <- struct{}{}
+	t.AllExitCh <- struct{}{}
+}
+
+func (t *Task) ExitJob() {
+	ok := t.running.CAS(true, false)
+	if ok {
+		for i := range t.quitChPool {
+			t.quitChPool[i] <- struct{}{}
+		}
+
+		<-t.AllExitCh
+
+		for i := range t.quitChPool {
+			t.quitChPool[i] = make(chan struct{}, 1)
+		}
+	}
 }
