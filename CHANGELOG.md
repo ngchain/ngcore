@@ -1,13 +1,18 @@
 # ChangeLog
 
+## v0.0.22
+
+- TODO: add quill protocol to manage the contract
+- TODO: using bbolt or other simple db to replace badgerdb
+
 ## v0.0.21
 
 - BUGFIX: fix balance bug in the genesis list
 - DONE: remove built-in miner
+- DONE: add standalone coreminer
 - DONE: optimize daemon running
 - DONE: upgrade errors to go1.13 version
 - DONE: introduce subs
-- TODO: add quill protocol to manage the contract
 
 ## v0.0.20
 
