@@ -4,6 +4,7 @@
 
 - TODO: add quill protocol to manage the contract
 - TODO: using bbolt or other simple db to replace badgerdb
+- TODO: implement the sub-block acts as ethereum's uncle blocks
 
 ## v0.0.21
 
