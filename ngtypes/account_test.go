@@ -1,10 +1,9 @@
 package ngtypes_test
 
 import (
-	"math"
+	"math/rand"
 	"testing"
 
-	"github.com/NebulousLabs/fastrand"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/secp256k1"
 
@@ -21,7 +20,7 @@ func TestNewAccount(t *testing.T) {
 		log.Error(err)
 	}
 
-	randUint64 := fastrand.Uint64n(math.MaxUint64)
+	randUint64 := rand.Uint64()
 	acc := ngtypes.NewAccount(
 		ngtypes.AccountNum(randUint64),
 		utils.PublicKey2Bytes(*privateKey.PubKey()),

@@ -1,16 +1,15 @@
 module github.com/ngchain/ngcore
 
-go 1.13
+go 1.17
 
 require (
-	github.com/NebulousLabs/fastrand v0.0.0-20181203155948-6fb6489aac4e
 	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88
 	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956
 	github.com/c0mm4nd/wasman v0.0.0-20201023051902-3f585a486d39
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/google/uuid v1.3.0
-	github.com/ipfs/go-log/v2 v2.1.3
+	github.com/ipfs/go-log/v2 v2.3.0
 	github.com/json-iterator/go v1.1.11
 	github.com/libp2p/go-libp2p v0.14.0
 	github.com/libp2p/go-libp2p-core v0.8.5
@@ -31,4 +30,4 @@ require (
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 )
 
-replace github.com/ipfs/go-log/v2 v2.1.3 => github.com/ngchain/go-log/v2 v2.1.2-0.20210526064208-fc6c91979746
+replace github.com/ipfs/go-log/v2 v2.3.0 => github.com/ngchain/go-log/v2 v2.3.1-0.20211002062306-b0a842019708

@@ -1,12 +1,12 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
 
-	"github.com/NebulousLabs/fastrand"
 	"github.com/ngchain/go-randomx"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -60,12 +60,15 @@ func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh ch
 	if err != nil {
 		panic(err)
 	}
+
+	random := make([]byte, ngtypes.NonceSize)
+
 	for {
 		select {
 		case <-stopCh:
 			return
 		default:
-			random := fastrand.Bytes(ngtypes.NonceSize)
+			rand.Read(random)
 			blob := b.GetPoWRawHeader(random)
 
 			hash := randomx.CalculateHash(vm, blob)

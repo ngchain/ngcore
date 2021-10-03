@@ -38,7 +38,7 @@ https://goreportcard.com/report/github.com/ngchain/ngcore)
 
 ## Requirements
 
-go version >= 1.14
+go version >= 1.17
 
 **NOTICE**: go build on Windows you should use `-buildmode=exe` flag (go version >= 1.15)
 
