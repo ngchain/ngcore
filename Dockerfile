@@ -1,10 +1,4 @@
 # Currently using ubuntu for usability.
-# 
-# Prerequisites for using the alpine image:
-#   - add blockchain/RandomX musl binary release
-#   - add blockchain/go-randomx musl binary release
-#   - (add blockchain/ngcore musl binary release)
-
 # BUILDER
 FROM golang:latest as builder
 

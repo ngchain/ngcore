@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"math/big"
-	"runtime"
-	"sync"
 	"time"
 
 	"github.com/c0mm4nd/rlp"
+	"github.com/deroproject/astrobwt"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ngchain/go-randomx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
@@ -180,40 +178,8 @@ func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 
 // PowHash will help you get the pow hash of block.
 func (x *Block) PowHash() []byte {
-	cache, err := randomx.AllocCache(randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-	defer randomx.ReleaseCache(cache)
-
-	randomx.InitCache(cache, x.Header.PrevBlockHash)
-	ds, err := randomx.AllocDataset(randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-	defer randomx.ReleaseDataset(ds)
-
-	count := randomx.DatasetItemCount()
-	var wg sync.WaitGroup
-	workerNum := uint32(runtime.NumCPU())
-	for i := uint32(0); i < workerNum; i++ {
-		wg.Add(1)
-		a := (count * i) / workerNum
-		b := (count * (i + 1)) / workerNum
-		go func() {
-			defer wg.Done()
-			randomx.InitDataset(ds, cache, a, b-a)
-		}()
-	}
-	wg.Wait()
-
-	vm, err := randomx.CreateVM(cache, ds, randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-	defer randomx.DestroyVM(vm)
-
-	return randomx.CalculateHash(vm, x.GetPoWRawHeader(nil))
+	hash := astrobwt.POW_0alloc(x.GetPoWRawHeader(nil))
+	return hash[:]
 }
 
 // ToUnsealing converts a bare block to an unsealing block

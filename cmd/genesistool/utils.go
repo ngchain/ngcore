@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
-	"sync"
 
-	"github.com/ngchain/go-randomx"
-
+	"github.com/deroproject/astrobwt"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -33,33 +31,6 @@ func genBlockNonce(b *ngtypes.Block) {
 
 func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {
 	// calcHash get the hash of block
-	cache, err := randomx.AllocCache(randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-	randomx.InitCache(cache, b.Header.PrevBlockHash)
-	ds, err := randomx.AllocDataset(randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
-	count := randomx.DatasetItemCount()
-	var wg sync.WaitGroup
-	workerNum := uint32(runtime.NumCPU())
-	for i := uint32(0); i < workerNum; i++ {
-		wg.Add(1)
-		a := (count * i) / workerNum
-		b := (count * (i + 1)) / workerNum
-		go func() {
-			defer wg.Done()
-			randomx.InitDataset(ds, cache, a, b-a)
-		}()
-	}
-	wg.Wait()
-
-	vm, err := randomx.CreateVM(cache, ds, randomx.FlagJIT)
-	if err != nil {
-		panic(err)
-	}
 
 	random := make([]byte, ngtypes.NonceSize)
 
@@ -71,8 +42,8 @@ func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh ch
 			rand.Read(random)
 			blob := b.GetPoWRawHeader(random)
 
-			hash := randomx.CalculateHash(vm, blob)
-			if new(big.Int).SetBytes(hash).Cmp(target) < 0 {
+			hash := astrobwt.POW_0alloc(blob[:])
+			if new(big.Int).SetBytes(hash[:]).Cmp(target) < 0 {
 				answerCh <- random
 				return
 			}
