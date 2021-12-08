@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [ master ]
+    branches: [ dev ]
 defaults:
   run:
     shell: bash
@@ -121,12 +121,12 @@ jobs:
           echo name=TAG::$name >> $GITHUB_ENV
         id: tagname
 
-      # ... and if this was an actual push (tag or `master`) then we publish a
+      # ... and if this was an actual push (tag or `dev`) then we publish a
       # new release. This'll automatically publish a tag release or update `dev`
       # with this `sha`
       - name: Publish Release
         uses: ./.github/actions/github-release
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v'))
         with:
           files: "dist/*"
           name: ${{ steps.tagname.outputs.val }}
