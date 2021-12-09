@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/dgraph-io/badger/v3"
+	"github.com/c0mm4nd/dbolt"
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -20,14 +20,14 @@ var log = logging.Logger("ngpool")
 type TxPool struct {
 	sync.Mutex
 
-	db    *badger.DB
+	db    *dbolt.DB
 	txMap map[uint64]*ngtypes.Tx // priority first
 
 	chain     *blockchain.Chain
 	localNode *ngp2p.LocalNode
 }
 
-func Init(db *badger.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *TxPool {
+func Init(db *dbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *TxPool {
 	pool := &TxPool{
 		Mutex: sync.Mutex{},
 		db:    db,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dgraph-io/badger/v3"
+	"github.com/c0mm4nd/dbolt"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/secp256k1"
 	"github.com/pkg/errors"
@@ -15,6 +15,7 @@ import (
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 var log = logging.Logger("pow")
@@ -30,7 +31,7 @@ type PoWork struct {
 	State     *ngstate.State
 	LocalNode *ngp2p.LocalNode
 
-	db *badger.DB
+	db *dbolt.DB
 }
 
 type PoWorkConfig struct {
@@ -41,7 +42,7 @@ type PoWorkConfig struct {
 }
 
 // InitPoWConsensus creates and initializes the PoW consensus.
-func InitPoWConsensus(db *badger.DB, chain *blockchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
+func InitPoWConsensus(db *dbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
 	pow := &PoWork{
 		PoWorkConfig: config,
 		SyncMod:      nil,
@@ -135,14 +136,17 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	// check block first
-	err := pow.db.Update(func(txn *badger.Txn) error {
+	err := pow.db.Update(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+		txBucket := txn.Bucket(storage.TxBucketName)
+
 		// check block first
 		if err := pow.Chain.CheckBlock(block); err != nil {
 			return err
 		}
 
 		// block is valid
-		err := ngblocks.PutNewBlock(txn, block)
+		err := ngblocks.PutNewBlock(blockBucket, txBucket, block)
 		if err != nil {
 			return err
 		}

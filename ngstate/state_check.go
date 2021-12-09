@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/binary"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	"github.com/dgraph-io/badger/v3"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 var ErrTxrBalanceInsufficient = errors.New("account's balance is not sufficient for the tx")
 
 // CheckBlockTxs will check all requirements for txs in block
-func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
+func CheckBlockTxs(txn *dbolt.Tx, block *ngtypes.Block) error {
 	for i := 0; i < len(block.Txs); i++ {
 		tx := block.Txs[i]
 		// check tx is signed
@@ -66,7 +67,7 @@ func CheckBlockTxs(txn *badger.Txn, block *ngtypes.Block) error {
 }
 
 // CheckTx will check the requirements for one tx (except generate tx)
-func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
+func CheckTx(txn *dbolt.Tx, tx *ngtypes.Tx) error {
 	// check tx is signed
 	if !tx.IsSigned() {
 		return ngtypes.ErrTxSignInvalid
@@ -111,19 +112,16 @@ func CheckTx(txn *badger.Txn, tx *ngtypes.Tx) error {
 }
 
 // checkGenerate checks the generate tx
-func checkGenerate(txn *badger.Txn, generateTx *ngtypes.Tx, blockHeight uint64) error {
-	item, err := txn.Get(append(numToAccountPrefix, generateTx.Convener.Bytes()...))
-	if err != nil {
-		return errors.Wrapf(err, "cannot find convener %d", generateTx.Convener)
-	}
+func checkGenerate(txn *dbolt.Tx, generateTx *ngtypes.Tx, blockHeight uint64) error {
+	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
-	rawConvener, err := item.ValueCopy(nil)
-	if err != nil {
-		return errors.Wrapf(err, "cannot get convener account %d", generateTx.Convener)
+	rawConvener := num2accBucket.Get(generateTx.Convener.Bytes())
+	if rawConvener == nil {
+		return errors.Wrapf(storage.ErrKeyNotFound, "cannot get convener account %d", generateTx.Convener)
 	}
 
 	var convener ngtypes.Account
-	err = rlp.DecodeBytes(rawConvener, &convener)
+	err := rlp.DecodeBytes(rawConvener, &convener)
 	if err != nil {
 		return err
 	}
@@ -144,7 +142,7 @@ var (
 )
 
 // checkRegister checks the register tx
-func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
+func checkRegister(txn *dbolt.Tx, registerTx *ngtypes.Tx) error {
 	// check structure and key
 	if err := registerTx.CheckRegister(); err != nil {
 		return err
@@ -152,10 +150,7 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 
 	// check balance
 	payerAddr := registerTx.Participants[0]
-	payerBalance, err := getBalance(txn, payerAddr)
-	if err != nil {
-		return err
-	}
+	payerBalance := getBalance(txn, payerAddr)
 
 	expenditure := registerTx.TotalExpenditure()
 	if payerBalance.Cmp(expenditure) < 0 {
@@ -179,7 +174,7 @@ func checkRegister(txn *badger.Txn, registerTx *ngtypes.Tx) error {
 var ErrDestroyAccountContractNotEmpty = errors.New("contract should be empty on destroy tx")
 
 // checkDestroy checks destroy tx
-func checkDestroy(txn *badger.Txn, destroyTx *ngtypes.Tx) error {
+func checkDestroy(txn *dbolt.Tx, destroyTx *ngtypes.Tx) error {
 	convener, err := getAccountByNum(txn, destroyTx.Convener)
 	if err != nil {
 		return err
@@ -192,10 +187,7 @@ func checkDestroy(txn *badger.Txn, destroyTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := destroyTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -214,7 +206,7 @@ func checkDestroy(txn *badger.Txn, destroyTx *ngtypes.Tx) error {
 }
 
 // checkTransaction checks normal transaction tx
-func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
+func checkTransaction(txn *dbolt.Tx, transactionTx *ngtypes.Tx) error {
 	convener, err := getAccountByNum(txn, transactionTx.Convener)
 	if err != nil {
 		return err
@@ -227,10 +219,7 @@ func checkTransaction(txn *badger.Txn, transactionTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := transactionTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -246,7 +235,7 @@ var (
 )
 
 // checkAppend checks append tx
-func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
+func checkAppend(txn *dbolt.Tx, appendTx *ngtypes.Tx) error {
 	convener, err := getAccountByNum(txn, appendTx.Convener)
 	if err != nil {
 		return err
@@ -259,10 +248,7 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := appendTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -282,7 +268,7 @@ func checkAppend(txn *badger.Txn, appendTx *ngtypes.Tx) error {
 }
 
 // checkDelete checks delete tx
-func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
+func checkDelete(txn *dbolt.Tx, deleteTx *ngtypes.Tx) error {
 	convener, err := getAccountByNum(txn, deleteTx.Convener)
 	if err != nil {
 		return err
@@ -295,10 +281,7 @@ func checkDelete(txn *badger.Txn, deleteTx *ngtypes.Tx) error {
 
 	// check balance
 	totalCharge := deleteTx.TotalExpenditure()
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ErrTxrBalanceInsufficient

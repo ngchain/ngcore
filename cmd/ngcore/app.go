@@ -8,7 +8,7 @@ import (
 	_ "net/http/pprof"
 	"strings"
 
-	"github.com/dgraph-io/badger/v3"
+	"github.com/c0mm4nd/dbolt"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
 	"github.com/urfave/cli/v2"
@@ -126,7 +126,6 @@ var action = func(c *cli.Context) error {
 	keyFile := c.String(keyFileNameFlag.Name)
 	p2pKeyFile := c.String(p2pKeyFileFlag.Name)
 	withProfile := c.Bool(profileFlag.Name)
-	inMem := c.Bool(inMemFlag.Name)
 	dbFolder := c.String(dbFolderFlag.Name)
 
 	if !strictMode {
@@ -158,12 +157,8 @@ var action = func(c *cli.Context) error {
 	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
 	log.Warnf("use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
 
-	var db *badger.DB
-	if inMem {
-		db = storage.InitMemStorage()
-	} else {
-		db = storage.InitStorage(network, dbFolder)
-	}
+	var db *dbolt.DB
+	db = storage.InitStorage(network, dbFolder)
 
 	defer func() {
 		err := db.Close()

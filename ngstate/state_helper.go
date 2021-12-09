@@ -3,29 +3,24 @@ package ngstate
 import (
 	"math/big"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	"github.com/dgraph-io/badger/v3"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
-func getAccountByNum(txn *badger.Txn, num ngtypes.AccountNum) (*ngtypes.Account, error) {
-	item, err := txn.Get(append(numToAccountPrefix, num.Bytes()...))
-	if errors.Is(err, badger.ErrKeyNotFound) {
-		return nil, err // export the keynotfound
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot find account")
-	}
+func getAccountByNum(txn *dbolt.Tx, num ngtypes.AccountNum) (*ngtypes.Account, error) {
+	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
-	rawAcc, err := item.ValueCopy(nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot get account")
+	rawAcc := num2accBucket.Get(num.Bytes())
+	if rawAcc != nil {
+		return nil, errors.Wrapf(storage.ErrKeyNotFound, "cannot find account %d", num)
 	}
 
 	var acc ngtypes.Account
-	err = rlp.DecodeBytes(rawAcc, &acc)
+	err := rlp.DecodeBytes(rawAcc, &acc)
 	if err != nil {
 		return nil, err
 	}
@@ -34,18 +29,12 @@ func getAccountByNum(txn *badger.Txn, num ngtypes.AccountNum) (*ngtypes.Account,
 }
 
 // DONE: make sure num/addr = 1/1
-func getAccountNumByAddr(txn *badger.Txn, addr ngtypes.Address) (ngtypes.AccountNum, error) {
-	item, err := txn.Get(append(addrToNumPrefix, addr...))
-	if errors.Is(err, badger.ErrKeyNotFound) {
-		return 0, err // export the keynotfound
-	}
-	if err != nil {
-		return 0, errors.Wrap(err, "cannot find account")
-	}
+func getAccountNumByAddr(txn *dbolt.Tx, addr ngtypes.Address) (ngtypes.AccountNum, error) {
+	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
-	rawNum, err := item.ValueCopy(nil)
-	if err != nil {
-		return 0, errors.Wrap(err, "cannot get account")
+	rawNum := addr2numBucket.Get(addr)
+	if rawNum == nil {
+		return 0, errors.Wrapf(storage.ErrKeyNotFound, "cannot find %s's account", addr)
 	}
 
 	num := ngtypes.NewNumFromBytes(rawNum)
@@ -53,29 +42,25 @@ func getAccountNumByAddr(txn *badger.Txn, addr ngtypes.Address) (ngtypes.Account
 	return num, nil
 }
 
-func getBalance(txn *badger.Txn, addr ngtypes.Address) (*big.Int, error) {
-	item, err := txn.Get(append(addrToBalancePrefix, addr...))
-	if errors.Is(err, badger.ErrKeyNotFound) {
-		return big.NewInt(0), nil
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot find balance")
+func getBalance(txn *dbolt.Tx, addr ngtypes.Address) *big.Int {
+	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
+
+	rawBalance := addr2balBucket.Get(addr)
+	if rawBalance == nil {
+		return big.NewInt(0)
 	}
 
-	rawBalance, err := item.ValueCopy(nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot get balance")
-	}
-
-	return new(big.Int).SetBytes(rawBalance), nil
+	return new(big.Int).SetBytes(rawBalance)
 }
 
-func setAccount(txn *badger.Txn, num ngtypes.AccountNum, account *ngtypes.Account) error {
+func setAccount(txn *dbolt.Tx, num ngtypes.AccountNum, account *ngtypes.Account) error {
 	rawAccount, err := rlp.EncodeToBytes(account)
 	if err != nil {
 		return err
 	}
-	err = txn.Set(append(numToAccountPrefix, num.Bytes()...), rawAccount)
+
+	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
+	err = num2accBucket.Put(num.Bytes(), rawAccount)
 	if err != nil {
 		return errors.Wrap(err, "cannot set account")
 	}
@@ -83,21 +68,27 @@ func setAccount(txn *badger.Txn, num ngtypes.AccountNum, account *ngtypes.Accoun
 	return nil
 }
 
-func setBalance(txn *badger.Txn, addr ngtypes.Address, balance *big.Int) error {
-	err := txn.Set(append(addrToBalancePrefix, addr...), balance.Bytes())
+func setBalance(txn *dbolt.Tx, addr ngtypes.Address, balance *big.Int) error {
+	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
+
+	err := addr2balBucket.Put(addr, balance.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "cannot set balance")
+		return errors.Wrapf(err, "failed to set balance")
 	}
 
 	return nil
 }
 
-func delAccount(txn *badger.Txn, num ngtypes.AccountNum) error {
-	return txn.Delete(append(numToAccountPrefix, num.Bytes()...))
+func delAccount(txn *dbolt.Tx, num ngtypes.AccountNum) error {
+	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
+
+	return num2accBucket.Delete(num.Bytes())
 }
 
-func setOwnership(txn *badger.Txn, addr ngtypes.Address, num ngtypes.AccountNum) error {
-	err := txn.Set(append(addrToNumPrefix, addr...), num.Bytes())
+func setOwnership(txn *dbolt.Tx, addr ngtypes.Address, num ngtypes.AccountNum) error {
+	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
+
+	err := addr2numBucket.Put(addr, num.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "cannot set ownership: %s")
 	}
@@ -105,28 +96,20 @@ func setOwnership(txn *badger.Txn, addr ngtypes.Address, num ngtypes.AccountNum)
 	return nil
 }
 
-func delOwnership(txn *badger.Txn, addr ngtypes.Address) error {
-	return txn.Delete(append(addrToNumPrefix, addr...))
+func delOwnership(txn *dbolt.Tx, addr ngtypes.Address) error {
+	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
+
+	return addr2numBucket.Delete(addr)
 }
 
-func accountNumExists(txn *badger.Txn, num ngtypes.AccountNum) bool {
-	item, err := txn.Get(append(numToAccountPrefix, num.Bytes()...))
-	if err != nil {
-		return false
-	}
+func accountNumExists(txn *dbolt.Tx, num ngtypes.AccountNum) bool {
+	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
-	v, _ := item.ValueCopy(nil)
-
-	return v != nil
+	return num2accBucket.Get(num.Bytes()) != nil
 }
 
-func addrHasAccount(txn *badger.Txn, addr ngtypes.Address) bool {
-	item, err := txn.Get(append(addrToNumPrefix, addr...))
-	if err != nil {
-		return false
-	}
+func addrHasAccount(txn *dbolt.Tx, addr ngtypes.Address) bool {
+	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
-	v, _ := item.ValueCopy(nil)
-
-	return v != nil
+	return addr2numBucket.Get(addr) != nil
 }

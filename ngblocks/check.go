@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/dgraph-io/badger/v3"
+	"github.com/c0mm4nd/dbolt"
+	"github.com/ngchain/ngcore/storage"
 )
 
 var (
@@ -12,24 +13,24 @@ var (
 	ErrPrevBlockNotExist   = errors.New("prev block does not exist")
 )
 
-func checkBlock(txn *badger.Txn, height uint64, prevHash []byte) error {
-	if blockHeightExists(txn, height) {
+func checkBlock(blockBucket *dbolt.Bucket, height uint64, prevHash []byte) error {
+	if blockHeightExists(blockBucket, height) {
 		return ErrBlockHeightConflict
 	}
 
-	if !blockPrevHashExists(txn, height, prevHash) {
+	if !blockPrevHashExists(blockBucket, height, prevHash) {
 		return ErrPrevBlockNotExist
 	}
 
 	return nil
 }
 
-func blockHeightExists(txn *badger.Txn, height uint64) bool {
+func blockHeightExists(blockBucket *dbolt.Bucket, height uint64) bool {
 	if height == 0 {
 		return true
 	}
-	_, err := GetBlockByHeight(txn, height)
-	if errors.Is(err, badger.ErrKeyNotFound) {
+	_, err := GetBlockByHeight(blockBucket, height)
+	if errors.Is(err, storage.ErrKeyNotFound) {
 		return false
 	}
 
@@ -40,12 +41,12 @@ func blockHeightExists(txn *badger.Txn, height uint64) bool {
 	return true
 }
 
-func blockPrevHashExists(txn *badger.Txn, height uint64, prevHash []byte) bool {
+func blockPrevHashExists(blockBucket *dbolt.Bucket, height uint64, prevHash []byte) bool {
 	if height == 0 && bytes.Equal(prevHash, make([]byte, 32)) {
 		return true
 	}
 
-	b, err := GetBlockByHash(txn, prevHash)
+	b, err := GetBlockByHash(blockBucket, prevHash)
 	if err != nil {
 		return false
 	}

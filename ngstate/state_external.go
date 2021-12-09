@@ -4,29 +4,27 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	"github.com/dgraph-io/badger/v3"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // GetTotalBalanceByNum get the balance of account by the account's num
 func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *badger.Txn) error {
+	err := state.View(func(txn *dbolt.Tx) error {
 		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
 			return err
 		}
 
 		addr := account.Owner
-		balance, err = getBalance(txn, addr)
-		if err != nil {
-			return err
-		}
+		balance = getBalance(txn, addr)
 
 		return nil
 	})
@@ -41,12 +39,8 @@ func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
 func (state *State) GetTotalBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *badger.Txn) error {
-		var err error
-		balance, err = getBalance(txn, address)
-		if err != nil {
-			return err
-		}
+	err := state.View(func(txn *dbolt.Tx) error {
+		balance = getBalance(txn, address)
 
 		return nil
 	})
@@ -61,7 +55,9 @@ func (state *State) GetTotalBalanceByAddress(address ngtypes.Address) (*big.Int,
 func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *badger.Txn) error {
+	err := state.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
 			return err
@@ -69,7 +65,7 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 
 		addr := ngtypes.Address(account.Owner)
 
-		currentHeight, err := ngblocks.GetLatestHeight(txn)
+		currentHeight, err := ngblocks.GetLatestHeight(blockBucket)
 		if err != nil {
 			return err
 		}
@@ -98,10 +94,12 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *badger.Txn) error {
+	err := state.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		var err error
 
-		currentHeight, err := ngblocks.GetLatestHeight(txn)
+		currentHeight, err := ngblocks.GetLatestHeight(blockBucket)
 		if err != nil {
 			return err
 		}
@@ -130,7 +128,7 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 func (state *State) AccountIsRegistered(num uint64) bool {
 	exists := true // block register action by default
 
-	_ = state.View(func(txn *badger.Txn) error {
+	_ = state.View(func(txn *dbolt.Tx) error {
 		exists = accountNumExists(txn, ngtypes.AccountNum(num))
 
 		return nil
@@ -141,7 +139,7 @@ func (state *State) AccountIsRegistered(num uint64) bool {
 
 // GetAccountByNum returns an ngtypes.Account obj by the account's number
 func (state *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
-	err = state.View(func(txn *badger.Txn) error {
+	err = state.View(func(txn *dbolt.Tx) error {
 		account, err = getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
 			return err
@@ -159,28 +157,26 @@ func (state *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err e
 // this is a heavy action, so dont called by any internal part like p2p and consensus
 func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Account, error) {
 	var account *ngtypes.Account
-	err := state.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(numToAccountPrefix); it.ValidForPrefix(numToAccountPrefix); it.Next() {
-			item := it.Item()
-			rawAccount, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
+	err := state.View(func(txn *dbolt.Tx) error {
+		addr2NumBucket := txn.Bucket(storage.Addr2NumBucketName)
+		num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
-			var acc ngtypes.Account
-			err = rlp.DecodeBytes(rawAccount, &acc)
-			if err != nil {
-				return err
-			}
+		num := addr2NumBucket.Get(address)
+		if num == nil {
+			return errors.Wrapf(storage.ErrKeyNotFound, "cannot find %s's account", address)
+		}
+		rawAccount := num2accBucket.Get(num)
 
-			if bytes.Equal(address, acc.Owner) {
-				account = &acc
-				return nil
-			}
+		var acc ngtypes.Account
+		err := rlp.DecodeBytes(rawAccount, &acc)
+		if err != nil {
+			return err
 		}
 
+		if bytes.Equal(address, acc.Owner) {
+			account = &acc
+			return nil
+		}
 		return nil
 	})
 	if err != nil {

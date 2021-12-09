@@ -1,22 +1,25 @@
 package blockchain
 
 import (
-	"github.com/dgraph-io/badger/v3"
-
+	"github.com/c0mm4nd/dbolt"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // ApplyBlock checks the block and then calls blockchain's PutNewBlock, and then auto-upgrade the state.
 func (chain *Chain) ApplyBlock(block *ngtypes.Block) error {
-	err := chain.Update(func(txn *badger.Txn) error {
+	err := chain.Update(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+		txBucket := txn.Bucket(storage.BlockBucketName)
+
 		// check block first
 		if err := chain.CheckBlock(block); err != nil {
 			return err
 		}
 
 		// block is valid
-		err := ngblocks.PutNewBlock(txn, block)
+		err := ngblocks.PutNewBlock(blockBucket, txBucket, block)
 		if err != nil {
 			return err
 		}

@@ -11,7 +11,7 @@ package ngstate_test
 //		panic(err)
 //	}
 //
-//	_ = db.Update(func(txn *badger.Txn) error {
+//	_ = db.Update(func(txn *dbolt.Tx) error {
 //		contract, err := ngstate.NewVM(txn, ngtypes.NewAccount(500, nil, raw, nil))
 //		if err != nil {
 //			panic(err)

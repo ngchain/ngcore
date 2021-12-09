@@ -2,14 +2,19 @@ package ngblocks
 
 import (
 	"bytes"
-	"errors"
+	"encoding/binary"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	"github.com/dgraph-io/badger/v3"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
+
+var ErrDBNotInit = errors.New("DB not initialized")
+var ErrMalformedGenesisBlock = errors.New("malformed genesis block")
 
 // initWithGenesis will initialize the store with genesis block & vault.
 func (store *BlockStore) initWithGenesis() {
@@ -18,33 +23,37 @@ func (store *BlockStore) initWithGenesis() {
 
 		block := ngtypes.GetGenesisBlock(store.Network)
 
-		if err := store.Update(func(txn *badger.Txn) error {
+		if err := store.Update(func(txn *dbolt.Tx) error {
+			blockBucket := txn.Bucket(storage.BlockBucketName)
+
 			hash := block.GetHash()
 			raw, _ := rlp.EncodeToBytes(block)
+
 			log.Infof("putting block@%d: %x", block.Header.Height, hash)
-			err := txn.Set(append(blockPrefix, hash...), raw)
+
+			err := blockBucket.Put(hash, raw)
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
+			err = blockBucket.Put(utils.PackUint64LE(block.Header.Height), hash)
 			if err != nil {
 				return err
 			}
 
-			err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
+			err = blockBucket.Put(storage.LatestHeightTag, utils.PackUint64LE(block.Header.Height))
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(blockPrefix, latestHashTag...), hash)
+			err = blockBucket.Put(storage.LatestHashTag, hash)
 			if err != nil {
 				return err
 			}
 
-			err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.Height))
+			err = blockBucket.Put(storage.OriginHeightTag, utils.PackUint64LE(block.Header.Height))
 			if err != nil {
 				return err
 			}
-			err = txn.Set(append(blockPrefix, originHashTag...), hash)
+			err = blockBucket.Put(storage.OriginHashTag, hash)
 			if err != nil {
 				return err
 			}
@@ -57,85 +66,73 @@ func (store *BlockStore) initWithGenesis() {
 
 // hasGenesisBlock checks whether the genesis block is in db.
 func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
-	has := false
+	if err := store.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+		if blockBucket == nil {
+			return ErrDBNotInit
+		}
 
-	if err := store.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(append(blockPrefix, utils.PackUint64LE(0)...))
-		if err != nil {
-			return err
-		}
-		hash, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
-		}
-		if hash != nil {
-			has = true
+		hash := blockBucket.Get(utils.PackUint64LE(0))
+		if hash == nil {
+			return storage.ErrKeyNotFound
 		}
 		if !bytes.Equal(hash, ngtypes.GetGenesisBlock(network).GetHash()) {
-			panic("wrong genesis block in db")
+			panic(errors.Wrapf(ErrMalformedGenesisBlock, "genesis block hash mismatch %x and %x", hash, ngtypes.GetGenesisBlock(network).GetHash()))
 		}
 
 		return nil
-	}); err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
-		panic(err)
+	}); err != nil {
+		return false
 	}
 
-	return has
+	return true
 }
 
-// hasOrigin checks whether the genesis vault is in db.
+// hasOrigin checks whether the genesis origin is in db.
 func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
-	has := false
-
-	if err := store.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(append(blockPrefix, originHeightTag...))
-		if err != nil {
-			return err
+	if err := store.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+		if blockBucket == nil {
+			return ErrDBNotInit
 		}
 
-		has = item != nil
-
-		item, err = txn.Get(append(blockPrefix, originHashTag...))
-		if err != nil {
-			return err
+		height := blockBucket.Get(storage.OriginHeightTag)
+		if height == nil {
+			return storage.ErrKeyNotFound
 		}
 
-		has = has && item != nil
-
-		hash, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
+		hash := blockBucket.Get(storage.OriginHashTag)
+		if hash == nil {
+			return storage.ErrKeyNotFound
 		}
 
-		item, err = txn.Get(append(blockPrefix, hash...))
-		if err != nil {
-			return err
-		}
-		rawBlock, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
+		rawBlock := blockBucket.Get(hash)
+		if rawBlock == nil {
+			return storage.ErrKeyNotFound
 		}
 
 		var originBlock ngtypes.Block
-		err = rlp.DecodeBytes(rawBlock, &originBlock)
+		err := rlp.DecodeBytes(rawBlock, &originBlock)
 		if err != nil {
 			return err
 		}
 
-		has = has && originBlock.Header.Network == network
+		if originBlock.Header.Network != network || originBlock.Header.Height != binary.LittleEndian.Uint64(height) {
+			panic(ErrMalformedGenesisBlock)
+		}
 
 		return nil
-	}); err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
-		panic(err)
+	}); err != nil {
+		return false
 	}
 
-	return has
+	return true
 }
 
 // initWithBlockchain initialize the store by importing the external store.
 // func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
 //	/* Put start */
-//	err := store.Update(func(txn *badger.Txn) error {
+//	err := store.Update(func(txn *dbolt.Tx) error {
 //		for i := 0; i < len(blocks); i++ {
 //			block := blocks[i]
 //			hash := block.Hash()
@@ -165,33 +162,35 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 // }
 
 func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
-	err := store.Update(func(txn *badger.Txn) error {
+	err := store.Update(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		hash := block.GetHash()
 		raw, _ := rlp.EncodeToBytes(block)
 		log.Infof("putting block@%d: %x", block.Header.Height, hash)
-		err := txn.Set(append(blockPrefix, hash...), raw)
+		err := blockBucket.Put(hash, raw)
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, utils.PackUint64LE(block.Header.Height)...), hash)
-		if err != nil {
-			return err
-		}
-
-		err = txn.Set(append(blockPrefix, latestHeightTag...), utils.PackUint64LE(block.Header.Height))
-		if err != nil {
-			return err
-		}
-		err = txn.Set(append(blockPrefix, latestHashTag...), hash)
+		err = blockBucket.Put(utils.PackUint64LE(block.Header.Height), hash)
 		if err != nil {
 			return err
 		}
 
-		err = txn.Set(append(blockPrefix, originHeightTag...), utils.PackUint64LE(block.Header.Height))
+		err = blockBucket.Put(storage.LatestHeightTag, utils.PackUint64LE(block.Header.Height))
 		if err != nil {
 			return err
 		}
-		err = txn.Set(append(blockPrefix, originHashTag...), hash)
+		err = blockBucket.Put(storage.LatestHashTag, hash)
+		if err != nil {
+			return err
+		}
+
+		err = blockBucket.Put(storage.OriginHeightTag, utils.PackUint64LE(block.Header.Height))
+		if err != nil {
+			return err
+		}
+		err = blockBucket.Put(storage.OriginHashTag, hash)
 		if err != nil {
 			return err
 		}

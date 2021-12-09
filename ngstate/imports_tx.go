@@ -5,6 +5,7 @@ import (
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 func initTxImports(vm *VM) error {
@@ -43,9 +44,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_height", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32) uint64 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -60,9 +62,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_convener", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32) uint64 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -95,9 +98,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_signature", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32, ptr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -118,9 +122,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_extra_size", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -135,9 +140,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_extra", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32, ptr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -158,9 +164,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_fee_size", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -175,9 +182,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_fee", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32, ptr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -198,9 +206,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_participants_count", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -224,9 +233,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_participant", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32, i uint32, ptr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -247,9 +257,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_value_size", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32, i uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -264,9 +275,10 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_value", func(ins *wasman.Instance) interface{} {
 		return func(hashPtr uint32, i uint32, ptr uint32) uint32 {
+			txBucket := vm.txn.Bucket(storage.TxBucketName)
 			rawTxHash := ins.Memory.Value[hashPtr : hashPtr+ngtypes.HashSize]
 
-			tx, err := ngblocks.GetTxByHash(vm.txn, rawTxHash)
+			tx, err := ngblocks.GetTxByHash(txBucket, rawTxHash)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

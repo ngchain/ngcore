@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
-	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -19,7 +19,7 @@ type VM struct {
 
 	caller *ngtypes.Tx
 	self   *ngtypes.Account
-	txn    *badger.Txn
+	txn    *dbolt.Tx
 
 	linker *wasman.Linker
 	module *wasman.Module
@@ -29,7 +29,7 @@ type VM struct {
 
 // NewVM creates a new Wasm
 // call me when a assign or append tx
-func NewVM(txn *badger.Txn, account *ngtypes.Account) (*VM, error) {
+func NewVM(txn *dbolt.Tx, account *ngtypes.Account) (*VM, error) {
 	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewBuffer(account.Contract))
 	if err != nil {
 		return nil, err

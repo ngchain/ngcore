@@ -3,11 +3,12 @@ package blockchain
 import (
 	"bytes"
 
-	"github.com/dgraph-io/badger/v3"
+	"github.com/c0mm4nd/dbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // GetLatestBlock will return the latest Block in DB.
@@ -26,9 +27,11 @@ func (chain *Chain) GetLatestBlock() *ngtypes.Block {
 func (chain *Chain) GetLatestBlockHash() []byte {
 	var latestHash []byte
 
-	if err := chain.View(func(txn *badger.Txn) error {
+	if err := chain.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		var err error
-		latestHash, err = ngblocks.GetLatestHash(txn)
+		latestHash, err = ngblocks.GetLatestHash(blockBucket)
 		if err != nil {
 			return err
 		}
@@ -46,9 +49,11 @@ func (chain *Chain) GetLatestBlockHash() []byte {
 func (chain *Chain) GetLatestBlockHeight() uint64 {
 	var latestHeight uint64
 
-	if err := chain.View(func(txn *badger.Txn) error {
+	if err := chain.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		var err error
-		latestHeight, err = ngblocks.GetLatestHeight(txn)
+		latestHeight, err = ngblocks.GetLatestHeight(blockBucket)
 		if err != nil {
 			return err
 		}
@@ -92,9 +97,11 @@ func (chain *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 
 	block := &ngtypes.Block{}
 
-	if err := chain.View(func(txn *badger.Txn) error {
+	if err := chain.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		var err error
-		block, err = ngblocks.GetBlockByHeight(txn, height)
+		block, err = ngblocks.GetBlockByHeight(blockBucket, height)
 		if err != nil {
 			return err
 		}
@@ -119,9 +126,11 @@ func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 
 	block := &ngtypes.Block{}
 
-	if err := chain.View(func(txn *badger.Txn) error {
+	if err := chain.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		var err error
-		block, err = ngblocks.GetBlockByHash(txn, hash)
+		block, err = ngblocks.GetBlockByHash(blockBucket, hash)
 		if err != nil {
 			return err
 		}
@@ -137,9 +146,11 @@ func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 // GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node.
 func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 	var origin *ngtypes.Block
-	err := chain.View(func(txn *badger.Txn) error {
+	err := chain.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
 		var err error
-		origin, err = ngblocks.GetOriginBlock(txn)
+		origin, err = ngblocks.GetOriginBlock(blockBucket)
 		if err != nil {
 			return err
 		}
@@ -157,7 +168,10 @@ func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 // but **do not** upgrade the state.
 // so, after this, dev should do a regenerate or import latest sheet.
 func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
-	if err := chain.Update(func(txn *badger.Txn) error {
+	if err := chain.Update(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+		txBucket := txn.Bucket(storage.TxBucketName)
+
 		for i := 0; i < len(blocks); i++ {
 			block := blocks[i]
 			// if err := chain.CheckBlock(block); err != nil {
@@ -168,7 +182,7 @@ func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
 				return err
 			}
 
-			err := chain.ForcePutNewBlock(txn, block)
+			err := chain.ForcePutNewBlock(blockBucket, txBucket, block)
 			if err != nil {
 				return errors.Wrap(err, "failed to force putting new block")
 			}

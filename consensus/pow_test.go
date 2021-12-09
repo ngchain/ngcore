@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewConsensusManager(t *testing.T) {
-	db := storage.InitMemStorage()
+	db := storage.InitTempStorage()
 
 	defer func() {
 		err := db.Close()

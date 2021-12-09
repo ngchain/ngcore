@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/dgraph-io/badger/v3"
+	"github.com/c0mm4nd/dbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // CheckBlock checks block before putting into chain.
@@ -23,8 +24,10 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	err := chain.View(func(txn *badger.Txn) error {
-		originHash, err := ngblocks.GetOriginHash(txn)
+	err := chain.View(func(txn *dbolt.Tx) error {
+		blockBucket := txn.Bucket([]byte(storage.BlockBucketName))
+
+		originHash, err := ngblocks.GetOriginHash(blockBucket)
 		if err != nil {
 			panic(err)
 		}

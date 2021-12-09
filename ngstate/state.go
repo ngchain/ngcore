@@ -3,21 +3,16 @@ package ngstate
 import (
 	"sync"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	"github.com/dgraph-io/badger/v3"
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 var log = logging.Logger("sheet")
-
-var (
-	numToAccountPrefix  = []byte("nu:")
-	addrToBalancePrefix = []byte("ab:")
-	addrToNumPrefix     = []byte("an:")
-)
 
 // State is a global set of account & txs status
 // (nil) --> B0(Prev: S0) --> B1(Prev: S1) -> B2(Prev: S2)
@@ -25,7 +20,7 @@ var (
 type State struct {
 	Network ngtypes.Network
 
-	*badger.DB
+	*dbolt.DB
 	*SnapshotManager
 
 	vms map[ngtypes.AccountNum]*VM
@@ -34,7 +29,7 @@ type State struct {
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
 // this func is written for snapshot sync/converging when initializing from non-genesis
 // checkpoint
-func InitStateFromSheet(db *badger.DB, network ngtypes.Network, sheet *ngtypes.Sheet) *State {
+func InitStateFromSheet(db *dbolt.DB, network ngtypes.Network, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB: db,
 		SnapshotManager: &SnapshotManager{
@@ -45,7 +40,7 @@ func InitStateFromSheet(db *badger.DB, network ngtypes.Network, sheet *ngtypes.S
 
 		vms: make(map[ngtypes.AccountNum]*VM),
 	}
-	err := state.Update(func(txn *badger.Txn) error {
+	err := state.Update(func(txn *dbolt.Tx) error {
 		return initFromSheet(txn, sheet)
 	})
 	if err != nil {
@@ -56,7 +51,7 @@ func InitStateFromSheet(db *badger.DB, network ngtypes.Network, sheet *ngtypes.S
 }
 
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
-func InitStateFromGenesis(db *badger.DB, network ngtypes.Network) *State {
+func InitStateFromGenesis(db *dbolt.DB, network ngtypes.Network) *State {
 	state := &State{
 		Network: network,
 		DB:      db,
@@ -67,7 +62,7 @@ func InitStateFromGenesis(db *badger.DB, network ngtypes.Network) *State {
 		},
 		vms: make(map[ngtypes.AccountNum]*VM),
 	}
-	err := state.Update(func(txn *badger.Txn) error {
+	err := state.Update(func(txn *dbolt.Tx) error {
 		err := initFromSheet(txn, ngtypes.GetGenesisSheet(network))
 		if err != nil {
 			return err
@@ -88,21 +83,24 @@ func InitStateFromGenesis(db *badger.DB, network ngtypes.Network) *State {
 }
 
 // initFromSheet will overwrite a state from the given sheet
-func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
+func initFromSheet(txn *dbolt.Tx, sheet *ngtypes.Sheet) error {
+	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
+	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
+
 	for num, account := range sheet.Accounts {
 		rawAccount, err := rlp.EncodeToBytes(account)
 		if err != nil {
 			return err
 		}
 
-		err = txn.Set(append(numToAccountPrefix, ngtypes.AccountNum(num).Bytes()...), rawAccount)
+		err = num2accBucket.Put(ngtypes.AccountNum(num).Bytes(), rawAccount)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, balance := range sheet.Balances {
-		err := txn.Set(append(addrToBalancePrefix, balance.Address...), balance.Amount.Bytes())
+		err := addr2balBucket.Put(balance.Address, balance.Amount.Bytes())
 		if err != nil {
 			return err
 		}
@@ -113,19 +111,21 @@ func initFromSheet(txn *badger.Txn, sheet *ngtypes.Sheet) error {
 
 // RebuildFromSheet will overwrite a state from the given sheet
 func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
-	err := state.DropPrefix(addrToBalancePrefix)
-	if err != nil {
-		return err
-	}
-	err = state.DropPrefix(numToAccountPrefix)
-	if err != nil {
-		return err
-	}
-
-	err = state.Update(func(txn *badger.Txn) error {
+	if err := state.Update(func(txn *dbolt.Tx) error {
+		err := txn.DeleteBucket(storage.Addr2NumBucketName)
+		if err != nil {
+			return err
+		}
+		err = txn.DeleteBucket(storage.Addr2BalBucketName)
+		if err != nil {
+			return err
+		}
+		err = txn.DeleteBucket(storage.Num2AccBucketName)
+		if err != nil {
+			return err
+		}
 		return initFromSheet(txn, sheet)
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
@@ -134,23 +134,29 @@ func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
 
 // RebuildFromBlockStore works for doing converge and remove all
 func (state *State) RebuildFromBlockStore() error {
-	err := state.DropPrefix(addrToBalancePrefix)
-	if err != nil {
-		return err
-	}
-	err = state.DropPrefix(numToAccountPrefix)
-	if err != nil {
-		return err
-	}
 
 	var latestHeight uint64
-	err = state.Update(func(txn *badger.Txn) error {
-		err := initFromSheet(txn, ngtypes.GetGenesisSheet(state.Network))
+	err := state.Update(func(txn *dbolt.Tx) error {
+		err := txn.DeleteBucket(storage.Addr2NumBucketName)
+		if err != nil {
+			return err
+		}
+		err = txn.DeleteBucket(storage.Addr2BalBucketName)
+		if err != nil {
+			return err
+		}
+		err = txn.DeleteBucket(storage.Num2AccBucketName)
 		if err != nil {
 			return err
 		}
 
-		latestHeight, err = ngblocks.GetLatestHeight(txn)
+		err = initFromSheet(txn, ngtypes.GetGenesisSheet(state.Network))
+		if err != nil {
+			return err
+		}
+
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+		latestHeight, err = ngblocks.GetLatestHeight(blockBucket)
 		if err != nil {
 			return err
 		}
@@ -163,8 +169,9 @@ func (state *State) RebuildFromBlockStore() error {
 	}
 
 	for h := uint64(0); h <= latestHeight; h++ {
-		err = state.Update(func(txn *badger.Txn) error {
-			b, err := ngblocks.GetBlockByHeight(txn, h)
+		err = state.Update(func(txn *dbolt.Tx) error {
+			blockBucket := txn.Bucket(storage.BlockBucketName)
+			b, err := ngblocks.GetBlockByHeight(blockBucket, h)
 			if err != nil {
 				return err
 			}
@@ -185,7 +192,7 @@ func (state *State) RebuildFromBlockStore() error {
 }
 
 // Upgrade will apply block's txs on current state
-func (state *State) Upgrade(txn *badger.Txn, block *ngtypes.Block) error {
+func (state *State) Upgrade(txn *dbolt.Tx, block *ngtypes.Block) error {
 	err := state.HandleTxs(txn, block.Txs...)
 	if err != nil {
 		return err

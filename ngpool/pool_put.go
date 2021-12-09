@@ -1,7 +1,7 @@
 package ngpool
 
 import (
-	"github.com/dgraph-io/badger/v3"
+	"github.com/c0mm4nd/dbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngstate"
@@ -44,7 +44,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 	pool.Lock()
 	defer pool.Unlock()
 
-	err := pool.db.View(func(txn *badger.Txn) error {
+	err := pool.db.View(func(txn *dbolt.Tx) error {
 		if err := ngstate.CheckTx(txn, tx); err != nil {
 			return errors.Wrap(err, "malformed tx, rejected")
 		}

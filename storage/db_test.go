@@ -8,13 +8,13 @@ import (
 )
 
 func TestInitStorage(t *testing.T) {
-	db := storage.InitStorage(ngtypes.ZERONET, "ngdb")
+	db := storage.InitStorage(ngtypes.ZERONET, ".")
 	if db == nil {
 		t.Error("failed to init db on home dir")
 		return
 	}
 
-	memdb := storage.InitMemStorage()
+	memdb := storage.InitTempStorage()
 	if memdb == nil {
 		t.Error("failed to init db on mem")
 		return

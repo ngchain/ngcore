@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	"github.com/dgraph-io/badger/v3"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -13,7 +13,7 @@ import (
 )
 
 // HandleTxs will apply the tx into the state if tx is VALID
-func (state *State) HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
+func (state *State) HandleTxs(txn *dbolt.Tx, txs ...*ngtypes.Tx) (err error) {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.Type {
@@ -51,16 +51,13 @@ func (state *State) HandleTxs(txn *badger.Txn, txs ...*ngtypes.Tx) (err error) {
 	return nil
 }
 
-func (state *State) handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleGenerate(txn *dbolt.Tx, tx *ngtypes.Tx) (err error) {
 	publicKey := tx.Participants[0].PubKey()
 	if err := tx.Verify(publicKey); err != nil {
 		return err
 	}
 
-	balance, err := getBalance(txn, tx.Participants[0])
-	if err != nil {
-		return err
-	}
+	balance := getBalance(txn, tx.Participants[0])
 
 	err = setBalance(txn, tx.Participants[0], new(big.Int).Add(balance, tx.Values[0]))
 	if err != nil {
@@ -70,7 +67,7 @@ func (state *State) handleGenerate(txn *badger.Txn, tx *ngtypes.Tx) (err error) 
 	return nil
 }
 
-func (state *State) handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleRegister(txn *dbolt.Tx, tx *ngtypes.Tx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
 	publicKey := tx.Participants[0].PubKey()
 	if err = tx.Verify(publicKey); err != nil {
@@ -79,10 +76,7 @@ func (state *State) handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) 
 
 	totalExpense := new(big.Int).Set(tx.Fee)
 
-	balance, err := getBalance(txn, tx.Participants[0])
-	if err != nil {
-		return err
-	}
+	balance := getBalance(txn, tx.Participants[0])
 
 	if balance.Cmp(totalExpense) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -110,7 +104,7 @@ func (state *State) handleRegister(txn *badger.Txn, tx *ngtypes.Tx) (err error) 
 	return nil
 }
 
-func (state *State) handleDestroy(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleDestroy(txn *dbolt.Tx, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -123,10 +117,7 @@ func (state *State) handleDestroy(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 
 	totalExpense := new(big.Int).Set(tx.Fee)
 
-	balance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	balance := getBalance(txn, convener.Owner)
 
 	if err = tx.Verify(pk); err != nil {
 		return err
@@ -155,7 +146,7 @@ func (state *State) handleDestroy(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleTransaction(txn *dbolt.Tx, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -174,10 +165,7 @@ func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err erro
 
 	totalExpense := new(big.Int).Add(tx.Fee, totalValue)
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(totalExpense) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -188,10 +176,7 @@ func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err erro
 	}
 
 	for i := range tx.Participants {
-		participantBalance, err := getBalance(txn, tx.Participants[i])
-		if err != nil {
-			return err
-		}
+		participantBalance := getBalance(txn, tx.Participants[i])
 
 		err = setBalance(txn, tx.Participants[i], new(big.Int).Add(participantBalance, tx.Values[i]))
 		if err != nil {
@@ -228,7 +213,7 @@ func (state *State) handleTransaction(txn *badger.Txn, tx *ngtypes.Tx) (err erro
 	return nil
 }
 
-func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleAppend(txn *dbolt.Tx, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -240,10 +225,7 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(tx.Fee) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -283,7 +265,7 @@ func (state *State) handleAppend(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 	return nil
 }
 
-func (state *State) handleDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
+func (state *State) handleDelete(txn *dbolt.Tx, tx *ngtypes.Tx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -295,10 +277,7 @@ func (state *State) handleDelete(txn *badger.Txn, tx *ngtypes.Tx) (err error) {
 		return err
 	}
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(tx.Fee) < 0 {
 		return ErrTxrBalanceInsufficient

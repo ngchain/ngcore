@@ -5,11 +5,12 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	"github.com/dgraph-io/badger/v3"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // var snapshot *atomic.Value
@@ -72,23 +73,19 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 }
 
 // generateSnapshot when the block is a checkpoint
-func (state *State) generateSnapshot(txn *badger.Txn) error {
+func (state *State) generateSnapshot(txn *dbolt.Tx) error {
 	accounts := make([]*ngtypes.Account, 0)
 	balances := make([]*ngtypes.Balance, 0)
-	latestBlock, err := ngblocks.GetLatestBlock(txn)
+
+	blockBucket := txn.Bucket(storage.BlockBucketName)
+	latestBlock, err := ngblocks.GetLatestBlock(blockBucket)
 	if err != nil {
 		return err
 	}
 
-	it := txn.NewIterator(badger.DefaultIteratorOptions)
-	defer it.Close()
-	for it.Seek(numToAccountPrefix); it.ValidForPrefix(numToAccountPrefix); it.Next() {
-		item := it.Item()
-		rawAccount, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
-		}
-
+	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
+	c := num2accBucket.Cursor()
+	for num, rawAccount := c.Seek(nil); num != nil; c.Next() {
 		var account ngtypes.Account
 		err = rlp.DecodeBytes(rawAccount, &account)
 		if err != nil {
@@ -98,16 +95,10 @@ func (state *State) generateSnapshot(txn *badger.Txn) error {
 		accounts = append(accounts, &account)
 	}
 
-	it = txn.NewIterator(badger.DefaultIteratorOptions)
-	defer it.Close()
-	for it.Seek(addrToBalancePrefix); it.ValidForPrefix(addrToBalancePrefix); it.Next() {
-		item := it.Item()
-		addr := item.KeyCopy(nil)
-		rawBalance, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
-		}
+	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
+	c = addr2balBucket.Cursor()
 
+	for addr, rawBalance := c.Seek(nil); addr != nil; c.Next() {
 		balances = append(balances, &ngtypes.Balance{
 			Address: addr,
 			Amount:  new(big.Int).SetBytes(rawBalance),

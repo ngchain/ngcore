@@ -19,7 +19,7 @@ import (
 func TestNewRPCServer(t *testing.T) {
 	network := ngtypes.ZERONET
 
-	db := storage.InitMemStorage()
+	db := storage.InitTempStorage()
 	defer func() {
 		err := db.Close()
 		if err != nil {

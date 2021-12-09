@@ -3,12 +3,11 @@ package ngstate
 import (
 	"math/big"
 
-	"github.com/dgraph-io/badger/v3"
-
+	"github.com/c0mm4nd/dbolt"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
+func vmTransfer(txn *dbolt.Tx, from, to, value uint64) error {
 	bigValue := new(big.Int).SetUint64(value)
 
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(from))
@@ -16,10 +15,7 @@ func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
 		return err
 	}
 
-	convenerBalance, err := getBalance(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
+	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(bigValue) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -34,10 +30,7 @@ func vmTransfer(txn *badger.Txn, from, to, value uint64) error {
 		return err
 	}
 
-	participantBalance, err := getBalance(txn, participant.Owner)
-	if err != nil {
-		return err
-	}
+	participantBalance := getBalance(txn, participant.Owner)
 
 	err = setBalance(txn, participant.Owner, new(big.Int).Add(
 		participantBalance,
