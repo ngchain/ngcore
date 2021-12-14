@@ -67,7 +67,7 @@ type Message struct {
 
 // NewHeader is a helper method: generate message data shared between all node's p2p protocols.
 func NewHeader(host core.Host, network ngtypes.Network, msgID []byte, msgType MsgType) *MsgHeader {
-	peerKey, err := host.Peerstore().PubKey(host.ID()).Bytes()
+	peerKey, err := host.Peerstore().PubKey(host.ID()).Raw()
 	if err != nil {
 		panic("Failed to get public key for sender from local peer store.")
 	}

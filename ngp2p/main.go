@@ -59,7 +59,6 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 	)
 
 	localHost, err := libp2p.New(
-		ctx,
 		transports,
 		listenAddrs,
 		muxers,
