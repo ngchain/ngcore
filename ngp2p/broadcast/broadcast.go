@@ -22,13 +22,13 @@ type Broadcast struct {
 	blockTopic string
 	txTopic    string
 
-	OnBlock chan *ngtypes.Block
-	OnTx    chan *ngtypes.Tx
+	OnBlock chan *ngtypes.FullBlock
+	OnTx    chan *ngtypes.FullTx
 }
 
 var log = logging.Logger("bcast")
 
-func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan *ngtypes.Block, txCh chan *ngtypes.Tx) *Broadcast {
+func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan *ngtypes.FullBlock, txCh chan *ngtypes.FullTx) *Broadcast {
 	var err error
 
 	b := &Broadcast{

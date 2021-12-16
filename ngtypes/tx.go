@@ -33,8 +33,8 @@ const (
 	UnlockTx // TODO: disable vm, but enable assign and append
 )
 
-// Tx is the basic transaction, or operation, in ngchain network
-type Tx struct {
+// FullTx is the basic implement of Tx (transaction, or operation)
+type FullTx struct {
 	Network      Network
 	Type         TxType
 	Height       uint64 // lock the tx on the specific height, rather than the hash, to make the tx can act on forking
@@ -49,7 +49,7 @@ type Tx struct {
 
 // NewTx is the default constructor for ngtypes.Tx
 func NewTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
-	extraData, sign []byte) *Tx {
+	extraData, sign []byte) *FullTx {
 	if participants == nil {
 		participants = []Address{}
 	}
@@ -70,7 +70,7 @@ func NewTx(network Network, txType TxType, height uint64, convener AccountNum, p
 		sign = []byte{}
 	}
 
-	tx := &Tx{
+	tx := &FullTx{
 		Network:      network,
 		Type:         txType,
 		Height:       height,
@@ -88,18 +88,18 @@ func NewTx(network Network, txType TxType, height uint64, convener AccountNum, p
 
 // NewUnsignedTx will return an unsigned tx, must using Signature().
 func NewUnsignedTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
-	extraData []byte) *Tx {
+	extraData []byte) *FullTx {
 
 	return NewTx(network, txType, height, convener, participants, values, fee, extraData, nil)
 }
 
 // IsSigned will return whether the op has been signed.
-func (x *Tx) IsSigned() bool {
+func (x *FullTx) IsSigned() bool {
 	return x.Sign != nil
 }
 
 // Verify helps verify the transaction whether signed by the public key owner.
-func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) Verify(publicKey secp256k1.PublicKey) error {
 	if x.Sign == nil {
 		return ErrTxUnsigned
 	}
@@ -132,7 +132,7 @@ func (x *Tx) Verify(publicKey secp256k1.PublicKey) error {
 }
 
 // BS58 is a tx's Readable Raw in string.
-func (x *Tx) BS58() string {
+func (x *FullTx) BS58() string {
 	b, err := rlp.EncodeToBytes(x)
 	if err != nil {
 		log.Error(err)
@@ -142,13 +142,13 @@ func (x *Tx) BS58() string {
 }
 
 // ID is a tx's Readable ID(hash) in string.
-func (x *Tx) ID() string {
+func (x *FullTx) ID() string {
 	return hex.EncodeToString(x.GetHash())
 }
 
 // GetHash mainly for calculating the tire root of txs and sign tx.
 // The returned hash is sha3_256(tx_with_sign)
-func (x *Tx) GetHash() []byte {
+func (x *FullTx) GetHash() []byte {
 	hash, err := x.CalculateHash()
 	if err != nil {
 		panic(err)
@@ -159,7 +159,7 @@ func (x *Tx) GetHash() []byte {
 
 // GetUnsignedHash mainly for signing and verifying.
 // The returned hash is sha3_256(tx_without_sign)
-func (x *Tx) GetUnsignedHash() []byte {
+func (x *FullTx) GetUnsignedHash() []byte {
 	sign := x.Sign
 	x.Sign = nil
 	raw, err := rlp.EncodeToBytes(x)
@@ -174,7 +174,7 @@ func (x *Tx) GetUnsignedHash() []byte {
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
-func (x *Tx) CalculateHash() ([]byte, error) {
+func (x *FullTx) CalculateHash() ([]byte, error) {
 	raw, err := rlp.EncodeToBytes(x)
 	if err != nil {
 		return nil, err
@@ -186,8 +186,8 @@ func (x *Tx) CalculateHash() ([]byte, error) {
 }
 
 // Equals mainly for calculating the tire root of txs.
-func (x *Tx) Equals(other merkletree.Content) (bool, error) {
-	tx, ok := other.(*Tx)
+func (x *FullTx) Equals(other merkletree.Content) (bool, error) {
+	tx, ok := other.(*FullTx)
 	if !ok {
 		panic("comparing with non-tx struct")
 	}
@@ -240,7 +240,7 @@ func (x *Tx) Equals(other merkletree.Content) (bool, error) {
 }
 
 // CheckGenerate does a self check for generate tx
-func (x *Tx) CheckGenerate(blockHeight uint64) error {
+func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 	if x == nil {
 		return ErrBlockNoHeader
 	}
@@ -271,7 +271,7 @@ func (x *Tx) CheckGenerate(blockHeight uint64) error {
 }
 
 // CheckRegister does a self check for register tx
-func (x *Tx) CheckRegister() error {
+func (x *FullTx) CheckRegister() error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -310,7 +310,7 @@ func (x *Tx) CheckRegister() error {
 }
 
 // CheckDestroy does a self check for destroy tx
-func (x *Tx) CheckDestroy(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) CheckDestroy(publicKey secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -346,7 +346,7 @@ func (x *Tx) CheckDestroy(publicKey secp256k1.PublicKey) error {
 }
 
 // CheckTransaction does a self check for normal transaction tx
-func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -368,7 +368,7 @@ func (x *Tx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 }
 
 // CheckAppend does a self check for append tx
-func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
+func (x *FullTx) CheckAppend(key secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -401,7 +401,7 @@ func (x *Tx) CheckAppend(key secp256k1.PublicKey) error {
 }
 
 // CheckDelete does a self check for delete tx
-func (x *Tx) CheckDelete(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) CheckDelete(publicKey secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -427,7 +427,7 @@ func (x *Tx) CheckDelete(publicKey secp256k1.PublicKey) error {
 }
 
 // Signature will re-sign the Tx with private key.
-func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
+func (x *FullTx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	ds := make([]*big.Int, len(privateKeys))
 	for i := range privateKeys {
 		ds[i] = privateKeys[i].D
@@ -445,12 +445,12 @@ func (x *Tx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	return
 }
 
-func (x *Tx) ManuallySetSignature(sign []byte) {
+func (x *FullTx) ManuallySetSignature(sign []byte) {
 	x.Sign = sign
 }
 
 // TotalExpenditure helps calculate the total expenditure which the tx caller should pay
-func (x *Tx) TotalExpenditure() *big.Int {
+func (x *FullTx) TotalExpenditure() *big.Int {
 	total := big.NewInt(0)
 
 	for i := range x.Values {

@@ -46,7 +46,7 @@ func (s *Server) getBlockTemplateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 
 // submitBlockFunc receive the whole mined block and try to broadcast it.
 func (s *Server) submitBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var block ngtypes.Block
+	var block ngtypes.FullBlock
 
 	err := utils.JSON.Unmarshal(*msg.Params, &block)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 	}
 
 	privateKey := secp256k1.NewPrivateKey(new(big.Int).SetBytes(rawPrivateKey))
-	blockTemplate := s.pow.GetBlockTemplate(privateKey)
+	blockTemplate := s.pow.GetBlockTemplate(privateKey).(*ngtypes.FullBlock)
 
 	header := hex.EncodeToString(blockTemplate.GetPoWRawHeader(nil))
 
@@ -134,7 +134,7 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	block.Header.Nonce = nonce
+	block.BlockHeader.Nonce = nonce
 
 	err = s.pow.MinedNewBlock(block)
 	if err != nil {

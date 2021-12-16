@@ -14,7 +14,8 @@ import (
 )
 
 // CheckBlock checks block before putting into chain.
-func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
+func (chain *Chain) CheckBlock(b ngtypes.Block) error {
+	block := b.(*ngtypes.FullBlock)
 	if block.IsGenesis() {
 		return nil
 	}
@@ -25,18 +26,18 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 	}
 
 	err := chain.View(func(txn *dbolt.Tx) error {
-		blockBucket := txn.Bucket([]byte(storage.BlockBucketName))
+		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		originHash, err := ngblocks.GetOriginHash(blockBucket)
 		if err != nil {
 			panic(err)
 		}
 
-		if !bytes.Equal(block.Header.PrevBlockHash, originHash) {
-			prevBlock, err := chain.GetBlockByHash(block.Header.PrevBlockHash)
+		if !bytes.Equal(block.GetPrevHash(), originHash) {
+			prevBlock, err := chain.getBlockByHash(block.GetPrevHash())
 			if err != nil {
 				return errors.Wrapf(err, "failed to get the prev block@%d %x",
-					block.Header.Height-1, block.Header.PrevBlockHash)
+					block.GetHeight()-1, block.GetPrevHash())
 			}
 
 			if err := checkBlockTarget(block, prevBlock); err != nil {
@@ -53,19 +54,19 @@ func (chain *Chain) CheckBlock(block *ngtypes.Block) error {
 	return nil
 }
 
-func checkBlockTarget(block, prevBlock *ngtypes.Block) error {
-	correctDiff := ngtypes.GetNextDiff(block.Header.Height, block.Header.Timestamp, prevBlock)
-	blockDiff := new(big.Int).SetBytes(block.Header.Difficulty)
+func checkBlockTarget(block, prevBlock *ngtypes.FullBlock) error {
+	correctDiff := ngtypes.GetNextDiff(block.GetHeight(), block.BlockHeader.Timestamp, prevBlock)
+	blockDiff := new(big.Int).SetBytes(block.BlockHeader.Difficulty)
 	actualDiff := block.GetActualDiff()
 
 	if blockDiff.Cmp(correctDiff) != 0 {
 		return errors.Wrapf(ngtypes.ErrBlockDiffInvalid, "wrong block diff for block@%d, diff in block: %x shall be %x",
-			block.Header.Height, blockDiff, correctDiff)
+			block.GetHeight(), blockDiff, correctDiff)
 	}
 
 	if actualDiff.Cmp(correctDiff) < 0 {
 		return errors.Wrapf(ngtypes.ErrBlockDiffInvalid, "wrong block diff for block@%d, actual diff in block: %x shall be large than %x",
-			block.Header.Height, actualDiff, correctDiff)
+			block.GetHeight(), actualDiff, correctDiff)
 	}
 
 	return nil

@@ -69,7 +69,7 @@ func (t *Task) Mining(work Job) {
 		panic("try over mining")
 	}
 
-	diff := new(big.Int).SetBytes(work.Header.Difficulty)
+	diff := new(big.Int).SetBytes(work.BlockHeader.Difficulty)
 	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
 	log.Println("mining ready")
@@ -98,7 +98,7 @@ func (t *Task) Mining(work Job) {
 					t.hashes.Inc()
 
 					if new(big.Int).SetBytes(hash[:]).Cmp(target) < 0 {
-						log.Printf("thread %d found nonce %x for block @ %d", threadID, nonce, work.Header.Height)
+						log.Printf("thread %d found nonce %x for block @ %d", threadID, nonce, work.GetHeight())
 						work.SetNonce(nonce)
 						t.foundCh <- work
 						return

@@ -15,7 +15,7 @@ import (
 var ErrTxrBalanceInsufficient = errors.New("account's balance is not sufficient for the tx")
 
 // CheckBlockTxs will check all requirements for txs in block
-func CheckBlockTxs(txn *dbolt.Tx, block *ngtypes.Block) error {
+func CheckBlockTxs(txn *dbolt.Tx, block *ngtypes.FullBlock) error {
 	for i := 0; i < len(block.Txs); i++ {
 		tx := block.Txs[i]
 		// check tx is signed
@@ -30,7 +30,7 @@ func CheckBlockTxs(txn *dbolt.Tx, block *ngtypes.Block) error {
 
 		switch tx.Type {
 		case ngtypes.GenerateTx: // generate
-			if err := checkGenerate(txn, tx, block.Header.Height); err != nil {
+			if err := checkGenerate(txn, tx, block.GetHeight()); err != nil {
 				return err
 			}
 
@@ -67,7 +67,7 @@ func CheckBlockTxs(txn *dbolt.Tx, block *ngtypes.Block) error {
 }
 
 // CheckTx will check the requirements for one tx (except generate tx)
-func CheckTx(txn *dbolt.Tx, tx *ngtypes.Tx) error {
+func CheckTx(txn *dbolt.Tx, tx *ngtypes.FullTx) error {
 	// check tx is signed
 	if !tx.IsSigned() {
 		return ngtypes.ErrTxSignInvalid
@@ -112,7 +112,7 @@ func CheckTx(txn *dbolt.Tx, tx *ngtypes.Tx) error {
 }
 
 // checkGenerate checks the generate tx
-func checkGenerate(txn *dbolt.Tx, generateTx *ngtypes.Tx, blockHeight uint64) error {
+func checkGenerate(txn *dbolt.Tx, generateTx *ngtypes.FullTx, blockHeight uint64) error {
 	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
 	rawConvener := num2accBucket.Get(generateTx.Convener.Bytes())
@@ -142,7 +142,7 @@ var (
 )
 
 // checkRegister checks the register tx
-func checkRegister(txn *dbolt.Tx, registerTx *ngtypes.Tx) error {
+func checkRegister(txn *dbolt.Tx, registerTx *ngtypes.FullTx) error {
 	// check structure and key
 	if err := registerTx.CheckRegister(); err != nil {
 		return err
@@ -174,7 +174,7 @@ func checkRegister(txn *dbolt.Tx, registerTx *ngtypes.Tx) error {
 var ErrDestroyAccountContractNotEmpty = errors.New("contract should be empty on destroy tx")
 
 // checkDestroy checks destroy tx
-func checkDestroy(txn *dbolt.Tx, destroyTx *ngtypes.Tx) error {
+func checkDestroy(txn *dbolt.Tx, destroyTx *ngtypes.FullTx) error {
 	convener, err := getAccountByNum(txn, destroyTx.Convener)
 	if err != nil {
 		return err
@@ -206,7 +206,7 @@ func checkDestroy(txn *dbolt.Tx, destroyTx *ngtypes.Tx) error {
 }
 
 // checkTransaction checks normal transaction tx
-func checkTransaction(txn *dbolt.Tx, transactionTx *ngtypes.Tx) error {
+func checkTransaction(txn *dbolt.Tx, transactionTx *ngtypes.FullTx) error {
 	convener, err := getAccountByNum(txn, transactionTx.Convener)
 	if err != nil {
 		return err
@@ -235,7 +235,7 @@ var (
 )
 
 // checkAppend checks append tx
-func checkAppend(txn *dbolt.Tx, appendTx *ngtypes.Tx) error {
+func checkAppend(txn *dbolt.Tx, appendTx *ngtypes.FullTx) error {
 	convener, err := getAccountByNum(txn, appendTx.Convener)
 	if err != nil {
 		return err
@@ -268,7 +268,7 @@ func checkAppend(txn *dbolt.Tx, appendTx *ngtypes.Tx) error {
 }
 
 // checkDelete checks delete tx
-func checkDelete(txn *dbolt.Tx, deleteTx *ngtypes.Tx) error {
+func checkDelete(txn *dbolt.Tx, deleteTx *ngtypes.FullTx) error {
 	convener, err := getAccountByNum(txn, deleteTx.Convener)
 	if err != nil {
 		return err

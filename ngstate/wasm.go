@@ -17,7 +17,7 @@ import (
 type VM struct {
 	sync.RWMutex
 
-	caller *ngtypes.Tx
+	caller *ngtypes.FullTx
 	self   *ngtypes.Account
 	txn    *dbolt.Tx
 
@@ -49,7 +49,7 @@ func NewVM(txn *dbolt.Tx, account *ngtypes.Account) (*VM, error) {
 
 // Instantiate will generate a runnable instance from thr module
 // before Instantiate, the caller should run Init
-func (vm *VM) Instantiate(tx *ngtypes.Tx) (*wasman.Instance, error) {
+func (vm *VM) Instantiate(tx *ngtypes.FullTx) (*wasman.Instance, error) {
 	vm.caller = tx
 
 	instance, err := vm.linker.Instantiate(vm.module)

@@ -117,8 +117,8 @@ type getTxByHashParams struct {
 }
 
 type getTxByHashReply struct {
-	OnChain bool        `json:"onChain"`
-	Tx      *ngtypes.Tx `json:"tx"`
+	OnChain bool            `json:"onChain"`
+	Tx      *ngtypes.FullTx `json:"tx"`
 }
 
 func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {

@@ -9,7 +9,7 @@ import (
 
 // ForcePutNewBlock puts a block into db regardless of local store check
 // should check block self before putting
-func (store *BlockStore) ForcePutNewBlock(blockBucket *dbolt.Bucket, txBucket *dbolt.Bucket, block *ngtypes.Block) error {
+func (store *BlockStore) ForcePutNewBlock(blockBucket *dbolt.Bucket, txBucket *dbolt.Bucket, block *ngtypes.FullBlock) error {
 	if block == nil {
 		panic("block is nil")
 	}
@@ -17,10 +17,10 @@ func (store *BlockStore) ForcePutNewBlock(blockBucket *dbolt.Bucket, txBucket *d
 	hash := block.GetHash()
 
 	// deleting txs
-	if blockHeightExists(blockBucket, block.Header.Height) {
-		b, err := GetBlockByHeight(blockBucket, block.Header.Height)
+	if blockHeightExists(blockBucket, block.GetHeight()) {
+		b, err := GetBlockByHeight(blockBucket, block.GetHeight())
 		if err != nil {
-			return errors.Wrapf(err, "failed to get existing block@%d", block.Header.Height)
+			return errors.Wrapf(err, "failed to get existing block@%d", block.GetHeight())
 		}
 
 		err = delTxs(txBucket, b.Txs...)
@@ -29,11 +29,11 @@ func (store *BlockStore) ForcePutNewBlock(blockBucket *dbolt.Bucket, txBucket *d
 		}
 	}
 
-	if !blockPrevHashExists(blockBucket, block.Header.Height, block.Header.PrevBlockHash) {
+	if !blockPrevHashExists(blockBucket, block.GetHeight(), block.GetPrevHash()) {
 		return errors.Wrapf(ErrPrevBlockNotExist, "cannot find block %x", block.GetPrevHash())
 	}
 
-	log.Infof("putting block@%d: %x", block.Header.Height, hash)
+	log.Infof("putting block@%d: %x", block.GetHeight(), hash)
 	err := putBlock(blockBucket, hash, block)
 	if err != nil {
 		return errors.Wrap(err, "failed to put block")
@@ -46,14 +46,14 @@ func (store *BlockStore) ForcePutNewBlock(blockBucket *dbolt.Bucket, txBucket *d
 	}
 
 	// update helper
-	err = putLatestTags(blockBucket, block.Header.Height, hash)
+	err = putLatestTags(blockBucket, block.GetHeight(), hash)
 	if err != nil {
 		return errors.Wrap(err, "failed to update tags")
 	}
 	return nil
 }
 
-func delTxs(txBucket *dbolt.Bucket, txs ...*ngtypes.Tx) error {
+func delTxs(txBucket *dbolt.Bucket, txs ...*ngtypes.FullTx) error {
 	for i := range txs {
 		hash := txs[i].GetHash()
 

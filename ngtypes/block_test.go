@@ -39,7 +39,7 @@ func TestBlock_IsGenesis(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		gg := new(ngtypes.Block)
+		gg := new(ngtypes.FullBlock)
 		err = rlp.DecodeBytes(raw, gg)
 		if err != nil {
 			panic(err)
@@ -62,7 +62,7 @@ func TestBlock_Marshal(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		rawBlock, _ := rlp.EncodeToBytes(ngtypes.GetGenesisBlock(net))
 
-		var genesisBlock ngtypes.Block
+		var genesisBlock ngtypes.FullBlock
 		_ = rlp.DecodeBytes(rawBlock, &genesisBlock)
 		_block, _ := rlp.EncodeToBytes(&genesisBlock)
 
@@ -96,7 +96,7 @@ func TestBlockJSON(t *testing.T) {
 
 		t.Log(string(jsonBlock))
 
-		block2 := &ngtypes.Block{}
+		block2 := &ngtypes.FullBlock{}
 		err = utils.JSON.Unmarshal(jsonBlock, &block2)
 		if err != nil {
 			t.Error(err)

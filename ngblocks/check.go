@@ -51,7 +51,7 @@ func blockPrevHashExists(blockBucket *dbolt.Bucket, height uint64, prevHash []by
 		return false
 	}
 
-	if b.Header.Height == height-1 {
+	if b.GetHeight() == height-1 {
 		return true
 	}
 

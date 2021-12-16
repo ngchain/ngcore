@@ -8,7 +8,7 @@ import (
 
 // GetPack will gives a sorted TxTire.
 func (pool *TxPool) GetPack(height uint64) ngtypes.TxTrie {
-	txs := make([]*ngtypes.Tx, 0)
+	txs := make([]*ngtypes.FullTx, 0)
 	accountNums := make([]uint64, 0)
 
 	for num := range pool.txMap {

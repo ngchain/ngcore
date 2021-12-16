@@ -12,10 +12,14 @@ import (
 )
 
 // GetLatestBlock will return the latest Block in DB.
-func (chain *Chain) GetLatestBlock() *ngtypes.Block {
+func (chain *Chain) GetLatestBlock() ngtypes.Block {
+	return chain.getLatestBlock()
+}
+
+func (chain *Chain) getLatestBlock() *ngtypes.FullBlock {
 	height := chain.GetLatestBlockHeight()
 
-	block, err := chain.GetBlockByHeight(height)
+	block, err := chain.getBlockByHeight(height)
 	if err != nil {
 		panic(err)
 	}
@@ -67,21 +71,21 @@ func (chain *Chain) GetLatestBlockHeight() uint64 {
 	return latestHeight
 }
 
-// GetLatestCheckpointHash returns the hash of latest checkpoint.
+// GetLatestCheckpointHash returns the hash of the latest checkpoint.
 func (chain *Chain) GetLatestCheckpointHash() []byte {
 	cp := chain.GetLatestCheckpoint()
 	return cp.GetHash()
 }
 
 // GetLatestCheckpoint returns the latest checkpoint block.
-func (chain *Chain) GetLatestCheckpoint() *ngtypes.Block {
-	b := chain.GetLatestBlock()
+func (chain *Chain) GetLatestCheckpoint() *ngtypes.FullBlock {
+	b := chain.getLatestBlock()
 	if b.IsGenesis() || b.IsHead() {
 		return b
 	}
 
-	checkpointHeight := b.Header.Height - b.Header.Height%ngtypes.BlockCheckRound
-	b, err := chain.GetBlockByHeight(checkpointHeight)
+	checkpointHeight := b.GetHeight() - b.GetHeight()%ngtypes.BlockCheckRound
+	b, err := chain.getBlockByHeight(checkpointHeight)
 	if err != nil {
 		log.Errorf("error when getting latest checkpoint, maybe chain is broken, please resync: %s", err)
 	}
@@ -90,12 +94,16 @@ func (chain *Chain) GetLatestCheckpoint() *ngtypes.Block {
 }
 
 // GetBlockByHeight returns a block by height inputted.
-func (chain *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
+func (chain *Chain) GetBlockByHeight(height uint64) (ngtypes.Block, error) {
+	return chain.getBlockByHeight(height)
+}
+
+func (chain *Chain) getBlockByHeight(height uint64) (*ngtypes.FullBlock, error) {
 	if height == 0 {
 		return ngtypes.GetGenesisBlock(chain.Network), nil
 	}
 
-	block := &ngtypes.Block{}
+	block := &ngtypes.FullBlock{}
 
 	if err := chain.View(func(txn *dbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
@@ -115,7 +123,11 @@ func (chain *Chain) GetBlockByHeight(height uint64) (*ngtypes.Block, error) {
 }
 
 // GetBlockByHash returns a block by hash inputted.
-func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
+func (chain *Chain) GetBlockByHash(hash []byte) (ngtypes.Block, error) {
+	return chain.getBlockByHash(hash)
+}
+
+func (chain *Chain) getBlockByHash(hash []byte) (*ngtypes.FullBlock, error) {
 	if bytes.Equal(hash, ngtypes.GetGenesisBlock(chain.Network).GetHash()) {
 		return ngtypes.GetGenesisBlock(chain.Network), nil
 	}
@@ -124,7 +136,7 @@ func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 		return nil, errors.Wrapf(ngtypes.ErrHashSize, "%x is not a legal hash", hash)
 	}
 
-	block := &ngtypes.Block{}
+	block := &ngtypes.FullBlock{}
 
 	if err := chain.View(func(txn *dbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
@@ -144,8 +156,8 @@ func (chain *Chain) GetBlockByHash(hash []byte) (*ngtypes.Block, error) {
 }
 
 // GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node.
-func (chain *Chain) GetOriginBlock() *ngtypes.Block {
-	var origin *ngtypes.Block
+func (chain *Chain) GetOriginBlock() *ngtypes.FullBlock {
+	var origin *ngtypes.FullBlock
 	err := chain.View(func(txn *dbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
@@ -166,8 +178,8 @@ func (chain *Chain) GetOriginBlock() *ngtypes.Block {
 
 // ForceApplyBlocks simply checks the block and then calls chain.ForcePutNewBlock
 // but **do not** upgrade the state.
-// so, after this, dev should do a regenerate or import latest sheet.
-func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.Block) error {
+// so, after this, dev should do a regeneration or import the latest sheet.
+func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.FullBlock) error {
 	if err := chain.Update(func(txn *dbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.TxBucketName)

@@ -16,19 +16,19 @@ var ErrPutEmptyBlock = errors.New("putting empty block into the db")
 // PutNewBlock puts a new block into db and updates the tags.
 // should check block before putting
 // dev should continue upgrading the state after PutNewBlock
-func PutNewBlock(blockBucket *dbolt.Bucket, txBucket *dbolt.Bucket, block *ngtypes.Block) error {
+func PutNewBlock(blockBucket *dbolt.Bucket, txBucket *dbolt.Bucket, block *ngtypes.FullBlock) error {
 	if block == nil {
 		return ErrPutEmptyBlock
 	}
 
 	hash := block.GetHash()
 
-	err := checkBlock(blockBucket, block.Header.Height, block.Header.PrevBlockHash)
+	err := checkBlock(blockBucket, block.GetHeight(), block.GetPrevHash())
 	if err != nil {
 		return err
 	}
 
-	log.Infof("putting block@%d: %x", block.Header.Height, hash)
+	log.Infof("putting block@%d: %x", block.GetHeight(), hash)
 	err = putBlock(blockBucket, hash, block)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func PutNewBlock(blockBucket *dbolt.Bucket, txBucket *dbolt.Bucket, block *ngtyp
 	}
 
 	// update helper
-	err = putLatestTags(blockBucket, block.Header.Height, hash)
+	err = putLatestTags(blockBucket, block.GetHeight(), hash)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func PutNewBlock(blockBucket *dbolt.Bucket, txBucket *dbolt.Bucket, block *ngtyp
 	return nil
 }
 
-func putTxs(txBucket *dbolt.Bucket, block *ngtypes.Block) error {
+func putTxs(txBucket *dbolt.Bucket, block *ngtypes.FullBlock) error {
 	for i := range block.Txs {
 		hash := block.Txs[i].GetHash()
 
@@ -67,7 +67,7 @@ func putTxs(txBucket *dbolt.Bucket, block *ngtypes.Block) error {
 	return nil
 }
 
-func putBlock(blockBucket *dbolt.Bucket, hash []byte, block *ngtypes.Block) error {
+func putBlock(blockBucket *dbolt.Bucket, hash []byte, block *ngtypes.FullBlock) error {
 	raw, err := rlp.EncodeToBytes(block)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func putBlock(blockBucket *dbolt.Bucket, hash []byte, block *ngtypes.Block) erro
 		return err
 	}
 
-	err = blockBucket.Put(utils.PackUint64LE(block.Header.Height), hash)
+	err = blockBucket.Put(utils.PackUint64LE(block.GetHeight()), hash)
 	if err != nil {
 		return err
 	}

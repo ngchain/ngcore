@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"github.com/ngchain/ngcore/ngtypes"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -26,7 +27,8 @@ type syncModule struct {
 }
 
 // newSyncModule creates a new sync module.
-func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
+func newSyncModule(c ngtypes.Consensus, localNode *ngp2p.LocalNode) *syncModule {
+	pow := c.(*PoWork)
 	syncMod := &syncModule{
 		pow:       pow,
 		localNode: localNode,
@@ -37,7 +39,7 @@ func newSyncModule(pow *PoWork, localNode *ngp2p.LocalNode) *syncModule {
 	}
 
 	latest := pow.Chain.GetLatestBlock()
-	log.Warnf("current latest block: %x@%d", latest.GetHash(), latest.Header.Height)
+	log.Warnf("current latest block: %x@%d", latest.GetHash(), latest.GetHeight())
 
 	return syncMod
 }

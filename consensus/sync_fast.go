@@ -34,7 +34,7 @@ func (mod *syncModule) switchToRemoteCheckpoint(record *RemoteRecord) error {
 	return nil
 }
 
-func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.Block, error) {
+func (mod *syncModule) getRemoteCheckpoint(record *RemoteRecord) (*ngtypes.FullBlock, error) {
 	to := make([]byte, 16)
 
 	if record.checkpointHeight <= 2*ngtypes.BlockCheckRound {

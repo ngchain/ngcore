@@ -25,6 +25,21 @@ type BlockHeader struct {
 	Nonce      []byte `rlp:"tail"` // 8
 }
 
+// GetHeight returns the height of the block.
+func (x *BlockHeader) GetHeight() uint64 {
+	return x.Height
+}
+
+// GetPrevHash returns the hash of the previous block.
+func (x *BlockHeader) GetPrevHash() []byte {
+	return x.PrevBlockHash
+}
+
+// GetTimestamp returns the timestamp of the block.
+func (x *BlockHeader) GetTimestamp() uint64 {
+	return x.Timestamp
+}
+
 // CalculateHash calcs the hash of the Block header with sha3_256, aiming to
 // get the merkletree hash when summarizing subs into the header.
 func (x *BlockHeader) CalculateHash() ([]byte, error) {

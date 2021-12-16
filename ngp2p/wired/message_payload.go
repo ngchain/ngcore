@@ -19,7 +19,7 @@ type GetChainPayload struct {
 type ChainPayload struct {
 	Type    ChainType
 	Headers []*ngtypes.BlockHeader `rlp:"optional"`
-	Blocks  []*ngtypes.Block       `rlp:"optional"`
+	Blocks  []*ngtypes.FullBlock   `rlp:"optional"`
 }
 
 // GetSheetPayload is the payload for getting a sheet from remote

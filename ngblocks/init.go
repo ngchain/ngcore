@@ -29,18 +29,18 @@ func (store *BlockStore) initWithGenesis() {
 			hash := block.GetHash()
 			raw, _ := rlp.EncodeToBytes(block)
 
-			log.Infof("putting block@%d: %x", block.Header.Height, hash)
+			log.Infof("putting block@%d: %x", block.GetHeight(), hash)
 
 			err := blockBucket.Put(hash, raw)
 			if err != nil {
 				return err
 			}
-			err = blockBucket.Put(utils.PackUint64LE(block.Header.Height), hash)
+			err = blockBucket.Put(utils.PackUint64LE(block.GetHeight()), hash)
 			if err != nil {
 				return err
 			}
 
-			err = blockBucket.Put(storage.LatestHeightTag, utils.PackUint64LE(block.Header.Height))
+			err = blockBucket.Put(storage.LatestHeightTag, utils.PackUint64LE(block.GetHeight()))
 			if err != nil {
 				return err
 			}
@@ -49,7 +49,7 @@ func (store *BlockStore) initWithGenesis() {
 				return err
 			}
 
-			err = blockBucket.Put(storage.OriginHeightTag, utils.PackUint64LE(block.Header.Height))
+			err = blockBucket.Put(storage.OriginHeightTag, utils.PackUint64LE(block.GetHeight()))
 			if err != nil {
 				return err
 			}
@@ -111,13 +111,13 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 			return storage.ErrKeyNotFound
 		}
 
-		var originBlock ngtypes.Block
+		var originBlock ngtypes.FullBlock
 		err := rlp.DecodeBytes(rawBlock, &originBlock)
 		if err != nil {
 			return err
 		}
 
-		if originBlock.Header.Network != network || originBlock.Header.Height != binary.LittleEndian.Uint64(height) {
+		if originBlock.BlockHeader.Network != network || originBlock.GetHeight() != binary.LittleEndian.Uint64(height) {
 			panic(ErrMalformedGenesisBlock)
 		}
 
@@ -161,23 +161,23 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 //	return err
 // }
 
-func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
+func (store *BlockStore) InitFromCheckpoint(block *ngtypes.FullBlock) error {
 	err := store.Update(func(txn *dbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		hash := block.GetHash()
 		raw, _ := rlp.EncodeToBytes(block)
-		log.Infof("putting block@%d: %x", block.Header.Height, hash)
+		log.Infof("putting block@%d: %x", block.GetHeight(), hash)
 		err := blockBucket.Put(hash, raw)
 		if err != nil {
 			return err
 		}
-		err = blockBucket.Put(utils.PackUint64LE(block.Header.Height), hash)
+		err = blockBucket.Put(utils.PackUint64LE(block.GetHeight()), hash)
 		if err != nil {
 			return err
 		}
 
-		err = blockBucket.Put(storage.LatestHeightTag, utils.PackUint64LE(block.Header.Height))
+		err = blockBucket.Put(storage.LatestHeightTag, utils.PackUint64LE(block.GetHeight()))
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (store *BlockStore) InitFromCheckpoint(block *ngtypes.Block) error {
 			return err
 		}
 
-		err = blockBucket.Put(storage.OriginHeightTag, utils.PackUint64LE(block.Header.Height))
+		err = blockBucket.Put(storage.OriginHeightTag, utils.PackUint64LE(block.GetHeight()))
 		if err != nil {
 			return err
 		}

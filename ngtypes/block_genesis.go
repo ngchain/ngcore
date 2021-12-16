@@ -1,10 +1,10 @@
 package ngtypes
 
-var genesisBlock *Block
+var genesisBlock *FullBlock
 
 // GetGenesisBlock will return a complete sealed GenesisBlock.
-func GetGenesisBlock(network Network) *Block {
-	txs := []*Tx{
+func GetGenesisBlock(network Network) *FullBlock {
+	txs := []*FullTx{
 		GetGenesisGenerateTx(network),
 	}
 

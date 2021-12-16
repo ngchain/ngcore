@@ -35,7 +35,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var tx ngtypes.Tx
+	var tx ngtypes.FullTx
 	err = rlp.DecodeBytes(signedTxRaw, &tx)
 	if err != nil {
 		log.Error(err)
@@ -77,7 +77,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var tx ngtypes.Tx
+	var tx ngtypes.FullTx
 	err = rlp.DecodeBytes(unsignedTxRaw, &tx)
 	if err != nil {
 		log.Error(err)

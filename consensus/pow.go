@@ -67,15 +67,15 @@ func InitPoWConsensus(db *dbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
-func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) *ngtypes.Block {
+func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) ngtypes.Block {
 	currentBlock := pow.Chain.GetLatestBlock()
 
 	currentBlockHash := currentBlock.GetHash()
 
 	blockTime := uint64(time.Now().Unix())
 
-	blockHeight := currentBlock.Header.Height + 1
-	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock)
+	blockHeight := currentBlock.GetHeight() + 1
+	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock.(*ngtypes.FullBlock))
 
 	newBlock := ngtypes.NewBareBlock(
 		pow.Network,
@@ -89,7 +89,7 @@ func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) *ngtypes.B
 
 	genTx := pow.createGenerateTx(privateKey, blockHeight, extraData)
 	txs := pow.Pool.GetPack(blockHeight)
-	txsWithGen := append([]*ngtypes.Tx{genTx}, txs...)
+	txsWithGen := append([]*ngtypes.FullTx{genTx}, txs...)
 
 	err := newBlock.ToUnsealing(txsWithGen)
 	if err != nil {
@@ -97,6 +97,11 @@ func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) *ngtypes.B
 	}
 
 	return newBlock
+}
+
+// GetChain returns the chain of the PoW consensus.
+func (pow *PoWork) GetChain() ngtypes.Chain {
+	return pow.Chain
 }
 
 // GoLoop ignites all loops.
@@ -130,7 +135,7 @@ var ErrChainOnSyncing = errors.New("chain is syncing")
 
 // MinedNewBlock means the local (from rpc) mined new block and need to add it into the chain.
 // called by submitBlock and submitWork
-func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
+func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
 	if pow.SyncMod.Locker.IsLocked() {
 		return fmt.Errorf("cannot import mined block: %w", ErrChainOnSyncing)
 	}
@@ -163,7 +168,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	}
 
 	hash := block.GetHash()
-	log.Warnf("mined a new block: %x@%d", hash, block.Header.Height)
+	log.Warnf("mined a new block: %x@%d", hash, block.GetHeight())
 
 	pow.Pool.Reset()
 
@@ -175,7 +180,9 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.Block) error {
 	return nil
 }
 
-func (pow *PoWork) ImportBlock(block *ngtypes.Block) error {
+func (pow *PoWork) ImportBlock(b ngtypes.Block) error {
+	block := b.(*ngtypes.FullBlock)
+
 	if pow.SyncMod.Locker.IsLocked() {
 		return errors.Wrap(ErrChainOnSyncing, "cannot import external block")
 	}

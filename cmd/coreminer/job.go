@@ -10,7 +10,7 @@ import (
 )
 
 type Job struct {
-	*ngtypes.Block
+	*ngtypes.FullBlock
 	RawHeader string
 	Nonce     []byte
 }
@@ -37,7 +37,7 @@ func NewJob(rawHeader string) *Job {
 
 	return &Job{
 		RawHeader: rawHeader,
-		Block:     block,
+		FullBlock: block,
 		Nonce:     nil,
 	}
 }

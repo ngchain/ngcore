@@ -21,7 +21,7 @@ type TxPool struct {
 	sync.Mutex
 
 	db    *dbolt.DB
-	txMap map[uint64]*ngtypes.Tx // priority first
+	txMap map[uint64]*ngtypes.FullTx // priority first
 
 	chain     *blockchain.Chain
 	localNode *ngp2p.LocalNode
@@ -31,7 +31,7 @@ func Init(db *dbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *Tx
 	pool := &TxPool{
 		Mutex: sync.Mutex{},
 		db:    db,
-		txMap: make(map[uint64]*ngtypes.Tx),
+		txMap: make(map[uint64]*ngtypes.FullTx),
 
 		chain:     chain,
 		localNode: localNode,
@@ -41,7 +41,7 @@ func Init(db *dbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *Tx
 }
 
 // IsInPool checks one tx is in pool or not.
-func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) {
+func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.FullTx) {
 	for _, txInQueue := range pool.txMap {
 		if bytes.Equal(txInQueue.GetHash(), txHash) {
 			return true, txInQueue
@@ -53,5 +53,5 @@ func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Tx) 
 
 // Reset cleans all txs inside the pool.
 func (pool *TxPool) Reset() {
-	pool.txMap = make(map[uint64]*ngtypes.Tx)
+	pool.txMap = make(map[uint64]*ngtypes.FullTx)
 }

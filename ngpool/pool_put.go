@@ -9,7 +9,7 @@ import (
 )
 
 // PutNewTxFromLocal puts tx from local(rpc) into txpool.
-func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
+func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.FullTx) (err error) {
 	log.Debugf("putting new tx %x from rpc", tx.GetHash())
 
 	err = pool.PutTx(tx)
@@ -26,7 +26,7 @@ func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.Tx) (err error) {
 }
 
 // PutNewTxFromRemote puts tx from local(rpc) into txpool.
-func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
+func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.FullTx) (err error) {
 	log.Debugf("putting new tx %x from p2p", tx.GetHash())
 
 	err = pool.PutTx(tx)
@@ -40,7 +40,7 @@ func (pool *TxPool) PutNewTxFromRemote(tx *ngtypes.Tx) (err error) {
 var ErrTxInvalidHeight = errors.New("invalid tx height")
 
 // PutTx puts txs from network(p2p) or RPC into txpool, should check error before putting.
-func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
+func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 	pool.Lock()
 	defer pool.Unlock()
 
@@ -55,11 +55,11 @@ func (pool *TxPool) PutTx(tx *ngtypes.Tx) error {
 		return err
 	}
 
-	latestBlock := pool.chain.GetLatestBlock()
+	latestBlock := pool.chain.GetLatestBlock().(*ngtypes.FullBlock)
 
-	if tx.Height != latestBlock.Header.Height {
+	if tx.Height != latestBlock.GetHeight() {
 		return errors.Wrapf(ErrTxInvalidHeight, "tx %x does not belong to current State, found %d, require %d",
-			tx.GetHash(), tx.Height, latestBlock.Header.Height)
+			tx.GetHash(), tx.Height, latestBlock.GetHeight())
 	}
 
 	if pool.txMap[uint64(tx.Convener)] == nil ||

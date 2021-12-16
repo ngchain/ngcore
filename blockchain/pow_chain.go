@@ -8,7 +8,7 @@ import (
 )
 
 // ApplyBlock checks the block and then calls blockchain's PutNewBlock, and then auto-upgrade the state.
-func (chain *Chain) ApplyBlock(block *ngtypes.Block) error {
+func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 	err := chain.Update(func(txn *dbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.BlockBucketName)

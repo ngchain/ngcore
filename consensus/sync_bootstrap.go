@@ -99,27 +99,3 @@ func (mod *syncModule) bootstrap() {
 		panic(err)
 	}
 }
-
-func (mod *syncModule) doInit(record *RemoteRecord) error {
-	mod.Locker.Lock()
-	defer mod.Locker.Unlock()
-
-	log.Warnf("initial syncing with remote node %s", record.id)
-
-	// get chain
-	for mod.pow.Chain.GetLatestBlockHeight() < record.latest {
-		chain, err := mod.getRemoteChainFromLocalLatest(record)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < len(chain); i++ {
-			err = mod.pow.Chain.ApplyBlock(chain[i])
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}

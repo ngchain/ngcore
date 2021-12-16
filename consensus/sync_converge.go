@@ -65,11 +65,11 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 }
 
 // getBlocksForConverging gets the blocks since the diffpoint (inclusive) by comparing hashes between local and remote.
-func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.Block, error) {
-	blocks := make([]*ngtypes.Block, 0)
+func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.FullBlock, error) {
+	blocks := make([]*ngtypes.FullBlock, 0)
 
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
-	localOriginHeight := mod.pow.Chain.GetOriginBlock().Header.Height
+	localOriginHeight := mod.pow.Chain.GetOriginBlock().GetHeight()
 
 	ptr := localHeight
 
@@ -103,13 +103,13 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 		}
 		if chain == nil {
 			// chain == nil means all hashes are matched
-			localChain := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
+			localChain := make([]*ngtypes.FullBlock, 0, defaults.MaxBlocks)
 			for i := range blockHashes {
 				block, err := mod.pow.Chain.GetBlockByHash(blockHashes[i])
 				if err != nil {
 					return nil, fmt.Errorf("failed on constructing local chain: %w", err)
 				}
-				localChain = append(localChain, block)
+				localChain = append(localChain, block.(*ngtypes.FullBlock))
 			}
 
 			blocks = append(localChain, blocks...)

@@ -55,8 +55,8 @@ func (mod *syncModule) doSnapshotConverging(record *RemoteRecord) error {
 		return err
 	}
 
-	localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Header.Height)
-	log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Header.Height, chain[1].GetHash(), localSamepoint.GetHash())
+	localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].GetHeight())
+	log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].GetHeight(), chain[1].GetHash(), localSamepoint.GetHash())
 
 	err = mod.pow.Chain.ForceApplyBlocks(chain)
 	if err != nil {

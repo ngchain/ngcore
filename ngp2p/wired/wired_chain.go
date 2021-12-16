@@ -8,16 +8,16 @@ import (
 )
 
 // sendChain will send peer the specific vault's sendChain, which's len is not must be full BlockCheckRound num.
-func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes.Block) bool {
+func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes.FullBlock) bool {
 	if len(blocks) == 0 {
 		return false
 	}
 
 	log.Debugf("replying sendChain to %s. Message id: %x, from block@%d to %d",
-		stream.Conn().RemotePeer(), uuid, blocks[0].Header.Height, blocks[len(blocks)-1].Header.Height,
+		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight(), blocks[len(blocks)-1].GetHeight(),
 	)
 
-	protoBlocks := make([]*ngtypes.Block, len(blocks))
+	protoBlocks := make([]*ngtypes.FullBlock, len(blocks))
 	for i := 0; i < len(blocks); i++ {
 		protoBlocks[i] = blocks[i]
 	}

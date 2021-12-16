@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (b *Broadcast) BroadcastTx(tx *ngtypes.Tx) error {
+func (b *Broadcast) BroadcastTx(tx *ngtypes.FullTx) error {
 	log.Debugf("broadcasting tx %s", tx.BS58())
 
 	raw, err := rlp.EncodeToBytes(tx)
@@ -30,7 +30,7 @@ func (b *Broadcast) BroadcastTx(tx *ngtypes.Tx) error {
 }
 
 func (b *Broadcast) onBroadcastTx(msg *pubsub.Message) {
-	var newTx ngtypes.Tx
+	var newTx ngtypes.FullTx
 
 	err := rlp.DecodeBytes(msg.Data, &newTx)
 	if err != nil {

@@ -37,7 +37,7 @@ func (mod *syncModule) doSync(record *RemoteRecord) error {
 		for i := 0; i < len(chain); i++ {
 			err = mod.pow.Chain.ApplyBlock(chain[i])
 			if err != nil {
-				return errors.Wrapf(err, "failed on applying block@%d", chain[i].Header.Height)
+				return errors.Wrapf(err, "failed on applying block@%d", chain[i].GetHeight())
 			}
 		}
 	}

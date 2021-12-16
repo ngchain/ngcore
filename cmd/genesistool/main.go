@@ -67,7 +67,7 @@ var checkCommand = &cli.Command{
 			b := ngtypes.GetGenesisBlock(network)
 			if err := b.CheckError(); err != nil {
 				fmt.Printf("Current genesis block is invalid, err: %s, use the generate tx above to re-calc nonce...  \n", err)
-				err := b.ToUnsealing([]*ngtypes.Tx{gtx})
+				err := b.ToUnsealing([]*ngtypes.FullTx{gtx})
 				if err != nil {
 					fmt.Print(err)
 				}

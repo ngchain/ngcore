@@ -4,10 +4,10 @@ import (
 	"math/big"
 )
 
-var genesisGenerateTx *Tx
+var genesisGenerateTx *FullTx
 
 // GetGenesisGenerateTx provides the genesis generate tx under current network
-func GetGenesisGenerateTx(network Network) *Tx {
+func GetGenesisGenerateTx(network Network) *FullTx {
 	if genesisGenerateTx == nil || genesisGenerateTx.Network != network {
 		ggtx := NewTx(network, GenerateTx, 0, 0, []Address{GenesisAddress},
 			[]*big.Int{GetBlockReward(0)},

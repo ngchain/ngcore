@@ -64,5 +64,5 @@ func (w *Wired) onPing(stream network.Stream, msg *Message) {
 	origin := w.chain.GetOriginBlock()
 	latest := w.chain.GetLatestBlock()
 	checkpoint := w.chain.GetLatestCheckpoint()
-	w.sendPong(msg.Header.ID, stream, origin.Header.Height, latest.Header.Height, checkpoint.GetHash(), checkpoint.GetActualDiff().Bytes())
+	w.sendPong(msg.Header.ID, stream, origin.GetHeight(), latest.GetHeight(), checkpoint.GetHash(), checkpoint.GetActualDiff().Bytes())
 }

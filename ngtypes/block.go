@@ -32,19 +32,19 @@ var (
 	ErrBlockNotSealed = errors.New("the block is not sealed")
 )
 
-// Block is the base unit of the block chain and the container of the txs, which
+// FullBlock is an implement of Block the base unit of the blockchain and the container of the txs, which
 // provides the safety assurance by the hashes in the header
-type Block struct {
-	Header *BlockHeader
-	Txs    []*Tx
-	Subs   []*BlockHeader
+type FullBlock struct {
+	*BlockHeader
+	Txs  []*FullTx
+	Subs []*BlockHeader
 }
 
 // NewBlock creates a new Block
 func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, txTrieHash, subTrieHash, difficulty,
-	nonce []byte, txs []*Tx, subs []*BlockHeader) *Block {
-	return &Block{
-		Header: &BlockHeader{
+	nonce []byte, txs []*FullTx, subs []*BlockHeader) *FullBlock {
+	return &FullBlock{
+		BlockHeader: &BlockHeader{
 			Network:       network,
 			Height:        height,
 			Timestamp:     timestamp,
@@ -60,16 +60,16 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 }
 
 // NewBlockFromHeader creates a new Block
-func NewBlockFromHeader(blockHeader *BlockHeader, txs []*Tx, subs []*BlockHeader) *Block {
-	return &Block{
-		Header: blockHeader,
-		Txs:    txs,
-		Subs:   subs,
+func NewBlockFromHeader(blockHeader *BlockHeader, txs []*FullTx, subs []*BlockHeader) *FullBlock {
+	return &FullBlock{
+		BlockHeader: blockHeader,
+		Txs:         txs,
+		Subs:        subs,
 	}
 }
 
 // NewBlockFromPoWRaw will apply the raw pow of header and txs to the block.
-func NewBlockFromPoWRaw(raw []byte, txs []*Tx, subs []*BlockHeader) (*Block, error) {
+func NewBlockFromPoWRaw(raw []byte, txs []*FullTx, subs []*BlockHeader) (*FullBlock, error) {
 	// lenRaw := NetSize +  // 1
 	//   HeightSize+        // 8
 	//   TimestampSize +    // +
@@ -105,7 +105,7 @@ func NewBlockFromPoWRaw(raw []byte, txs []*Tx, subs []*BlockHeader) (*Block, err
 
 // NewBareBlock will return an unsealing block and
 // then you need to add txs and seal with the correct N.
-func NewBareBlock(network Network, height uint64, blockTime uint64, prevBlockHash []byte, diff *big.Int) *Block {
+func NewBareBlock(network Network, height uint64, blockTime uint64, prevBlockHash []byte, diff *big.Int) *FullBlock {
 	return NewBlock(
 		network,
 		height,
@@ -115,39 +115,39 @@ func NewBareBlock(network Network, height uint64, blockTime uint64, prevBlockHas
 		make([]byte, HashSize),
 		diff.Bytes(),
 		make([]byte, NonceSize),
-		make([]*Tx, 0),
+		make([]*FullTx, 0),
 		[]*BlockHeader{},
 	)
 }
 
 // IsUnsealing checks whether the block is unsealing.
-func (x *Block) IsUnsealing() bool {
-	return x.Header.TxTrieHash != nil
+func (x *FullBlock) IsUnsealing() bool {
+	return x.BlockHeader.TxTrieHash != nil
 }
 
 // IsSealed checks whether the block is sealed.
-func (x *Block) IsSealed() bool {
-	return x.Header.Nonce != nil
+func (x *FullBlock) IsSealed() bool {
+	return x.BlockHeader.Nonce != nil
 }
 
 // IsHead will check whether the Block is the head(checkpoint).
-func (x *Block) IsHead() bool {
-	return x.Header.Height%BlockCheckRound == 0
+func (x *FullBlock) IsHead() bool {
+	return x.BlockHeader.Height%BlockCheckRound == 0
 }
 
 // IsTail will check whether the Block is the tail(the one before head).
-func (x *Block) IsTail() bool {
-	return (x.Header.Height+1)%BlockCheckRound == 0
+func (x *FullBlock) IsTail() bool {
+	return (x.BlockHeader.Height+1)%BlockCheckRound == 0
 }
 
 // IsGenesis will check whether the Block is the genesis block.
-func (x *Block) IsGenesis() bool {
-	return bytes.Equal(x.GetHash(), GetGenesisBlock(x.Header.Network).GetHash())
+func (x *FullBlock) IsGenesis() bool {
+	return bytes.Equal(x.GetHash(), GetGenesisBlock(x.BlockHeader.Network).GetHash())
 }
 
 // GetPoWRawHeader will return a complete raw for block hash.
 // When nonce is not nil, the RawHeader will use the nonce param not the x.Nonce.
-func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
+func (x *FullBlock) GetPoWRawHeader(nonce []byte) []byte {
 	// lenRaw := NetSize +  // 1
 	//   HeightSize+        // 8
 	//   TimestampSize +    // +
@@ -159,16 +159,16 @@ func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 	//                      // = 153
 	raw := make([]byte, 153)
 
-	raw[0] = byte(x.Header.Network)
-	binary.LittleEndian.PutUint64(raw[1:], x.Header.Height)
-	binary.LittleEndian.PutUint64(raw[9:17], x.Header.Timestamp)
-	copy(raw[17:49], x.Header.PrevBlockHash)
-	copy(raw[49:81], x.Header.TxTrieHash)
-	copy(raw[81:113], x.Header.SubTrieHash)
-	copy(raw[113:145], utils.ReverseBytes(x.Header.Difficulty)) // uint256
+	raw[0] = byte(x.BlockHeader.Network)
+	binary.LittleEndian.PutUint64(raw[1:], x.BlockHeader.Height)
+	binary.LittleEndian.PutUint64(raw[9:17], x.BlockHeader.Timestamp)
+	copy(raw[17:49], x.BlockHeader.PrevBlockHash)
+	copy(raw[49:81], x.BlockHeader.TxTrieHash)
+	copy(raw[81:113], x.BlockHeader.SubTrieHash)
+	copy(raw[113:145], utils.ReverseBytes(x.BlockHeader.Difficulty)) // uint256
 
 	if nonce == nil {
-		copy(raw[145:153], x.Header.Nonce)
+		copy(raw[145:153], x.BlockHeader.Nonce)
 	} else {
 		copy(raw[145:153], nonce)
 	}
@@ -177,13 +177,13 @@ func (x *Block) GetPoWRawHeader(nonce []byte) []byte {
 }
 
 // PowHash will help you get the pow hash of block.
-func (x *Block) PowHash() []byte {
+func (x *FullBlock) PowHash() []byte {
 	hash := astrobwt.POW_0alloc(x.GetPoWRawHeader(nil))
 	return hash[:]
 }
 
 // ToUnsealing converts a bare block to an unsealing block
-func (x *Block) ToUnsealing(txsWithGen []*Tx) error {
+func (x *FullBlock) ToUnsealing(txsWithGen []*FullTx) error {
 	if txsWithGen[0].Type != GenerateTx {
 		return ErrBlockNoGen
 	}
@@ -195,7 +195,7 @@ func (x *Block) ToUnsealing(txsWithGen []*Tx) error {
 	}
 
 	txTrie := NewTxTrie(txsWithGen)
-	x.Header.TxTrieHash = txTrie.TrieRoot()
+	x.BlockHeader.TxTrieHash = txTrie.TrieRoot()
 	x.Txs = txsWithGen
 
 	return nil
@@ -207,67 +207,67 @@ var (
 )
 
 // ToSealed converts an unsealing block to a sealed block.
-func (x *Block) ToSealed(nonce []byte) (*Block, error) {
+func (x *FullBlock) ToSealed(nonce []byte) error {
 	if !x.IsUnsealing() {
-		return nil, ErrBlockSealBare
+		return ErrBlockSealBare
 	}
 
 	if len(nonce) != NonceSize {
-		return nil, errors.Wrapf(ErrInvalidNonce, "nonce length %d is incorrect", len(nonce))
+		return errors.Wrapf(ErrInvalidNonce, "nonce length %d is incorrect", len(nonce))
 	}
 
-	x.Header.Nonce = nonce
+	x.BlockHeader.Nonce = nonce
 
-	return x, nil
+	return nil
 }
 
 // verifyNonce will verify whether the nonce meets the target.
-func (x *Block) verifyNonce() error {
-	diff := new(big.Int).SetBytes(x.Header.Difficulty)
+func (x *FullBlock) verifyNonce() error {
+	diff := new(big.Int).SetBytes(x.BlockHeader.Difficulty)
 	target := new(big.Int).Div(MaxTarget, diff)
 
 	if new(big.Int).SetBytes(x.PowHash()).Cmp(target) < 0 {
 		return nil
 	}
 
-	return errors.Wrapf(ErrInvalidNonce, "block@%d's nonce %x is invalid", x.Header.Height, x.Header.Nonce)
+	return errors.Wrapf(ErrInvalidNonce, "block@%d's nonce %x is invalid", x.BlockHeader.Height, x.BlockHeader.Nonce)
 }
 
 // GetActualDiff returns the diff decided by nonce.
-func (x *Block) GetActualDiff() *big.Int {
+func (x *FullBlock) GetActualDiff() *big.Int {
 	return new(big.Int).Div(MaxTarget, new(big.Int).SetBytes(x.PowHash()))
 }
 
 // CheckError will check the errors in block inner fields.
-func (x *Block) CheckError() error {
+func (x *FullBlock) CheckError() error {
 	// if x.Network != Network {
 	//	return fmt.Errorf("block's network id is incorrect")
 	// }
 	// DONE: do network check on consensus
 
-	if len(x.Header.PrevBlockHash) != HashSize {
-		return errors.Wrapf(ErrBlockPrevHashInvalid, "block%d's PrevBlockHash length is incorrect", x.Header.Height)
+	if len(x.BlockHeader.PrevBlockHash) != HashSize {
+		return errors.Wrapf(ErrBlockPrevHashInvalid, "block%d's PrevBlockHash length is incorrect", x.BlockHeader.Height)
 	}
 
-	if len(x.Header.TxTrieHash) != HashSize {
-		return errors.Wrapf(ErrBlockTxTrieHashInvalid, "block%d's TrieHash length is incorrect", x.Header.Height)
+	if len(x.BlockHeader.TxTrieHash) != HashSize {
+		return errors.Wrapf(ErrBlockTxTrieHashInvalid, "block%d's TrieHash length is incorrect", x.BlockHeader.Height)
 	}
 
-	if len(x.Header.Nonce) != NonceSize {
-		return errors.Wrapf(ErrInvalidNonce, "block%d's Nonce length is incorrect", x.Header.Height)
+	if len(x.BlockHeader.Nonce) != NonceSize {
+		return errors.Wrapf(ErrInvalidNonce, "block%d's Nonce length is incorrect", x.BlockHeader.Height)
 	}
 
-	if x.Header.Timestamp > uint64(time.Now().Unix()) {
-		return errors.Wrapf(ErrBlockTimestampInvalid, "block%d's timestamp %d is invalid", x.Header.Height, x.Header.Timestamp)
+	if x.BlockHeader.Timestamp > uint64(time.Now().Unix()) {
+		return errors.Wrapf(ErrBlockTimestampInvalid, "block%d's timestamp %d is invalid", x.BlockHeader.Height, x.BlockHeader.Timestamp)
 	}
 
 	if !x.IsSealed() {
-		return errors.Wrapf(ErrBlockNotSealed, "block@%d has not sealed with nonce", x.Header.Height)
+		return errors.Wrapf(ErrBlockNotSealed, "block@%d has not sealed with nonce", x.BlockHeader.Height)
 	}
 
 	txTrie := NewTxTrie(x.Txs)
-	if !bytes.Equal(txTrie.TrieRoot(), x.Header.TxTrieHash) {
-		return errors.Wrapf(ErrBlockTxTrieHashInvalid, "the tx merkle tree in block@%d is invalid", x.Header.Height)
+	if !bytes.Equal(txTrie.TrieRoot(), x.BlockHeader.TxTrieHash) {
+		return errors.Wrapf(ErrBlockTxTrieHashInvalid, "the tx merkle tree in block@%d is invalid", x.BlockHeader.Height)
 	}
 
 	err := x.verifyNonce()
@@ -284,8 +284,8 @@ func (x *Block) CheckError() error {
 }
 
 // GetHash will help you get the hash of block.
-func (x *Block) GetHash() []byte {
-	raw, err := rlp.EncodeToBytes(x.Header)
+func (x *FullBlock) GetHash() []byte {
+	raw, err := rlp.EncodeToBytes(x.BlockHeader)
 	if err != nil {
 		panic(err)
 	}
@@ -295,13 +295,8 @@ func (x *Block) GetHash() []byte {
 	return hash[:]
 }
 
-// GetPrevHash is a helper to get the prev block hash from block header.
-func (x *Block) GetPrevHash() []byte {
-	return x.Header.PrevBlockHash
-}
-
-func (x *Block) Equals(other *Block) (bool, error) {
-	if eq, _ := x.Header.Equals(other.Header); !eq {
+func (x *FullBlock) Equals(other *FullBlock) (bool, error) {
+	if eq, _ := x.BlockHeader.Equals(other.BlockHeader); !eq {
 		return false, nil
 	}
 	if len(x.Txs) != len(other.Txs) {
@@ -315,4 +310,12 @@ func (x *Block) Equals(other *Block) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (x *FullBlock) GetTx(i int) Tx {
+	if i >= len(x.Txs) || i < 0 {
+		return nil
+	}
+
+	return x.Txs[i]
 }

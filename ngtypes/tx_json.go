@@ -24,7 +24,7 @@ type jsonTx struct {
 }
 
 // MarshalJSON encodes the tx into the json bytes
-func (x *Tx) MarshalJSON() ([]byte, error) {
+func (x *FullTx) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonTx{
 		Network:      x.Network.String(),
 		Type:         x.Type,
@@ -42,7 +42,7 @@ func (x *Tx) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON decodes the Tx from the json bytes
-func (x *Tx) UnmarshalJSON(b []byte) error {
+func (x *FullTx) UnmarshalJSON(b []byte) error {
 	var tx jsonTx
 	err := utils.JSON.Unmarshal(b, &tx)
 	if err != nil {

@@ -10,8 +10,8 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func genBlockNonce(b *ngtypes.Block) {
-	diff := new(big.Int).SetBytes(b.Header.Difficulty)
+func genBlockNonce(b *ngtypes.FullBlock) {
+	diff := new(big.Int).SetBytes(b.BlockHeader.Difficulty)
 	genesisTarget := new(big.Int).Div(ngtypes.MaxTarget, diff)
 	fmt.Printf("Genesis block's diff %d, target %x \n", diff, genesisTarget.Bytes())
 
@@ -29,7 +29,7 @@ func genBlockNonce(b *ngtypes.Block) {
 	fmt.Printf("Genesis Block Nonce Hex: %x \n", answer)
 }
 
-func calcHash(b *ngtypes.Block, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {
+func calcHash(b *ngtypes.FullBlock, target *big.Int, answerCh chan []byte, stopCh chan struct{}) {
 	// calcHash get the hash of block
 
 	random := make([]byte, ngtypes.NonceSize)

@@ -12,13 +12,13 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func GetTxByHash(txBucket *dbolt.Bucket, hash []byte) (*ngtypes.Tx, error) {
+func GetTxByHash(txBucket *dbolt.Bucket, hash []byte) (*ngtypes.FullTx, error) {
 	rawTx := txBucket.Get(hash)
 	if rawTx == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such tx in hash %x", hash)
 	}
 
-	var tx ngtypes.Tx
+	var tx ngtypes.FullTx
 	err := rlp.DecodeBytes(rawTx, &tx)
 	if err != nil {
 		return nil, err
@@ -27,13 +27,13 @@ func GetTxByHash(txBucket *dbolt.Bucket, hash []byte) (*ngtypes.Tx, error) {
 	return &tx, nil
 }
 
-func GetBlockByHash(blockBucket *dbolt.Bucket, hash []byte) (*ngtypes.Block, error) {
+func GetBlockByHash(blockBucket *dbolt.Bucket, hash []byte) (*ngtypes.FullBlock, error) {
 	rawBlock := blockBucket.Get(hash)
 	if rawBlock == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such block in hash %x", hash)
 	}
 
-	var b ngtypes.Block
+	var b ngtypes.FullBlock
 	err := rlp.DecodeBytes(rawBlock, &b)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func GetBlockByHash(blockBucket *dbolt.Bucket, hash []byte) (*ngtypes.Block, err
 	return &b, nil
 }
 
-func GetBlockByHeight(blockBucket *dbolt.Bucket, height uint64) (*ngtypes.Block, error) {
+func GetBlockByHeight(blockBucket *dbolt.Bucket, height uint64) (*ngtypes.FullBlock, error) {
 	key := utils.PackUint64LE(height)
 	hash := blockBucket.Get(key)
 	if hash == nil {
@@ -54,7 +54,7 @@ func GetBlockByHeight(blockBucket *dbolt.Bucket, height uint64) (*ngtypes.Block,
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such block in hash %x", hash)
 	}
 
-	var b ngtypes.Block
+	var b ngtypes.FullBlock
 	err := rlp.DecodeBytes(rawBlock, &b)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func GetLatestHash(blockBucket *dbolt.Bucket) ([]byte, error) {
 	return hash, nil
 }
 
-func GetLatestBlock(blockBucket *dbolt.Bucket) (*ngtypes.Block, error) {
+func GetLatestBlock(blockBucket *dbolt.Bucket) (*ngtypes.FullBlock, error) {
 	hash, err := GetLatestHash(blockBucket)
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ func GetOriginHash(blockBucket *dbolt.Bucket) ([]byte, error) {
 	return hash, nil
 }
 
-func GetOriginBlock(blockBucket *dbolt.Bucket) (*ngtypes.Block, error) {
+func GetOriginBlock(blockBucket *dbolt.Bucket) (*ngtypes.FullBlock, error) {
 	hash, err := GetOriginHash(blockBucket)
 	if err != nil {
 		return nil, err

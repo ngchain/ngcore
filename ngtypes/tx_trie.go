@@ -9,10 +9,10 @@ import (
 
 // TxTrie is a fixed ordered tx container to get the trie root hash.
 // This is not thread-safe
-type TxTrie []*Tx
+type TxTrie []*FullTx
 
 // NewTxTrie receives ordered ops.
-func NewTxTrie(txs []*Tx) TxTrie {
+func NewTxTrie(txs []*FullTx) TxTrie {
 	sort.Slice(txs, func(i, j int) bool {
 		return txs[i].Convener < txs[j].Convener
 	})
@@ -46,7 +46,7 @@ func NewTxTrie(txs []*Tx) TxTrie {
 // }
 
 // Contains determine if tt.Txs and tx are equal.
-func (tt *TxTrie) Contains(tx *Tx) bool {
+func (tt *TxTrie) Contains(tx *FullTx) bool {
 	for i := 0; i < len(*tt); i++ {
 		if (*tt)[i] == tx {
 			return true

@@ -192,7 +192,7 @@ func (state *State) RebuildFromBlockStore() error {
 }
 
 // Upgrade will apply block's txs on current state
-func (state *State) Upgrade(txn *dbolt.Tx, block *ngtypes.Block) error {
+func (state *State) Upgrade(txn *dbolt.Tx, block *ngtypes.FullBlock) error {
 	err := state.HandleTxs(txn, block.Txs...)
 	if err != nil {
 		return err

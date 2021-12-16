@@ -71,7 +71,7 @@ func (r *RemoteRecord) shouldSync(latestHeight uint64) bool {
 // Situation #1: remote height is higher than local, AND checkpoint is on higher level
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
 // TODO: add a cap for converging.
-func (r *RemoteRecord) shouldConverge(latestCheckPoint *ngtypes.Block, latestHeight uint64) bool {
+func (r *RemoteRecord) shouldConverge(latestCheckPoint *ngtypes.FullBlock, latestHeight uint64) bool {
 	if time.Now().Unix() < r.lastFailedTime+int64(60*60) {
 		return false
 	}

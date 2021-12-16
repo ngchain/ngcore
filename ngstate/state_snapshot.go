@@ -105,8 +105,8 @@ func (state *State) generateSnapshot(txn *dbolt.Tx) error {
 		})
 	}
 
-	sheet := ngtypes.NewSheet(state.Network, latestBlock.Header.Height, latestBlock.GetHash(), balances, accounts)
-	state.SnapshotManager.PutSnapshot(latestBlock.Header.Height, latestBlock.GetHash(), sheet)
+	sheet := ngtypes.NewSheet(state.Network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, accounts)
+	state.SnapshotManager.PutSnapshot(latestBlock.GetHeight(), latestBlock.GetHash(), sheet)
 	return nil
 }
 

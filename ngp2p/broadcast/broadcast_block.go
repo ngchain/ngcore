@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func (b *Broadcast) BroadcastBlock(block *ngtypes.Block) error {
+func (b *Broadcast) BroadcastBlock(block *ngtypes.FullBlock) error {
 	raw, err := rlp.EncodeToBytes(block)
 	if err != nil {
 		return err
@@ -20,13 +20,13 @@ func (b *Broadcast) BroadcastBlock(block *ngtypes.Block) error {
 		return err
 	}
 
-	log.Debugf("broadcast block@%d: %x", block.Header.Height, block.GetHash())
+	log.Debugf("broadcast block@%d: %x", block.GetHeight(), block.GetHash())
 
 	return nil
 }
 
 func (b *Broadcast) onBroadcastBlock(msg *pubsub.Message) {
-	var newBlock ngtypes.Block
+	var newBlock ngtypes.FullBlock
 
 	err := rlp.DecodeBytes(msg.Data, &newBlock)
 	if err != nil {
@@ -34,7 +34,7 @@ func (b *Broadcast) onBroadcastBlock(msg *pubsub.Message) {
 		return
 	}
 
-	log.Debugf("received a new block broadcast@%d", newBlock.Header.Height)
+	log.Debugf("received a new block broadcast@%d", newBlock.GetHeight())
 
 	b.OnBlock <- &newBlock
 }

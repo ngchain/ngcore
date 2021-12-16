@@ -13,10 +13,10 @@ import (
 // GetRemoteStatus just get the remote status from remote, and then put it into sync.store.
 func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 	origin := mod.pow.Chain.GetOriginBlock()
-	latest := mod.pow.Chain.GetLatestBlock()
+	latest := mod.pow.Chain.GetLatestBlock().(*ngtypes.FullBlock)
 	cp := mod.pow.Chain.GetLatestCheckpoint()
 
-	id, stream := mod.localNode.SendPing(peerID, origin.Header.Height, latest.Header.Height, cp.GetHash(), cp.GetActualDiff().Bytes())
+	id, stream := mod.localNode.SendPing(peerID, origin.GetHeight(), latest.GetHeight(), cp.GetHash(), cp.GetActualDiff().Bytes())
 	if stream == nil {
 		log.Infof("failed to send ping, cannot get remote status from %s", peerID) // level down this
 		return nil
@@ -52,7 +52,7 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 }
 
 // getRemoteChainFromLocalLatest just get the remote status from remote.
-func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chain []*ngtypes.Block, err error) {
+func (mod *syncModule) getRemoteChainFromLocalLatest(record *RemoteRecord) (chain []*ngtypes.FullBlock, err error) {
 	latestHash := mod.pow.Chain.GetLatestBlockHash()
 
 	id, s, err := mod.localNode.SendGetChain(record.id, [][]byte{latestHash}, nil) // nil means get MaxBlocks number blocks
@@ -89,7 +89,7 @@ var (
 )
 
 // getRemoteChain get the chain from remote node.
-func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.Block, err error) {
+func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []byte) (chain []*ngtypes.FullBlock, err error) {
 	id, s, err := mod.localNode.SendGetChain(peerID, from, to)
 	if s == nil {
 		return nil, fmt.Errorf("failed to send getchain: %w", err)

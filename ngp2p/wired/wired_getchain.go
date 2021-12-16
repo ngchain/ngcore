@@ -85,7 +85,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 		return
 	}
 
-	blocks := make([]*ngtypes.Block, 0, defaults.MaxBlocks)
+	blocks := make([]*ngtypes.FullBlock, 0, defaults.MaxBlocks)
 
 	if getChainPayload.From == nil || len(getChainPayload.From) == 0 && len(getChainPayload.To) == 16 {
 		// fetching mode
@@ -100,7 +100,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 				return
 			}
 
-			blocks = append(blocks, cur)
+			blocks = append(blocks, cur.(*ngtypes.FullBlock))
 		}
 
 		w.sendChain(msg.Header.ID, stream, blocks...)
@@ -145,7 +145,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 					return
 				}
 
-				blocks = append(blocks, cur)
+				blocks = append(blocks, cur.(*ngtypes.FullBlock))
 			}
 
 			w.sendChain(msg.Header.ID, stream, blocks...)
@@ -160,7 +160,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 		}
 
 		for i := 0; i < len(getChainPayload.From)-1-samepointIndex; i++ {
-			blockHeight := cur.Header.Height + 1
+			blockHeight := cur.(*ngtypes.FullBlock).GetHeight() + 1
 			cur, err = w.chain.GetBlockByHeight(blockHeight)
 			if err != nil {
 				err := errors.Wrapf(err, "chain lacks block@%d", blockHeight)
@@ -169,7 +169,7 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 				return
 			}
 
-			blocks = append(blocks, cur)
+			blocks = append(blocks, cur.(*ngtypes.FullBlock))
 		}
 	} else if len(getChainPayload.To) == 32 {
 		// fetch mode
@@ -179,14 +179,14 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 				break
 			}
 
-			nextHeight := cur.Header.Height + 1
+			nextHeight := cur.(*ngtypes.FullBlock).GetHeight() + 1
 			cur, err = w.chain.GetBlockByHeight(nextHeight)
 			if err != nil {
 				log.Debugf("local chain lacks block@%d: %s", nextHeight, err)
 				break
 			}
 
-			blocks = append(blocks, cur)
+			blocks = append(blocks, cur.(*ngtypes.FullBlock))
 		}
 	}
 

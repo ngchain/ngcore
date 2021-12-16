@@ -31,13 +31,13 @@ var (
 	ErrValNotBlock    = errors.New("the value in pool is not a block template")
 )
 
-func (wp *WorkPool) Get(k string) (*ngtypes.Block, error) {
+func (wp *WorkPool) Get(k string) (*ngtypes.FullBlock, error) {
 	iBlock, ok := wp.m.Get(k)
 	if !ok {
 		return nil, ErrBlockNotExists
 	}
 
-	block, ok := iBlock.(*ngtypes.Block)
+	block, ok := iBlock.(*ngtypes.FullBlock)
 	if !ok {
 		return nil, ErrValNotBlock
 	}
@@ -45,6 +45,6 @@ func (wp *WorkPool) Get(k string) (*ngtypes.Block, error) {
 	return block, nil
 }
 
-func (wp *WorkPool) Put(k string, v *ngtypes.Block) {
+func (wp *WorkPool) Put(k string, v *ngtypes.FullBlock) {
 	wp.m.Put(k, v)
 }

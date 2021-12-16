@@ -31,7 +31,7 @@ func TestDeserialize(t *testing.T) {
 	result := hex.EncodeToString(raw)
 	t.Log(result)
 
-	var otherTx ngtypes.Tx
+	var otherTx ngtypes.FullTx
 	_ = rlp.DecodeBytes(raw, &otherTx)
 	t.Logf("%#v", otherTx)
 }
@@ -83,7 +83,7 @@ func TestTxJSON(t *testing.T) {
 
 		t.Log(string(jsonTx))
 
-		tx2 := &ngtypes.Tx{}
+		tx2 := &ngtypes.FullTx{}
 		err = utils.JSON.Unmarshal(jsonTx, &tx2)
 		if err != nil {
 			t.Error(err)
@@ -111,7 +111,7 @@ func TestTxRLP(t *testing.T) {
 
 		t.Logf("%x", rlpTx)
 
-		tx2 := &ngtypes.Tx{}
+		tx2 := &ngtypes.FullTx{}
 		err = rlp.DecodeBytes(rlpTx, &tx2)
 		if err != nil {
 			t.Error(err)
