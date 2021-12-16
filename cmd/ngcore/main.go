@@ -29,6 +29,7 @@ func main() {
 
 	app.Commands = []*cli.Command{
 		getKeyToolsCommand(),
+		getCliToolsCommand(),
 	}
 
 	err := app.Run(os.Args)

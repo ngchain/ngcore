@@ -3,16 +3,15 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/ngchain/astrobwt"
 	"math/big"
 	"time"
 
 	"github.com/c0mm4nd/rlp"
-	"github.com/deroproject/astrobwt"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ngchain/ngcore/utils"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
-
-	"github.com/ngchain/ngcore/utils"
 )
 
 var log = logging.Logger("types")

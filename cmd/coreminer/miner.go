@@ -2,12 +2,12 @@ package main
 
 import (
 	"crypto/rand"
+	"github.com/ngchain/astrobwt"
 	"log"
 	"math/big"
 	"sync"
 	"time"
 
-	"github.com/deroproject/astrobwt"
 	"github.com/ngchain/ngcore/ngtypes"
 	"go.uber.org/atomic"
 )
@@ -97,8 +97,8 @@ func (t *Task) Mining(work Job) {
 
 					t.hashes.Inc()
 
-					if new(big.Int).SetBytes(hash[:]).Cmp(target) < 0 {
-						log.Printf("thread %d found nonce %x for block @ %d", threadID, nonce, work.GetHeight())
+					if hash != [32]byte{} && new(big.Int).SetBytes(hash[:]).Cmp(target) < 0 {
+						log.Printf("thread %d found nonce %x for block @ %d: %s < %s", threadID, nonce, work.GetHeight(), new(big.Int).SetBytes(hash[:]), target)
 						work.SetNonce(nonce)
 						t.foundCh <- work
 						return

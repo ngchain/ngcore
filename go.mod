@@ -8,7 +8,6 @@ require (
 	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956
 	github.com/c0mm4nd/wasman v0.0.0-20201023051902-3f585a486d39
 	github.com/cbergoon/merkletree v0.2.0
-	github.com/deroproject/astrobwt v0.0.0-20210630035954-2a649b40b1dc
 	github.com/google/uuid v1.3.0
 	github.com/ipfs/go-log/v2 v2.4.0
 	github.com/json-iterator/go v1.1.12
@@ -22,12 +21,13 @@ require (
 	github.com/libp2p/go-tcp-transport v0.4.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.4.1
+	github.com/ngchain/astrobwt v0.0.0-20211216120825-aeab3b044f9b
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/atomic v1.9.0
-	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 )
 
 require (
@@ -125,7 +125,6 @@ require (
 	github.com/prometheus/common v0.30.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/shenwei356/util v0.5.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect

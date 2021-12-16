@@ -3,10 +3,10 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/ngchain/astrobwt"
 	"math/big"
 	"runtime"
 
-	"github.com/deroproject/astrobwt"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
