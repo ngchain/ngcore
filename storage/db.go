@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"os"
 	"path"
 
 	"github.com/c0mm4nd/dbolt"
@@ -16,9 +17,12 @@ var db *dbolt.DB
 // InitStorage inits a new DB in data folder.
 func InitStorage(network ngtypes.Network, dbFolder string) *dbolt.DB {
 	if db == nil {
+		err := os.MkdirAll(dbFolder, os.ModeDir)
+		if err != nil {
+			log.Panic(err)
+		}
 		dbFilePath := path.Join(dbFolder, network.String()+".db")
 
-		var err error
 		db, err = dbolt.Open(dbFilePath, 0666, nil)
 		if err != nil {
 			log.Panic("failed to init dboltDB:", err)
