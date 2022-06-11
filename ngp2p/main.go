@@ -21,6 +21,8 @@ import (
 
 var log = logging.Logger("ngp2p")
 
+var _ host.Host = &LocalNode{}
+
 // LocalNode is the local host on p2p network
 type LocalNode struct {
 	host.Host // lib-p2p host
@@ -32,10 +34,11 @@ type LocalNode struct {
 }
 
 type P2PConfig struct {
-	P2PKeyFile       string
-	Network          ngtypes.Network
-	Port             int
-	DisableDiscovery bool
+	P2PKeyFile                  string
+	Network                     ngtypes.Network
+	Port                        int
+	DisableDiscovery            bool
+	DisableConnectingBootstraps bool
 }
 
 // InitLocalNode creates a new node with its implemented protocols.
@@ -84,7 +87,7 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 
 	if !config.DisableDiscovery {
 		initMDNS(ctx, localHost)
-		activeDHT(ctx, p2pDHT, localNode)
+		activeDHT(ctx, p2pDHT, localNode, config.DisableConnectingBootstraps)
 	}
 
 	return localNode

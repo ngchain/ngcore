@@ -33,13 +33,18 @@ func getPublicRouter(network ngtypes.Network) libp2p.Option {
 }
 
 // active DHT
-func activeDHT(ctx context.Context, kademliaDHT *dht.IpfsDHT, host core.Host) {
+func activeDHT(ctx context.Context, kademliaDHT *dht.IpfsDHT, host core.Host, disableConnectingBootstraps bool) {
 	err := kademliaDHT.Bootstrap(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	connectToDHTBootstrapNodes(ctx, host, BootstrapNodes)
+	if disableConnectingBootstraps {
+		connectToDHTBootstrapNodes(ctx, host, []multiaddr.Multiaddr{})
+	} else {
+		connectToDHTBootstrapNodes(ctx, host, BootstrapNodes)
+	}
+
 }
 
 func connectToDHTBootstrapNodes(ctx context.Context, h host.Host, mas []multiaddr.Multiaddr) int32 {

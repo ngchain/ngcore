@@ -179,6 +179,7 @@ var action = func(c *cli.Context) error {
 		Network:          network,
 		Port:             p2pTCPPort,
 		DisableDiscovery: network == ngtypes.ZERONET,
+		DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.ZERONET,
 	})
 	localNode.GoServe()
 
