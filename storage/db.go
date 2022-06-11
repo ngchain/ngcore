@@ -17,7 +17,7 @@ var db *dbolt.DB
 // InitStorage inits a new DB in data folder.
 func InitStorage(network ngtypes.Network, dbFolder string) *dbolt.DB {
 	if db == nil {
-		err := os.MkdirAll(dbFolder, os.ModeDir)
+		err := os.MkdirAll(dbFolder, os.ModePerm)
 		if err != nil {
 			log.Panic(err)
 		}
