@@ -144,4 +144,4 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
-replace github.com/ipfs/go-log/v2 v2.4.0 => github.com/ngchain/go-log/v2 v2.3.1-0.20211002062306-b0a842019708
+replace github.com/ipfs/go-log/v2 v2.5.1 => github.com/ngchain/go-log/v2 v2.3.1-0.20211002062306-b0a842019708

@@ -21,7 +21,7 @@ import (
 
 var log = logging.Logger("ngp2p")
 
-var _ host.Host = &LocalNode{}
+var _ host.Host = (*LocalNode)(nil)
 
 // LocalNode is the local host on p2p network
 type LocalNode struct {
