@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/secp256k1"
+	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"

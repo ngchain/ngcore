@@ -5,7 +5,7 @@ import (
 
 	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
-	logging "github.com/ipfs/go-log/v2"
+	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"

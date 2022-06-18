@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	multiplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"github.com/libp2p/go-tcp-transport"
+	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/keytools"

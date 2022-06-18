@@ -2,11 +2,11 @@ package wired
 
 import (
 	"github.com/c0mm4nd/rlp"
-	logging "github.com/ipfs/go-log/v2"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-msgio"
+	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngp2p/defaults"

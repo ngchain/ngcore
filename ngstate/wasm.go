@@ -8,7 +8,7 @@ import (
 	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
-	logging "github.com/ipfs/go-log/v2"
+	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )

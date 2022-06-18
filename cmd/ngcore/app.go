@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/c0mm4nd/dbolt"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/mr-tron/base58"
+	logging "github.com/ngchain/zap-log"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -175,10 +175,10 @@ var action = func(c *cli.Context) error {
 	chain.CheckHealth(network)
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
-		P2PKeyFile:       p2pKeyFile,
-		Network:          network,
-		Port:             p2pTCPPort,
-		DisableDiscovery: network == ngtypes.ZERONET,
+		P2PKeyFile:                  p2pKeyFile,
+		Network:                     network,
+		Port:                        p2pTCPPort,
+		DisableDiscovery:            network == ngtypes.ZERONET,
 		DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.ZERONET,
 	})
 	localNode.GoServe()

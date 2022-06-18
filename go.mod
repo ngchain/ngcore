@@ -9,7 +9,6 @@ require (
 	github.com/c0mm4nd/wasman v0.0.0-20201023051902-3f585a486d39
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/google/uuid v1.3.0
-	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-libp2p v0.20.1
 	github.com/libp2p/go-libp2p-core v0.16.1
@@ -24,6 +23,7 @@ require (
 	github.com/ngchain/astrobwt v0.0.0-20211216120825-aeab3b044f9b
 	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
 	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
+	github.com/ngchain/zap-log v0.0.0-20220612065838-4061b082cb2b
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli/v2 v2.8.1
 	go.uber.org/atomic v1.9.0
@@ -64,6 +64,7 @@ require (
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
 	github.com/ipfs/go-ipns v0.1.2 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
+	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/ipld/go-ipld-prime v0.16.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
@@ -136,7 +137,7 @@ require (
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20220517181318-183a9ca12b87 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e // indirect
+	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect

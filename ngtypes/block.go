@@ -3,13 +3,14 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/ngchain/astrobwt"
 	"math/big"
 	"time"
 
+	"github.com/ngchain/astrobwt"
+
 	"github.com/c0mm4nd/rlp"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/ngchain/ngcore/utils"
+	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 )
