@@ -86,7 +86,6 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 	}
 
 	if !config.DisableDiscovery {
-		initMDNS(ctx, localHost)
 		activeDHT(ctx, p2pDHT, localNode, config.DisableConnectingBootstraps)
 	}
 
