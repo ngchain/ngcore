@@ -3,8 +3,6 @@ package workpool
 import (
 	"errors"
 	"time"
-
-	"github.com/ngchain/ngcore/ngtypes"
 )
 
 type WorkPool struct {
@@ -28,19 +26,19 @@ func GetWorkerPool() *WorkPool {
 
 var (
 	ErrBlockNotExists = errors.New("no such block in the work pool")
-	ErrValNotBlock    = errors.New("the value in pool is not a block template")
+	// ErrValNotBlock    = errors.New("the value in pool is not a block template")
 )
 
 func (wp *WorkPool) Get(k string) (any, error) {
-	iBlock, ok := wp.m.Get(k)
+	block, ok := wp.m.Get(k)
 	if !ok {
 		return nil, ErrBlockNotExists
 	}
 
-	block, ok := iBlock.(*ngtypes.FullBlock)
-	if !ok {
-		return nil, ErrValNotBlock
-	}
+	// block, ok := iBlock.(*ngtypes.FullBlock)
+	// if !ok {
+	// 	return nil, ErrValNotBlock
+	// }
 
 	return block, nil
 }
