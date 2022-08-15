@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/go-jsonrpc2/jsonrpc2http"
 	"github.com/urfave/cli/v2"
-	"io/ioutil"
 )
 
 func getCliToolsCommand() *cli.Command {
@@ -43,7 +44,7 @@ func getCliToolsCommand() *cli.Command {
 				return err
 			}
 
-			raw, _ := ioutil.ReadAll(response.Body)
+			raw, _ := io.ReadAll(response.Body)
 			fmt.Println(string(raw))
 
 			return nil

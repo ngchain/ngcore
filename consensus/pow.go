@@ -99,6 +99,40 @@ func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) ngtypes.Bl
 	return newBlock
 }
 
+// GetBlockTemplate is a generator of new block. But the generated block has no nonce.
+func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, txs []*ngtypes.FullTx) {
+	currentBlock := pow.Chain.GetLatestBlock()
+
+	currentBlockHash := currentBlock.GetHash()
+
+	blockTime := uint64(time.Now().Unix())
+
+	blockHeight := currentBlock.GetHeight() + 1
+	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock.(*ngtypes.FullBlock))
+
+	bareBlock = ngtypes.NewBareBlock(
+		pow.Network,
+		blockHeight,
+		blockTime,
+		currentBlockHash,
+		newDiff,
+	)
+
+	// var extraData []byte // FIXME
+
+	txs = pow.Pool.GetPack(blockHeight)
+	// genTx := pow.createGenerateTx(privateKey, blockHeight, extraData)
+
+	// txsWithGen := append([]*ngtypes.FullTx{genTx}, txs...)
+
+	// err := newBlock.ToUnsealing(txsWithGen)
+	// if err != nil {
+	// 	log.Error(err)
+	// }
+
+	return
+}
+
 // GetChain returns the chain of the PoW consensus.
 func (pow *PoWork) GetChain() ngtypes.Chain {
 	return pow.Chain

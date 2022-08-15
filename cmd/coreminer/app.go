@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ngchain/ngcore/keytools"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,12 +33,20 @@ var keyPassFlag = &cli.StringFlag{
 	Name:    "password",
 	Aliases: []string{"pw"},
 	Usage:   "key file password",
-	Value:   keytools.GetDefaultFile(),
+	Value:   "",
+}
+
+var networkFlag = &cli.StringFlag{
+	Name:    "network",
+	Aliases: []string{"x"},
+	Usage:   "daemon network",
+	Value:   "mainnet",
 }
 
 var mining cli.ActionFunc = func(context *cli.Context) error {
+	network := ngtypes.GetNetwork(context.String(networkFlag.Name))
 	priv := keytools.ReadLocalKey(context.String(keyFileFlag.Name), context.String(keyPassFlag.Name))
-	client := NewClient(context.String(coreAddrFlag.Name), context.Int(corePortFlag.Name), priv)
+	client := NewClient(context.String(coreAddrFlag.Name), context.Int(corePortFlag.Name), network, priv)
 
 	foundCh := make(chan Job)
 
@@ -50,7 +59,7 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 	go func() {
 		for {
 			job := <-foundCh
-			client.SubmitWork(job.RawHeader, job.Nonce)
+			client.SubmitWork(job.WorkID, job.Nonce, job.GenTx)
 		}
 	}()
 

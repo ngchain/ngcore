@@ -13,16 +13,16 @@ type WorkPool struct {
 
 var workPool *WorkPool
 
-func init() {
-	workPool = &WorkPool{
-		NewExpirableMap(0, func(t time.Time, _ *Entry) bool {
-			now := time.Now().Unix()
-			return now-t.Unix() > 60*10 // expire in 10 min
-		}),
-	}
-}
-
 func GetWorkerPool() *WorkPool {
+	if workPool == nil {
+		workPool = &WorkPool{
+			NewExpirableMap(0, func(t time.Time, _ *Entry) bool {
+				now := time.Now().Unix()
+				return now-t.Unix() > 60*10 // expire in 10 min
+			}),
+		}
+	}
+
 	return workPool
 }
 
@@ -31,7 +31,7 @@ var (
 	ErrValNotBlock    = errors.New("the value in pool is not a block template")
 )
 
-func (wp *WorkPool) Get(k string) (*ngtypes.FullBlock, error) {
+func (wp *WorkPool) Get(k string) (any, error) {
 	iBlock, ok := wp.m.Get(k)
 	if !ok {
 		return nil, ErrBlockNotExists
@@ -45,6 +45,6 @@ func (wp *WorkPool) Get(k string) (*ngtypes.FullBlock, error) {
 	return block, nil
 }
 
-func (wp *WorkPool) Put(k string, v *ngtypes.FullBlock) {
+func (wp *WorkPool) Put(k string, v any) {
 	wp.m.Put(k, v)
 }

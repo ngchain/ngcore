@@ -3,6 +3,9 @@ package utils
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
+
+	"github.com/c0mm4nd/rlp"
 )
 
 // CombineBytes is a helper func to combine bytes without separator.
@@ -88,4 +91,27 @@ func ReverseBytes(b []byte) []byte {
 		_b[i], _b[j] = _b[j], _b[i]
 	}
 	return _b
+}
+
+func HexRLPEncode(v any) string {
+	rawBytes, err := rlp.EncodeToBytes(v)
+	if err != nil {
+		panic(err)
+	}
+
+	return hex.EncodeToString(rawBytes)
+}
+
+func HexRLPDecode(s string, v any) error {
+	rawBytes, err := hex.DecodeString(s)
+	if err != nil {
+		return err
+	}
+
+	err = rlp.DecodeBytes(rawBytes, v)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

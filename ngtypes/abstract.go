@@ -2,11 +2,17 @@ package ngtypes
 
 import "github.com/ngchain/secp256k1"
 
+var _ Tx = (*FullTx)(nil)
+
+// Tx is an abstract transaction interface.
 type Tx interface {
 	GetHash() []byte
 	IsSigned() bool
 }
 
+var _ Block = (*FullBlock)(nil)
+
+// Block is an abstract block interface.
 type Block interface {
 	IsUnsealing() bool
 	IsSealed() bool

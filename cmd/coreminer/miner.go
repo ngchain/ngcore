@@ -2,11 +2,12 @@ package main
 
 import (
 	"crypto/rand"
-	"github.com/ngchain/astrobwt"
 	"log"
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/ngchain/astrobwt"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"go.uber.org/atomic"
@@ -64,12 +65,12 @@ func NewMiner(threadNum int, foundCh chan Job, allExitCh chan struct{}) *Task {
 }
 
 func (t *Task) Mining(work Job) {
-	ok := t.running.CAS(false, true)
+	ok := t.running.CompareAndSwap(false, true)
 	if !ok {
 		panic("try over mining")
 	}
 
-	diff := new(big.Int).SetBytes(work.BlockHeader.Difficulty)
+	diff := new(big.Int).SetBytes(work.block.BlockHeader.Difficulty)
 	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
 	log.Println("mining ready")
@@ -93,12 +94,12 @@ func (t *Task) Mining(work Job) {
 						return
 					}
 
-					hash := astrobwt.POW_0alloc(work.GetPoWRawHeader(nonce))
+					hash := astrobwt.POW_0alloc(work.block.GetPoWRawHeader(nonce))
 
 					t.hashes.Inc()
 
 					if hash != [32]byte{} && new(big.Int).SetBytes(hash[:]).Cmp(target) < 0 {
-						log.Printf("thread %d found nonce %x for block @ %d: %s < %s", threadID, nonce, work.GetHeight(), new(big.Int).SetBytes(hash[:]), target)
+						log.Printf("thread %d found nonce %x for block @ %d: %s < %s", threadID, nonce, work.block.GetHeight(), new(big.Int).SetBytes(hash[:]), target)
 						work.SetNonce(nonce)
 						t.foundCh <- work
 						return
@@ -112,7 +113,7 @@ func (t *Task) Mining(work Job) {
 }
 
 func (t *Task) ExitJob() {
-	ok := t.running.CAS(true, false)
+	ok := t.running.CompareAndSwap(true, false)
 	if ok {
 		for i := range t.quitChPool {
 			t.quitChPool[i] <- struct{}{}

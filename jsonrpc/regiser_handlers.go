@@ -45,8 +45,8 @@ func registerHTTPHandler(s *Server) {
 
 	// mining
 	if !s.DisableMiningMethods {
-		s.RegisterJsonRpcHandleFunc("submitBlock", s.requireSynced(s.submitBlockFunc))
-		s.RegisterJsonRpcHandleFunc("getBlockTemplate", s.requireSynced(s.getBlockTemplateFunc))
+		// s.RegisterJsonRpcHandleFunc("submitBlock", s.requireSynced(s.submitBlockFunc))
+		// s.RegisterJsonRpcHandleFunc("getBlockTemplate", s.requireSynced(s.getBlockTemplateFunc))
 		s.RegisterJsonRpcHandleFunc("getWork", s.requireSynced(s.getWorkFunc))       // dangerous: public key reveal
 		s.RegisterJsonRpcHandleFunc("submitWork", s.requireSynced(s.submitWorkFunc)) // dangerous: attack pow hash on verification
 	}

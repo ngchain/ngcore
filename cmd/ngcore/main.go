@@ -20,7 +20,6 @@ func main() {
 		p2pTCPPortFlag, p2pKeyFileFlag,
 		rpcHostFlag, rpcPortFlag, rpcDisableFlag,
 		isBootstrapFlag, profileFlag,
-		keyFileNameFlag, keyPassFlag,
 
 		inMemFlag, dbFolderFlag,
 

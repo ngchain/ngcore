@@ -3,15 +3,16 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
+
 	"net"
 	"strconv"
 	"time"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/go-jsonrpc2/jsonrpc2http"
-	"github.com/mr-tron/base58"
 	"github.com/ngchain/ngcore/jsonrpc"
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 	"github.com/ngchain/secp256k1"
 )
@@ -20,20 +21,24 @@ type Client struct {
 	coreAddr string
 	corePort int
 	baseURL  string
-	priv     *secp256k1.PrivateKey
+
+	Network ngtypes.Network
+	priv    *secp256k1.PrivateKey
 
 	client     *jsonrpc2http.Client
 	currentJob *Job
 	OnNewJob   chan *Job
 }
 
-func NewClient(coreAddr string, corePort int, privateKey *secp256k1.PrivateKey) *Client {
+func NewClient(coreAddr string, corePort int, network ngtypes.Network, privateKey *secp256k1.PrivateKey) *Client {
 	baseURL := "http://" + net.JoinHostPort(coreAddr, strconv.Itoa(corePort))
 	return &Client{
 		coreAddr: coreAddr,
 		corePort: corePort,
 		baseURL:  baseURL,
-		priv:     privateKey,
+
+		Network: network,
+		priv:    privateKey,
 
 		client:     jsonrpc2http.NewClient(),
 		currentJob: nil,
@@ -45,16 +50,7 @@ func (c *Client) Loop() {
 }
 
 func (c *Client) GetWork() *Job {
-	rawPrivateKey := c.priv.Serialize() // its D
-
-	getWork, err := utils.JSON.Marshal(jsonrpc.GetWorkParams{
-		PrivateKey: base58.FastBase58Encoding(rawPrivateKey),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	msg := jsonrpc2.NewJsonRpcRequest(nil, "getWork", getWork)
+	msg := jsonrpc2.NewJsonRpcRequest(nil, "getWork", nil)
 	req, err := jsonrpc2http.NewClientRequest(c.baseURL, msg)
 	if err != nil {
 		panic(err)
@@ -65,7 +61,7 @@ func (c *Client) GetWork() *Job {
 		panic(err)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
@@ -85,16 +81,17 @@ func (c *Client) GetWork() *Job {
 		if err != nil {
 			panic(err)
 		}
-		return NewJob(result.RawHeader)
+
+		return NewJob(c.Network, c.priv, &result)
 	default:
 		panic("unknown response type")
 	}
 }
 
-func (c *Client) SubmitWork(rawHeader string, nonce []byte) {
+func (c *Client) SubmitWork(workID uint64, nonce []byte, genTx string) {
 	submitWork, err := utils.JSON.Marshal(jsonrpc.SubmitWorkParams{
-		RawHeader: rawHeader,
-		Nonce:     hex.EncodeToString(nonce),
+		WorkID: workID,
+		Nonce:  hex.EncodeToString(nonce),
 	})
 	if err != nil {
 		panic(err)
@@ -111,7 +108,7 @@ func (c *Client) SubmitWork(rawHeader string, nonce []byte) {
 		panic(err)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
