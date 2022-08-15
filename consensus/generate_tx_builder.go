@@ -8,15 +8,15 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// createGenerateTx will create a generate Tx for new Block.
+// CreateGenerateTx will create a generate Tx for new Block.
 // generate Tx is disallowed to edit external so use more local var.
-func (pow *PoWork) createGenerateTx(privateKey *secp256k1.PrivateKey, height uint64, extraData []byte) *ngtypes.FullTx {
+func CreateGenerateTx(network ngtypes.Network, privateKey *secp256k1.PrivateKey, height uint64, extraData []byte) *ngtypes.FullTx {
 	addr := ngtypes.NewAddress(privateKey)
 	fee := big.NewInt(0)
 	gen := ngtypes.NewUnsignedTx(
-		pow.Network,
+		network,
 		ngtypes.GenerateTx,
-		pow.Chain.GetLatestBlockHeight(),
+		height,
 		0,
 		[]ngtypes.Address{addr},
 		[]*big.Int{ngtypes.GetBlockReward(height)},

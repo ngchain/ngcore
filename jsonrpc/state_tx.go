@@ -172,7 +172,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
 		ngtypes.TransactTx,
-		s.pow.Chain.GetLatestBlockHeight(),
+		s.pow.Chain.GetLatestBlockHeight()+1,
 		ngtypes.AccountNum(params.Convener),
 		participants,
 		values,
@@ -213,7 +213,7 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
 		ngtypes.RegisterTx,
-		s.pow.Chain.GetLatestBlockHeight(),
+		s.pow.Chain.GetLatestBlockHeight()+1,
 		1,
 		[]ngtypes.Address{
 			params.Owner,
@@ -263,7 +263,7 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
 		ngtypes.DestroyTx,
-		s.pow.Chain.GetLatestBlockHeight(),
+		s.pow.Chain.GetLatestBlockHeight()+1,
 		ngtypes.AccountNum(params.Convener),
 		nil,
 		nil,
@@ -323,7 +323,7 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
 		ngtypes.AppendTx,
-		s.pow.Chain.GetLatestBlockHeight(),
+		s.pow.Chain.GetLatestBlockHeight()+1,
 		ngtypes.AccountNum(params.Convener),
 		nil,
 		nil,
@@ -384,7 +384,7 @@ func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
 		ngtypes.DeleteTx,
-		s.pow.Chain.GetLatestBlockHeight(),
+		s.pow.Chain.GetLatestBlockHeight()+1,
 		ngtypes.AccountNum(params.Convener),
 		nil,
 		nil,

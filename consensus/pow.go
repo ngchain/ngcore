@@ -87,7 +87,7 @@ func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) ngtypes.Bl
 
 	var extraData []byte // FIXME
 
-	genTx := pow.createGenerateTx(privateKey, blockHeight, extraData)
+	genTx := CreateGenerateTx(pow.Network, privateKey, blockHeight, extraData)
 	txs := pow.Pool.GetPack(blockHeight)
 	txsWithGen := append([]*ngtypes.FullTx{genTx}, txs...)
 
