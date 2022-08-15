@@ -2,9 +2,6 @@
 # BUILDER
 FROM golang:latest as builder
 
-ARG goproxy=https://goproxy.io
-ENV GOPROXY ${goproxy}
-
 COPY . /build
 WORKDIR /build
 
