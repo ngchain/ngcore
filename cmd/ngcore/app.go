@@ -3,20 +3,17 @@ package main
 import (
 	"net"
 	"net/http"
+	"strings"
 
 	// #nosec
 	_ "net/http/pprof"
-	"strings"
 
-	"github.com/c0mm4nd/dbolt"
-	"github.com/mr-tron/base58"
 	logging "github.com/ngchain/zap-log"
 	"github.com/urfave/cli/v2"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/jsonrpc"
-	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
@@ -81,18 +78,6 @@ var profileFlag = &cli.BoolFlag{
 	Usage: "Enable writing cpu profile to the file",
 }
 
-var keyFileNameFlag = &cli.StringFlag{
-	Name:  "keyfile",
-	Usage: "The filename to the key",
-	Value: "",
-}
-
-var keyPassFlag = &cli.StringFlag{
-	Name:  "key-pass",
-	Usage: "The password to unlock the key file",
-	Value: "",
-}
-
 var p2pKeyFileFlag = &cli.StringFlag{
 	Name:  "p2p-key",
 	Usage: "The file path to the p2p key",
@@ -122,8 +107,7 @@ var action = func(c *cli.Context) error {
 	rpcHost := c.String(rpcHostFlag.Name)
 	rpcPort := c.Int(rpcPortFlag.Name)
 	rpcDisables := c.StringSlice(rpcDisableFlag.Name)
-	keyPass := c.String(keyPassFlag.Name)
-	keyFile := c.String(keyFileNameFlag.Name)
+
 	p2pKeyFile := c.String(p2pKeyFileFlag.Name)
 	withProfile := c.Bool(profileFlag.Name)
 	dbFolder := c.String(dbFolderFlag.Name)
@@ -154,11 +138,7 @@ var action = func(c *cli.Context) error {
 
 	log.Warnf("ngcore version %s", Version)
 
-	key := keytools.ReadLocalKey(keyFile, strings.TrimSpace(keyPass))
-	log.Warnf("use address: %s to receive mining rewards \n", base58.FastBase58Encoding(ngtypes.NewAddress(key)))
-
-	var db *dbolt.DB
-	db = storage.InitStorage(network, dbFolder)
+	db := storage.InitStorage(network, dbFolder)
 
 	defer func() {
 		err := db.Close()
