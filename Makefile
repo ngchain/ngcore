@@ -13,8 +13,6 @@ run:
 	go run -ldflags "-X main.Commit=${COMMIT} -X main.Tag=${TAG}" ./cmd/ngcore $(ARGS)
 build:
 	go build -ldflags "-X main.Commit=${COMMIT} -X main.Tag=${TAG}" ./cmd/ngcore
-mining: build
-	./ngcore --mining 0 --in-mem
 bootstrap: build
 	./ngcore --bootstrap --in-mem
 clean:

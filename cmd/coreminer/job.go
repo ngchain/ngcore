@@ -27,10 +27,17 @@ func NewJob(network ngtypes.Network, priv *secp256k1.PrivateKey, reply *jsonrpc.
 		panic(err)
 	}
 
+	log.Warnf("new work: block %d with %d txs", block.Height, len(txs))
+
 	extraData := []byte("coreminer")
 	genTx := consensus.CreateGenerateTx(network, priv, block.Height, extraData)
 
-	block.Txs = append([]*ngtypes.FullTx{genTx}, txs...)
+	err = block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, txs...))
+	if err != nil {
+		panic(err)
+	}
+
+	log.Warnf("tx (with gen) trie hash: %x", block.TxTrieHash)
 
 	return &Job{
 		block:  &block,

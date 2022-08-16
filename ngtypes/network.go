@@ -22,7 +22,7 @@ func GetNetwork(netName string) Network {
 	case "MAINNET":
 		return MAINNET
 	default:
-		panic("invalid network")
+		panic("invalid network: " + netName)
 	}
 }
 

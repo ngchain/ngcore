@@ -3,8 +3,11 @@ package main
 import (
 	"os"
 
+	logging "github.com/ngchain/zap-log"
 	"github.com/urfave/cli/v2"
 )
+
+var log = logging.Logger("miner")
 
 func main() {
 	app := cli.NewApp()
@@ -14,7 +17,11 @@ func main() {
 	app.Description = description
 	app.Version = Version
 	app.Action = mining
-	app.Flags = []cli.Flag{coreAddrFlag, corePortFlag, keyFileFlag}
+	app.Flags = []cli.Flag{
+		coreAddrFlag, corePortFlag,
+		keyFileFlag, keyPassFlag,
+		networkFlag,
+	}
 
 	app.Commands = []*cli.Command{}
 

@@ -15,13 +15,13 @@ func NewLocker() *Locker {
 }
 
 func (l *Locker) Lock() {
-	for !l.status.CAS(false, true) {
+	for !l.status.CompareAndSwap(false, true) {
 		runtime.Gosched()
 	}
 }
 
 func (l *Locker) Unlock() {
-	for !l.status.CAS(true, false) {
+	for !l.status.CompareAndSwap(true, false) {
 		runtime.Gosched()
 	}
 }

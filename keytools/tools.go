@@ -3,7 +3,6 @@ package keytools
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -36,7 +35,7 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 	} else {
 		var raw []byte
 
-		raw, err = ioutil.ReadFile(filepath.Clean(filename))
+		raw, err = os.ReadFile(filepath.Clean(filename))
 		if err != nil {
 			panic(err)
 		}

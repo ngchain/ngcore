@@ -15,6 +15,8 @@ var (
 	ErrTxParticipantsInvalid = errors.New("invalid tx participants")
 	ErrTxValuesInvalid       = errors.New("invalid tx values")
 	ErrTxFeeInvalid          = errors.New("invalid tx fee")
-	ErrTxExtraInvalid        = errors.New("invalid tx extra")
-	ErrTxExtraExcess         = errors.New("the size of the tx extra is too large")
+
+	ErrTxHeightInvalid = errors.New("invalid tx height")
+	ErrTxExtraInvalid  = errors.New("invalid tx extra")
+	ErrTxExtraExcess   = errors.New("the size of the tx extra is too large")
 )

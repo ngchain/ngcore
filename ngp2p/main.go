@@ -6,10 +6,10 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
-	multiplex "github.com/libp2p/go-libp2p-mplex"
-	yamux "github.com/libp2p/go-libp2p-yamux"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	"github.com/libp2p/go-tcp-transport"
+	multiplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
+	yamux "github.com/libp2p/go-libp2p/p2p/muxer/yamux"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/blockchain"

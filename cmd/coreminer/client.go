@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
 	"io"
 
 	"net"
@@ -88,10 +87,11 @@ func (c *Client) GetWork() *Job {
 	}
 }
 
-func (c *Client) SubmitWork(workID uint64, nonce []byte, genTx string) {
+func (c *Client) SubmitWork(workID uint64, nonce []byte, genTx string) bool {
 	submitWork, err := utils.JSON.Marshal(jsonrpc.SubmitWorkParams{
 		WorkID: workID,
 		Nonce:  hex.EncodeToString(nonce),
+		GenTx:  genTx,
 	})
 	if err != nil {
 		panic(err)
@@ -120,10 +120,11 @@ func (c *Client) SubmitWork(workID uint64, nonce []byte, genTx string) {
 
 	switch resMsg.GetType() {
 	case jsonrpc2.TypeErrorMsg, jsonrpc2.TypeInvalidMsg:
-		fmt.Println(resMsg.Error.Message)
-
+		log.Error(resMsg.Error.Message)
+		return false
 	case jsonrpc2.TypeSuccessMsg:
-		return
+		log.Warning("nonce accepted by daemon")
+		return true
 	default:
 		panic("unknown response type")
 	}

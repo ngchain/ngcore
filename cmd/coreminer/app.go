@@ -40,7 +40,7 @@ var networkFlag = &cli.StringFlag{
 	Name:    "network",
 	Aliases: []string{"x"},
 	Usage:   "daemon network",
-	Value:   "mainnet",
+	Value:   "MAINNET",
 }
 
 var mining cli.ActionFunc = func(context *cli.Context) error {
@@ -52,14 +52,21 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 
 	threadNum := 2 // TODO
 
-	timeCh := time.NewTicker(time.Second * 10)
+	du := time.Second * 10
+	timeCh := time.NewTicker(du)
 	allExitCh := make(chan struct{}, 1)
-	task := NewMiner(threadNum, foundCh, allExitCh)
+	miner := NewMiner(threadNum, foundCh, allExitCh)
 
 	go func() {
 		for {
 			job := <-foundCh
-			client.SubmitWork(job.WorkID, job.Nonce, job.GenTx)
+			ok := client.SubmitWork(job.WorkID, job.Nonce, job.GenTx)
+			if ok {
+				timeCh.Reset(du)
+				job := client.GetWork()
+				miner.ExitJob()
+				miner.Mining(*job)
+			}
 		}
 	}()
 
@@ -67,8 +74,8 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 		for {
 			<-timeCh.C
 			job := client.GetWork()
-			task.ExitJob()
-			task.Mining(*job)
+			miner.ExitJob()
+			miner.Mining(*job)
 		}
 	}()
 

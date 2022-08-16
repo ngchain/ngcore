@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rand"
-	"log"
 	"math/big"
 	"sync"
 	"time"
@@ -13,34 +12,31 @@ import (
 	"go.uber.org/atomic"
 )
 
-type Task struct {
+type Miner struct {
 	running   *atomic.Bool
 	threadNum int
 
 	hashes     *atomic.Int64
-	quitChPool []chan struct{}
+	quitSignal *atomic.Bool
 	foundCh    chan Job
 	AllExitCh  chan struct{}
 }
 
-func NewMiner(threadNum int, foundCh chan Job, allExitCh chan struct{}) *Task {
+func NewMiner(threadNum int, foundCh chan Job, allExitCh chan struct{}) *Miner {
 	if threadNum <= 0 {
 		panic("thread number is incorrect")
 	}
 
-	log.Printf("start mining with %d thread(s)", threadNum)
+	log.Warningf("start mining with %d thread(s)", threadNum)
 
-	quitChPool := make([]chan struct{}, threadNum)
-	for i := range quitChPool {
-		quitChPool[i] = make(chan struct{}, 1)
-	}
+	quitSignal := atomic.NewBool(false)
 
-	m := &Task{
+	m := &Miner{
 		running:    atomic.NewBool(false),
 		threadNum:  threadNum,
 		hashes:     atomic.NewInt64(0),
 		foundCh:    foundCh,
-		quitChPool: quitChPool,
+		quitSignal: quitSignal,
 		AllExitCh:  allExitCh,
 	}
 
@@ -55,7 +51,7 @@ func NewMiner(threadNum int, foundCh chan Job, allExitCh chan struct{}) *Task {
 			<-reportTicker.C
 
 			hashes := m.hashes.Load()
-			log.Printf("Total hashrate: %d h/s", hashes/elapsed)
+			log.Warningf("Total hashrate: %d h/s", hashes/elapsed)
 
 			m.hashes.Sub(hashes)
 		}
@@ -64,7 +60,7 @@ func NewMiner(threadNum int, foundCh chan Job, allExitCh chan struct{}) *Task {
 	return m
 }
 
-func (t *Task) Mining(work Job) {
+func (t *Miner) Mining(work Job) {
 	ok := t.running.CompareAndSwap(false, true)
 	if !ok {
 		panic("try over mining")
@@ -73,7 +69,7 @@ func (t *Task) Mining(work Job) {
 	diff := new(big.Int).SetBytes(work.block.BlockHeader.Difficulty)
 	target := new(big.Int).Div(ngtypes.MaxTarget, diff)
 
-	log.Println("mining ready")
+	log.Warn("mining ready")
 
 	var miningWG sync.WaitGroup
 	for threadID := 0; threadID < t.threadNum; threadID++ {
@@ -83,28 +79,29 @@ func (t *Task) Mining(work Job) {
 			defer miningWG.Done()
 
 			for {
-				select {
-				case <-t.quitChPool[threadID]:
+				if t.quitSignal.Load() {
 					return
-				default:
-					// Compute the PoW value of this nonce
-					nonce := make([]byte, 8)
-					_, err := rand.Read(nonce)
-					if err != nil {
-						return
-					}
-
-					hash := astrobwt.POW_0alloc(work.block.GetPoWRawHeader(nonce))
-
-					t.hashes.Inc()
-
-					if hash != [32]byte{} && new(big.Int).SetBytes(hash[:]).Cmp(target) < 0 {
-						log.Printf("thread %d found nonce %x for block @ %d: %s < %s", threadID, nonce, work.block.GetHeight(), new(big.Int).SetBytes(hash[:]), target)
-						work.SetNonce(nonce)
-						t.foundCh <- work
-						return
-					}
 				}
+
+				// Compute the PoW value of this nonce
+				nonce := make([]byte, 8)
+				_, err := rand.Read(nonce)
+				if err != nil {
+					return
+				}
+
+				hash := astrobwt.POW_0alloc(work.block.GetPoWRawHeader(nonce))
+
+				t.hashes.Inc()
+
+				if hash != [32]byte{} && new(big.Int).SetBytes(hash[:]).Cmp(target) < 0 {
+					log.Warningf("thread %d found nonce %x for block @ %d", threadID, nonce, work.block.GetHeight())
+					log.Debugf("%s < %s", new(big.Int).SetBytes(hash[:]), target)
+					work.SetNonce(nonce)
+					t.foundCh <- work
+					return
+				}
+				// }
 			}
 		}(threadID)
 	}
@@ -112,17 +109,12 @@ func (t *Task) Mining(work Job) {
 	t.AllExitCh <- struct{}{}
 }
 
-func (t *Task) ExitJob() {
+func (t *Miner) ExitJob() {
 	ok := t.running.CompareAndSwap(true, false)
 	if ok {
-		for i := range t.quitChPool {
-			t.quitChPool[i] <- struct{}{}
-		}
-
+		log.Warn("exiting all jobs")
+		t.quitSignal.Store(true)
 		<-t.AllExitCh
-
-		for i := range t.quitChPool {
-			t.quitChPool[i] = make(chan struct{}, 1)
-		}
+		t.quitSignal.Store(false)
 	}
 }

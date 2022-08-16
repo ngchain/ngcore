@@ -1,7 +1,7 @@
 package keytools
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -14,7 +14,7 @@ func readKeyFromFile(filename string) crypto.PrivKey {
 		panic(err)
 	}
 
-	raw, err := ioutil.ReadAll(keyFile)
+	raw, err := io.ReadAll(keyFile)
 	if err != nil {
 		panic(err)
 	}

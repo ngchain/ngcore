@@ -192,6 +192,10 @@ func (x *FullBlock) ToUnsealing(txsWithGen []*FullTx) error {
 		if txsWithGen[i].Type == GenerateTx {
 			return ErrBlockOnlyOneGen
 		}
+
+		if txsWithGen[i].Height != x.Height {
+			return ErrTxExtraInvalid
+		}
 	}
 
 	txTrie := NewTxTrie(txsWithGen)
@@ -267,15 +271,16 @@ func (x *FullBlock) CheckError() error {
 
 	txTrie := NewTxTrie(x.Txs)
 	if !bytes.Equal(txTrie.TrieRoot(), x.BlockHeader.TxTrieHash) {
-		return errors.Wrapf(ErrBlockTxTrieHashInvalid, "the tx merkle tree in block@%d is invalid", x.BlockHeader.Height)
+		return errors.Wrapf(
+			ErrBlockTxTrieHashInvalid,
+			"the tx merkle tree in block@%d is invalid: %x != %x",
+			x.BlockHeader.Height,
+			txTrie.TrieRoot(),
+			x.BlockHeader.TxTrieHash,
+		)
 	}
 
 	err := x.verifyNonce()
-	if err != nil {
-		return err
-	}
-
-	err = x.verifyNonce()
 	if err != nil {
 		return err
 	}

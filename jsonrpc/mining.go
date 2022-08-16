@@ -27,8 +27,9 @@ type GetWorkReply struct {
 // getWorkFunc provides a free style interface for miner client getting latest block mining work
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	block, txs := s.pow.GetBareBlockTemplateWithTxs()
+	id := uint64(time.Now().UnixNano())
 	reply := &GetWorkReply{
-		WorkID: uint64(time.Nanosecond),
+		WorkID: id,
 		Block:  utils.HexRLPEncode(block),
 		Txs:    utils.HexRLPEncode(txs),
 	}
@@ -81,7 +82,7 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var block *ngtypes.FullBlock
+	var block ngtypes.FullBlock
 	var txs []*ngtypes.FullTx
 
 	err = utils.HexRLPDecode(reply.Block, &block)
@@ -95,10 +96,18 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	block.Txs = append([]*ngtypes.FullTx{&genTx}, txs...)
-	block.BlockHeader.Nonce = nonce
+	err = block.ToUnsealing(append([]*ngtypes.FullTx{&genTx}, txs...))
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	err = block.ToSealed(nonce)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
-	err = s.pow.MinedNewBlock(block)
+	err = s.pow.MinedNewBlock(&block)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
