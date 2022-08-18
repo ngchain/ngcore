@@ -32,7 +32,7 @@ func getAccountByNum(txn *dbolt.Tx, num ngtypes.AccountNum) (*ngtypes.Account, e
 func getAccountNumByAddr(txn *dbolt.Tx, addr ngtypes.Address) (ngtypes.AccountNum, error) {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
-	rawNum := addr2numBucket.Get(addr)
+	rawNum := addr2numBucket.Get(addr[:])
 	if rawNum == nil {
 		return 0, errors.Wrapf(storage.ErrKeyNotFound, "cannot find %s's account", addr)
 	}
@@ -45,7 +45,7 @@ func getAccountNumByAddr(txn *dbolt.Tx, addr ngtypes.Address) (ngtypes.AccountNu
 func getBalance(txn *dbolt.Tx, addr ngtypes.Address) *big.Int {
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
-	rawBalance := addr2balBucket.Get(addr)
+	rawBalance := addr2balBucket.Get(addr[:])
 	if rawBalance == nil {
 		return big.NewInt(0)
 	}
@@ -71,7 +71,7 @@ func setAccount(txn *dbolt.Tx, num ngtypes.AccountNum, account *ngtypes.Account)
 func setBalance(txn *dbolt.Tx, addr ngtypes.Address, balance *big.Int) error {
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
-	err := addr2balBucket.Put(addr, balance.Bytes())
+	err := addr2balBucket.Put(addr[:], balance.Bytes())
 	if err != nil {
 		return errors.Wrapf(err, "failed to set balance")
 	}
@@ -88,7 +88,7 @@ func delAccount(txn *dbolt.Tx, num ngtypes.AccountNum) error {
 func setOwnership(txn *dbolt.Tx, addr ngtypes.Address, num ngtypes.AccountNum) error {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
-	err := addr2numBucket.Put(addr, num.Bytes())
+	err := addr2numBucket.Put(addr[:], num.Bytes())
 	if err != nil {
 		return errors.Wrap(err, "cannot set ownership: %s")
 	}
@@ -99,7 +99,7 @@ func setOwnership(txn *dbolt.Tx, addr ngtypes.Address, num ngtypes.AccountNum) e
 func delOwnership(txn *dbolt.Tx, addr ngtypes.Address) error {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
-	return addr2numBucket.Delete(addr)
+	return addr2numBucket.Delete(addr[:])
 }
 
 func accountNumExists(txn *dbolt.Tx, num ngtypes.AccountNum) bool {
@@ -111,5 +111,5 @@ func accountNumExists(txn *dbolt.Tx, num ngtypes.AccountNum) bool {
 func addrHasAccount(txn *dbolt.Tx, addr ngtypes.Address) bool {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
-	return addr2numBucket.Get(addr) != nil
+	return addr2numBucket.Get(addr[:]) != nil
 }

@@ -227,6 +227,11 @@ func (x *FullBlock) ToSealed(nonce []byte) error {
 
 // verifyNonce will verify whether the nonce meets the target.
 func (x *FullBlock) verifyNonce() error {
+	if x.Height == 0 {
+		// ignore genesis block nonce check
+		return nil
+	}
+
 	diff := new(big.Int).SetBytes(x.BlockHeader.Difficulty)
 	target := new(big.Int).Div(MaxTarget, diff)
 

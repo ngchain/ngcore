@@ -99,7 +99,11 @@ func (x *FullTx) IsSigned() bool {
 }
 
 // Verify helps verify the transaction whether signed by the public key owner.
-func (x *FullTx) Verify(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) Verify(publicKey *secp256k1.PublicKey) error {
+	if x.Height == 0 {
+		return nil // ignore all tx error on genesis block
+	}
+
 	if x.Sign == nil {
 		return ErrTxUnsigned
 	}
@@ -209,7 +213,7 @@ func (x *FullTx) Equals(other merkletree.Content) (bool, error) {
 	}
 
 	for i := range x.Participants {
-		if !bytes.Equal(x.Participants[i], tx.Participants[i]) {
+		if x.Participants[i] != tx.Participants[i] {
 			return false, nil
 		}
 	}
@@ -310,7 +314,7 @@ func (x *FullTx) CheckRegister() error {
 }
 
 // CheckDestroy does a self check for destroy tx
-func (x *FullTx) CheckDestroy(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) CheckDestroy(publicKey *secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -338,7 +342,7 @@ func (x *FullTx) CheckDestroy(publicKey secp256k1.PublicKey) error {
 
 	// RULE: destroy should takes owner's pubKey in Extra for verify and recording to make Tx reversible
 	publicKeyFromExtra := utils.Bytes2PublicKey(x.Extra)
-	if !publicKey.IsEqual(&publicKeyFromExtra) {
+	if !publicKey.IsEqual(publicKeyFromExtra) {
 		return errors.Wrap(ErrTxExtraInvalid, "invalid raw bytes public key in destroy's Extra field")
 	}
 
@@ -346,7 +350,7 @@ func (x *FullTx) CheckDestroy(publicKey secp256k1.PublicKey) error {
 }
 
 // CheckTransaction does a self check for normal transaction tx
-func (x *FullTx) CheckTransaction(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) CheckTransaction(publicKey *secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -368,7 +372,7 @@ func (x *FullTx) CheckTransaction(publicKey secp256k1.PublicKey) error {
 }
 
 // CheckAppend does a self check for append tx
-func (x *FullTx) CheckAppend(key secp256k1.PublicKey) error {
+func (x *FullTx) CheckAppend(key *secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -401,7 +405,7 @@ func (x *FullTx) CheckAppend(key secp256k1.PublicKey) error {
 }
 
 // CheckDelete does a self check for delete tx
-func (x *FullTx) CheckDelete(publicKey secp256k1.PublicKey) error {
+func (x *FullTx) CheckDelete(publicKey *secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}

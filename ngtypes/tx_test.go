@@ -13,12 +13,14 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
+const TEST_HEIGHT = 100
+
 // TestDeserialize test unsigned transaction whether it is possible to deserialize.
 func TestDeserialize(t *testing.T) {
 	tx := ngtypes.NewUnsignedTx(
 		ngtypes.TESTNET,
-		ngtypes.GenerateTx,
-		0,
+		ngtypes.TransactTx,
+		TEST_HEIGHT,
 		0,
 		[]ngtypes.Address{ngtypes.GenesisAddress},
 		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
@@ -40,8 +42,8 @@ func TestDeserialize(t *testing.T) {
 func TestTransaction_Signature(t *testing.T) {
 	o := ngtypes.NewUnsignedTx(
 		ngtypes.TESTNET,
-		0,
-		0,
+		ngtypes.TransactTx,
+		TEST_HEIGHT,
 		1,
 		[]ngtypes.Address{ngtypes.GenesisAddress},
 		[]*big.Int{big.NewInt(0)},
@@ -53,12 +55,12 @@ func TestTransaction_Signature(t *testing.T) {
 
 	_ = o.Signature(priv1)
 
-	if err := o.Verify(*priv1.PubKey()); err != nil {
-		t.Fail()
+	if err := o.Verify(priv1.PubKey()); err != nil {
+		t.Errorf("priv1 != o")
 	}
 
-	if err := o.Verify(*priv2.PubKey()); err == nil {
-		t.Fail()
+	if err := o.Verify(priv2.PubKey()); err == nil {
+		t.Errorf("priv2 == o")
 	}
 }
 

@@ -9,10 +9,8 @@ import (
 )
 
 // GenesisAddressBase58 is the genesis address in base58 str
-// FIXME: before initializing new network, should manually init PK & Sign
-// 	use genesistool tool to check and generate valid values
 const (
-	GenesisAddressBase58 = "2Reeyjud1sS7Pq5BMtsK3pSmDnJPfaz4jiffTWwmJdzBvTbq"
+	GenesisAddressBase58 = "000000000000000000000000000000000000000000000000"
 )
 
 // decoded genesis variables
@@ -91,11 +89,8 @@ func GetEmptyHash() []byte {
 
 func GetGenesisGenerateTxSignature(network Network) []byte {
 	switch network {
-	case ZERONET:
-		genesisGenerateTxSign, _ := hex.DecodeString("4994ae32b1e6665f2bcf2231e1d11785e3e177d79f8eacfe19e1e3267c94da8c5aac5df3a7748ba834f2ffb8d76655fd65dde3fe7425ca6e43d5b047cec373f7")
-		return genesisGenerateTxSign
-	case TESTNET:
-		genesisGenerateTxSign, _ := hex.DecodeString("ca92849de30ba67ceb9586c3781e78504de37dc8c591056e0048ac1b62ed322f693f87159f09ed7c2468a2e47aa3bc9f963b4b43335342ef277b7ea1b550c58a")
+	case TESTNET, ZERONET:
+		genesisGenerateTxSign, _ := hex.DecodeString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 		return genesisGenerateTxSign
 	case MAINNET:
 		panic("not ready for mainnet")
@@ -106,11 +101,8 @@ func GetGenesisGenerateTxSignature(network Network) []byte {
 
 func GetGenesisBlockNonce(network Network) []byte {
 	switch network {
-	case ZERONET:
-		genesisBlockNonce, _ := hex.DecodeString("1d0b4960bc05828a")
-		return genesisBlockNonce
-	case TESTNET:
-		genesisBlockNonce, _ := hex.DecodeString("628d06d30f4c8e49")
+	case ZERONET, TESTNET:
+		genesisBlockNonce, _ := hex.DecodeString("0000000000000000")
 		return genesisBlockNonce
 	case MAINNET:
 		panic("not ready for mainnet")
@@ -136,7 +128,8 @@ func GetGenesisTimestamp(network Network) uint64 {
 }
 
 // GetMatureHeight will return the next mature height for now
-//  it is 100 * X
+//
+//	it is 100 * X
 func GetMatureHeight(currentHeight uint64) uint64 {
 	if currentHeight < MatureHeight {
 		return 0

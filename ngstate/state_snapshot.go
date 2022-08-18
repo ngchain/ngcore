@@ -100,7 +100,7 @@ func (state *State) generateSnapshot(txn *dbolt.Tx) error {
 
 	for addr, rawBalance := c.Seek(nil); addr != nil; c.Next() {
 		balances = append(balances, &ngtypes.Balance{
-			Address: addr,
+			Address: new(ngtypes.Address).SetBytes(addr),
 			Amount:  new(big.Int).SetBytes(rawBalance),
 		})
 	}

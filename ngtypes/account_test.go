@@ -20,10 +20,12 @@ func TestNewAccount(t *testing.T) {
 		log.Error(err)
 	}
 
+	addr := ngtypes.NewAddress(privateKey)
+
 	randUint64 := rand.Uint64()
 	acc := ngtypes.NewAccount(
 		ngtypes.AccountNum(randUint64),
-		utils.PublicKey2Bytes(*privateKey.PubKey()),
+		addr,
 		// big.NewInt(0),
 		nil,
 		nil,

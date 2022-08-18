@@ -53,6 +53,14 @@ func (x *BlockHeader) CalculateHash() ([]byte, error) {
 	return hash[:], nil
 }
 
+func (x *BlockHeader) GetHash() []byte {
+	hash, err := x.CalculateHash()
+	if err != nil {
+		panic(err)
+	}
+	return hash
+}
+
 // ErrNotBlockHeader means the var is not a block header
 var ErrNotBlockHeader = errors.New("not a block header")
 

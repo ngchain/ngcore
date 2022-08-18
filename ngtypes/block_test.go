@@ -132,11 +132,5 @@ func TestBlockRawPoW(t *testing.T) {
 			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
-
-		if eq, _ := block.Equals(block2); !eq {
-			log.Errorf("block  %#v", block)
-			log.Errorf("block2 %#v", block2)
-			t.Fail()
-		}
 	}
 }

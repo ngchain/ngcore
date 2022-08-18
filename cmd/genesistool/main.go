@@ -42,7 +42,7 @@ var checkCommand = &cli.Command{
 			panic(ErrGenesisKeyFileMissing)
 		}
 
-		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(*localKey.PubKey()))
+		raw := base58.FastBase58Encoding(utils.PublicKey2Bytes(localKey.PubKey()))
 		fmt.Printf("genesis public key: %s \n", raw)
 
 		fmt.Printf("genesis Address: %s \n", ngtypes.NewAddress(localKey).String())

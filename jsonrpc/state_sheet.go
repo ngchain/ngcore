@@ -4,8 +4,8 @@ import (
 	"math/big"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
-	"github.com/mr-tron/base58"
 
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -22,7 +22,7 @@ func (s *Server) getAccountByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	addr, err := base58.FastBase58Decoding(params.Address)
+	addr, err := ngtypes.NewAddressFromBS58(params.Address)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -61,7 +61,7 @@ func (s *Server) getBalanceByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	addr, err := base58.FastBase58Decoding(params.Address)
+	addr, err := ngtypes.NewAddressFromBS58(params.Address)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

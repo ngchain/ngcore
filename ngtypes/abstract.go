@@ -12,6 +12,8 @@ type Tx interface {
 
 var _ Block = (*FullBlock)(nil)
 
+// var _ Block = (*BlockHeader)(nil)
+
 // Block is an abstract block interface.
 type Block interface {
 	IsUnsealing() bool

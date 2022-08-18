@@ -242,7 +242,7 @@ func initTxImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, tx.Participants[i])
+			l, err := cp(ins, ptr, tx.Participants[i][:])
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

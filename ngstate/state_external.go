@@ -1,7 +1,6 @@
 package ngstate
 
 import (
-	"bytes"
 	"math/big"
 
 	"github.com/c0mm4nd/dbolt"
@@ -76,7 +75,7 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 		}
 
 		for i := range matureSnapshot.Balances {
-			if bytes.Equal(matureSnapshot.Balances[i].Address, addr) {
+			if matureSnapshot.Balances[i].Address == addr {
 				balance = matureSnapshot.Balances[i].Amount
 			}
 		}
@@ -110,7 +109,7 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 		}
 
 		for i := range matureSnapshot.Balances {
-			if bytes.Equal(matureSnapshot.Balances[i].Address, address) {
+			if matureSnapshot.Balances[i].Address == address {
 				balance = matureSnapshot.Balances[i].Amount
 			}
 		}
@@ -161,7 +160,7 @@ func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Accou
 		addr2NumBucket := txn.Bucket(storage.Addr2NumBucketName)
 		num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
-		num := addr2NumBucket.Get(address)
+		num := addr2NumBucket.Get(address[:])
 		if num == nil {
 			return errors.Wrapf(storage.ErrKeyNotFound, "cannot find %s's account", address)
 		}
@@ -173,7 +172,7 @@ func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Accou
 			return err
 		}
 
-		if bytes.Equal(address, acc.Owner) {
+		if address == acc.Owner {
 			account = &acc
 			return nil
 		}

@@ -33,7 +33,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, acc.Owner)
+			l, err := cp(ins, ptr, acc.Owner[:])
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

@@ -16,7 +16,8 @@ var log = logging.Logger("sheet")
 
 // State is a global set of account & txs status
 // (nil) --> B0(Prev: S0) --> B1(Prev: S1) -> B2(Prev: S2)
-//  init (S0,S0)  -->   (S0,S1)  -->    (S1, S2)
+//
+//	init (S0,S0)  -->   (S0,S1)  -->    (S1, S2)
 type State struct {
 	Network ngtypes.Network
 
@@ -100,7 +101,7 @@ func initFromSheet(txn *dbolt.Tx, sheet *ngtypes.Sheet) error {
 	}
 
 	for _, balance := range sheet.Balances {
-		err := addr2balBucket.Put(balance.Address, balance.Amount.Bytes())
+		err := addr2balBucket.Put(balance.Address[:], balance.Amount.Bytes())
 		if err != nil {
 			return err
 		}

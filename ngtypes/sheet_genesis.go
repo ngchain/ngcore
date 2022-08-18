@@ -3,8 +3,6 @@ package ngtypes
 import (
 	"fmt"
 	"math/big"
-
-	"github.com/mr-tron/base58"
 )
 
 var (
@@ -90,7 +88,7 @@ func init() {
 			panic(fmt.Sprintf("failed to load balance: %s", strBal))
 		}
 
-		addr, err := base58.FastBase58Decoding(strAddr)
+		addr, err := NewAddressFromBS58(strAddr)
 		if err != nil {
 			panic(err)
 		}
