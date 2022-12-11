@@ -68,7 +68,7 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 		libp2p.Identity(priv),
 		getPublicRouter(config.Network),
 		libp2p.NATPortMap(),
-		libp2p.EnableAutoRelay(),
+		// libp2p.EnableAutoRelay(),
 	)
 	if err != nil {
 		panic(err)
