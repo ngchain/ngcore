@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p/core/host"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	multiplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
 	yamux "github.com/libp2p/go-libp2p/p2p/muxer/yamux"

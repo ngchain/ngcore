@@ -3,8 +3,8 @@ package broadcast
 import (
 	"context"
 
-	core "github.com/libp2p/go-libp2p-core"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	core "github.com/libp2p/go-libp2p/core"
 	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngp2p/defaults"

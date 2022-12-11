@@ -1,10 +1,11 @@
 package consensus
 
 import (
-	"github.com/ngchain/ngcore/ngtypes"
 	"sync"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ngchain/ngcore/ngtypes"
+
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/utils"

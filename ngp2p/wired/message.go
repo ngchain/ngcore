@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	core "github.com/libp2p/go-libp2p-core"
+	core "github.com/libp2p/go-libp2p/core"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )

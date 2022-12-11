@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/ngchain/ngcore/utils"

@@ -3,7 +3,7 @@ package consensus
 import (
 	"fmt"
 
-	core "github.com/libp2p/go-libp2p-core"
+	core "github.com/libp2p/go-libp2p/core"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngp2p/wired"

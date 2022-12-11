@@ -1,7 +1,7 @@
 package wired
 
 import (
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 )
 
 // sendReject will reply sendReject message to remote node.

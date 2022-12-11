@@ -2,7 +2,7 @@ package wired
 
 import (
 	"github.com/c0mm4nd/rlp"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 )
 
 func (w *Wired) sendPong(uuid []byte, stream network.Stream, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) bool {

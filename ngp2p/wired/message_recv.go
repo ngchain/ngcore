@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/c0mm4nd/rlp"
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-msgio"
 	"github.com/pkg/errors"
 )

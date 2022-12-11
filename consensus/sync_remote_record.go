@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/atomic"
 
 	"github.com/ngchain/ngcore/ngtypes"
