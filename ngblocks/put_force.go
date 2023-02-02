@@ -1,7 +1,7 @@
 package ngblocks
 
 import (
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -9,7 +9,7 @@ import (
 
 // ForcePutNewBlock puts a block into db regardless of local store check
 // should check block self before putting
-func (store *BlockStore) ForcePutNewBlock(blockBucket *dbolt.Bucket, txBucket *dbolt.Bucket, block *ngtypes.FullBlock) error {
+func (store *BlockStore) ForcePutNewBlock(blockBucket *bbolt.Bucket, txBucket *bbolt.Bucket, block *ngtypes.FullBlock) error {
 	if block == nil {
 		panic("block is nil")
 	}
@@ -53,7 +53,7 @@ func (store *BlockStore) ForcePutNewBlock(blockBucket *dbolt.Bucket, txBucket *d
 	return nil
 }
 
-func delTxs(txBucket *dbolt.Bucket, txs ...*ngtypes.FullTx) error {
+func delTxs(txBucket *bbolt.Bucket, txs ...*ngtypes.FullTx) error {
 	for i := range txs {
 		hash := txs[i].GetHash()
 

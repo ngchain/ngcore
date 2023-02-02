@@ -3,7 +3,6 @@ module github.com/ngchain/ngcore
 go 1.18
 
 require (
-	github.com/c0mm4nd/dbolt v0.0.0-20211212074803-fd271c7c1231
 	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88
 	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956
 	github.com/c0mm4nd/wasman v0.0.0-20220422074058-87e38ef26abd
@@ -22,6 +21,7 @@ require (
 	github.com/ngchain/zap-log v0.0.0-20220612114807-673df3919e65
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli/v2 v2.23.7
+	go.etcd.io/bbolt v1.3.7
 	go.uber.org/atomic v1.10.0
 	golang.org/x/crypto v0.4.0
 )
@@ -124,7 +124,7 @@ require (
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/tools v0.4.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect

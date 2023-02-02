@@ -1,7 +1,7 @@
 package ngblocks
 
 import (
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -14,12 +14,12 @@ var log = logging.Logger("blocks")
 // initialize with genesis blocks first,
 // then load the origin in bootstrap process
 type BlockStore struct {
-	*dbolt.DB
+	*bbolt.DB
 	Network ngtypes.Network
 }
 
 // Init will do all initialization for the block store.
-func Init(db *dbolt.DB, network ngtypes.Network) *BlockStore {
+func Init(db *bbolt.DB, network ngtypes.Network) *BlockStore {
 	store := &BlockStore{
 		DB:      db,
 		Network: network,

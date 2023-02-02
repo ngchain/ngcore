@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
@@ -11,7 +11,7 @@ import (
 func (chain *Chain) GetTxByHash(hash []byte) (*ngtypes.FullTx, error) {
 	tx := &ngtypes.FullTx{}
 
-	if err := chain.View(func(txn *dbolt.Tx) error {
+	if err := chain.View(func(txn *bbolt.Tx) error {
 		txBucket := txn.Bucket(storage.TxBucketName)
 
 		var err error

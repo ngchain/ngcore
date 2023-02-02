@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
+	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -19,7 +19,7 @@ type VM struct {
 
 	caller *ngtypes.FullTx
 	self   *ngtypes.Account
-	txn    *dbolt.Tx
+	txn    *bbolt.Tx
 
 	linker *wasman.Linker
 	module *wasman.Module
@@ -29,7 +29,7 @@ type VM struct {
 
 // NewVM creates a new Wasm
 // call me when a assign or append tx
-func NewVM(txn *dbolt.Tx, account *ngtypes.Account) (*VM, error) {
+func NewVM(txn *bbolt.Tx, account *ngtypes.Account) (*VM, error) {
 	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewBuffer(account.Contract))
 	if err != nil {
 		return nil, err

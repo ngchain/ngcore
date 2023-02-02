@@ -3,15 +3,15 @@ package ngstate
 import (
 	"math/big"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
 
-func getAccountByNum(txn *dbolt.Tx, num ngtypes.AccountNum) (*ngtypes.Account, error) {
+func getAccountByNum(txn *bbolt.Tx, num ngtypes.AccountNum) (*ngtypes.Account, error) {
 	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
 	rawAcc := num2accBucket.Get(num.Bytes())
@@ -29,7 +29,7 @@ func getAccountByNum(txn *dbolt.Tx, num ngtypes.AccountNum) (*ngtypes.Account, e
 }
 
 // DONE: make sure num/addr = 1/1
-func getAccountNumByAddr(txn *dbolt.Tx, addr ngtypes.Address) (ngtypes.AccountNum, error) {
+func getAccountNumByAddr(txn *bbolt.Tx, addr ngtypes.Address) (ngtypes.AccountNum, error) {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
 	rawNum := addr2numBucket.Get(addr[:])
@@ -42,7 +42,7 @@ func getAccountNumByAddr(txn *dbolt.Tx, addr ngtypes.Address) (ngtypes.AccountNu
 	return num, nil
 }
 
-func getBalance(txn *dbolt.Tx, addr ngtypes.Address) *big.Int {
+func getBalance(txn *bbolt.Tx, addr ngtypes.Address) *big.Int {
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
 	rawBalance := addr2balBucket.Get(addr[:])
@@ -53,7 +53,7 @@ func getBalance(txn *dbolt.Tx, addr ngtypes.Address) *big.Int {
 	return new(big.Int).SetBytes(rawBalance)
 }
 
-func setAccount(txn *dbolt.Tx, num ngtypes.AccountNum, account *ngtypes.Account) error {
+func setAccount(txn *bbolt.Tx, num ngtypes.AccountNum, account *ngtypes.Account) error {
 	rawAccount, err := rlp.EncodeToBytes(account)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func setAccount(txn *dbolt.Tx, num ngtypes.AccountNum, account *ngtypes.Account)
 	return nil
 }
 
-func setBalance(txn *dbolt.Tx, addr ngtypes.Address, balance *big.Int) error {
+func setBalance(txn *bbolt.Tx, addr ngtypes.Address, balance *big.Int) error {
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
 	err := addr2balBucket.Put(addr[:], balance.Bytes())
@@ -79,13 +79,13 @@ func setBalance(txn *dbolt.Tx, addr ngtypes.Address, balance *big.Int) error {
 	return nil
 }
 
-func delAccount(txn *dbolt.Tx, num ngtypes.AccountNum) error {
+func delAccount(txn *bbolt.Tx, num ngtypes.AccountNum) error {
 	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
 	return num2accBucket.Delete(num.Bytes())
 }
 
-func setOwnership(txn *dbolt.Tx, addr ngtypes.Address, num ngtypes.AccountNum) error {
+func setOwnership(txn *bbolt.Tx, addr ngtypes.Address, num ngtypes.AccountNum) error {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
 	err := addr2numBucket.Put(addr[:], num.Bytes())
@@ -96,19 +96,19 @@ func setOwnership(txn *dbolt.Tx, addr ngtypes.Address, num ngtypes.AccountNum) e
 	return nil
 }
 
-func delOwnership(txn *dbolt.Tx, addr ngtypes.Address) error {
+func delOwnership(txn *bbolt.Tx, addr ngtypes.Address) error {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
 	return addr2numBucket.Delete(addr[:])
 }
 
-func accountNumExists(txn *dbolt.Tx, num ngtypes.AccountNum) bool {
+func accountNumExists(txn *bbolt.Tx, num ngtypes.AccountNum) bool {
 	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
 	return num2accBucket.Get(num.Bytes()) != nil
 }
 
-func addrHasAccount(txn *dbolt.Tx, addr ngtypes.Address) bool {
+func addrHasAccount(txn *bbolt.Tx, addr ngtypes.Address) bool {
 	addr2numBucket := txn.Bucket(storage.Addr2NumBucketName)
 
 	return addr2numBucket.Get(addr[:]) != nil

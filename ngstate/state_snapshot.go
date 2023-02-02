@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -73,7 +73,7 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 }
 
 // generateSnapshot when the block is a checkpoint
-func (state *State) generateSnapshot(txn *dbolt.Tx) error {
+func (state *State) generateSnapshot(txn *bbolt.Tx) error {
 	accounts := make([]*ngtypes.Account, 0)
 	balances := make([]*ngtypes.Balance, 0)
 

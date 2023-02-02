@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
@@ -9,7 +9,7 @@ import (
 
 // ApplyBlock checks the block and then calls blockchain's PutNewBlock, and then auto-upgrade the state.
 func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
-	err := chain.Update(func(txn *dbolt.Tx) error {
+	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.BlockBucketName)
 

@@ -3,8 +3,8 @@ package ngblocks
 import (
 	"encoding/binary"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -12,7 +12,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-func GetTxByHash(txBucket *dbolt.Bucket, hash []byte) (*ngtypes.FullTx, error) {
+func GetTxByHash(txBucket *bbolt.Bucket, hash []byte) (*ngtypes.FullTx, error) {
 	rawTx := txBucket.Get(hash)
 	if rawTx == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such tx in hash %x", hash)
@@ -27,7 +27,7 @@ func GetTxByHash(txBucket *dbolt.Bucket, hash []byte) (*ngtypes.FullTx, error) {
 	return &tx, nil
 }
 
-func GetBlockByHash(blockBucket *dbolt.Bucket, hash []byte) (*ngtypes.FullBlock, error) {
+func GetBlockByHash(blockBucket *bbolt.Bucket, hash []byte) (*ngtypes.FullBlock, error) {
 	rawBlock := blockBucket.Get(hash)
 	if rawBlock == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such block in hash %x", hash)
@@ -42,7 +42,7 @@ func GetBlockByHash(blockBucket *dbolt.Bucket, hash []byte) (*ngtypes.FullBlock,
 	return &b, nil
 }
 
-func GetBlockByHeight(blockBucket *dbolt.Bucket, height uint64) (*ngtypes.FullBlock, error) {
+func GetBlockByHeight(blockBucket *bbolt.Bucket, height uint64) (*ngtypes.FullBlock, error) {
 	key := utils.PackUint64LE(height)
 	hash := blockBucket.Get(key)
 	if hash == nil {
@@ -63,7 +63,7 @@ func GetBlockByHeight(blockBucket *dbolt.Bucket, height uint64) (*ngtypes.FullBl
 	return &b, nil
 }
 
-func GetLatestHeight(blockBucket *dbolt.Bucket) (uint64, error) {
+func GetLatestHeight(blockBucket *bbolt.Bucket) (uint64, error) {
 	height := blockBucket.Get(storage.LatestHeightTag)
 	if height == nil {
 		return 0, errors.Wrapf(storage.ErrKeyNotFound, "no such hash in latestTag")
@@ -72,7 +72,7 @@ func GetLatestHeight(blockBucket *dbolt.Bucket) (uint64, error) {
 	return binary.LittleEndian.Uint64(height), nil
 }
 
-func GetLatestHash(blockBucket *dbolt.Bucket) ([]byte, error) {
+func GetLatestHash(blockBucket *bbolt.Bucket) ([]byte, error) {
 	hash := blockBucket.Get(storage.LatestHashTag)
 	if hash == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such hash in latestTag")
@@ -81,7 +81,7 @@ func GetLatestHash(blockBucket *dbolt.Bucket) ([]byte, error) {
 	return hash, nil
 }
 
-func GetLatestBlock(blockBucket *dbolt.Bucket) (*ngtypes.FullBlock, error) {
+func GetLatestBlock(blockBucket *bbolt.Bucket) (*ngtypes.FullBlock, error) {
 	hash, err := GetLatestHash(blockBucket)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func GetLatestBlock(blockBucket *dbolt.Bucket) (*ngtypes.FullBlock, error) {
 	return block, nil
 }
 
-func GetOriginHeight(blockBucket *dbolt.Bucket) (uint64, error) {
+func GetOriginHeight(blockBucket *bbolt.Bucket) (uint64, error) {
 	height := blockBucket.Get(storage.OriginHeightTag)
 	if height == nil {
 		return 0, errors.Wrapf(storage.ErrKeyNotFound, "no such hash in originHeightTag")
@@ -104,7 +104,7 @@ func GetOriginHeight(blockBucket *dbolt.Bucket) (uint64, error) {
 	return binary.LittleEndian.Uint64(height), nil
 }
 
-func GetOriginHash(blockBucket *dbolt.Bucket) ([]byte, error) {
+func GetOriginHash(blockBucket *bbolt.Bucket) ([]byte, error) {
 	hash := blockBucket.Get(storage.OriginHashTag)
 	if hash == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such hash in originHashTag")
@@ -113,7 +113,7 @@ func GetOriginHash(blockBucket *dbolt.Bucket) ([]byte, error) {
 	return hash, nil
 }
 
-func GetOriginBlock(blockBucket *dbolt.Bucket) (*ngtypes.FullBlock, error) {
+func GetOriginBlock(blockBucket *bbolt.Bucket) (*ngtypes.FullBlock, error) {
 	hash, err := GetOriginHash(blockBucket)
 	if err != nil {
 		return nil, err

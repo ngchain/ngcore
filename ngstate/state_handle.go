@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -13,7 +13,7 @@ import (
 )
 
 // HandleTxs will apply the tx into the state if tx is VALID
-func (state *State) HandleTxs(txn *dbolt.Tx, txs ...*ngtypes.FullTx) (err error) {
+func (state *State) HandleTxs(txn *bbolt.Tx, txs ...*ngtypes.FullTx) (err error) {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.Type {
@@ -51,7 +51,7 @@ func (state *State) HandleTxs(txn *dbolt.Tx, txs ...*ngtypes.FullTx) (err error)
 	return nil
 }
 
-func (state *State) handleGenerate(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	publicKey := tx.Participants[0].PubKey()
 	if err := tx.Verify(publicKey); err != nil {
 		return err
@@ -67,7 +67,7 @@ func (state *State) handleGenerate(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error
 	return nil
 }
 
-func (state *State) handleRegister(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleRegister(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
 	publicKey := tx.Participants[0].PubKey()
 	if err = tx.Verify(publicKey); err != nil {
@@ -104,7 +104,7 @@ func (state *State) handleRegister(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error
 	return nil
 }
 
-func (state *State) handleDestroy(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -146,7 +146,7 @@ func (state *State) handleDestroy(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error)
 	return nil
 }
 
-func (state *State) handleTransaction(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -213,7 +213,7 @@ func (state *State) handleTransaction(txn *dbolt.Tx, tx *ngtypes.FullTx) (err er
 	return nil
 }
 
-func (state *State) handleAppend(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleAppend(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -265,7 +265,7 @@ func (state *State) handleAppend(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error) 
 	return nil
 }
 
-func (state *State) handleDelete(txn *dbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleDelete(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err

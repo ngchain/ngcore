@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -23,7 +23,7 @@ func (store *BlockStore) initWithGenesis() {
 
 		block := ngtypes.GetGenesisBlock(store.Network)
 
-		if err := store.Update(func(txn *dbolt.Tx) error {
+		if err := store.Update(func(txn *bbolt.Tx) error {
 			blockBucket := txn.Bucket(storage.BlockBucketName)
 
 			hash := block.GetHash()
@@ -66,7 +66,7 @@ func (store *BlockStore) initWithGenesis() {
 
 // hasGenesisBlock checks whether the genesis block is in db.
 func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
-	if err := store.View(func(txn *dbolt.Tx) error {
+	if err := store.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		if blockBucket == nil {
 			return ErrDBNotInit
@@ -90,7 +90,7 @@ func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
 
 // hasOrigin checks whether the genesis origin is in db.
 func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
-	if err := store.View(func(txn *dbolt.Tx) error {
+	if err := store.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		if blockBucket == nil {
 			return ErrDBNotInit
@@ -132,7 +132,7 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 // initWithBlockchain initialize the store by importing the external store.
 // func (store *BlockStore) initWithBlockchain(blocks ...*ngtypes.Block) error {
 //	/* Put start */
-//	err := store.Update(func(txn *dbolt.Tx) error {
+//	err := store.Update(func(txn *bbolt.Tx) error {
 //		for i := 0; i < len(blocks); i++ {
 //			block := blocks[i]
 //			hash := block.Hash()
@@ -162,7 +162,7 @@ func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
 // }
 
 func (store *BlockStore) InitFromCheckpoint(block *ngtypes.FullBlock) error {
-	err := store.Update(func(txn *dbolt.Tx) error {
+	err := store.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		hash := block.GetHash()

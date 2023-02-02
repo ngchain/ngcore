@@ -3,11 +3,11 @@ package ngstate
 import (
 	"math/big"
 
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-func vmTransfer(txn *dbolt.Tx, from, to, value uint64) error {
+func vmTransfer(txn *bbolt.Tx, from, to, value uint64) error {
 	bigValue := new(big.Int).SetUint64(value)
 
 	convener, err := getAccountByNum(txn, ngtypes.AccountNum(from))

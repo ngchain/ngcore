@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/c0mm4nd/dbolt"
+import "go.etcd.io/bbolt"
 
 var (
 	BlockBucketName = []byte("blocks")
@@ -20,8 +20,8 @@ var (
 	OriginHashTag   = []byte("origin:hash")
 )
 
-func InitDB(db *dbolt.DB) {
-	db.Update(func(txn *dbolt.Tx) error {
+func InitDB(db *bbolt.DB) {
+	db.Update(func(txn *bbolt.Tx) error {
 		_, err := txn.CreateBucketIfNotExists(BlockBucketName)
 		if err != nil {
 			return err

@@ -3,19 +3,21 @@ package storage
 import (
 	"os"
 	"path"
+	"strconv"
+	"time"
 
-	"github.com/c0mm4nd/dbolt"
 	logging "github.com/ngchain/zap-log"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 var log = logging.Logger("storage")
 
-var db *dbolt.DB
+var db *bbolt.DB
 
 // InitStorage inits a new DB in data folder.
-func InitStorage(network ngtypes.Network, dbFolder string) *dbolt.DB {
+func InitStorage(network ngtypes.Network, dbFolder string) *bbolt.DB {
 	if db == nil {
 		err := os.MkdirAll(dbFolder, os.ModePerm)
 		if err != nil {
@@ -23,7 +25,7 @@ func InitStorage(network ngtypes.Network, dbFolder string) *dbolt.DB {
 		}
 		dbFilePath := path.Join(dbFolder, network.String()+".db")
 
-		db, err = dbolt.Open(dbFilePath, 0666, nil)
+		db, err = bbolt.Open(dbFilePath, 0666, nil)
 		if err != nil {
 			log.Panic("failed to init dboltDB:", err)
 		}
@@ -33,11 +35,13 @@ func InitStorage(network ngtypes.Network, dbFolder string) *dbolt.DB {
 
 	return db
 }
-func InitTempStorage() *dbolt.DB {
+
+func InitTempStorage() *bbolt.DB {
 	if db == nil {
 		var err error
 
-		db, err = dbolt.OpenTemp("ngcore.*.db", nil)
+		path := path.Join(os.TempDir(), "ngcore_"+strconv.FormatInt(time.Now().UTC().Unix(), 10))
+		db, err = bbolt.Open(path, 0666, nil)
 		if err != nil {
 			log.Panic("failed to init dboltDB:", err)
 		}

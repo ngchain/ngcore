@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/ngchain/secp256k1"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
@@ -31,7 +31,7 @@ type PoWork struct {
 	State     *ngstate.State
 	LocalNode *ngp2p.LocalNode
 
-	db *dbolt.DB
+	db *bbolt.DB
 }
 
 type PoWorkConfig struct {
@@ -42,7 +42,7 @@ type PoWorkConfig struct {
 }
 
 // InitPoWConsensus creates and initializes the PoW consensus.
-func InitPoWConsensus(db *dbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
+func InitPoWConsensus(db *bbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
 	pow := &PoWork{
 		PoWorkConfig: config,
 		SyncMod:      nil,
@@ -175,7 +175,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
 	}
 
 	// check block first
-	err := pow.db.Update(func(txn *dbolt.Tx) error {
+	err := pow.db.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.TxBucketName)
 

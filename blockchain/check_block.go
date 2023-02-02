@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
@@ -25,7 +25,7 @@ func (chain *Chain) CheckBlock(b ngtypes.Block) error {
 		return err
 	}
 
-	err := chain.View(func(txn *dbolt.Tx) error {
+	err := chain.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		originHash, err := ngblocks.GetOriginHash(blockBucket)

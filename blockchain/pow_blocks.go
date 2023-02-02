@@ -3,7 +3,7 @@ package blockchain
 import (
 	"bytes"
 
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
@@ -31,7 +31,7 @@ func (chain *Chain) getLatestBlock() *ngtypes.FullBlock {
 func (chain *Chain) GetLatestBlockHash() []byte {
 	var latestHash []byte
 
-	if err := chain.View(func(txn *dbolt.Tx) error {
+	if err := chain.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		var err error
@@ -53,7 +53,7 @@ func (chain *Chain) GetLatestBlockHash() []byte {
 func (chain *Chain) GetLatestBlockHeight() uint64 {
 	var latestHeight uint64
 
-	if err := chain.View(func(txn *dbolt.Tx) error {
+	if err := chain.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		var err error
@@ -105,7 +105,7 @@ func (chain *Chain) getBlockByHeight(height uint64) (*ngtypes.FullBlock, error) 
 
 	block := &ngtypes.FullBlock{}
 
-	if err := chain.View(func(txn *dbolt.Tx) error {
+	if err := chain.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		var err error
@@ -138,7 +138,7 @@ func (chain *Chain) getBlockByHash(hash []byte) (*ngtypes.FullBlock, error) {
 
 	block := &ngtypes.FullBlock{}
 
-	if err := chain.View(func(txn *dbolt.Tx) error {
+	if err := chain.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		var err error
@@ -158,7 +158,7 @@ func (chain *Chain) getBlockByHash(hash []byte) (*ngtypes.FullBlock, error) {
 // GetOriginBlock returns the genesis block for strict node, but can be any checkpoint for other node.
 func (chain *Chain) GetOriginBlock() *ngtypes.FullBlock {
 	var origin *ngtypes.FullBlock
-	err := chain.View(func(txn *dbolt.Tx) error {
+	err := chain.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		var err error
@@ -180,7 +180,7 @@ func (chain *Chain) GetOriginBlock() *ngtypes.FullBlock {
 // but **do not** upgrade the state.
 // so, after this, dev should do a regeneration or import the latest sheet.
 func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.FullBlock) error {
-	if err := chain.Update(func(txn *dbolt.Tx) error {
+	if err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.TxBucketName)
 

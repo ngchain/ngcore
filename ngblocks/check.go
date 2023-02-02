@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/ngchain/ngcore/storage"
 )
 
@@ -13,7 +13,7 @@ var (
 	ErrPrevBlockNotExist   = errors.New("prev block does not exist")
 )
 
-func checkBlock(blockBucket *dbolt.Bucket, height uint64, prevHash []byte) error {
+func checkBlock(blockBucket *bbolt.Bucket, height uint64, prevHash []byte) error {
 	if blockHeightExists(blockBucket, height) {
 		return ErrBlockHeightConflict
 	}
@@ -25,7 +25,7 @@ func checkBlock(blockBucket *dbolt.Bucket, height uint64, prevHash []byte) error
 	return nil
 }
 
-func blockHeightExists(blockBucket *dbolt.Bucket, height uint64) bool {
+func blockHeightExists(blockBucket *bbolt.Bucket, height uint64) bool {
 	if height == 0 {
 		return true
 	}
@@ -41,7 +41,7 @@ func blockHeightExists(blockBucket *dbolt.Bucket, height uint64) bool {
 	return true
 }
 
-func blockPrevHashExists(blockBucket *dbolt.Bucket, height uint64, prevHash []byte) bool {
+func blockPrevHashExists(blockBucket *bbolt.Bucket, height uint64, prevHash []byte) bool {
 	if height == 0 && bytes.Equal(prevHash, make([]byte, 32)) {
 		return true
 	}

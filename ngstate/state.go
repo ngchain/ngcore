@@ -3,8 +3,8 @@ package ngstate
 import (
 	"sync"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngblocks"
@@ -21,7 +21,7 @@ var log = logging.Logger("sheet")
 type State struct {
 	Network ngtypes.Network
 
-	*dbolt.DB
+	*bbolt.DB
 	*SnapshotManager
 
 	vms map[ngtypes.AccountNum]*VM
@@ -30,7 +30,7 @@ type State struct {
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
 // this func is written for snapshot sync/converging when initializing from non-genesis
 // checkpoint
-func InitStateFromSheet(db *dbolt.DB, network ngtypes.Network, sheet *ngtypes.Sheet) *State {
+func InitStateFromSheet(db *bbolt.DB, network ngtypes.Network, sheet *ngtypes.Sheet) *State {
 	state := &State{
 		DB: db,
 		SnapshotManager: &SnapshotManager{
@@ -41,7 +41,7 @@ func InitStateFromSheet(db *dbolt.DB, network ngtypes.Network, sheet *ngtypes.Sh
 
 		vms: make(map[ngtypes.AccountNum]*VM),
 	}
-	err := state.Update(func(txn *dbolt.Tx) error {
+	err := state.Update(func(txn *bbolt.Tx) error {
 		return initFromSheet(txn, sheet)
 	})
 	if err != nil {
@@ -52,7 +52,7 @@ func InitStateFromSheet(db *dbolt.DB, network ngtypes.Network, sheet *ngtypes.Sh
 }
 
 // InitStateFromGenesis will initialize the state in the given db, with the default genesis sheet data
-func InitStateFromGenesis(db *dbolt.DB, network ngtypes.Network) *State {
+func InitStateFromGenesis(db *bbolt.DB, network ngtypes.Network) *State {
 	state := &State{
 		Network: network,
 		DB:      db,
@@ -63,7 +63,7 @@ func InitStateFromGenesis(db *dbolt.DB, network ngtypes.Network) *State {
 		},
 		vms: make(map[ngtypes.AccountNum]*VM),
 	}
-	err := state.Update(func(txn *dbolt.Tx) error {
+	err := state.Update(func(txn *bbolt.Tx) error {
 		err := initFromSheet(txn, ngtypes.GetGenesisSheet(network))
 		if err != nil {
 			return err
@@ -84,7 +84,7 @@ func InitStateFromGenesis(db *dbolt.DB, network ngtypes.Network) *State {
 }
 
 // initFromSheet will overwrite a state from the given sheet
-func initFromSheet(txn *dbolt.Tx, sheet *ngtypes.Sheet) error {
+func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
@@ -112,7 +112,7 @@ func initFromSheet(txn *dbolt.Tx, sheet *ngtypes.Sheet) error {
 
 // RebuildFromSheet will overwrite a state from the given sheet
 func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
-	if err := state.Update(func(txn *dbolt.Tx) error {
+	if err := state.Update(func(txn *bbolt.Tx) error {
 		err := txn.DeleteBucket(storage.Addr2NumBucketName)
 		if err != nil {
 			return err
@@ -137,7 +137,7 @@ func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
 func (state *State) RebuildFromBlockStore() error {
 
 	var latestHeight uint64
-	err := state.Update(func(txn *dbolt.Tx) error {
+	err := state.Update(func(txn *bbolt.Tx) error {
 		err := txn.DeleteBucket(storage.Addr2NumBucketName)
 		if err != nil {
 			return err
@@ -170,7 +170,7 @@ func (state *State) RebuildFromBlockStore() error {
 	}
 
 	for h := uint64(0); h <= latestHeight; h++ {
-		err = state.Update(func(txn *dbolt.Tx) error {
+		err = state.Update(func(txn *bbolt.Tx) error {
 			blockBucket := txn.Bucket(storage.BlockBucketName)
 			b, err := ngblocks.GetBlockByHeight(blockBucket, h)
 			if err != nil {
@@ -193,7 +193,7 @@ func (state *State) RebuildFromBlockStore() error {
 }
 
 // Upgrade will apply block's txs on current state
-func (state *State) Upgrade(txn *dbolt.Tx, block *ngtypes.FullBlock) error {
+func (state *State) Upgrade(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 	err := state.HandleTxs(txn, block.Txs...)
 	if err != nil {
 		return err

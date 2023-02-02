@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -20,14 +20,14 @@ var log = logging.Logger("ngpool")
 type TxPool struct {
 	sync.Mutex
 
-	db    *dbolt.DB
+	db    *bbolt.DB
 	txMap map[uint64]*ngtypes.FullTx // priority first
 
 	chain     *blockchain.Chain
 	localNode *ngp2p.LocalNode
 }
 
-func Init(db *dbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *TxPool {
+func Init(db *bbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *TxPool {
 	pool := &TxPool{
 		Mutex: sync.Mutex{},
 		db:    db,

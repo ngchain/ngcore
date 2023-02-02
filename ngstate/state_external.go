@@ -3,8 +3,8 @@ package ngstate
 import (
 	"math/big"
 
-	"github.com/c0mm4nd/dbolt"
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
@@ -16,7 +16,7 @@ import (
 func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *dbolt.Tx) error {
+	err := state.View(func(txn *bbolt.Tx) error {
 		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
 			return err
@@ -38,7 +38,7 @@ func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
 func (state *State) GetTotalBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *dbolt.Tx) error {
+	err := state.View(func(txn *bbolt.Tx) error {
 		balance = getBalance(txn, address)
 
 		return nil
@@ -54,7 +54,7 @@ func (state *State) GetTotalBalanceByAddress(address ngtypes.Address) (*big.Int,
 func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *dbolt.Tx) error {
+	err := state.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
@@ -93,7 +93,7 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	var balance *big.Int
 
-	err := state.View(func(txn *dbolt.Tx) error {
+	err := state.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		var err error
@@ -127,7 +127,7 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 func (state *State) AccountIsRegistered(num uint64) bool {
 	exists := true // block register action by default
 
-	_ = state.View(func(txn *dbolt.Tx) error {
+	_ = state.View(func(txn *bbolt.Tx) error {
 		exists = accountNumExists(txn, ngtypes.AccountNum(num))
 
 		return nil
@@ -138,7 +138,7 @@ func (state *State) AccountIsRegistered(num uint64) bool {
 
 // GetAccountByNum returns an ngtypes.Account obj by the account's number
 func (state *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
-	err = state.View(func(txn *dbolt.Tx) error {
+	err = state.View(func(txn *bbolt.Tx) error {
 		account, err = getAccountByNum(txn, ngtypes.AccountNum(num))
 		if err != nil {
 			return err
@@ -156,7 +156,7 @@ func (state *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err e
 // this is a heavy action, so dont called by any internal part like p2p and consensus
 func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Account, error) {
 	var account *ngtypes.Account
-	err := state.View(func(txn *dbolt.Tx) error {
+	err := state.View(func(txn *bbolt.Tx) error {
 		addr2NumBucket := txn.Bucket(storage.Addr2NumBucketName)
 		num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 

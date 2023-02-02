@@ -1,7 +1,7 @@
 package ngpool
 
 import (
-	"github.com/c0mm4nd/dbolt"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngstate"
@@ -44,7 +44,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 	pool.Lock()
 	defer pool.Unlock()
 
-	err := pool.db.View(func(txn *dbolt.Tx) error {
+	err := pool.db.View(func(txn *bbolt.Tx) error {
 		if err := ngstate.CheckTx(txn, tx); err != nil {
 			return errors.Wrap(err, "malformed tx, rejected")
 		}
