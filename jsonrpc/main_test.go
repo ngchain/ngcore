@@ -58,19 +58,11 @@ func TestNewRPCServer(t *testing.T) {
 
 	rpc := jsonrpc.NewServer(pow, jsonrpc.ServerConfig{
 		Host:                 "",
-		Port:                 52520,
+		Port:                 52521,
 		DisableP2PMethods:    false,
 		DisableMiningMethods: false,
 	})
 	go rpc.Serve()
 
-	go func() {
-		finished := time.After(2 * time.Minute)
-
-		for {
-			<-finished
-
-			return
-		}
-	}()
+	time.Sleep(2 * time.Minute)
 }
