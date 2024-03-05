@@ -7,7 +7,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	multiplex "github.com/libp2p/go-libp2p/p2p/muxer/mplex"
 	yamux "github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	logging "github.com/ngchain/zap-log"
@@ -58,7 +57,6 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 
 	muxers := libp2p.ChainOptions(
 		libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-		libp2p.Muxer("/mplex/6.7.0", multiplex.DefaultTransport),
 	)
 
 	localHost, err := libp2p.New(

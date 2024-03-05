@@ -15,8 +15,8 @@ func (mod *syncModule) loop() {
 
 		// do get status
 		for _, id := range mod.localNode.Peerstore().Peers() {
-			p, _ := mod.localNode.Peerstore().FirstSupportedProtocol(id, string(mod.localNode.GetWiredProtocol()))
-			if p == string(mod.localNode.GetWiredProtocol()) && id != mod.localNode.ID() {
+			p, _ := mod.localNode.Peerstore().FirstSupportedProtocol(id, mod.localNode.GetWiredProtocol())
+			if p == mod.localNode.GetWiredProtocol() && id != mod.localNode.ID() {
 				err := mod.getRemoteStatus(id)
 				if err != nil {
 					log.Warnf("failed to get remote status from %s: %s", id, err)
