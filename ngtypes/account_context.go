@@ -3,18 +3,21 @@ package ngtypes
 import (
 	"bytes"
 	"encoding/hex"
+	"sort"
 	"sync"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
 // AccountContext is the Context field of the Account, which
-// is a in-mem (on-chain) k-v storage
+// is an on-chain k-v storage.
+// Keys/Values are the RLP-encoded form and are always kept sorted by key
+// so that the encoding is deterministic across nodes.
 type AccountContext struct {
 	Keys   []string
 	Values [][]byte
 
-	mu     *sync.RWMutex
+	mu     sync.RWMutex
 	valMap map[string][]byte
 }
 
@@ -27,26 +30,51 @@ func NewAccountContext() *AccountContext {
 	}
 }
 
+// ensureInit rebuilds the internal map after the context was created by
+// a decoder (rlp/json) which fills the exported fields only
+func (ctx *AccountContext) ensureInit() {
+	if ctx.valMap == nil {
+		ctx.valMap = make(map[string][]byte, len(ctx.Keys))
+		for i := range ctx.Keys {
+			if i < len(ctx.Values) {
+				ctx.valMap[ctx.Keys[i]] = ctx.Values[i]
+			}
+		}
+	}
+}
+
 // Set the k-v data
 func (ctx *AccountContext) Set(key string, val []byte) {
 	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
 
+	ctx.ensureInit()
 	ctx.valMap[key] = val
 	ctx.splitMap()
-
-	ctx.mu.Unlock()
 }
 
-func (ctx *AccountContext) splitMap() {
-	itemNum := len(ctx.valMap)
+// Del removes the key from the context
+func (ctx *AccountContext) Del(key string) {
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
 
-	keys := make([]string, itemNum)
-	values := make([][]byte, itemNum)
-	i := 0
-	for k, v := range ctx.valMap {
-		keys[i] = k
-		values[i] = v
-		i++
+	ctx.ensureInit()
+	delete(ctx.valMap, key)
+	ctx.splitMap()
+}
+
+// splitMap flushes valMap into the exported Keys/Values, sorted by key
+// to keep the RLP encoding deterministic
+func (ctx *AccountContext) splitMap() {
+	keys := make([]string, 0, len(ctx.valMap))
+	for k := range ctx.valMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	values := make([][]byte, len(keys))
+	for i, k := range keys {
+		values[i] = ctx.valMap[k]
 	}
 
 	ctx.Keys = keys
@@ -56,19 +84,48 @@ func (ctx *AccountContext) splitMap() {
 // Get the value by key
 func (ctx *AccountContext) Get(key string) []byte {
 	ctx.mu.RLock()
-	ret := ctx.valMap[key]
-	ctx.mu.RUnlock()
-	return ret
+	defer ctx.mu.RUnlock()
+
+	ctx.ensureInit()
+
+	return ctx.valMap[key]
+}
+
+// Clone returns a deep copy of the context
+func (ctx *AccountContext) Clone() *AccountContext {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+
+	ctx.ensureInit()
+
+	clone := NewAccountContext()
+	for k, v := range ctx.valMap {
+		val := make([]byte, len(v))
+		copy(val, v)
+		clone.valMap[k] = val
+	}
+	clone.splitMap()
+
+	return clone
 }
 
 // Equals checks whether the other is same with this AccountContext
 func (ctx *AccountContext) Equals(other *AccountContext) (bool, error) {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+	ctx.ensureInit()
+
+	other.mu.RLock()
+	defer other.mu.RUnlock()
+	other.ensureInit()
+
 	if len(ctx.valMap) != len(other.valMap) {
 		return false, nil
 	}
 
-	for i := range other.valMap {
-		if !bytes.Equal(other.valMap[i], ctx.valMap[i]) {
+	for k, v := range ctx.valMap {
+		otherV, ok := other.valMap[k]
+		if !ok || !bytes.Equal(v, otherV) {
 			return false, nil
 		}
 	}
@@ -78,6 +135,11 @@ func (ctx *AccountContext) Equals(other *AccountContext) (bool, error) {
 
 // MarshalJSON encodes the context as a map, with hex-encoded values
 func (ctx *AccountContext) MarshalJSON() ([]byte, error) {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+
+	ctx.ensureInit()
+
 	json := make(map[string]string, len(ctx.valMap))
 	for k, v := range ctx.valMap {
 		json[k] = hex.EncodeToString(v)
@@ -104,6 +166,11 @@ func (ctx *AccountContext) UnmarshalJSON(raw []byte) error {
 		valMap[k] = val
 	}
 
+	ctx.mu.Lock()
+	defer ctx.mu.Unlock()
+
 	ctx.valMap = valMap
+	ctx.splitMap()
+
 	return nil
 }

@@ -58,6 +58,16 @@ func CheckBlockTxs(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 			if err := checkDelete(txn, tx); err != nil {
 				return err
 			}
+
+		case ngtypes.LockTx: // lock
+			if err := checkLock(txn, tx); err != nil {
+				return err
+			}
+
+		case ngtypes.UnlockTx: // unlock
+			if err := checkUnlock(txn, tx); err != nil {
+				return err
+			}
 		default:
 			return ngtypes.ErrTxTypeInvalid
 		}
@@ -104,6 +114,16 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 
 	case ngtypes.AppendTx: // append
 		if err := checkAppend(txn, tx); err != nil {
+			return err
+		}
+
+	case ngtypes.LockTx: // lock
+		if err := checkLock(txn, tx); err != nil {
+			return err
+		}
+
+	case ngtypes.UnlockTx: // unlock
+		if err := checkUnlock(txn, tx); err != nil {
 			return err
 		}
 	}
@@ -246,6 +266,11 @@ func checkAppend(txn *bbolt.Tx, appendTx *ngtypes.FullTx) error {
 		return err
 	}
 
+	// a locked contract is immutable
+	if convener.IsLocked() {
+		return ErrAccountLocked
+	}
+
 	// check balance
 	totalCharge := appendTx.TotalExpenditure()
 	convenerBalance := getBalance(txn, convener.Owner)
@@ -279,6 +304,11 @@ func checkDelete(txn *bbolt.Tx, deleteTx *ngtypes.FullTx) error {
 		return err
 	}
 
+	// a locked contract is immutable
+	if convener.IsLocked() {
+		return ErrAccountLocked
+	}
+
 	// check balance
 	totalCharge := deleteTx.TotalExpenditure()
 	convenerBalance := getBalance(txn, convener.Owner)
@@ -305,6 +335,60 @@ func checkDelete(txn *bbolt.Tx, deleteTx *ngtypes.FullTx) error {
 		convener.Contract[int(appendExtra.Pos):int(appendExtra.Pos)+len(appendExtra.Content)],
 		appendExtra.Content) {
 		return ErrLenInvalid
+	}
+
+	return nil
+}
+
+// checkLock checks lock tx
+func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
+	convener, err := getAccountByNum(txn, lockTx.Convener)
+	if err != nil {
+		return err
+	}
+
+	// check structure and key
+	if err = lockTx.CheckLock(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+		return err
+	}
+
+	if convener.IsLocked() {
+		return ErrAccountLocked
+	}
+
+	// check balance
+	totalCharge := lockTx.TotalExpenditure()
+	convenerBalance := getBalance(txn, convener.Owner)
+
+	if convenerBalance.Cmp(totalCharge) < 0 {
+		return ErrTxrBalanceInsufficient
+	}
+
+	return nil
+}
+
+// checkUnlock checks unlock tx
+func checkUnlock(txn *bbolt.Tx, unlockTx *ngtypes.FullTx) error {
+	convener, err := getAccountByNum(txn, unlockTx.Convener)
+	if err != nil {
+		return err
+	}
+
+	// check structure and key
+	if err = unlockTx.CheckUnlock(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+		return err
+	}
+
+	if !convener.IsLocked() {
+		return ErrAccountNotLocked
+	}
+
+	// check balance
+	totalCharge := unlockTx.TotalExpenditure()
+	convenerBalance := getBalance(txn, convener.Owner)
+
+	if convenerBalance.Cmp(totalCharge) < 0 {
+		return ErrTxrBalanceInsufficient
 	}
 
 	return nil

@@ -23,8 +23,6 @@ type State struct {
 
 	*bbolt.DB
 	*SnapshotManager
-
-	vms map[ngtypes.AccountNum]*VM
 }
 
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
@@ -38,8 +36,6 @@ func InitStateFromSheet(db *bbolt.DB, network ngtypes.Network, sheet *ngtypes.Sh
 			heightToHash:   make(map[uint64]string),
 			hashToSnapshot: make(map[string]*ngtypes.Sheet),
 		},
-
-		vms: make(map[ngtypes.AccountNum]*VM),
 	}
 	err := state.Update(func(txn *bbolt.Tx) error {
 		return initFromSheet(txn, sheet)
@@ -61,7 +57,6 @@ func InitStateFromGenesis(db *bbolt.DB, network ngtypes.Network) *State {
 			heightToHash:   make(map[uint64]string),
 			hashToSnapshot: make(map[string]*ngtypes.Sheet),
 		},
-		vms: make(map[ngtypes.AccountNum]*VM),
 	}
 	err := state.Update(func(txn *bbolt.Tx) error {
 		err := initFromSheet(txn, ngtypes.GetGenesisSheet(network))

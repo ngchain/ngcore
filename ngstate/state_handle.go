@@ -43,6 +43,14 @@ func (state *State) HandleTxs(txn *bbolt.Tx, txs ...*ngtypes.FullTx) (err error)
 			if err := state.handleDelete(txn, tx); err != nil {
 				return err
 			}
+		case ngtypes.LockTx:
+			if err := state.handleLock(txn, tx); err != nil {
+				return err
+			}
+		case ngtypes.UnlockTx:
+			if err := state.handleUnlock(txn, tx); err != nil {
+				return err
+			}
 		default:
 			return errors.Wrapf(ngtypes.ErrTxTypeInvalid, "unknown tx type %d", tx.Type)
 		}
@@ -189,19 +197,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx) (err er
 				return err
 			}
 
-			vm := state.vms[num]
-
-			err = vm.InitBuiltInImports()
-			if err != nil {
-				return err
-			}
-
-			ins, err := vm.Instantiate(tx)
-			if err != nil {
-				return err
-			}
-
-			vm.CallOnTx(ins)
+			state.runContract(txn, num, tx, VMEntryOnTx)
 		}
 	}
 
@@ -225,6 +221,10 @@ func (state *State) handleAppend(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
+	if convener.IsLocked() {
+		return ErrAccountLocked
+	}
+
 	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(tx.Fee) < 0 {
@@ -244,18 +244,6 @@ func (state *State) handleAppend(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 	}
 
 	convener.Contract = utils.InsertBytes(convener.Contract, int(appendExtra.Pos), appendExtra.Content...)
-
-	// TODO: migrate to Lock
-	// account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
-	// if err != nil {
-	//	return err
-	// }
-	// vm, err := NewVM(txn, account)
-	// if err != nil {
-	//	return err
-	// }
-	//
-	// state.vms[ngtypes.AccountNum(tx.Convener)] = vm
 
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {
@@ -297,22 +285,113 @@ func (state *State) handleDelete(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 
 	convener.Contract = utils.CutBytes(convener.Contract, int(deleteExtra.Pos), int(deleteExtra.Pos)+len(deleteExtra.Content))
 
-	// TODO: migrate to Lock
-	// account, err := getAccountByNum(txn, ngtypes.AccountNum(tx.Convener))
-	// if err != nil {
-	//	return err
-	// }
-	// vm, err := NewVM(txn, account)
-	// if err != nil {
-	//	return err
-	// }
-	//
-	// state.vms[ngtypes.AccountNum(tx.Convener)] = vm
-
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// handleLock freezes the contract of the convener account: the contract
+// body becomes immutable and the vm gets active. The optional `init`
+// export runs once here, right after locking
+func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
+	convener, err := getAccountByNum(txn, tx.Convener)
+	if err != nil {
+		return err
+	}
+
+	pk := ngtypes.Address(convener.Owner).PubKey()
+	if err = tx.CheckLock(pk); err != nil {
+		return err
+	}
+
+	if convener.IsLocked() {
+		return ErrAccountLocked
+	}
+
+	convenerBalance := getBalance(txn, convener.Owner)
+	if convenerBalance.Cmp(tx.Fee) < 0 {
+		return ErrTxrBalanceInsufficient
+	}
+
+	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))
+	if err != nil {
+		return err
+	}
+
+	convener.SetLock(true)
+
+	err = setAccount(txn, tx.Convener, convener)
+	if err != nil {
+		return err
+	}
+
+	state.runContract(txn, tx.Convener, tx, VMEntryOnLock)
+
+	return nil
+}
+
+// handleUnlock disables the vm of the convener account and makes the
+// contract body editable again
+func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
+	convener, err := getAccountByNum(txn, tx.Convener)
+	if err != nil {
+		return err
+	}
+
+	pk := ngtypes.Address(convener.Owner).PubKey()
+	if err = tx.CheckUnlock(pk); err != nil {
+		return err
+	}
+
+	if !convener.IsLocked() {
+		return ErrAccountNotLocked
+	}
+
+	convenerBalance := getBalance(txn, convener.Owner)
+	if convenerBalance.Cmp(tx.Fee) < 0 {
+		return ErrTxrBalanceInsufficient
+	}
+
+	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))
+	if err != nil {
+		return err
+	}
+
+	convener.SetLock(false)
+
+	return setAccount(txn, tx.Convener, convener)
+}
+
+// runContract executes the entry export of the account's contract, if the
+// account is locked and has one. A contract failure is final for this call
+// (its journal is dropped) but NEVER fails the tx itself: every node hits
+// the same result, so consensus is kept
+func (state *State) runContract(txn *bbolt.Tx, num ngtypes.AccountNum, tx *ngtypes.FullTx, entry string) {
+	account, err := getAccountByNum(txn, num)
+	if err != nil {
+		log.Errorf("failed to load account %d for its contract: %v", num, err)
+		return
+	}
+
+	if !account.IsLocked() || len(account.Contract) == 0 {
+		return
+	}
+
+	vm, err := NewVM(txn, account, tx)
+	if err != nil {
+		log.Errorf("failed to build the vm for account %d: %v", num, err)
+		return
+	}
+
+	err = vm.Run(entry)
+	if err != nil {
+		if IsExportMissing(err) && entry != VMEntryOnTx {
+			return // optional entry (e.g. init) is absent — fine
+		}
+
+		log.Errorf("contract call %s on account %d failed: %v", entry, num, err)
+	}
 }

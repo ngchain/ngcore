@@ -29,8 +29,8 @@ const (
 	AppendTx // add content to the tail of contract
 	DeleteTx
 
-	LockTx   // TODO: cannot assign nor append, but can run vm
-	UnlockTx // TODO: disable vm, but enable assign and append
+	LockTx   // freeze the contract: no more append/delete, and the vm gets active
+	UnlockTx // disable the vm, and enable appending and deleting again
 )
 
 // FullTx is the basic implement of Tx (transaction, or operation)
@@ -431,6 +431,48 @@ func (x *FullTx) CheckDelete(publicKey *secp256k1.PublicKey) error {
 }
 
 // Signature will re-sign the Tx with private key.
+// CheckLock does a self check for lock tx
+func (x *FullTx) CheckLock(publicKey *secp256k1.PublicKey) error {
+	if x == nil {
+		return ErrTxNoHeader
+	}
+
+	if x.Convener == 0 {
+		return errors.Wrap(ErrTxConvenerInvalid, "lock's convener should NOT be 0")
+	}
+
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "lock should have NO participant")
+	}
+
+	if len(x.Values) != 0 {
+		return errors.Wrap(ErrTxValuesInvalid, "lock should have NO value")
+	}
+
+	return x.Verify(publicKey)
+}
+
+// CheckUnlock does a self check for unlock tx
+func (x *FullTx) CheckUnlock(publicKey *secp256k1.PublicKey) error {
+	if x == nil {
+		return ErrTxNoHeader
+	}
+
+	if x.Convener == 0 {
+		return errors.Wrap(ErrTxConvenerInvalid, "unlock's convener should NOT be 0")
+	}
+
+	if len(x.Participants) != 0 {
+		return errors.Wrap(ErrTxParticipantsInvalid, "unlock should have NO participant")
+	}
+
+	if len(x.Values) != 0 {
+		return errors.Wrap(ErrTxValuesInvalid, "unlock should have NO value")
+	}
+
+	return x.Verify(publicKey)
+}
+
 func (x *FullTx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
 	ds := make([]*big.Int, len(privateKeys))
 	for i := range privateKeys {

@@ -15,7 +15,7 @@ func getAccountByNum(txn *bbolt.Tx, num ngtypes.AccountNum) (*ngtypes.Account, e
 	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 
 	rawAcc := num2accBucket.Get(num.Bytes())
-	if rawAcc != nil {
+	if rawAcc == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "cannot find account %d", num)
 	}
 

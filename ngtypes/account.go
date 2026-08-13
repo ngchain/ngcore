@@ -26,6 +26,34 @@ func NewAccount(num AccountNum, ownerAddress Address, contract []byte, context *
 	}
 }
 
+// ContextKeyLock is the reserved context key marking the account as locked.
+// Keys with the "_" prefix are reserved for the system and cannot be
+// touched by contracts through the kv host module.
+const ContextKeyLock = "_locked"
+
+// IsLocked shows whether the account is locked: its contract is active
+// (runnable by the vm) and its Contract field is immutable
+func (x *Account) IsLocked() bool {
+	if x.Context == nil {
+		return false
+	}
+
+	return len(x.Context.Get(ContextKeyLock)) != 0
+}
+
+// SetLock updates the lock flag of the account
+func (x *Account) SetLock(locked bool) {
+	if x.Context == nil {
+		x.Context = NewAccountContext()
+	}
+
+	if locked {
+		x.Context.Set(ContextKeyLock, []byte{1})
+	} else {
+		x.Context.Del(ContextKeyLock)
+	}
+}
+
 // GetGenesisStyleAccount will return the genesis style account.
 func GetGenesisStyleAccount(num AccountNum) *Account {
 	return NewAccount(num, GenesisAddress, nil, nil)
