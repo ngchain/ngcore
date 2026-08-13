@@ -75,7 +75,7 @@ func TestBlock_Marshal(t *testing.T) {
 // TestGetGenesisBlock test func GetGenesisBlock()'s parameter passing.
 func TestGetGenesisBlock(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
-		t.Logf(string(net))
+		t.Logf("%s", string(net))
 		d, _ := rlp.EncodeToBytes(ngtypes.GetGenesisBlock(net))
 		hash := sha3.Sum256(d)
 

@@ -24,7 +24,7 @@ func getPublicRouter(network ngtypes.Network) libp2p.Option {
 	return libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		var err error
 		p2pDHT, err = dht.New(
-			context.Background(), h,
+			h,
 			dht.Mode(dht.ModeAutoServer),
 			dht.ProtocolExtension(
 				protocol.ID(defaults.GetDHTProtocolExtension(network))))
