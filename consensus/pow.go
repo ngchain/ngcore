@@ -155,10 +155,12 @@ func (pow *PoWork) eventLoop() {
 	}()
 
 	go func() {
-		tx := <-pow.LocalNode.OnTx
-		err := pow.Pool.PutTx(tx)
-		if err != nil {
-			log.Warnf("failed to put new tx from p2p network: %s", err)
+		for {
+			tx := <-pow.LocalNode.OnTx
+			err := pow.Pool.PutTx(tx)
+			if err != nil {
+				log.Warnf("failed to put new tx from p2p network: %s", err)
+			}
 		}
 	}()
 }

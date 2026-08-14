@@ -5,6 +5,7 @@ import (
 	"time"
 
 	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/crypto"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -67,7 +68,9 @@ type Message struct {
 
 // NewHeader is a helper method: generate message data shared between all node's p2p protocols.
 func NewHeader(host core.Host, network ngtypes.Network, msgID []byte, msgType MsgType) *MsgHeader {
-	peerKey, err := host.Peerstore().PubKey(host.ID()).Raw()
+	// the key must be in the marshaled (protobuf) form: the verifier
+	// parses it with crypto.UnmarshalPublicKey
+	peerKey, err := crypto.MarshalPublicKey(host.Peerstore().PubKey(host.ID()))
 	if err != nil {
 		panic("Failed to get public key for sender from local peer store.")
 	}

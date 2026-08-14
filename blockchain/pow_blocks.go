@@ -173,7 +173,9 @@ func (chain *Chain) GetOriginBlock() *ngtypes.FullBlock {
 		return err
 	})
 	if err != nil {
-		panic(err)
+		// e.g. the db handle is already closed during shutdown
+		log.Errorf("cannot load the origin block: %v", err)
+		return ngtypes.GetGenesisBlock(chain.Network)
 	}
 
 	return origin

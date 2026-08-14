@@ -109,17 +109,12 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 
 	log.Debugf("getchain requests from %x to %x", getChainPayload.From[0], getChainPayload.To)
 
-	// init cur
-	cur, err := w.chain.GetBlockByHash(getChainPayload.From[0])
-	if err != nil {
-		err = errors.Wrapf(err, "cannot get block by hash %x", getChainPayload.From[0])
-		log.Error(err)
-		w.sendReject(msg.Header.ID, stream, err)
-		return
-	}
-
 	// run converging mode
 	if len(getChainPayload.To) == 16 {
+		// NOTE: in converging mode the requester's hashes may be entirely
+		// unknown here (that is the point of converging), so nothing is
+		// pre-fetched
+		var cur ngtypes.Block
 		var samepointIndex int
 		// do hashes check first
 		for samepointIndex < len(getChainPayload.From) {
@@ -173,6 +168,14 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 		}
 	} else if len(getChainPayload.To) == 32 {
 		// fetch mode
+		cur, err := w.chain.GetBlockByHash(getChainPayload.From[0])
+		if err != nil {
+			err = errors.Wrapf(err, "cannot get block by hash %x", getChainPayload.From[0])
+			log.Error(err)
+			w.sendReject(msg.Header.ID, stream, err)
+			return
+		}
+
 		for i := 0; i < defaults.MaxBlocks; i++ {
 			// never reach To
 			if bytes.Equal(cur.GetHash(), getChainPayload.To) {
