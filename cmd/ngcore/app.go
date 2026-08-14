@@ -12,9 +12,9 @@ import (
 	// #nosec
 	_ "net/http/pprof"
 
-	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
 	"github.com/urfave/cli/v2"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/consensus"

@@ -27,10 +27,10 @@ type ChainPayload struct {
 // fast-sync for state
 // support checkpoint height only
 // when fast-sync:
-//   1. sync to latest checkpoint
-//   2. sync to latest checkpoint state
-//   3. sync the remaining blocks
-//   4. update local state
+//  1. sync to latest checkpoint
+//  2. sync to latest checkpoint state
+//  3. sync the remaining blocks
+//  4. update local state
 type GetSheetPayload struct {
 	Height uint64
 	Hash   []byte

@@ -29,7 +29,6 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("getBlockByHash", s.getBlockByHashFunc)
 	s.RegisterJsonRpcHandleFunc("getTxByHash", s.getTxByHashFunc)
 
-
 	// state
 	s.RegisterJsonRpcHandleFunc("sendTx", s.sendTxFunc)
 	s.RegisterJsonRpcHandleFunc("signTx", s.signTxFunc)

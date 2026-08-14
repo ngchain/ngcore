@@ -17,7 +17,7 @@ const (
 
 // decoded genesis variables
 var (
-	GenesisAddress = mustAddressFromBS58(GenesisAddressBase58)
+	GenesisAddress    = mustAddressFromBS58(GenesisAddressBase58)
 	AvailableNetworks = []Network{
 		ZERONET,
 		TESTNET,
@@ -27,9 +27,9 @@ var (
 // PoW const
 const (
 	// MinimumDifficulty is the minimum of pow minimumDifficulty because my laptop has 200 h/s, I believe you can either
-	minimumDifficulty = 200 << 4 // Target = MaxTarget / diff
+	minimumDifficulty = 200 << 4        // Target = MaxTarget / diff
 	TargetTime        = 1 * time.Second // aggressive fast-block design
-	BlockCheckRound   = 10 // do converge if fall behind one round
+	BlockCheckRound   = 10              // do converge if fall behind one round
 
 	// TimestampDriftTolerance bounds how far (seconds) a block timestamp
 	// may run ahead of the local clock

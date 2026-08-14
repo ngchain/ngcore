@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sync"
 
-	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngp2p"

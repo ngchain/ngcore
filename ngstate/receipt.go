@@ -2,8 +2,8 @@ package ngstate
 
 import (
 	"github.com/c0mm4nd/rlp"
-	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/storage"
 )

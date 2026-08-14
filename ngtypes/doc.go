@@ -5,7 +5,7 @@ Package ngtypes implements the block structure and related types.
 
 ## Account
 
-Account is not an unlimited resource, the account is created when register tx and removed with destroy tx
+# Account is not an unlimited resource, the account is created when register tx and removed with destroy tx
 
 ## Block
 
@@ -29,7 +29,7 @@ field. Also, with the schnorr signature,
 the coin can be owned by multi-person at the same time and the account is able to send tx only when all owners signed
 the tx.
 
-Currently, there are 5 types of tx
+# Currently, there are 5 types of tx
 
 1. Generate Tx: generate tx works when generating the coin, only miner can send this,
 and it can also have multi-participants.
@@ -46,5 +46,6 @@ and it can also have multi-participants.
 
 ## Sheet
 
-Sheet is the aggregation of all status, not only accounts, but anonymous addresses */
+Sheet is the aggregation of all status, not only accounts, but anonymous addresses
+*/
 package ngtypes

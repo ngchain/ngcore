@@ -126,12 +126,12 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx, blockTim
 		self:      account,
 		txn:       txn,
 		blockTime: blockTime,
-		journal: newVMJournal(account),
-		frames:  []uint64{account.Num},
-		cfg:     cfg,
-		linker:  wasman.NewLinker(config.LinkerConfig{}),
-		module:  module,
-		logger:  logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
+		journal:   newVMJournal(account),
+		frames:    []uint64{account.Num},
+		cfg:       cfg,
+		linker:    wasman.NewLinker(config.LinkerConfig{}),
+		module:    module,
+		logger:    logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
 	}
 
 	err = vm.initBuiltInImports()

@@ -9,8 +9,8 @@ import (
 	"github.com/c0mm4nd/rlp"
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
-	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"

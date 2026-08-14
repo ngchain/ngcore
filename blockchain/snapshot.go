@@ -3,8 +3,8 @@ package blockchain
 import (
 	"bytes"
 
-	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"

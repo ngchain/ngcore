@@ -1,8 +1,8 @@
 package ngblocks
 
 import (
-	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )

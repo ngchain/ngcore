@@ -4,9 +4,9 @@ import (
 	"sync"
 
 	"github.com/c0mm4nd/rlp"
-	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"

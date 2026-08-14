@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"go.etcd.io/bbolt"
 	"github.com/ngchain/ngcore/storage"
+	"go.etcd.io/bbolt"
 )
 
 var (

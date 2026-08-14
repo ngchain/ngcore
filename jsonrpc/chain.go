@@ -187,4 +187,3 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	log.Error(err)
 	return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 }
-
