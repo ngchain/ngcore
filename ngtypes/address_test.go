@@ -3,8 +3,6 @@ package ngtypes
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/mr-tron/base58"
 )
 
 // TestGenesisAddress pins the genesis address: the bs58 constant must
@@ -45,40 +43,18 @@ func TestAddressJSONRoundTrip(t *testing.T) {
 	}
 }
 
-// TestAddressLength pins the canonical length and both decode paths:
-// modern strings must be exactly 32 bytes, and the legacy 35-byte
-// genesis format (2-byte checksum + secp pubkey) must lift into the
-// keyset address of that public key
+// TestAddressLength pins the canonical length: every address is the
+// 32-byte keccak hash of its keyset descriptor
 func TestAddressLength(t *testing.T) {
 	if AddressSize != len(Address{}) {
 		t.Fatalf("AddressSize %d != len(Address) %d", AddressSize, len(Address{}))
 	}
 
-	// a legacy genesis string: 2-byte checksum + 33-byte pubkey
+	// a legacy pre-hash string (2-byte checksum + 33-byte pubkey) must
+	// be rejected: the genesis sheet was converted once, offline
 	const legacy = "QfUnsE4CNgnpVS4oC4WEYH8u7WWAs8AwMrFBknWWqGSYwBXU"
-
 	if _, err := NewAddressFromBS58(legacy); err == nil {
-		t.Fatal("the 35-byte legacy format must be rejected by the modern decoder")
-	}
-
-	addr, err := NewAddressFromLegacyBS58(legacy)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// the lift must be exactly the 1-of-1 secp keyset address of the
-	// embedded public key, so the original key owner can spend it
-	raw, _ := base58.FastBase58Decoding(legacy)
-	want, err := KeysetAddress(1, []SigScheme{SchemeSecpSchnorr}, [][]byte{raw[2:]})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !addr.Equals(want) {
-		t.Fatalf("legacy lift mismatch: %s != %s", addr, want)
-	}
-
-	if _, err := NewAddressFromLegacyBS58(GenesisAddressBase58); err == nil {
-		t.Fatal("a 32-byte string must be rejected by the legacy decoder")
+		t.Fatal("a 35-byte legacy string must be rejected")
 	}
 }
 

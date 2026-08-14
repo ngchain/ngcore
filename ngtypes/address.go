@@ -114,23 +114,6 @@ func NewAddressFromBS58(s string) (Address, error) {
 	return addr, nil
 }
 
-// NewAddressFromLegacyBS58 reads the pre-2022 raw-key address format —
-// a 2-byte private-key checksum followed by the 33-byte compressed
-// secp public key — and lifts it into a 1-of-1 secp keyset address, so
-// the original key owner can still spend. Only the genesis sheet
-// still speaks this format
-func NewAddressFromLegacyBS58(s string) (Address, error) {
-	raw, err := base58.FastBase58Decoding(s)
-	if err != nil {
-		return Address{}, err
-	}
-	if len(raw) != 35 {
-		return Address{}, errors.Wrapf(ErrAddressLenInvalid, "legacy %q decodes to %d bytes", s, len(raw))
-	}
-
-	return KeysetAddress(1, []SigScheme{SchemeSecpSchnorr}, [][]byte{raw[2:]})
-}
-
 // SetBytes rebuilds the Address from its raw bytes; the length is an
 // internal invariant, so a mismatch is a programming error
 func (a Address) SetBytes(b []byte) Address {
