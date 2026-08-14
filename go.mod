@@ -7,7 +7,6 @@ require (
 	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956
 	github.com/c0mm4nd/wasman v1.4.0
 	github.com/cbergoon/merkletree v0.2.0
-	github.com/cloudflare/circl v1.6.5
 	github.com/google/uuid v1.6.0
 	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-libp2p v0.49.0
@@ -19,6 +18,7 @@ require (
 	github.com/ngchain/astrobwt v0.0.0-20211216120825-aeab3b044f9b
 	github.com/ngchain/zap-log v0.0.0-20220612114807-673df3919e65
 	github.com/pkg/errors v0.9.1
+	github.com/pornin/go-fn-dsa v0.3.0
 	github.com/urfave/cli/v2 v2.27.7
 	go.etcd.io/bbolt v1.5.0
 	go.uber.org/atomic v1.11.0

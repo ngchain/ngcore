@@ -16,7 +16,7 @@ const addressVersion = 0x01
 
 // Address is the keccak-256 hash of the owner's public key. The key
 // itself only appears on chain inside a spending tx's signature,
-// which keeps unspent funds shielded and the 1.3 KB post-quantum key
+// which keeps unspent funds shielded and the ~900-byte post-quantum key
 // usable as a compact 32-byte address
 type Address [AddressSize]byte
 

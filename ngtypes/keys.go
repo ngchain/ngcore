@@ -3,30 +3,47 @@ package ngtypes
 import (
 	"crypto/rand"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa44"
 	"github.com/pkg/errors"
+	"github.com/pornin/go-fn-dsa/fndsa"
+	"golang.org/x/crypto/sha3"
 )
 
-// The chain has exactly one native signature system: ML-DSA-44
-// (FIPS 204, module-lattice signatures, post-quantum)
+// The chain has exactly one native signature system: FN-DSA-512
+// (Falcon, the upcoming FIPS 206), chosen for its compact envelopes —
+// an 897-byte verifying key plus a 666-byte signature, 2.4x smaller
+// than ML-DSA-44 while staying on the NIST post-quantum track.
+// Verification is integer-only, so consensus is deterministic across
+// platforms; the floating-point machinery is confined to SIGNING,
+// which happens wallet-side and never inside consensus.
 const (
-	// KeySeedSize is the wallet secret: the 32-byte ML-DSA keygen seed
+	// fndsaLogN selects the degree: 2^9 = 512
+	fndsaLogN = 9
+
+	// KeySeedSize is the wallet secret: a 32-byte seed the whole key
+	// pair regenerates from
 	KeySeedSize = 32
-	// PublicKeySize is the byte length of a member public key
-	PublicKeySize = mldsa44.PublicKeySize
-	// TxSignatureSize is the byte length of one member signature
-	TxSignatureSize = mldsa44.SignatureSize
 )
+
+var (
+	// PublicKeySize is the byte length of an encoded verifying key (897)
+	PublicKeySize = fndsa.VerifyingKeySize(fndsaLogN)
+	// TxSignatureSize is the byte length of one signature (666)
+	TxSignatureSize = fndsa.SignatureSize(fndsaLogN)
+)
+
+// txDomain separates this chain's signatures from any other use of the
+// same keys
+var txDomain = fndsa.DomainContext("ngcore")
 
 var ErrKeyInvalid = errors.New("invalid private key")
 
-// PrivateKey is one keyset member's secret. The wallet format
-// (Serialize) is the bare 32-byte keygen seed, so key files stay tiny
-// even though the post-quantum keys themselves are large
+// PrivateKey is a signing key. The wallet format (Serialize) is the
+// bare 32-byte seed, so key files stay tiny even though the encoded
+// keys are large
 type PrivateKey struct {
-	seed [mldsa44.SeedSize]byte
-	pub  *mldsa44.PublicKey
-	priv *mldsa44.PrivateKey
+	seed [KeySeedSize]byte
+	sk   []byte // encoded signing key
+	pk   []byte // encoded verifying key
 }
 
 // GenerateKey creates a fresh key
@@ -39,15 +56,25 @@ func GenerateKey() (*PrivateKey, error) {
 	return NewKeyFromSeed(seed)
 }
 
-// NewKeyFromSeed derives the key from a 32-byte secret seed
+// NewKeyFromSeed derives the key pair from a 32-byte secret seed: the
+// keygen consumes a deterministic SHAKE256 stream, so the same seed
+// always regenerates the same keys
 func NewKeyFromSeed(seed []byte) (*PrivateKey, error) {
 	if len(seed) != KeySeedSize {
 		return nil, errors.Wrapf(ErrKeyInvalid, "seed must be %d bytes, got %d", KeySeedSize, len(seed))
 	}
 
-	key := &PrivateKey{}
+	drbg := sha3.NewShake256()
+	drbg.Write([]byte("ngcore-fndsa-keygen"))
+	drbg.Write(seed)
+
+	sk, pk, err := fndsa.KeyGen(fndsaLogN, drbg)
+	if err != nil {
+		return nil, err
+	}
+
+	key := &PrivateKey{sk: sk, pk: pk}
 	copy(key.seed[:], seed)
-	key.pub, key.priv = mldsa44.NewKeyFromSeed(&key.seed)
 
 	return key, nil
 }
@@ -65,38 +92,26 @@ func (key *PrivateKey) Serialize() []byte {
 	return out
 }
 
-// PublicBytes returns the packed public key (PublicKeySize bytes)
+// PublicBytes returns the encoded verifying key (PublicKeySize bytes)
 func (key *PrivateKey) PublicBytes() []byte {
-	raw, err := key.pub.MarshalBinary()
-	if err != nil {
-		panic(err) // packing a valid key cannot fail
-	}
+	out := make([]byte, len(key.pk))
+	copy(out, key.pk)
 
-	return raw
+	return out
 }
 
 // SignHash signs a 32-byte digest
 func (key *PrivateKey) SignHash(hash []byte) ([]byte, error) {
-	sig := make([]byte, mldsa44.SignatureSize)
-	// deterministic signing: re-signing the same tx yields the
-	// identical signature (and so the identical tx hash)
-	if err := mldsa44.SignTo(key.priv, hash, nil, false, sig); err != nil {
-		return nil, err
-	}
-
-	return sig, nil
+	// nil rng = the OS RNG; fn-dsa hedges it with the key and message,
+	// so even a weak source cannot leak the key
+	return fndsa.Sign(nil, key.sk, txDomain, 0, hash)
 }
 
-// VerifyHashSig checks one member signature over a 32-byte digest
+// VerifyHashSig checks one signature over a 32-byte digest
 func VerifyHashSig(pubKey, hash, sig []byte) bool {
-	if len(pubKey) != mldsa44.PublicKeySize {
+	if len(pubKey) != PublicKeySize || len(sig) != TxSignatureSize {
 		return false
 	}
 
-	pub := new(mldsa44.PublicKey)
-	if err := pub.UnmarshalBinary(pubKey); err != nil {
-		return false
-	}
-
-	return mldsa44.Verify(pub, hash, nil, sig)
+	return fndsa.Verify(pubKey, txDomain, 0, hash, sig)
 }
