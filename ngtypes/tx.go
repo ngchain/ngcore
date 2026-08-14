@@ -99,16 +99,8 @@ func (x *FullTx) IsSigned() bool {
 // spend time — never by the address itself
 type TxKeySet struct {
 	Threshold uint64
-	Schemes   []byte
 	PubKeys   [][]byte
 	Sigs      [][]byte // parallel to PubKeys; empty slot = did not sign
-}
-
-// KeysetMember describes one member key of a multisig keyset for
-// signers who do not hold that member's private key
-type KeysetMember struct {
-	Scheme SigScheme
-	PubKey []byte
 }
 
 // Verify checks the tx signature envelope against the owner address:
@@ -132,19 +124,14 @@ func (x *FullTx) Verify(owner Address) error {
 		return errors.Wrap(ErrTxSignInvalid, err.Error())
 	}
 
-	if len(keyset.Schemes) != len(keyset.PubKeys) || len(keyset.Sigs) != len(keyset.PubKeys) {
+	if len(keyset.Sigs) != len(keyset.PubKeys) {
 		return errors.Wrap(ErrTxSignInvalid, "keyset arrays misaligned")
 	}
 	if keyset.Threshold > MaxKeysetKeys {
 		return errors.Wrapf(ErrTxSignInvalid, "threshold %d", keyset.Threshold)
 	}
 
-	schemes := make([]SigScheme, len(keyset.Schemes))
-	for i := range keyset.Schemes {
-		schemes[i] = SigScheme(keyset.Schemes[i])
-	}
-
-	addr, err := KeysetAddress(int(keyset.Threshold), schemes, keyset.PubKeys)
+	addr, err := KeysetAddress(int(keyset.Threshold), keyset.PubKeys)
 	if err != nil {
 		return errors.Wrap(ErrTxSignInvalid, err.Error())
 	}
@@ -158,7 +145,7 @@ func (x *FullTx) Verify(owner Address) error {
 		if len(keyset.Sigs[i]) == 0 {
 			continue
 		}
-		if !VerifyHashSig(schemes[i], keyset.PubKeys[i], hash, keyset.Sigs[i]) {
+		if !VerifyHashSig(keyset.PubKeys[i], hash, keyset.Sigs[i]) {
 			return errors.Wrapf(ErrTxSignInvalid, "member %d signature invalid", i)
 		}
 		signed++
@@ -463,31 +450,29 @@ func (x *FullTx) CheckUnlock(owner Address) error {
 // Signature signs with the all-must-sign keyset of the given keys
 // (N-of-N), matching NewAddress / NewAddressFromMultiKeys
 func (x *FullTx) Signature(privateKeys ...*PrivateKey) error {
-	members := make([]KeysetMember, len(privateKeys))
+	members := make([][]byte, len(privateKeys))
 	for i := range privateKeys {
-		members[i] = KeysetMember{Scheme: privateKeys[i].Scheme, PubKey: privateKeys[i].PublicBytes()}
+		members[i] = privateKeys[i].PublicBytes()
 	}
 
 	return x.SignMultisig(len(privateKeys), members, privateKeys...)
 }
 
 // SignMultisig signs a threshold-of-N keyset: members lists the WHOLE
-// keyset (as committed by the address), signers the exactly-threshold
-// subset whose keys are at hand
-func (x *FullTx) SignMultisig(threshold int, members []KeysetMember, signers ...*PrivateKey) error {
+// keyset's public keys (as committed by the address), signers the
+// exactly-threshold subset whose keys are at hand
+func (x *FullTx) SignMultisig(threshold int, members [][]byte, signers ...*PrivateKey) error {
 	if len(signers) != threshold {
 		return errors.Wrapf(ErrTxSignInvalid, "need exactly %d signers, got %d", threshold, len(signers))
 	}
 
 	keyset := TxKeySet{
 		Threshold: uint64(threshold),
-		Schemes:   make([]byte, len(members)),
 		PubKeys:   make([][]byte, len(members)),
 		Sigs:      make([][]byte, len(members)),
 	}
 	for i := range members {
-		keyset.Schemes[i] = byte(members[i].Scheme)
-		keyset.PubKeys[i] = members[i].PubKey
+		keyset.PubKeys[i] = members[i]
 		keyset.Sigs[i] = []byte{}
 	}
 
@@ -498,7 +483,7 @@ func (x *FullTx) SignMultisig(threshold int, members []KeysetMember, signers ...
 		slot := -1
 		pub := signer.PublicBytes()
 		for i := range members {
-			if members[i].Scheme == signer.Scheme && bytes.Equal(members[i].PubKey, pub) && len(keyset.Sigs[i]) == 0 {
+			if bytes.Equal(members[i], pub) && len(keyset.Sigs[i]) == 0 {
 				slot = i
 				break
 			}

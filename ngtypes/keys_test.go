@@ -46,11 +46,7 @@ func TestNativeMultisig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	members := []KeysetMember{
-		{Scheme: key1.Scheme, PubKey: key1.PublicBytes()},
-		{Scheme: key2.Scheme, PubKey: key2.PublicBytes()},
-		{Scheme: key3.Scheme, PubKey: key3.PublicBytes()},
-	}
+	members := [][]byte{key1.PublicBytes(), key2.PublicBytes(), key3.PublicBytes()}
 
 	// two members of different schemes sign
 	tx := testTx(addr)
@@ -118,10 +114,8 @@ func TestKeySerializeRoundTrip(t *testing.T) {
 		t.Fatalf("restored key cannot spend: %v", err)
 	}
 
-	// an unknown scheme byte must be rejected
-	bad := key.Serialize()
-	bad[0] = 0x7f
-	if _, err := ParsePrivateKey(bad); err == nil {
-		t.Fatal("an unknown scheme byte must not parse")
+	// a wrong-length secret must be rejected
+	if _, err := ParsePrivateKey(key.Serialize()[1:]); err == nil {
+		t.Fatal("a truncated seed must not parse")
 	}
 }

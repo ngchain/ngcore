@@ -1,8 +1,6 @@
 package ngtypes
 
 import (
-	"encoding/binary"
-
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
 
@@ -31,13 +29,13 @@ type Address [AddressSize]byte
 
 // KeysetAddress computes the address committing to threshold-of-keys:
 //
-//	keccak256(version || threshold || N × (scheme || len(pub) BE16 || pub))
-func KeysetAddress(threshold int, schemes []SigScheme, pubKeys [][]byte) (Address, error) {
+//	keccak256(version || threshold || N × pubkey)
+//
+// member keys are fixed-size (PublicKeySize), so the preimage is
+// unambiguous without per-key length prefixes
+func KeysetAddress(threshold int, pubKeys [][]byte) (Address, error) {
 	addr := Address{}
 
-	if len(schemes) != len(pubKeys) {
-		return addr, errors.Wrap(ErrKeysetInvalid, "schemes and keys misaligned")
-	}
 	if len(pubKeys) == 0 || len(pubKeys) > MaxKeysetKeys {
 		return addr, errors.Wrapf(ErrKeysetInvalid, "%d member keys", len(pubKeys))
 	}
@@ -47,11 +45,9 @@ func KeysetAddress(threshold int, schemes []SigScheme, pubKeys [][]byte) (Addres
 
 	preimage := []byte{addressVersion, byte(threshold)}
 	for i := range pubKeys {
-		if len(pubKeys[i]) == 0 || len(pubKeys[i]) > 1<<16-1 {
+		if len(pubKeys[i]) != PublicKeySize {
 			return addr, errors.Wrapf(ErrKeysetInvalid, "member %d key size %d", i, len(pubKeys[i]))
 		}
-		preimage = append(preimage, byte(schemes[i]))
-		preimage = binary.BigEndian.AppendUint16(preimage, uint16(len(pubKeys[i])))
 		preimage = append(preimage, pubKeys[i]...)
 	}
 
@@ -61,7 +57,7 @@ func KeysetAddress(threshold int, schemes []SigScheme, pubKeys [][]byte) (Addres
 
 // NewAddress returns the 1-of-1 address of a single key
 func NewAddress(key *PrivateKey) Address {
-	addr, err := KeysetAddress(1, []SigScheme{key.Scheme}, [][]byte{key.PublicBytes()})
+	addr, err := KeysetAddress(1, [][]byte{key.PublicBytes()})
 	if err != nil {
 		panic(err) // a single well-formed key cannot fail
 	}
@@ -70,16 +66,14 @@ func NewAddress(key *PrivateKey) Address {
 }
 
 // NewMultisigAddress commits to native threshold-of-N multisig over
-// the given keys; member schemes may mix once more than one exists
+// the given keys
 func NewMultisigAddress(threshold int, privKeys ...*PrivateKey) (Address, error) {
-	schemes := make([]SigScheme, len(privKeys))
 	pubKeys := make([][]byte, len(privKeys))
 	for i := range privKeys {
-		schemes[i] = privKeys[i].Scheme
 		pubKeys[i] = privKeys[i].PublicBytes()
 	}
 
-	return KeysetAddress(threshold, schemes, pubKeys)
+	return KeysetAddress(threshold, pubKeys)
 }
 
 // NewAddressFromMultiKeys is the all-must-sign form: N-of-N multisig
