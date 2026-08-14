@@ -5,7 +5,10 @@ import "go.etcd.io/bbolt"
 var (
 	BlockBucketName = []byte("blocks")
 	TxBucketName    = []byte("txs")
-	// blockTxPrefix = []byte("bt:") // TODO: add block-tx relationship
+
+	// TxBlockPrefix keys (inside the tx bucket) map a tx hash to the
+	// hash of the block containing it
+	TxBlockPrefix = []byte("blk:")
 
 	// state buckets
 	Num2AccBucketName  = []byte("num:acc")

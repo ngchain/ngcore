@@ -27,3 +27,26 @@ func (chain *Chain) GetTxByHash(hash []byte) (*ngtypes.FullTx, error) {
 
 	return tx, nil
 }
+
+// GetTxLocation resolves the block containing the tx via the tx index
+func (chain *Chain) GetTxLocation(txHash []byte) (blockHash []byte, height uint64, err error) {
+	err = chain.View(func(txn *bbolt.Tx) error {
+		txBucket := txn.Bucket(storage.TxBucketName)
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
+		blockHash, err = ngblocks.GetTxBlockHash(txBucket, txHash)
+		if err != nil {
+			return err
+		}
+
+		block, err := ngblocks.GetBlockByHash(blockBucket, blockHash)
+		if err != nil {
+			return err
+		}
+		height = block.GetHeight()
+
+		return nil
+	})
+
+	return blockHash, height, err
+}

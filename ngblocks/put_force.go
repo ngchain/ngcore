@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // ForcePutNewBlock puts a block into db regardless of local store check
@@ -60,6 +61,11 @@ func delTxs(txBucket *bbolt.Bucket, txs ...*ngtypes.FullTx) error {
 		err := txBucket.Delete(hash)
 		if err != nil {
 			return errors.Wrapf(err, "failed to delete tx %x", hash)
+		}
+
+		err = txBucket.Delete(append(append([]byte{}, storage.TxBlockPrefix...), hash...))
+		if err != nil {
+			return errors.Wrapf(err, "failed to unindex tx %x", hash)
 		}
 	}
 

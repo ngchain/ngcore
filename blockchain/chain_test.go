@@ -386,6 +386,56 @@ func TestSideBlockPruning(t *testing.T) {
 	}
 }
 
+// TestTxBlockIndex: every applied tx is locatable to its block, reorged
+// txs drop out of the index and the winning branch's txs replace them
+func TestTxBlockIndex(t *testing.T) {
+	chain := newTestChain(t)
+	minerA, _ := secp256k1.GeneratePrivateKey()
+	minerB, _ := secp256k1.GeneratePrivateKey()
+
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	b1 := mineBlock(t, genesis, minerA)
+	a2 := mineBlock(t, b1, minerA)
+	if err := chain.ApplyBlock(b1); err != nil {
+		t.Fatal(err)
+	}
+	if err := chain.ApplyBlock(a2); err != nil {
+		t.Fatal(err)
+	}
+
+	genA2 := a2.Txs[0].GetHash()
+	blockHash, height, err := chain.GetTxLocation(genA2)
+	if err != nil {
+		t.Fatalf("locate a2's generate tx: %v", err)
+	}
+	if !bytes.Equal(blockHash, a2.GetHash()) || height != 2 {
+		t.Fatalf("located %x@%d, want a2@2", blockHash, height)
+	}
+
+	// reorg to a heavier branch: a2's tx must leave the index
+	b2 := mineBlock(t, b1, minerB)
+	b3 := mineBlock(t, b2, minerB)
+	if err := chain.ApplyBlock(b2); err != nil {
+		t.Fatal(err)
+	}
+	if err := chain.ApplyBlock(b3); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, _, err := chain.GetTxLocation(genA2); err == nil {
+		t.Fatal("reorged-out tx must be unindexed")
+	}
+
+	genB2 := b2.Txs[0].GetHash()
+	blockHash, height, err = chain.GetTxLocation(genB2)
+	if err != nil {
+		t.Fatalf("locate b2's generate tx: %v", err)
+	}
+	if !bytes.Equal(blockHash, b2.GetHash()) || height != 2 {
+		t.Fatalf("located %x@%d, want b2'@2", blockHash, height)
+	}
+}
+
 // TestSnapshotPersistence: checkpoint sheets must survive a state
 // "restart" (fresh in-mem cache over the same db) so mature-balance
 // lookups keep working

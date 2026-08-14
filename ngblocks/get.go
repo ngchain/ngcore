@@ -27,6 +27,16 @@ func GetTxByHash(txBucket *bbolt.Bucket, hash []byte) (*ngtypes.FullTx, error) {
 	return &tx, nil
 }
 
+// GetTxBlockHash resolves the hash of the block containing the tx
+func GetTxBlockHash(txBucket *bbolt.Bucket, txHash []byte) ([]byte, error) {
+	blockHash := txBucket.Get(append(append([]byte{}, storage.TxBlockPrefix...), txHash...))
+	if blockHash == nil {
+		return nil, errors.Wrapf(storage.ErrKeyNotFound, "tx %x is not indexed to any block", txHash)
+	}
+
+	return blockHash, nil
+}
+
 func GetBlockByHash(blockBucket *bbolt.Bucket, hash []byte) (*ngtypes.FullBlock, error) {
 	rawBlock := blockBucket.Get(hash)
 	if rawBlock == nil {

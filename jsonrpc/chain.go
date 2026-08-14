@@ -119,6 +119,11 @@ type getTxByHashParams struct {
 type getTxByHashReply struct {
 	OnChain bool            `json:"onChain"`
 	Tx      *ngtypes.FullTx `json:"tx"`
+
+	// filled for on-chain txs via the tx->block index
+	BlockHash     string `json:"blockHash,omitempty"`
+	BlockHeight   uint64 `json:"blockHeight,omitempty"`
+	Confirmations uint64 `json:"confirmations,omitempty"`
 }
 
 func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -142,10 +147,21 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 
 	if tx != nil {
-		raw, err := utils.JSON.Marshal(&getTxByHashReply{
+		reply := &getTxByHashReply{
 			OnChain: true,
 			Tx:      tx,
-		})
+		}
+
+		blockHash, height, err := s.pow.Chain.GetTxLocation(hash)
+		if err == nil {
+			reply.BlockHash = hex.EncodeToString(blockHash)
+			reply.BlockHeight = height
+			if latest := s.pow.Chain.GetLatestBlockHeight(); latest >= height {
+				reply.Confirmations = latest - height + 1
+			}
+		}
+
+		raw, err := utils.JSON.Marshal(reply)
 		if err != nil {
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
@@ -171,3 +187,4 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	log.Error(err)
 	return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 }
+

@@ -50,6 +50,8 @@ func PutNewBlock(blockBucket *bbolt.Bucket, txBucket *bbolt.Bucket, block *ngtyp
 }
 
 func putTxs(txBucket *bbolt.Bucket, block *ngtypes.FullBlock) error {
+	blockHash := block.GetHash()
+
 	for i := range block.Txs {
 		hash := block.Txs[i].GetHash()
 
@@ -59,6 +61,12 @@ func putTxs(txBucket *bbolt.Bucket, block *ngtypes.FullBlock) error {
 		}
 
 		err = txBucket.Put(hash, raw)
+		if err != nil {
+			return err
+		}
+
+		// tx -> containing block index
+		err = txBucket.Put(append(append([]byte{}, storage.TxBlockPrefix...), hash...), blockHash)
 		if err != nil {
 			return err
 		}
