@@ -22,6 +22,11 @@ var (
 	// ContractNameBucketName maps deployer-address + name to the account
 	// num hosting the contract, backing the addr.name import form
 	ContractNameBucketName = []byte("contract:names")
+
+	// ReceiptBucketName holds the LOCAL (non-consensus) execution
+	// receipts: tx hash -> contract runs with their events. Every node
+	// rebuilds them deterministically by executing the chain
+	ReceiptBucketName = []byte("receipts")
 )
 
 var (
@@ -34,6 +39,11 @@ var (
 func InitDB(db *bbolt.DB) {
 	db.Update(func(txn *bbolt.Tx) error {
 		_, err := txn.CreateBucketIfNotExists(BlockBucketName)
+		if err != nil {
+			return err
+		}
+
+		_, err = txn.CreateBucketIfNotExists(ReceiptBucketName)
 		if err != nil {
 			return err
 		}

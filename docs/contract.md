@@ -76,6 +76,9 @@ writes into `ptr`):
 
 ```
 log:     debug(ptr, size)            error(ptr, size)
+         emit(tptr, tlen, dptr, dlen) -> i32
+         ; records an event (topic + data) into the tx's LOCAL receipt;
+         ; attributed to the executing account, dropped on failed runs
 account: get_host() -> i64
          get_owner_size() -> i32     get_owner(num: i64, ptr) -> i32
          get_contract_size(num: i64) -> i32
@@ -178,5 +181,16 @@ Example — a complete on-chain contract:
   (func (export "main")
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
 ```
+
+## Receipts & events (non-consensus)
+
+Every contract run a tx triggers lands in a LOCAL receipt (tx hash ->
+runs with outcome, error, gas and emitted events). Receipts never enter
+block hashes: each node derives them deterministically by executing the
+chain, and a reorg replay regenerates them for the winning branch.
+Query with the `getReceipt` rpc ({hash}) — it also reports the tx's
+block and confirmations; `callContract` previews the events a real tx
+would emit. Note: a node which fast-synced (snapshot mode) has no
+receipts for txs below its checkpoint, since it never executed them.
 
 See `ngstate/wasm_test.go` for more contracts exercising every module.

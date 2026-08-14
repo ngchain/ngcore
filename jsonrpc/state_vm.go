@@ -1,6 +1,7 @@
 package jsonrpc
 
 import (
+	"encoding/hex"
 	"math/big"
 	"strconv"
 	"strings"
@@ -24,10 +25,34 @@ type callContractParams struct {
 	Extra string `json:"extra"`
 }
 
+type jsonEvent struct {
+	Contract uint64 `json:"contract"`
+	Topic    string `json:"topic"`
+	Data     string `json:"data"` // hex
+}
+
 type callContractResult struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error,omitempty"`
-	GasUsed uint64 `json:"gasUsed"`
+	Success bool        `json:"success"`
+	Error   string      `json:"error,omitempty"`
+	GasUsed uint64      `json:"gasUsed"`
+	Events  []jsonEvent `json:"events,omitempty"`
+}
+
+func eventsToJSON(events []ngstate.Event) []jsonEvent {
+	if len(events) == 0 {
+		return nil
+	}
+
+	out := make([]jsonEvent, len(events))
+	for i, e := range events {
+		out[i] = jsonEvent{
+			Contract: e.Contract,
+			Topic:    e.Topic,
+			Data:     hex.EncodeToString(e.Data),
+		}
+	}
+
+	return out
 }
 
 // callContractFunc dry-runs a contract's main against the CURRENT state:
@@ -84,6 +109,7 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 			result.Error = runErr.Error()
 		} else {
 			result.Success = true
+			result.Events = eventsToJSON(vm.Events())
 		}
 
 		return nil
@@ -114,4 +140,78 @@ func (s *Server) resolveContractRef(ref string) (uint64, error) {
 	}
 
 	return strconv.ParseUint(ref, 10, 64)
+}
+
+type getReceiptParams struct {
+	Hash string `json:"hash"` // hex tx hash
+}
+
+type jsonContractRun struct {
+	Account uint64      `json:"account"`
+	Entry   string      `json:"entry"`
+	Success bool        `json:"success"`
+	Error   string      `json:"error,omitempty"`
+	GasUsed uint64      `json:"gasUsed"`
+	Events  []jsonEvent `json:"events,omitempty"`
+}
+
+type getReceiptResult struct {
+	OnChain       bool              `json:"onChain"`
+	BlockHash     string            `json:"blockHash,omitempty"`
+	BlockHeight   uint64            `json:"blockHeight,omitempty"`
+	Confirmations uint64            `json:"confirmations,omitempty"`
+	Runs          []jsonContractRun `json:"runs"`
+}
+
+// getReceiptFunc returns the LOCAL execution receipt of a tx: which
+// contracts ran, their outcome, gas and events. Receipts are derived by
+// executing the chain, not consensus data
+func (s *Server) getReceiptFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getReceiptParams
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	txHash, err := hex.DecodeString(params.Hash)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	result := &getReceiptResult{Runs: []jsonContractRun{}}
+
+	if blockHash, height, err := s.pow.Chain.GetTxLocation(txHash); err == nil {
+		result.OnChain = true
+		result.BlockHash = hex.EncodeToString(blockHash)
+		result.BlockHeight = height
+		if latest := s.pow.Chain.GetLatestBlockHeight(); latest >= height {
+			result.Confirmations = latest - height + 1
+		}
+	}
+
+	runs, err := s.pow.State.GetTxRuns(txHash)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	for _, run := range runs {
+		result.Runs = append(result.Runs, jsonContractRun{
+			Account: run.Account,
+			Entry:   run.Entry,
+			Success: run.Ok,
+			Error:   run.Error,
+			GasUsed: run.GasUsed,
+			Events:  eventsToJSON(run.Events),
+		})
+	}
+
+	raw, err := utils.JSON.Marshal(result)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }

@@ -845,6 +845,84 @@ func TestVMKVScan(t *testing.T) {
 	}
 }
 
+// emitWat emits two events and writes one kv entry
+const emitWat = `
+(module
+  (import "log" "emit" (func $emit (param i32 i32 i32 i32) (result i32)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "transferdata1mint")
+  (func (export "main")
+    (drop (call $emit (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 5)))
+    (drop (call $emit (i32.const 13) (i32.const 4) (i32.const 0) (i32.const 0)))
+    (drop (call $set (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 5)))))
+`
+
+// TestReceiptsAndEvents: contract runs land in the local receipt with
+// their events; failed runs record the failure without events
+func TestReceiptsAndEvents(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(emitWat), nil)
+		acc.SetLock(true)
+		putAccount(t, txn, acc, 0)
+
+		tx := fakeTransactTx(nil, nil)
+		state.runContract(txn, 500, tx, VMEntryOnTx, 1)
+
+		runs, err := GetTxRuns(txn, tx.GetHash())
+		if err != nil {
+			return err
+		}
+		if len(runs) != 1 {
+			t.Fatalf("runs = %d, want 1", len(runs))
+		}
+		run := runs[0]
+		if !run.Ok || run.Account != 500 || run.Entry != VMEntryOnTx {
+			t.Fatalf("run = %+v", run)
+		}
+		if run.GasUsed == 0 {
+			t.Fatal("run must report gas")
+		}
+		if len(run.Events) != 2 {
+			t.Fatalf("events = %d, want 2", len(run.Events))
+		}
+		if run.Events[0].Topic != "transfer" || string(run.Events[0].Data) != "data1" ||
+			run.Events[0].Contract != 500 {
+			t.Fatalf("event[0] = %+v", run.Events[0])
+		}
+		if run.Events[1].Topic != "mint" || len(run.Events[1].Data) != 0 {
+			t.Fatalf("event[1] = %+v", run.Events[1])
+		}
+
+		// a failing contract records the failure and drops its events
+		bad := ngtypes.NewAccount(600, testAddr(0xbb), []byte(burnWat), nil)
+		bad.SetLock(true)
+		putAccount(t, txn, bad, 0)
+
+		badTx := fakeTransactTx([]ngtypes.Address{testAddr(0xbb)}, []*big.Int{big.NewInt(0)})
+		state.runContract(txn, 600, badTx, VMEntryOnTx, 1)
+
+		badRuns, err := GetTxRuns(txn, badTx.GetHash())
+		if err != nil {
+			return err
+		}
+		if len(badRuns) != 1 || badRuns[0].Ok || badRuns[0].Error == "" {
+			t.Fatalf("bad runs = %+v", badRuns)
+		}
+		if len(badRuns[0].Events) != 0 {
+			t.Fatal("failed runs must not keep events")
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestVMDryRun: a dry run executes fully (gas burned, result visible)
 // but never touches the chain state
 func TestVMDryRun(t *testing.T) {

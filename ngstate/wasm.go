@@ -51,6 +51,10 @@ type VM struct {
 	// contract this vm was built for, service calls push their callee
 	frames []uint64
 
+	// events accumulate during the run and only survive a SUCCESSFUL
+	// call (mirroring the journal semantics)
+	events []Event
+
 	logger *logging.ZapEventLogger
 }
 
@@ -195,6 +199,11 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 	}
 
 	return nil
+}
+
+// Events returns what the (successful) run emitted
+func (vm *VM) Events() []Event {
+	return vm.events
 }
 
 // Run instantiates the module and calls the entry export.

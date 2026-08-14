@@ -72,6 +72,41 @@ func initLogImports(vm *VM) error {
 		return err
 	}
 
+	// emit records a contract event into the tx receipt (local,
+	// non-consensus data); attributed to the EXECUTING account
+	err = vm.linker.DefineAdvancedFunc("log", "emit", func(ins *wasman.Instance) interface{} {
+		return func(topicPtr, topicLen, dataPtr, dataLen uint32) uint32 {
+			if len(vm.events) >= maxEventsPerRun ||
+				topicLen > maxEventTopicLen || dataLen > maxEventDataLen {
+				return 0
+			}
+
+			topic, err := readMem(ins, topicPtr, topicLen)
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+			data, err := readMem(ins, dataPtr, dataLen)
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			dataCopy := make([]byte, len(data))
+			copy(dataCopy, data)
+			vm.events = append(vm.events, Event{
+				Contract: vm.currentAccount(),
+				Topic:    string(topic),
+				Data:     dataCopy,
+			})
+
+			return 1
+		}
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

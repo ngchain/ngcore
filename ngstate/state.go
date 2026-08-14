@@ -146,6 +146,7 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 		storage.Addr2NumBucketName,
 		storage.Addr2BalBucketName,
 		storage.Num2AccBucketName,
+		storage.ReceiptBucketName, // receipts regenerate with the replay
 	} {
 		if err := txn.DeleteBucket(name); err != nil {
 			return err

@@ -434,18 +434,38 @@ func (state *State) runContract(txn *bbolt.Tx, num ngtypes.AccountNum, tx *ngtyp
 		return
 	}
 
+	run := ContractRun{Account: uint64(num), Entry: entry}
+
 	vm, err := NewVM(txn, account, tx, blockTime)
 	if err != nil {
 		log.Errorf("failed to build the vm for account %d: %v", num, err)
+		run.Error = err.Error()
+		recordRun(txn, tx, run)
 		return
 	}
 
 	err = vm.Run(entry)
+	run.GasUsed = vm.cfg.TollStation.GetToll()
 	if err != nil {
 		if IsExportMissing(err) && entry != VMEntryOnTx {
-			return // optional entry (e.g. init) is absent — fine
+			return // optional entry (e.g. init) is absent — no run to record
 		}
 
 		log.Errorf("contract call %s on account %d failed: %v", entry, num, err)
+		run.Error = err.Error()
+		recordRun(txn, tx, run)
+		return
+	}
+
+	run.Ok = true
+	run.Events = vm.Events()
+	recordRun(txn, tx, run)
+}
+
+// recordRun appends the run to the tx's local receipt; receipt failures
+// must never fail consensus, so they only log
+func recordRun(txn *bbolt.Tx, tx *ngtypes.FullTx, run ContractRun) {
+	if err := appendContractRun(txn, tx.GetHash(), run); err != nil {
+		log.Errorf("failed to record the receipt of tx %x: %v", tx.GetHash(), err)
 	}
 }
