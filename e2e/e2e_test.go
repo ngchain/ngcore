@@ -38,8 +38,6 @@ func newNode(t *testing.T) *testNode {
 
 	dir := t.TempDir()
 
-	// NOTE: the db stays open for the whole test binary: nodes have no
-	// shutdown api, and their sync loops would hit a closed db handle
 	db, err := bbolt.Open(filepath.Join(dir, "chain.db"), 0o600, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +64,14 @@ func newNode(t *testing.T) *testNode {
 		DisableConnectingBootstraps: true,
 	})
 	pow.GoLoop()
+
+	// a stopped node must not touch the db anymore, so closing it right
+	// after is safe — this is the shutdown api's e2e coverage
+	t.Cleanup(func() {
+		pow.Stop()
+		time.Sleep(100 * time.Millisecond) // let the loops drain
+		_ = db.Close()
+	})
 
 	return &testNode{pow: pow, chain: chain, local: local}
 }

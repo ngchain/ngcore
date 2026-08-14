@@ -15,6 +15,9 @@ type Broadcast struct {
 	PubSub *pubsub.PubSub
 	node   core.Host
 
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	network       ngtypes.Network
 	topics        map[string]*pubsub.Topic
 	subscriptions map[string]*pubsub.Subscription
@@ -31,9 +34,13 @@ var log = logging.Logger("bcast")
 func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan *ngtypes.FullBlock, txCh chan *ngtypes.FullTx) *Broadcast {
 	var err error
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	b := &Broadcast{
 		PubSub:        nil,
 		node:          node,
+		ctx:           ctx,
+		cancel:        cancel,
 		network:       network,
 		topics:        make(map[string]*pubsub.Topic),
 		subscriptions: make(map[string]*pubsub.Subscription),
@@ -45,7 +52,7 @@ func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan 
 		OnTx:    txCh,
 	}
 
-	b.PubSub, err = pubsub.NewFloodSub(context.Background(), node)
+	b.PubSub, err = pubsub.NewFloodSub(ctx, node)
 	if err != nil {
 		panic(err)
 	}
@@ -80,8 +87,11 @@ func (b *Broadcast) GoServe() {
 
 func (b *Broadcast) blockListener(sub *pubsub.Subscription) {
 	for {
-		msg, err := sub.Next(context.Background())
+		msg, err := sub.Next(b.ctx)
 		if err != nil {
+			if b.ctx.Err() != nil {
+				return // shutting down
+			}
 			log.Error(err)
 			continue
 		}
@@ -92,12 +102,27 @@ func (b *Broadcast) blockListener(sub *pubsub.Subscription) {
 
 func (b *Broadcast) txListener(sub *pubsub.Subscription) {
 	for {
-		msg, err := sub.Next(context.Background())
+		msg, err := sub.Next(b.ctx)
 		if err != nil {
+			if b.ctx.Err() != nil {
+				return // shutting down
+			}
 			log.Error(err)
 			continue
 		}
 
 		go b.onBroadcastTx(msg)
+	}
+}
+
+// Close stops the listeners and leaves all topics
+func (b *Broadcast) Close() {
+	b.cancel()
+
+	for _, sub := range b.subscriptions {
+		sub.Cancel()
+	}
+	for _, topic := range b.topics {
+		_ = topic.Close()
 	}
 }

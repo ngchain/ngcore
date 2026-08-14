@@ -94,3 +94,13 @@ func (localNode *LocalNode) GoServe() {
 	localNode.Wired.GoServe()
 	localNode.Broadcast.GoServe()
 }
+
+// Close shuts the p2p node down: stops the broadcast listeners, leaves
+// the pubsub topics and closes the libp2p host with all its streams.
+// It also resolves the Close ambiguity between the embedded Host and
+// Broadcast, keeping *LocalNode a valid host.Host
+func (localNode *LocalNode) Close() error {
+	localNode.Broadcast.Close()
+
+	return localNode.Host.Close()
+}

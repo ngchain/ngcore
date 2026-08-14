@@ -3,11 +3,15 @@ package main
 import (
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	// #nosec
 	_ "net/http/pprof"
 
+	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
 	"github.com/urfave/cli/v2"
 
@@ -138,7 +142,12 @@ var action = func(c *cli.Context) error {
 
 	log.Warnf("ngcore version %s", Version)
 
-	db := storage.InitStorage(network, dbFolder)
+	var db *bbolt.DB
+	if c.Bool(inMemFlag.Name) {
+		db = storage.InitTempStorage()
+	} else {
+		db = storage.InitStorage(network, dbFolder)
+	}
 
 	defer func() {
 		err := db.Close()
@@ -202,6 +211,15 @@ var action = func(c *cli.Context) error {
 		go rpc.Serve()
 	}
 
-	// notify the exit events
-	select {}
+	// block until an exit signal arrives, then shut down cleanly:
+	// consensus loops exit, the p2p host closes, and the deferred
+	// db.Close() flushes the store
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigCh
+
+	log.Warnf("received %s, shutting down", sig)
+	pow.Stop()
+
+	return nil
 }

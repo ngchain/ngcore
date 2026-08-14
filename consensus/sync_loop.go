@@ -1,16 +1,22 @@
 package consensus
 
 import (
+	"context"
 	"sort"
 	"time"
 )
 
 // main loop of sync module.
-func (mod *syncModule) loop() {
+func (mod *syncModule) loop(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 
 	for {
-		<-ticker.C
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return
+		}
 		log.Infof("checking sync status")
 
 		// do get status

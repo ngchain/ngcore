@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -30,6 +31,9 @@ type PoWork struct {
 	LocalNode *ngp2p.LocalNode
 
 	db *bbolt.DB
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 type PoWorkConfig struct {
@@ -41,6 +45,8 @@ type PoWorkConfig struct {
 
 // InitPoWConsensus creates and initializes the PoW consensus.
 func InitPoWConsensus(db *bbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool, state *ngstate.State, localNode *ngp2p.LocalNode, config PoWorkConfig) *PoWork {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	pow := &PoWork{
 		PoWorkConfig: config,
 		SyncMod:      nil,
@@ -50,6 +56,9 @@ func InitPoWConsensus(db *bbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool
 		LocalNode:    localNode,
 
 		db: db,
+
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
 	// init sync before miner to prevent bootstrap sync from mining job update
@@ -139,27 +148,45 @@ func (pow *PoWork) GetChain() ngtypes.Chain {
 // GoLoop ignites all loops.
 func (pow *PoWork) GoLoop() {
 	go pow.eventLoop()
-	go pow.SyncMod.loop()
+	go pow.SyncMod.loop(pow.ctx)
+}
+
+// Stop shuts the consensus down: all loops exit and the p2p node closes.
+// The db handle stays open — it belongs to the caller
+func (pow *PoWork) Stop() {
+	pow.cancel()
+
+	if err := pow.LocalNode.Close(); err != nil {
+		log.Errorf("failed to close the p2p node: %v", err)
+	}
+
+	log.Warn("consensus stopped")
 }
 
 // channel receiver for broadcasts events.
 func (pow *PoWork) eventLoop() {
 	go func() {
 		for {
-			block := <-pow.LocalNode.OnBlock
-			err := pow.ImportBlock(block)
-			if err != nil {
-				log.Warnf("failed to put new block from p2p: %s", err)
+			select {
+			case block := <-pow.LocalNode.OnBlock:
+				if err := pow.ImportBlock(block); err != nil {
+					log.Warnf("failed to put new block from p2p: %s", err)
+				}
+			case <-pow.ctx.Done():
+				return
 			}
 		}
 	}()
 
 	go func() {
 		for {
-			tx := <-pow.LocalNode.OnTx
-			err := pow.Pool.PutTx(tx)
-			if err != nil {
-				log.Warnf("failed to put new tx from p2p network: %s", err)
+			select {
+			case tx := <-pow.LocalNode.OnTx:
+				if err := pow.Pool.PutTx(tx); err != nil {
+					log.Warnf("failed to put new tx from p2p network: %s", err)
+				}
+			case <-pow.ctx.Done():
+				return
 			}
 		}
 	}()
