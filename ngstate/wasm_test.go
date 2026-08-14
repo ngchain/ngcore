@@ -109,7 +109,7 @@ func TestVMLog(t *testing.T) {
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ func TestVMKVSet(t *testing.T) {
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -169,7 +169,7 @@ func TestVMTransfer(t *testing.T) {
 		receiver := ngtypes.NewAccount(1, testAddr(0xbb), nil, nil)
 		putAccount(t, txn, receiver, 0)
 
-		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -200,7 +200,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 100)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -244,7 +244,7 @@ func TestLockUnlockFlow(t *testing.T) {
 		if err := lockTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleLock(txn, lockTx); err != nil {
+		if err := state.handleLock(txn, lockTx, 1); err != nil {
 			t.Fatalf("handleLock: %v", err)
 		}
 
@@ -260,7 +260,7 @@ func TestLockUnlockFlow(t *testing.T) {
 		}
 
 		// double lock must fail
-		if err := state.handleLock(txn, lockTx); err == nil {
+		if err := state.handleLock(txn, lockTx, 1); err == nil {
 			t.Fatal("locking a locked account should fail")
 		}
 
@@ -362,7 +362,7 @@ func TestEditFlow(t *testing.T) {
 		if err := lockTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleLock(txn, lockTx); err != nil {
+		if err := state.handleLock(txn, lockTx, 1); err != nil {
 			t.Fatalf("handleLock after edit: %v", err)
 		}
 
@@ -445,15 +445,15 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 
 		// locking leverage before its dependency is active must fail
-		if err := state.handleLock(txn, lockTx(600, privLev)); err == nil {
+		if err := state.handleLock(txn, lockTx(600, privLev), 1); err == nil {
 			t.Fatal("locking with an inactive dependency must fail")
 		}
 
 		// dex first, then leverage: the reference gets pinned
-		if err := state.handleLock(txn, lockTx(500, privDex)); err != nil {
+		if err := state.handleLock(txn, lockTx(500, privDex), 1); err != nil {
 			t.Fatalf("lock dex: %v", err)
 		}
-		if err := state.handleLock(txn, lockTx(600, privLev)); err != nil {
+		if err := state.handleLock(txn, lockTx(600, privLev), 1); err != nil {
 			t.Fatalf("lock leverage: %v", err)
 		}
 
@@ -470,7 +470,7 @@ func TestContractModuleDeps(t *testing.T) {
 		// linked execution: leverage's main calls dex's double and
 		// writes 42 into leverage's own kv
 		levAcc, _ := getAccountByNum(txn, 600)
-		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with deps: %v", err)
 		}
@@ -572,7 +572,7 @@ func TestServiceToken(t *testing.T) {
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
-			return state.handleLock(txn, tx)
+			return state.handleLock(txn, tx, 1)
 		}
 
 		if err := lock(700, privToken); err != nil {
@@ -590,7 +590,7 @@ func TestServiceToken(t *testing.T) {
 
 		// run the consumer: the ledger updates happen in the TOKEN's kv
 		userAcc, _ := getAccountByNum(txn, 600)
-		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with service dep: %v", err)
 		}
@@ -661,7 +661,7 @@ func TestVMU256(t *testing.T) {
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -687,6 +687,84 @@ func TestVMU256(t *testing.T) {
 			if b != want {
 				t.Fatalf("sum[%d] = %#x, want %#x (carry must cross the limbs)", i, b, want)
 			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// txCtxWat snapshots the execution context into kv: the block
+// timestamp, the amount this tx paid to the contract, and the
+// remaining gas
+const txCtxWat = `
+(module
+  (import "tx" "get_timestamp" (func $ts (result i64)))
+  (import "tx" "get_paid_size" (func $paid_size (result i32)))
+  (import "tx" "get_paid" (func $paid (param i32) (result i32)))
+  (import "env" "get_gas" (func $gas (result i64)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "ts")
+  (data (i32.const 2) "pd")
+  (data (i32.const 4) "gs")
+  (func (export "main")
+    (i64.store (i32.const 16) (call $ts))
+    (drop (call $set (i32.const 0) (i32.const 2) (i32.const 16) (i32.const 8)))
+    (drop (call $set (i32.const 2) (i32.const 2) (i32.const 32) (call $paid (i32.const 32))))
+    (i64.store (i32.const 16) (call $gas))
+    (drop (call $set (i32.const 4) (i32.const 2) (i32.const 16) (i32.const 8)))))
+`
+
+// TestVMTxContext covers the timestamp / msg.value / gas introspection
+func TestVMTxContext(t *testing.T) {
+	db := newTestDB(t)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		owner := testAddr(0xaa)
+		acc := ngtypes.NewAccount(500, owner, []byte(txCtxWat), nil)
+		acc.SetLock(true)
+		putAccount(t, txn, acc, 0)
+
+		// the tx pays 77 to the contract's owner (msg.value) in two legs
+		tx := fakeTransactTx(
+			[]ngtypes.Address{owner, testAddr(0xbb), owner},
+			[]*big.Int{big.NewInt(70), big.NewInt(5), big.NewInt(7)},
+		)
+
+		vm, err := NewVM(txn, acc, tx, 1755264000) // block timestamp
+		if err != nil {
+			return err
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			return err
+		}
+
+		reloaded, err := getAccountByNum(txn, 500)
+		if err != nil {
+			return err
+		}
+
+		ts := reloaded.Context.Get("ts")
+		if len(ts) != 8 || binary.LittleEndian.Uint64(ts) != 1755264000 {
+			t.Fatalf("ts = %x, want LE(1755264000)", ts)
+		}
+
+		// 70 + 7 to the owner; the 5 to another address must not count
+		paid := reloaded.Context.Get("pd")
+		if len(paid) != 1 || paid[0] != 77 {
+			t.Fatalf("paid = %x, want [77]", paid)
+		}
+
+		gas := reloaded.Context.Get("gs")
+		if len(gas) != 8 {
+			t.Fatalf("gas entry length = %d", len(gas))
+		}
+		remaining := binary.LittleEndian.Uint64(gas)
+		if remaining == 0 || remaining >= vmMaxToll {
+			t.Fatalf("gas remaining = %d, want within (0, %d)", remaining, int64(vmMaxToll))
 		}
 
 		return nil
@@ -727,7 +805,7 @@ func TestNamedContractDeps(t *testing.T) {
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
-			return state.handleLock(txn, tx)
+			return state.handleLock(txn, tx, 1)
 		}
 
 		// the consumer cannot lock before the name exists
@@ -751,7 +829,7 @@ func TestNamedContractDeps(t *testing.T) {
 
 		// named execution works end to end
 		userAcc, _ := getAccountByNum(txn, 600)
-		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with named dep: %v", err)
 		}
@@ -868,7 +946,7 @@ func TestLockRejectsBrokenContract(t *testing.T) {
 		if err := checkLock(txn, lockTx); err == nil {
 			t.Fatal("checkLock should reject a non-compiling contract")
 		}
-		if err := state.handleLock(txn, lockTx); err == nil {
+		if err := state.handleLock(txn, lockTx, 1); err == nil {
 			t.Fatal("handleLock should reject a non-compiling contract")
 		}
 

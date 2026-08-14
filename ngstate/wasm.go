@@ -36,9 +36,10 @@ const (
 // A fresh VM is built for every single contract call: nothing inside it
 // survives across txs, which keeps the execution deterministic
 type VM struct {
-	caller *ngtypes.FullTx
-	self   *ngtypes.Account
-	txn    *bbolt.Tx
+	caller    *ngtypes.FullTx
+	self      *ngtypes.Account
+	txn       *bbolt.Tx
+	blockTime uint64 // the enclosing block's timestamp
 
 	journal *vmJournal
 
@@ -68,8 +69,8 @@ func CompileContract(contract []byte) ([]byte, error) {
 // NewVM compiles the account's contract text, binds the built-in host
 // modules and links the declared contract dependencies (DAG order, one
 // shared gas budget). The tx is the calling tx which triggers this
-// execution
-func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, error) {
+// execution; blockTime is the enclosing block's timestamp
+func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx, blockTime uint64) (*VM, error) {
 	bin, err := CompileContract(account.Contract)
 	if err != nil {
 		return nil, err
@@ -94,9 +95,10 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, er
 	}
 
 	vm := &VM{
-		caller:  tx,
-		self:    account,
-		txn:     txn,
+		caller:    tx,
+		self:      account,
+		txn:       txn,
+		blockTime: blockTime,
 		journal: newVMJournal(account),
 		frames:  []uint64{account.Num},
 		cfg:     cfg,

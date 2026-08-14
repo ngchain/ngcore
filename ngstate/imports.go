@@ -31,6 +31,7 @@ func (vm *VM) initBuiltInImports() error {
 		initCoinImports,
 		initKVImports,
 		initTxImports,
+		initEnvImports,
 	} {
 		if err := init(vm); err != nil {
 			return err
@@ -65,6 +66,27 @@ func initLogImports(vm *VM) error {
 			}
 
 			vm.logger.Error(string(message))
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// initEnvImports binds the env module: execution-environment
+// introspection shared by the whole call tree
+func initEnvImports(vm *VM) error {
+	err := vm.linker.DefineAdvancedFunc("env", "get_gas", func(ins *wasman.Instance) interface{} {
+		return func() uint64 {
+			// the remaining toll budget of this call tree
+			spent := vm.cfg.TollStation.GetToll()
+			if spent >= vmMaxToll {
+				return 0
+			}
+
+			return vmMaxToll - spent
 		}
 	})
 	if err != nil {

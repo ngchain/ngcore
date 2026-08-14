@@ -1,6 +1,8 @@
 package ngstate
 
 import (
+	"math/big"
+
 	"github.com/c0mm4nd/wasman"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -45,6 +47,60 @@ func initTxImports(vm *VM) error {
 	err = vm.linker.DefineAdvancedFunc("tx", "get_height", func(ins *wasman.Instance) interface{} {
 		return func() uint64 {
 			return vm.caller.Height
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = vm.linker.DefineAdvancedFunc("tx", "get_timestamp", func(ins *wasman.Instance) interface{} {
+		return func() uint64 {
+			// the enclosing block's timestamp (unix seconds)
+			return vm.blockTime
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	// get_paid exposes msg.value: the total this tx pays to the account
+	// executing right now (sums the values whose participant address is
+	// the current frame's owner), as big-endian big.Int bytes
+	paidToCurrent := func() []byte {
+		acc, err := vm.journal.accountOf(vm.txn, vm.currentAccount())
+		if err != nil {
+			vm.logger.Error(err)
+			return nil
+		}
+
+		total := new(big.Int)
+		for i := range vm.caller.Participants {
+			if i < len(vm.caller.Values) && vm.caller.Participants[i] == acc.Owner {
+				total.Add(total, vm.caller.Values[i])
+			}
+		}
+
+		return total.Bytes()
+	}
+
+	err = vm.linker.DefineAdvancedFunc("tx", "get_paid_size", func(ins *wasman.Instance) interface{} {
+		return func() uint32 {
+			return uint32(len(paidToCurrent()))
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = vm.linker.DefineAdvancedFunc("tx", "get_paid", func(ins *wasman.Instance) interface{} {
+		return func(ptr uint32) uint32 {
+			l, err := cp(ins, ptr, paidToCurrent())
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			return l
 		}
 	})
 	if err != nil {

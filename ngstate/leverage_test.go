@@ -203,7 +203,7 @@ func TestLeverageShowcase(t *testing.T) {
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
-			if err := state.handleLock(txn, tx); err != nil {
+			if err := state.handleLock(txn, tx, 1); err != nil {
 				t.Fatalf("lock %d (%s): %v", convener, name, err)
 			}
 		}
@@ -225,7 +225,7 @@ func TestLeverageShowcase(t *testing.T) {
 
 		// open the leveraged position
 		leverageAcc, _ := getAccountByNum(txn, 730)
-		vm, err := NewVM(txn, leverageAcc, fakeTransactTx(nil, nil))
+		vm, err := NewVM(txn, leverageAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM: %v", err)
 		}

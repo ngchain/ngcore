@@ -88,6 +88,7 @@ kv:      get_size(kptr, klen) -> i32
          get(kptr, klen, vptr) -> i32
          set(kptr, klen, vptr, vlen) -> i32
          del(kptr, klen) -> i32
+env:     get_gas() -> i64            ; remaining toll of the call tree
 u128/u256: add/sub/mul/div_u/div_s/rem_u/rem_s(dst, a, b)
          and/or/xor(dst, a, b)   not(dst, a)
          shl/shr_u/shr_s(dst, a, bits)
@@ -97,6 +98,10 @@ u128/u256: add/sub/mul/div_u/div_s/rem_u/rem_s(dst, a, b)
          ; 256-bit token math without floats (evm division conventions)
 tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_network() -> i32        get_height() -> i64
+         get_timestamp() -> i64      ; enclosing block time (unix s)
+         get_paid_size() -> i32      get_paid(ptr) -> i32
+         ; msg.value: what this tx pays to the EXECUTING account's
+         ; owner, big-endian big.Int bytes
          get_convener() -> i64
          get_participants_count() -> i32
          get_participant_size() -> i32

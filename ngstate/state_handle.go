@@ -10,8 +10,9 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// HandleTxs will apply the tx into the state if tx is VALID
-func (state *State) HandleTxs(txn *bbolt.Tx, txs ...*ngtypes.FullTx) (err error) {
+// HandleTxs will apply the tx into the state if tx is VALID.
+// blockTime is the enclosing block's timestamp, exposed to contracts
+func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.FullTx) (err error) {
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.Type {
@@ -30,7 +31,7 @@ func (state *State) HandleTxs(txn *bbolt.Tx, txs ...*ngtypes.FullTx) (err error)
 				return err
 			}
 		case ngtypes.TransactTx:
-			if err := state.handleTransaction(txn, tx); err != nil {
+			if err := state.handleTransaction(txn, tx, blockTime); err != nil {
 				return err
 			}
 		case ngtypes.EditTx: // edit tx
@@ -38,7 +39,7 @@ func (state *State) HandleTxs(txn *bbolt.Tx, txs ...*ngtypes.FullTx) (err error)
 				return err
 			}
 		case ngtypes.LockTx:
-			if err := state.handleLock(txn, tx); err != nil {
+			if err := state.handleLock(txn, tx, blockTime); err != nil {
 				return err
 			}
 		case ngtypes.UnlockTx:
@@ -163,7 +164,7 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 	return nil
 }
 
-func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -214,7 +215,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx) (err er
 				return err
 			}
 
-			state.runContract(txn, num, tx, VMEntryOnTx)
+			state.runContract(txn, num, tx, VMEntryOnTx, blockTime)
 		}
 	}
 
@@ -271,7 +272,7 @@ func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 // handleLock freezes the contract of the convener account: the contract
 // body becomes immutable and the vm gets active. The optional `init`
 // export runs once here, right after locking
-func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
+func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -354,7 +355,7 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
-	state.runContract(txn, tx.Convener, tx, VMEntryOnLock)
+	state.runContract(txn, tx.Convener, tx, VMEntryOnLock, blockTime)
 
 	return nil
 }
@@ -422,7 +423,7 @@ func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 // account is locked and has one. A contract failure is final for this call
 // (its journal is dropped) but NEVER fails the tx itself: every node hits
 // the same result, so consensus is kept
-func (state *State) runContract(txn *bbolt.Tx, num ngtypes.AccountNum, tx *ngtypes.FullTx, entry string) {
+func (state *State) runContract(txn *bbolt.Tx, num ngtypes.AccountNum, tx *ngtypes.FullTx, entry string, blockTime uint64) {
 	account, err := getAccountByNum(txn, num)
 	if err != nil {
 		log.Errorf("failed to load account %d for its contract: %v", num, err)
@@ -433,7 +434,7 @@ func (state *State) runContract(txn *bbolt.Tx, num ngtypes.AccountNum, tx *ngtyp
 		return
 	}
 
-	vm, err := NewVM(txn, account, tx)
+	vm, err := NewVM(txn, account, tx, blockTime)
 	if err != nil {
 		log.Errorf("failed to build the vm for account %d: %v", num, err)
 		return
