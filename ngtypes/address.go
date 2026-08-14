@@ -1,9 +1,10 @@
 package ngtypes
 
 import (
+	"math/big"
+
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/mr-tron/base58"
-	"github.com/ngchain/go-schnorr"
-	"github.com/ngchain/secp256k1"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/utils"
@@ -16,7 +17,7 @@ var ErrAddressLenInvalid = errors.New("address length is invalid")
 type Address [AddressSize]byte
 
 // NewAddress will return a publickey address
-func NewAddress(privKey *secp256k1.PrivateKey) Address {
+func NewAddress(privKey *btcec.PrivateKey) Address {
 	addr := Address{}
 
 	copy(addr[:], utils.PublicKey2Bytes(privKey.PubKey()))
@@ -24,22 +25,40 @@ func NewAddress(privKey *secp256k1.PrivateKey) Address {
 	return addr
 }
 
-// NewAddressFromMultiKeys will return a publickey address
-func NewAddressFromMultiKeys(privKeys ...*secp256k1.PrivateKey) (Address, error) {
-	addr := Address{}
+// NewAddressFromMultiKeys will return a publickey address: the shards
+// of one owner combine into a single key by scalar addition, so the
+// address is the plain pubkey of the combined secret and signatures
+// stay standard BIP-340
+func NewAddressFromMultiKeys(privKeys ...*btcec.PrivateKey) (Address, error) {
+	key, err := CombinePrivateKeys(privKeys...)
+	if err != nil {
+		return Address{}, err
+	}
 
+	return NewAddress(key), nil
+}
+
+// ErrKeysInvalid means the private keys cannot form a usable combined key
+var ErrKeysInvalid = errors.New("invalid private keys")
+
+// CombinePrivateKeys folds one owner's key shards into the single
+// secret whose public key is the sum of the shard public keys
+func CombinePrivateKeys(privKeys ...*btcec.PrivateKey) (*btcec.PrivateKey, error) {
 	if len(privKeys) == 0 {
-		panic("no private key entered")
+		return nil, errors.Wrap(ErrKeysInvalid, "no private key entered")
 	}
 
-	pubKeys := make([]secp256k1.PublicKey, len(privKeys))
+	d := new(big.Int)
 	for i := range privKeys {
-		pubKeys[i] = *privKeys[i].PubKey()
+		d.Add(d, new(big.Int).SetBytes(privKeys[i].Serialize()))
 	}
-	pub := schnorr.CombinePublicKeys(pubKeys...)
+	d.Mod(d, btcec.S256().N)
+	if d.Sign() == 0 {
+		return nil, errors.Wrap(ErrKeysInvalid, "the combined secret is zero")
+	}
 
-	copy(addr[:], utils.PublicKey2Bytes(pub))
-	return addr, nil
+	key, _ := btcec.PrivKeyFromBytes(d.FillBytes(make([]byte, 32)))
+	return key, nil
 }
 
 // mustAddressFromBS58 is NewAddressFromBS58 for hardcoded constants:
@@ -88,8 +107,9 @@ func NewAddressFromLegacyBS58(s string) (Address, error) {
 	return addr, nil
 }
 
-// PubKey gets the public key from address for validation
-func (a Address) PubKey() *secp256k1.PublicKey {
+// PubKey gets the public key from address for validation; nil when the
+// address bytes are not a valid curve point
+func (a Address) PubKey() *btcec.PublicKey {
 	return utils.Bytes2PublicKey(a[:])
 }
 

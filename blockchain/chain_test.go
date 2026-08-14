@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ngchain/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -38,7 +38,7 @@ func newTestChain(t *testing.T) *blockchain.Chain {
 // mineBlock builds and seals a valid ZERONET block on the parent, paying
 // the block reward to the miner key. ZERONET's minimum difficulty is 1,
 // so sealing succeeds within a few nonce attempts
-func mineBlock(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.PrivateKey) *ngtypes.FullBlock {
+func mineBlock(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKey) *ngtypes.FullBlock {
 	t.Helper()
 
 	return mineBlockReward(t, parent, miner, ngtypes.GetBlockReward(parent.GetHeight()+1))
@@ -46,7 +46,7 @@ func mineBlock(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.Private
 
 // mineBlockReward is mineBlock with a custom generate reward, so tests
 // can craft header-valid blocks carrying invalid txs
-func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.PrivateKey, reward *big.Int) *ngtypes.FullBlock {
+func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKey, reward *big.Int) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -82,7 +82,7 @@ func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.P
 
 // mineBlockAt is mineBlockReward with an explicit timestamp, for the
 // timestamp-rule tests
-func mineBlockAt(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.PrivateKey, blockTime uint64) *ngtypes.FullBlock {
+func mineBlockAt(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKey, blockTime uint64) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -113,7 +113,7 @@ func mineBlockAt(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.Priva
 	return nil
 }
 
-func balanceOf(t *testing.T, chain *blockchain.Chain, key *secp256k1.PrivateKey) *big.Int {
+func balanceOf(t *testing.T, chain *blockchain.Chain, key *btcec.PrivateKey) *big.Int {
 	t.Helper()
 
 	balance, err := chain.State.GetTotalBalanceByAddress(ngtypes.NewAddress(key))
@@ -125,7 +125,7 @@ func balanceOf(t *testing.T, chain *blockchain.Chain, key *secp256k1.PrivateKey)
 
 func TestApplyBlockExtendsChain(t *testing.T) {
 	chain := newTestChain(t)
-	miner, _ := secp256k1.GeneratePrivateKey()
+	miner, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineBlock(t, genesis, miner)
@@ -153,7 +153,7 @@ func TestApplyBlockExtendsChain(t *testing.T) {
 
 func TestApplyBlockRejectsOrphan(t *testing.T) {
 	chain := newTestChain(t)
-	miner, _ := secp256k1.GeneratePrivateKey()
+	miner, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineBlock(t, genesis, miner)
@@ -171,8 +171,8 @@ func TestApplyBlockRejectsOrphan(t *testing.T) {
 
 func TestReorgToHeavierBranch(t *testing.T) {
 	chain := newTestChain(t)
-	minerA, _ := secp256k1.GeneratePrivateKey()
-	minerB, _ := secp256k1.GeneratePrivateKey()
+	minerA, _ := btcec.NewPrivateKey()
+	minerB, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 
@@ -244,8 +244,8 @@ func TestReorgToHeavierBranch(t *testing.T) {
 // over-reward generate tx must be rejected wholesale
 func TestReorgRejectsInvalidBranchTxs(t *testing.T) {
 	chain := newTestChain(t)
-	minerA, _ := secp256k1.GeneratePrivateKey()
-	minerB, _ := secp256k1.GeneratePrivateKey()
+	minerA, _ := btcec.NewPrivateKey()
+	minerB, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineBlock(t, genesis, minerA)
@@ -288,8 +288,8 @@ func TestReorgRejectsInvalidBranchTxs(t *testing.T) {
 // last built-upon checkpoint, however heavy the branch is
 func TestReorgRespectsFinality(t *testing.T) {
 	chain := newTestChain(t)
-	minerA, _ := secp256k1.GeneratePrivateKey()
-	minerB, _ := secp256k1.GeneratePrivateKey()
+	minerA, _ := btcec.NewPrivateKey()
+	minerB, _ := btcec.NewPrivateKey()
 
 	// canonical chain to height BlockCheckRound+1: finality line sits at
 	// the checkpoint (height 10)
@@ -333,8 +333,8 @@ func TestReorgRespectsFinality(t *testing.T) {
 // reorg) but not on stored-only side blocks
 func TestTipChangedHook(t *testing.T) {
 	chain := newTestChain(t)
-	minerA, _ := secp256k1.GeneratePrivateKey()
-	minerB, _ := secp256k1.GeneratePrivateKey()
+	minerA, _ := btcec.NewPrivateKey()
+	minerB, _ := btcec.NewPrivateKey()
 
 	fired := 0
 	chain.OnTipChanged = func() { fired++ }
@@ -375,8 +375,8 @@ func TestTipChangedHook(t *testing.T) {
 // reclaimed at checkpoints, while canonical blocks stay
 func TestSideBlockPruning(t *testing.T) {
 	chain := newTestChain(t)
-	minerA, _ := secp256k1.GeneratePrivateKey()
-	minerB, _ := secp256k1.GeneratePrivateKey()
+	minerA, _ := btcec.NewPrivateKey()
+	minerB, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineBlock(t, genesis, minerA)
@@ -424,7 +424,7 @@ func TestSideBlockPruning(t *testing.T) {
 // consensus-invalid (miners must not manipulate contract-visible time)
 func TestBlockTimestampRules(t *testing.T) {
 	chain := newTestChain(t)
-	miner, _ := secp256k1.GeneratePrivateKey()
+	miner, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineBlock(t, genesis, miner)
@@ -471,8 +471,8 @@ func TestBlockTimestampRules(t *testing.T) {
 // txs drop out of the index and the winning branch's txs replace them
 func TestTxBlockIndex(t *testing.T) {
 	chain := newTestChain(t)
-	minerA, _ := secp256k1.GeneratePrivateKey()
-	minerB, _ := secp256k1.GeneratePrivateKey()
+	minerA, _ := btcec.NewPrivateKey()
+	minerB, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineBlock(t, genesis, minerA)
@@ -532,7 +532,7 @@ func TestSnapshotPersistence(t *testing.T) {
 	state := ngstate.InitStateFromGenesis(db, ngtypes.ZERONET)
 	chain := blockchain.Init(db, ngtypes.ZERONET, store, state)
 
-	miner, _ := secp256k1.GeneratePrivateKey()
+	miner, _ := btcec.NewPrivateKey()
 	parent := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	var checkpoint *ngtypes.FullBlock
 	for h := 0; h < int(ngtypes.BlockCheckRound)+2; h++ {
@@ -570,7 +570,7 @@ func TestSnapshotPersistence(t *testing.T) {
 
 func TestSwitchToBranchRejectsDetached(t *testing.T) {
 	chain := newTestChain(t)
-	miner, _ := secp256k1.GeneratePrivateKey()
+	miner, _ := btcec.NewPrivateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineBlock(t, genesis, miner)

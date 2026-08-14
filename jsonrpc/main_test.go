@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
-	"github.com/ngchain/secp256k1"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -152,13 +152,13 @@ func decodeInto(t *testing.T, raw json.RawMessage, out any) {
 	}
 }
 
-func bs58Key(key *secp256k1.PrivateKey) string {
-	return base58.FastBase58Encoding(key.D.Bytes())
+func bs58Key(key *btcec.PrivateKey) string {
+	return base58.FastBase58Encoding(key.Serialize())
 }
 
 // mineViaRPC runs the real miner loop over rpc: getWork, seal the
 // template locally (ZERONET difficulty is 1) and submitWork
-func mineViaRPC(t *testing.T, node *rpcNode, miner *secp256k1.PrivateKey) {
+func mineViaRPC(t *testing.T, node *rpcNode, miner *btcec.PrivateKey) {
 	t.Helper()
 
 	var work struct {
@@ -299,7 +299,7 @@ func TestRPCAccountQueries(t *testing.T) {
 	}
 
 	// balance by address works for any funded address, registered or not
-	miner, _ := secp256k1.GeneratePrivateKey()
+	miner, _ := btcec.NewPrivateKey()
 	mineViaRPC(t, node, miner)
 	decodeInto(t, node.mustCall(t, "getBalanceByAddress",
 		map[string]any{"address": ngtypes.NewAddress(miner).BS58()}), &balance)
@@ -316,7 +316,7 @@ func TestRPCAccountQueries(t *testing.T) {
 func TestRPCUtils(t *testing.T) {
 	node := newRPCNode(t)
 
-	key, _ := secp256k1.GeneratePrivateKey()
+	key, _ := btcec.NewPrivateKey()
 
 	var reply struct {
 		Address ngtypes.Address
@@ -334,7 +334,7 @@ func TestRPCUtils(t *testing.T) {
 // the reward credited
 func TestRPCMiningLoop(t *testing.T) {
 	node := newRPCNode(t)
-	miner, _ := secp256k1.GeneratePrivateKey()
+	miner, _ := btcec.NewPrivateKey()
 
 	mineViaRPC(t, node, miner)
 
@@ -374,7 +374,7 @@ func TestRPCContractLifecycle(t *testing.T) {
     (drop (call $emit (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
 `
 	node := newRPCNode(t)
-	key, _ := secp256k1.GeneratePrivateKey()
+	key, _ := btcec.NewPrivateKey()
 	addr := ngtypes.NewAddress(key)
 
 	// signAndSend takes an unsigned tx from a gen* method, signs it with

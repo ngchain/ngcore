@@ -3,6 +3,7 @@ module github.com/ngchain/ngcore
 go 1.25.7
 
 require (
+	github.com/btcsuite/btcd/btcec/v2 v2.5.0
 	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88
 	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956
 	github.com/c0mm4nd/wasman v1.4.0
@@ -16,8 +17,6 @@ require (
 	github.com/mr-tron/base58 v1.3.0
 	github.com/multiformats/go-multiaddr v0.16.1
 	github.com/ngchain/astrobwt v0.0.0-20211216120825-aeab3b044f9b
-	github.com/ngchain/go-schnorr v0.0.0-20200409140344-fdecf3cd59bd
-	github.com/ngchain/secp256k1 v0.0.0-20200408111354-30fe4481b484
 	github.com/ngchain/zap-log v0.0.0-20220612114807-673df3919e65
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli/v2 v2.27.7
@@ -31,10 +30,11 @@ require (
 	filippo.io/keygen v1.0.0 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/btcsuite/btcd/chainhash/v2 v2.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
-	github.com/dchest/blake256 v1.1.0 // indirect
+	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/dunglas/httpsfv v1.1.0 // indirect
 	github.com/filecoin-project/go-clock v0.1.0 // indirect

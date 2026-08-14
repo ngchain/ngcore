@@ -3,20 +3,19 @@ package keytools
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/mr-tron/base58"
-	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
 // ReadLocalKey will read the local AES-256-GCM encrypted secp256k1 key file to load an ecdsa private key.
-func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
-	var key *secp256k1.PrivateKey
+func ReadLocalKey(filename string, password string) *btcec.PrivateKey {
+	var key *btcec.PrivateKey
 
 	if filename == "" {
 		path := GetDefaultFolder()
@@ -41,15 +40,15 @@ func ReadLocalKey(filename string, password string) *secp256k1.PrivateKey {
 		}
 
 		rawPK := utils.AES256GCMDecrypt(raw, []byte(password))
-		key = secp256k1.NewPrivateKey(new(big.Int).SetBytes(rawPK))
+		key, _ = btcec.PrivKeyFromBytes(rawPK)
 	}
 
 	return key
 }
 
 // NewLocalKey will create a privateKey only.
-func NewLocalKey() *secp256k1.PrivateKey {
-	key, err := secp256k1.GeneratePrivateKey()
+func NewLocalKey() *btcec.PrivateKey {
+	key, err := btcec.NewPrivateKey()
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +57,7 @@ func NewLocalKey() *secp256k1.PrivateKey {
 }
 
 // CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm.
-func CreateLocalKey(filename, password string) *secp256k1.PrivateKey {
+func CreateLocalKey(filename, password string) *btcec.PrivateKey {
 	key := NewLocalKey()
 
 	if filename == "" {
@@ -79,7 +78,7 @@ func CreateLocalKey(filename, password string) *secp256k1.PrivateKey {
 		panic(err)
 	}
 
-	encrypted := utils.AES256GCMEncrypt(key.D.Bytes(), []byte(password))
+	encrypted := utils.AES256GCMEncrypt(key.Serialize(), []byte(password))
 
 	_, err = file.Write(encrypted)
 	if err != nil {
@@ -92,13 +91,13 @@ func CreateLocalKey(filename, password string) *secp256k1.PrivateKey {
 }
 
 // RecoverLocalKey will recover a keyfile named *filename* with the password from the privateKey string.
-func RecoverLocalKey(filename, password, privateKey string) *secp256k1.PrivateKey {
+func RecoverLocalKey(filename, password, privateKey string) *btcec.PrivateKey {
 	bKey, err := base58.FastBase58Decoding(privateKey)
 	if err != nil {
 		panic(err)
 	}
 
-	key := secp256k1.NewPrivateKey(new(big.Int).SetBytes(bKey))
+	key, _ := btcec.PrivKeyFromBytes(bKey)
 
 	if filename == "" {
 		path := GetDefaultFolder()
@@ -118,7 +117,7 @@ func RecoverLocalKey(filename, password, privateKey string) *secp256k1.PrivateKe
 		panic(err)
 	}
 
-	encrypted := utils.AES256GCMEncrypt(key.D.Bytes(), []byte(password))
+	encrypted := utils.AES256GCMEncrypt(key.Serialize(), []byte(password))
 
 	_, err = file.Write(encrypted)
 	if err != nil {
@@ -131,7 +130,7 @@ func RecoverLocalKey(filename, password, privateKey string) *secp256k1.PrivateKe
 }
 
 // PrintKeysAndAddress will print the **privateKey and its publicKey** to the console.
-func PrintKeysAndAddress(privateKey *secp256k1.PrivateKey) {
+func PrintKeysAndAddress(privateKey *btcec.PrivateKey) {
 	rawPrivateKey := privateKey.Serialize() // its D
 	fmt.Println("private key: ", base58.FastBase58Encoding(rawPrivateKey))
 

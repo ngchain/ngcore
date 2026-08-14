@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ngchain/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2"
 )
 
 // TestGenesisAddress pins the genesis address: the bs58 constant must
@@ -24,7 +24,7 @@ func TestGenesisAddress(t *testing.T) {
 // inside a struct field (the decode used to hit a value receiver and
 // silently return the zero address)
 func TestAddressJSONRoundTrip(t *testing.T) {
-	key, err := secp256k1.GeneratePrivateKey()
+	key, err := btcec.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestAddressLength(t *testing.T) {
 // TestNewAddressFromMultiKeys: a single-key multi-address must equal
 // the plain address of that key (the pubkey list used to stay empty)
 func TestNewAddressFromMultiKeys(t *testing.T) {
-	key, err := secp256k1.GeneratePrivateKey()
+	key, err := btcec.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}

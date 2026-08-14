@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ngchain/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -160,10 +160,10 @@ func TestLeverageShowcase(t *testing.T) {
 	state := &State{Network: ngtypes.ZERONET}
 
 	// four INDEPENDENT deployers
-	privA, _ := secp256k1.GeneratePrivateKey() // token project
-	privB, _ := secp256k1.GeneratePrivateKey() // dex project
-	privC, _ := secp256k1.GeneratePrivateKey() // lending project
-	privD, _ := secp256k1.GeneratePrivateKey() // leverage strategist
+	privA, _ := btcec.NewPrivateKey() // token project
+	privB, _ := btcec.NewPrivateKey() // dex project
+	privC, _ := btcec.NewPrivateKey() // lending project
+	privD, _ := btcec.NewPrivateKey() // leverage strategist
 	addrA, addrB := ngtypes.NewAddress(privA), ngtypes.NewAddress(privB)
 	addrC, addrD := ngtypes.NewAddress(privC), ngtypes.NewAddress(privD)
 
@@ -197,7 +197,7 @@ func TestLeverageShowcase(t *testing.T) {
 		leverage := ngtypes.NewAccount(730, addrD, []byte(leverageWatFor(addrA, addrB, addrC)), nil)
 		putAccount(t, txn, leverage, 100)
 
-		lock := func(convener uint64, priv *secp256k1.PrivateKey, name string) {
+		lock := func(convener uint64, priv *btcec.PrivateKey, name string) {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
 				nil, nil, big.NewInt(1), []byte(name), nil)
 			if err := tx.Signature(priv); err != nil {

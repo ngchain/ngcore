@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ngchain/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2"
 	logging "github.com/ngchain/zap-log"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -15,7 +15,7 @@ var log = logging.Logger("ngtypes_test")
 
 // TestNewAccount is testing func NewAccount.
 func TestNewAccount(t *testing.T) {
-	privateKey, err := secp256k1.GeneratePrivateKey()
+	privateKey, err := btcec.NewPrivateKey()
 	if err != nil {
 		log.Error(err)
 	}

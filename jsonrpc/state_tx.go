@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"reflect"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
 	"github.com/mr-tron/base58"
-	"github.com/ngchain/secp256k1"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -84,7 +84,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	privateKeys := make([]*secp256k1.PrivateKey, len(params.PrivateKeys))
+	privateKeys := make([]*btcec.PrivateKey, len(params.PrivateKeys))
 	for i := range params.PrivateKeys {
 		d, err := base58.FastBase58Decoding(params.PrivateKeys[i])
 		if err != nil {
@@ -92,7 +92,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
 
-		privateKeys[i] = secp256k1.NewPrivateKey(new(big.Int).SetBytes(d))
+		privateKeys[i], _ = btcec.PrivKeyFromBytes(d)
 	}
 
 	err = tx.Signature(privateKeys...)

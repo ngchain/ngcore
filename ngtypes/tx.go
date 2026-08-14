@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/c0mm4nd/rlp"
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
-	"github.com/ngchain/go-schnorr"
-	"github.com/ngchain/secp256k1"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
@@ -97,8 +97,10 @@ func (x *FullTx) IsSigned() bool {
 	return x.Sign != nil
 }
 
-// Verify helps verify the transaction whether signed by the public key owner.
-func (x *FullTx) Verify(publicKey *secp256k1.PublicKey) error {
+// Verify helps verify the transaction whether signed by the public key
+// owner. The signature scheme is BIP-340 schnorr, verified against the
+// x-only form of the key (the address keeps the full compressed point)
+func (x *FullTx) Verify(publicKey *btcec.PublicKey) error {
 	if x.Height == 0 {
 		return nil // ignore all tx error on genesis block
 	}
@@ -107,27 +109,20 @@ func (x *FullTx) Verify(publicKey *secp256k1.PublicKey) error {
 		return ErrTxUnsigned
 	}
 
-	if publicKey.X == nil || publicKey.Y == nil {
+	if publicKey == nil {
 		return ErrInvalidPublicKey
 	}
-
-	hash := [32]byte{}
-	copy(hash[:], x.GetUnsignedHash())
-
-	var signature [64]byte
-	copy(signature[:], x.Sign)
 
 	if len(x.Extra) > TxMaxExtraSize {
 		return ErrTxExtraExcess
 	}
 
-	var key [33]byte
-	copy(key[:], publicKey.SerializeCompressed())
-	if ok, err := schnorr.Verify(key, hash, signature); !ok {
-		if err != nil {
-			return err
-		}
+	signature, err := schnorr.ParseSignature(x.Sign)
+	if err != nil {
+		return errors.Wrap(ErrTxSignInvalid, err.Error())
+	}
 
+	if !signature.Verify(x.GetUnsignedHash(), publicKey) {
 		return ErrTxSignInvalid
 	}
 
@@ -313,7 +308,7 @@ func (x *FullTx) CheckRegister() error {
 }
 
 // CheckDestroy does a self check for destroy tx
-func (x *FullTx) CheckDestroy(publicKey *secp256k1.PublicKey) error {
+func (x *FullTx) CheckDestroy(publicKey *btcec.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -349,7 +344,7 @@ func (x *FullTx) CheckDestroy(publicKey *secp256k1.PublicKey) error {
 }
 
 // CheckTransaction does a self check for normal transaction tx
-func (x *FullTx) CheckTransaction(publicKey *secp256k1.PublicKey) error {
+func (x *FullTx) CheckTransaction(publicKey *btcec.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -371,7 +366,7 @@ func (x *FullTx) CheckTransaction(publicKey *secp256k1.PublicKey) error {
 }
 
 // CheckEdit does a self check for edit tx
-func (x *FullTx) CheckEdit(publicKey *secp256k1.PublicKey) error {
+func (x *FullTx) CheckEdit(publicKey *btcec.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -393,7 +388,7 @@ func (x *FullTx) CheckEdit(publicKey *secp256k1.PublicKey) error {
 
 // Signature will re-sign the Tx with private key.
 // CheckLock does a self check for lock tx
-func (x *FullTx) CheckLock(publicKey *secp256k1.PublicKey) error {
+func (x *FullTx) CheckLock(publicKey *btcec.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -414,7 +409,7 @@ func (x *FullTx) CheckLock(publicKey *secp256k1.PublicKey) error {
 }
 
 // CheckUnlock does a self check for unlock tx
-func (x *FullTx) CheckUnlock(publicKey *secp256k1.PublicKey) error {
+func (x *FullTx) CheckUnlock(publicKey *btcec.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -434,22 +429,27 @@ func (x *FullTx) CheckUnlock(publicKey *secp256k1.PublicKey) error {
 	return x.Verify(publicKey)
 }
 
-func (x *FullTx) Signature(privateKeys ...*secp256k1.PrivateKey) (err error) {
-	ds := make([]*big.Int, len(privateKeys))
-	for i := range privateKeys {
-		ds[i] = privateKeys[i].D
+// Signature signs the tx with a standard BIP-340 schnorr signature.
+// Multiple keys are one owner's shards: signing uses the scalar sum,
+// whose public key equals the sum of the shard pubkeys — exactly the
+// multi-key address from NewAddressFromMultiKeys
+func (x *FullTx) Signature(privateKeys ...*btcec.PrivateKey) error {
+	if len(privateKeys) == 0 {
+		return ErrTxUnsigned
 	}
 
-	hash := [32]byte{}
-	copy(hash[:], x.GetUnsignedHash())
-
-	sign, err := schnorr.AggregateSignatures(ds, hash)
+	key, err := CombinePrivateKeys(privateKeys...)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	x.Sign = sign[:]
-	return
+	sign, err := schnorr.Sign(key, x.GetUnsignedHash())
+	if err != nil {
+		return err
+	}
+
+	x.Sign = sign.Serialize()
+	return nil
 }
 
 func (x *FullTx) ManuallySetSignature(sign []byte) {

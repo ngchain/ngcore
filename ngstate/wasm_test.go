@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ngchain/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -229,7 +229,7 @@ func TestLockUnlockFlow(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	priv, err := secp256k1.GeneratePrivateKey()
+	priv, err := btcec.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestEditFlow(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	priv, err := secp256k1.GeneratePrivateKey()
+	priv, err := btcec.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,8 +418,8 @@ func TestContractModuleDeps(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	privDex, _ := secp256k1.GeneratePrivateKey()
-	privLev, _ := secp256k1.GeneratePrivateKey()
+	privDex, _ := btcec.NewPrivateKey()
+	privLev, _ := btcec.NewPrivateKey()
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		dex := ngtypes.NewAccount(500, ngtypes.NewAddress(privDex), []byte(dexWat), nil)
@@ -427,7 +427,7 @@ func TestContractModuleDeps(t *testing.T) {
 		lev := ngtypes.NewAccount(600, ngtypes.NewAddress(privLev), []byte(leverageWat), nil)
 		putAccount(t, txn, lev, 100)
 
-		lockTx := func(convener uint64, priv *secp256k1.PrivateKey) *ngtypes.FullTx {
+		lockTx := func(convener uint64, priv *btcec.PrivateKey) *ngtypes.FullTx {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
@@ -435,7 +435,7 @@ func TestContractModuleDeps(t *testing.T) {
 			}
 			return tx
 		}
-		unlockTx := func(convener uint64, priv *secp256k1.PrivateKey) *ngtypes.FullTx {
+		unlockTx := func(convener uint64, priv *btcec.PrivateKey) *ngtypes.FullTx {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1, ngtypes.AccountNum(convener),
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
@@ -557,8 +557,8 @@ func TestServiceToken(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	privToken, _ := secp256k1.GeneratePrivateKey()
-	privUser, _ := secp256k1.GeneratePrivateKey()
+	privToken, _ := btcec.NewPrivateKey()
+	privUser, _ := btcec.NewPrivateKey()
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		token := ngtypes.NewAccount(700, ngtypes.NewAddress(privToken), []byte(tokenWat), nil)
@@ -566,7 +566,7 @@ func TestServiceToken(t *testing.T) {
 		user := ngtypes.NewAccount(600, ngtypes.NewAddress(privUser), []byte(tokenUserWat), nil)
 		putAccount(t, txn, user, 100)
 
-		lock := func(convener uint64, priv *secp256k1.PrivateKey) error {
+		lock := func(convener uint64, priv *btcec.PrivateKey) error {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
@@ -1120,8 +1120,8 @@ func TestNamedContractDeps(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	privToken, _ := secp256k1.GeneratePrivateKey()
-	privUser, _ := secp256k1.GeneratePrivateKey()
+	privToken, _ := btcec.NewPrivateKey()
+	privUser, _ := btcec.NewPrivateKey()
 	tokenDeployer := ngtypes.NewAddress(privToken)
 
 	// the consumer imports the token via <deployerBS58>.token
@@ -1138,7 +1138,7 @@ func TestNamedContractDeps(t *testing.T) {
 		user := ngtypes.NewAccount(600, ngtypes.NewAddress(privUser), []byte(namedUserWat), nil)
 		putAccount(t, txn, user, 100)
 
-		lock := func(convener uint64, priv *secp256k1.PrivateKey, name string) error {
+		lock := func(convener uint64, priv *btcec.PrivateKey, name string) error {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
 				nil, nil, big.NewInt(1), []byte(name), nil)
 			if err := tx.Signature(priv); err != nil {
@@ -1184,7 +1184,7 @@ func TestNamedContractDeps(t *testing.T) {
 		}
 
 		// a DIFFERENT deployer may use the same name (separate namespace)
-		otherDeployer, _ := secp256k1.GeneratePrivateKey()
+		otherDeployer, _ := btcec.NewPrivateKey()
 		foreign := ngtypes.NewAccount(702, ngtypes.NewAddress(otherDeployer), []byte(dexWat), nil)
 		putAccount(t, txn, foreign, 100)
 		if err := lock(702, otherDeployer, "token"); err != nil {
@@ -1213,7 +1213,7 @@ func TestDestroyRules(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	priv, err := secp256k1.GeneratePrivateKey()
+	priv, err := btcec.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1266,7 +1266,7 @@ func TestLockRejectsBrokenContract(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	priv, err := secp256k1.GeneratePrivateKey()
+	priv, err := btcec.NewPrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}

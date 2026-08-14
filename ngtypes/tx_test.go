@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/c0mm4nd/rlp"
-	"github.com/ngchain/secp256k1"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -50,8 +50,8 @@ func TestTransaction_Signature(t *testing.T) {
 		big.NewInt(0),
 		nil,
 	)
-	priv1, _ := secp256k1.GeneratePrivateKey()
-	priv2, _ := secp256k1.GeneratePrivateKey()
+	priv1, _ := btcec.NewPrivateKey()
+	priv2, _ := btcec.NewPrivateKey()
 
 	_ = o.Signature(priv1)
 

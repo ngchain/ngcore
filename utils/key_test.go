@@ -4,13 +4,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ngchain/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
 func TestKeys(t *testing.T) {
-	pk, err := secp256k1.GeneratePrivateKey()
+	pk, err := btcec.NewPrivateKey()
 	if err != nil {
 		panic(err)
 	}

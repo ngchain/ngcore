@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/go-jsonrpc2/jsonrpc2http"
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
-	"github.com/ngchain/secp256k1"
 )
 
 type Client struct {
@@ -22,14 +22,14 @@ type Client struct {
 	baseURL  string
 
 	Network ngtypes.Network
-	priv    *secp256k1.PrivateKey
+	priv    *btcec.PrivateKey
 
 	client     *jsonrpc2http.Client
 	currentJob *Job
 	OnNewJob   chan *Job
 }
 
-func NewClient(coreAddr string, corePort int, network ngtypes.Network, privateKey *secp256k1.PrivateKey) *Client {
+func NewClient(coreAddr string, corePort int, network ngtypes.Network, privateKey *btcec.PrivateKey) *Client {
 	baseURL := "http://" + net.JoinHostPort(coreAddr, strconv.Itoa(corePort))
 	return &Client{
 		coreAddr: coreAddr,

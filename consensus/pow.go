@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ngchain/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
@@ -98,7 +98,7 @@ func templateBlockTime(parent *ngtypes.FullBlock) uint64 {
 }
 
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
-func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) ngtypes.Block {
+func (pow *PoWork) GetBlockTemplate(privateKey *btcec.PrivateKey) ngtypes.Block {
 	currentBlock := pow.Chain.GetLatestBlock()
 
 	currentBlockHash := currentBlock.GetHash()
