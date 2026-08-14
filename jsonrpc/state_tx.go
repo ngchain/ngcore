@@ -125,7 +125,8 @@ type genTransactionParams struct {
 	Participants []string  `json:"participants"` // bs58 addresses
 	Values       []float64 `json:"values"`
 	Fee          float64   `json:"fee"`
-	Extra        string    `json:"extra"`
+	Entry        string    `json:"entry"` // optional contract entry (eth-style selector)
+	Extra        string    `json:"extra"` // hex args
 }
 
 // all genTx should reply protobuf encoded bytes.
@@ -154,11 +155,12 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	extra, err := hex.DecodeString(params.Extra)
+	args, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
+	extra := ngtypes.EncodeCallData(params.Entry, args)
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,

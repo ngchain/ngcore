@@ -2,6 +2,7 @@ package ngstate
 
 import (
 	"bytes"
+	"sort"
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
@@ -68,6 +69,11 @@ type VM struct {
 	// contract this vm was built for, service calls push their callee
 	frames []ngtypes.Address
 
+	// callArgs is what tx.get_extra serves: the args part of the
+	// calldata once EntryFor consumed the selector (the whole extra
+	// when the call falls back to the default entry)
+	callArgs []byte
+
 	// events accumulate during the run and only survive a SUCCESSFUL
 	// call (mirroring the journal semantics)
 	events []Event
@@ -125,6 +131,7 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTi
 		self:      account,
 		txn:       txn,
 		blockTime: blockTime,
+		callArgs:  tx.Extra,
 		journal:   newVMJournal(account),
 		frames:    []ngtypes.Address{account.Owner},
 		cfg:       cfg,
@@ -229,6 +236,42 @@ func (vm *VM) charge(cost uint64) {
 	if err := vm.cfg.TollStation.AddToll(cost); err != nil {
 		panic(errors.Wrap(err, "gas budget exceeded by a host operation"))
 	}
+}
+
+// EntryFor resolves the entry to run. For the default transact entry
+// the eth-style 4-byte selector (keccak256(name)[:4]) is matched
+// against the contract's zero-arg exports in sorted name order, the
+// reserved init entry excluded; a match runs that entry with the args
+// after the selector. Anything unresolvable falls back to the default
+// entry, which — like eth's fallback — sees the WHOLE extra as args
+func (vm *VM) EntryFor(defaultEntry string) string {
+	if defaultEntry != VMEntryOnTx || len(vm.caller.Extra) < 4 {
+		return defaultEntry
+	}
+
+	sel := vm.caller.Extra[:4]
+
+	names := make([]string, 0, len(vm.module.ExportSection))
+	for name := range vm.module.ExportSection {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		if name == VMEntryOnActivate {
+			continue
+		}
+		sig, ok := exportFuncSig(vm.module, name)
+		if !ok || len(sig.InputTypes) != 0 {
+			continue
+		}
+		if bytes.Equal(ngtypes.CallSelector(name), sel) {
+			vm.callArgs = vm.caller.Extra[4:]
+			return name
+		}
+	}
+
+	return defaultEntry
 }
 
 // Events returns what the (successful) run emitted

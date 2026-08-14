@@ -122,7 +122,25 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_value_size(i) -> i32    get_value(i, ptr) -> i32
          get_fee_size() -> i32       get_fee(ptr) -> i32
          get_extra_size() -> i32     get_extra(ptr) -> i32
+         ; the ARGS part of the calldata (see the selector convention)
 ```
+
+## Calling a contract
+
+A transact tx paying an address with an ACTIVE contract runs it. The
+tx extra addresses the entry eth-style:
+
+```
+extra = keccak256(entry name)[:4] ‖ args
+```
+
+The runtime matches the 4-byte selector against the contract's
+zero-arg exports (sorted by name; the reserved `init` entry excluded)
+and runs the match with `tx.get_extra` serving `args`. An empty extra,
+a short extra or an unmatched selector falls back to `main`, which —
+like eth's fallback function — receives the WHOLE extra as its args.
+`callContract` (rpc dry-run) resolves the same way, so read-only
+methods like a `balance_of` export are directly callable off-chain.
 
 ## Module dependencies
 

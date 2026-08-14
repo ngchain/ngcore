@@ -1261,3 +1261,88 @@ func TestActivateRejectsBrokenContract(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// multiEntryWat exposes two callable methods besides main: each writes
+// which entry ran, ping also stores the args it received
+const multiEntryWat = `
+(module
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (import "tx" "get_extra_size" (func $alen (result i32)))
+  (import "tx" "get_extra" (func $args (param i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "hitmainpingargs")
+  (func (export "main")
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 4)))
+    (drop (call $set (i32.const 11) (i32.const 4) (i32.const 64) (call $args (i32.const 64)))))
+  (func (export "ping")
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 7) (i32.const 4)))
+    (drop (call $set (i32.const 11) (i32.const 4) (i32.const 64) (call $args (i32.const 64))))))
+`
+
+// TestCallSelector: the eth-style 4-byte selector routes a transact to
+// a named export; unknown selectors fall back to main which sees the
+// whole extra (eth fallback semantics)
+func TestCallSelector(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	addr := testAddr(0xaa)
+
+	callWith := func(extra []byte) *ngtypes.Contract {
+		var reloaded *ngtypes.Contract
+		err := db.Update(func(txn *bbolt.Tx) error {
+			acc := ngtypes.NewContract(addr, []byte(multiEntryWat), nil)
+			acc.SetActive(true)
+			putContract(t, txn, acc, 0)
+
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+				[]ngtypes.Address{addr}, []*big.Int{big.NewInt(0)}, big.NewInt(0), extra, nil)
+			state.runContract(txn, addr, tx, VMEntryOnTx, 1)
+
+			var err error
+			reloaded, err = getContract(txn, addr)
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return reloaded
+	}
+
+	// selector picks ping; args are the bytes after the selector
+	acc := callWith(ngtypes.EncodeCallData("ping", []byte("xy")))
+	if got := string(acc.Context.Get("hit")); got != "ping" {
+		t.Fatalf("hit = %q, want ping", got)
+	}
+	if got := string(acc.Context.Get("args")); got != "xy" {
+		t.Fatalf("args = %q, want xy", got)
+	}
+
+	// explicit main selector also routes, args stripped of the selector
+	acc = callWith(ngtypes.EncodeCallData("main", []byte("ab")))
+	if got := string(acc.Context.Get("hit")); got != "main" {
+		t.Fatalf("hit = %q, want main", got)
+	}
+	if got := string(acc.Context.Get("args")); got != "ab" {
+		t.Fatalf("args = %q, want ab", got)
+	}
+
+	// unknown selector: fallback to main, which sees the WHOLE extra
+	raw := append(ngtypes.CallSelector("nope"), []byte("zz")...)
+	acc = callWith(raw)
+	if got := string(acc.Context.Get("hit")); got != "main" {
+		t.Fatalf("hit = %q, want main (fallback)", got)
+	}
+	if got := string(acc.Context.Get("args")); got != string(raw) {
+		t.Fatalf("fallback args = %x, want the whole extra %x", got, raw)
+	}
+
+	// empty extra: plain main, no args
+	acc = callWith(nil)
+	if got := string(acc.Context.Get("hit")); got != "main" {
+		t.Fatalf("hit = %q, want main", got)
+	}
+	if got := acc.Context.Get("args"); len(got) != 0 {
+		t.Fatalf("args = %x, want empty", got)
+	}
+}

@@ -218,9 +218,11 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
+	// get_extra serves the ARGS part of the calldata: the entry
+	// selector is routing information already consumed by the runtime
 	err = vm.linker.DefineAdvancedFunc("tx", "get_extra_size", func(ins *wasman.Instance) interface{} {
 		return func() uint32 {
-			return uint32(len(vm.caller.Extra))
+			return uint32(len(vm.callArgs))
 		}
 	})
 	if err != nil {
@@ -229,7 +231,7 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_extra", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {
-			l, err := cp(ins, ptr, vm.caller.Extra)
+			l, err := cp(ins, ptr, vm.callArgs)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

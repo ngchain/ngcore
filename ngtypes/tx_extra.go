@@ -283,3 +283,33 @@ func splitLines(text []byte) [][]byte {
 	}
 	return lines
 }
+
+// call data: a TransactTx's extra addresses the contract entry to run,
+// eth-style:
+//
+//	[4-byte selector = keccak256(entry name)[:4]] ‖ [args...]
+//
+// The runtime matches the selector against the contract's zero-arg
+// exports (sorted by name, the reserved init entry excluded); on a
+// match the entry runs with args = extra[4:]. An empty extra, a short
+// extra or an unmatched selector falls back to "main", which — like
+// eth's fallback — receives the WHOLE extra as its args.
+
+// CallSelector returns the eth-style 4-byte selector of an entry name
+func CallSelector(entry string) []byte {
+	return utils.KeccakSum256([]byte(entry))[:4]
+}
+
+// EncodeCallData packs an entry selector and its args into a tx extra
+func EncodeCallData(entry string, args []byte) []byte {
+	if entry == "" || entry == "main" {
+		if len(args) == 0 {
+			return []byte{}
+		}
+		entry = "main"
+	}
+
+	out := make([]byte, 0, 4+len(args))
+	out = append(out, CallSelector(entry)...)
+	return append(out, args...)
+}

@@ -18,7 +18,9 @@ type callContractParams struct {
 	Contract string `json:"contract"`
 	// Value is the NG amount the simulated tx pays to the contract
 	Value float64 `json:"value"`
-	// Extra is the simulated tx extra (the calldata channel)
+	// Entry optionally names the export to run (eth-style selector)
+	Entry string `json:"entry"`
+	// Extra is the raw args the contract reads through tx.get_extra
 	Extra string `json:"extra"`
 }
 
@@ -85,7 +87,7 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 			[]ngtypes.Address{account.Owner},
 			[]*big.Int{value},
 			big.NewInt(0),
-			[]byte(params.Extra),
+			ngtypes.EncodeCallData(params.Entry, []byte(params.Extra)),
 		)
 
 		latest := s.pow.Chain.GetLatestBlock().(*ngtypes.FullBlock)
@@ -95,7 +97,7 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 			return err
 		}
 
-		gasUsed, runErr := vm.DryRun(ngstate.VMEntryOnTx)
+		gasUsed, runErr := vm.DryRun(vm.EntryFor(ngstate.VMEntryOnTx))
 		result.GasUsed = gasUsed
 		if runErr != nil {
 			result.Error = runErr.Error()

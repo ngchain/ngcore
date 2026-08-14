@@ -327,6 +327,10 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 		return
 	}
 
+	// the calldata selector may address a named export
+	entry = vm.EntryFor(entry)
+	run.Entry = entry
+
 	err = vm.Run(entry)
 	run.GasUsed = vm.cfg.TollStation.GetToll()
 	if err != nil {
