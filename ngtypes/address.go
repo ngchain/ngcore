@@ -69,8 +69,8 @@ func NewAddress(key *PrivateKey) Address {
 	return addr
 }
 
-// NewMultisigAddress commits to native threshold-of-N multisig over the
-// given keys; the schemes may mix (e.g. one secp + one ML-DSA shard)
+// NewMultisigAddress commits to native threshold-of-N multisig over
+// the given keys; member schemes may mix once more than one exists
 func NewMultisigAddress(threshold int, privKeys ...*PrivateKey) (Address, error) {
 	schemes := make([]SigScheme, len(privKeys))
 	pubKeys := make([][]byte, len(privKeys))
