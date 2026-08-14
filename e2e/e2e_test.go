@@ -77,6 +77,8 @@ func bootNode(t *testing.T, dir string, snapshotMode bool) *testNode {
 		Port:                        0, // ephemeral
 		DisableDiscovery:            true,
 		DisableConnectingBootstraps: true,
+		MinPeers:                    1,
+		ReconnectInterval:           time.Second,
 	})
 	local.GoServe()
 
@@ -415,6 +417,38 @@ func TestRestartPersistence(t *testing.T) {
 	peer := newNode(t)
 	connect(t, peer, node)
 	waitTip(t, peer, newTip.GetHash(), 45*time.Second)
+}
+
+// TestPeerReconnect: after a connection drop the peer manager must
+// redial known peers and restore the link without any manual action
+func TestPeerReconnect(t *testing.T) {
+	nodeA := newNode(t)
+	nodeB := newNode(t)
+	connect(t, nodeA, nodeB)
+
+	if len(nodeA.local.Network().Peers()) != 1 {
+		t.Fatal("setup: nodeA should have one peer")
+	}
+
+	// force-drop the connection
+	if err := nodeA.local.Network().ClosePeer(nodeB.local.ID()); err != nil {
+		t.Fatal(err)
+	}
+
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		if len(nodeA.local.Network().Peers()) >= 1 {
+			// the link is back; make sure it actually works end to end
+			miner, _ := secp256k1.GeneratePrivateKey()
+			time.Sleep(time.Second) // let pubsub re-mesh
+			b := mineAndSubmit(t, nodeA, miner)
+			waitTip(t, nodeB, b.GetHash(), 10*time.Second)
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	t.Fatal("peer manager never restored the dropped connection")
 }
 
 // TestContractLifecycle drives a wat contract through its whole

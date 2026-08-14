@@ -14,6 +14,14 @@ import (
 // MustConverge detection ignites the forking in local node
 // then do a filter covering all remotes to get the longest chain (if length is same, choose the heavier latest block one).
 func (mod *syncModule) MustConverge(slice []*RemoteRecord) []*RemoteRecord {
+	// converging rewrites the local chain, so on public networks it
+	// requires enough independent remotes to avoid being eclipsed by a
+	// single malicious peer. The local regression net stays ungated
+	if mod.pow.Network != ngtypes.ZERONET && len(slice) < minDesiredPeerCount {
+		log.Warnf("converging suppressed: only %d remote(s) known, need %d", len(slice), minDesiredPeerCount)
+		return nil
+	}
+
 	ret := make([]*RemoteRecord, 0)
 	latestHeight := mod.pow.Chain.GetLatestBlockHeight()
 	latestCheckPoint := mod.pow.Chain.GetLatestCheckpoint()

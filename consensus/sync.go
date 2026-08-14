@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	minDesiredPeerCount = 3 // TODO: add peer num requirement, avoid mining alone
+	// minDesiredPeerCount gates the dangerous sync ops (converging) on
+	// public networks; the p2p peer manager also targets this count
+	minDesiredPeerCount = 3
 )
 
 // syncModule is a submodule to the pow, managing the sync of blocks.

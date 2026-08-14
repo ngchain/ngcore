@@ -3,6 +3,7 @@ package ngp2p
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -28,6 +29,9 @@ type LocalNode struct {
 	network   ngtypes.Network
 	P2PConfig P2PConfig
 
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	*wired.Wired
 	*broadcast.Broadcast
 }
@@ -38,11 +42,17 @@ type P2PConfig struct {
 	Port                        int
 	DisableDiscovery            bool
 	DisableConnectingBootstraps bool
+
+	// MinPeers is the connection count the peer manager keeps alive by
+	// redialing known peers (0 = DefaultMinPeers)
+	MinPeers int
+	// ReconnectInterval is the peer manager's check cadence (0 = 15s)
+	ReconnectInterval time.Duration
 }
 
 // InitLocalNode creates a new node with its implemented protocols.
 func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	priv := keytools.GetP2PKey(config.P2PKeyFile)
 
 	transports := libp2p.ChainOptions(
@@ -79,6 +89,8 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 		// sub modules
 		Host:      rhost.Wrap(localHost, p2pDHT),
 		network:   config.Network,
+		ctx:       ctx,
+		cancel:    cancel,
 		Wired:     wired.NewWiredProtocol(localHost, config.Network, chain),
 		Broadcast: broadcast.NewBroadcastProtocol(localHost, config.Network, make(chan *ngtypes.FullBlock), make(chan *ngtypes.FullTx)),
 	}
@@ -93,6 +105,8 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 func (localNode *LocalNode) GoServe() {
 	localNode.Wired.GoServe()
 	localNode.Broadcast.GoServe()
+
+	go localNode.peerManagerLoop(localNode.ctx)
 }
 
 // Close shuts the p2p node down: stops the broadcast listeners, leaves
@@ -100,6 +114,7 @@ func (localNode *LocalNode) GoServe() {
 // It also resolves the Close ambiguity between the embedded Host and
 // Broadcast, keeping *LocalNode a valid host.Host
 func (localNode *LocalNode) Close() error {
+	localNode.cancel()
 	localNode.Broadcast.Close()
 
 	return localNode.Host.Close()
