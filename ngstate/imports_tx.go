@@ -63,7 +63,7 @@ func initTxImports(vm *VM) error {
 
 	// get_paid exposes msg.value: what this tx pays to the address
 	// executing right now, as big-endian big.Int bytes (zero for any
-	// frame other than the recipient)
+	// frame other than the tx's To address)
 	paidToCurrent := func() []byte {
 		if vm.caller.To != vm.currentAddress() {
 			return nil
@@ -119,7 +119,7 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	// get_to writes the tx's recipient address
+	// get_to writes the tx's To address
 	err = vm.linker.DefineAdvancedFunc("tx", "get_to", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {
 			l, err := cp(ins, ptr, vm.caller.To[:])

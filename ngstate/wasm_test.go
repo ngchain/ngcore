@@ -37,7 +37,7 @@ func watBytes(b []byte) string {
 	return sb.String()
 }
 
-// transferWatTo pays 10 raw units to the given address (the recipient
+// transferWatTo pays 10 raw units to the given address (the To
 // address is embedded as a data segment)
 func transferWatTo(to ngtypes.Address) string {
 	return `

@@ -243,7 +243,7 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 			return err
 		}
 		if !sender.Equals(x.To) {
-			return errors.Wrap(ErrTxRecipientInvalid, "generate must pay its own signer")
+			return errors.Wrap(ErrTxToInvalid, "generate must pay its own signer")
 		}
 	}
 
@@ -264,11 +264,11 @@ func (x *FullTx) CheckDestroy() error {
 	return x.Verify()
 }
 
-// checkNoTransfer refuses a recipient or value on tx types which only
-// act on the sender's own slot
+// checkNoTransfer refuses a To address or value on tx types which
+// only act on the sender's own slot
 func (x *FullTx) checkNoTransfer(verb string) error {
 	if x.To != (Address{}) {
-		return errors.Wrapf(ErrTxRecipientInvalid, "%s should have NO recipient", verb)
+		return errors.Wrapf(ErrTxToInvalid, "%s must not set To", verb)
 	}
 
 	if x.Value.Sign() != 0 {
