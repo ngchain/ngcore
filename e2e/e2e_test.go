@@ -419,6 +419,41 @@ func TestRestartPersistence(t *testing.T) {
 	waitTip(t, peer, newTip.GetHash(), 45*time.Second)
 }
 
+// TestOrphanOutOfOrderImport: gossip blocks arriving before their
+// parents get parked and cascade in as soon as the gap closes
+func TestOrphanOutOfOrderImport(t *testing.T) {
+	node := newNode(t)
+	miner, _ := secp256k1.GeneratePrivateKey()
+
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	b1 := mineOn(t, genesis, miner)
+	b2 := mineOn(t, b1, miner)
+	b3 := mineOn(t, b2, miner)
+
+	// newest-first delivery: b3 and b2 must park, not error
+	if err := node.pow.ImportBlock(b3); err != nil {
+		t.Fatalf("orphan b3 should park: %v", err)
+	}
+	if err := node.pow.ImportBlock(b2); err != nil {
+		t.Fatalf("orphan b2 should park: %v", err)
+	}
+	if h := node.chain.GetLatestBlockHeight(); h != 0 {
+		t.Fatalf("height = %d before the gap closes, want 0", h)
+	}
+
+	// the missing parent lands: the whole burst cascades in
+	if err := node.pow.ImportBlock(b1); err != nil {
+		t.Fatal(err)
+	}
+
+	if h := node.chain.GetLatestBlockHeight(); h != 3 {
+		t.Fatalf("height = %d after cascade, want 3", h)
+	}
+	if !bytes.Equal(node.chain.GetLatestBlockHash(), b3.GetHash()) {
+		t.Fatal("tip should be b3")
+	}
+}
+
 // TestPeerReconnect: after a connection drop the peer manager must
 // redial known peers and restore the link without any manual action
 func TestPeerReconnect(t *testing.T) {

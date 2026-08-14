@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/blockchain"
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
@@ -31,6 +32,8 @@ type PoWork struct {
 	LocalNode *ngp2p.LocalNode
 
 	db *bbolt.DB
+
+	orphans *orphanPool
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -56,6 +59,8 @@ func InitPoWConsensus(db *bbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool
 		LocalNode:    localNode,
 
 		db: db,
+
+		orphans: newOrphanPool(),
 
 		ctx:    ctx,
 		cancel: cancel,
@@ -231,9 +236,37 @@ func (pow *PoWork) ImportBlock(b ngtypes.Block) error {
 	}
 
 	err := pow.Chain.ApplyBlock(block)
+	if errors.Is(err, ngblocks.ErrPrevBlockNotExist) {
+		// gossip reordering: park the block until its parent arrives
+		if pow.orphans.add(block) {
+			log.Warnf("parked orphan block@%d %x (waiting for %x)",
+				block.GetHeight(), block.GetHash(), block.GetPrevHash())
+			return nil
+		}
+		return err
+	}
 	if err != nil {
 		return err
 	}
 
+	pow.importOrphanChildren(block.GetHash())
+
 	return nil
+}
+
+// importOrphanChildren cascades the parked blocks whose parent just
+// landed, unwinding whole out-of-order bursts
+func (pow *PoWork) importOrphanChildren(parentHash []byte) {
+	queue := pow.orphans.take(parentHash)
+	for len(queue) > 0 {
+		child := queue[0]
+		queue = queue[1:]
+
+		if err := pow.Chain.ApplyBlock(child); err != nil {
+			log.Warnf("parked block@%d %x failed to apply: %s", child.GetHeight(), child.GetHash(), err)
+			continue
+		}
+
+		queue = append(queue, pow.orphans.take(child.GetHash())...)
+	}
 }
