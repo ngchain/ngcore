@@ -107,9 +107,9 @@ func putContract(t *testing.T, txn *bbolt.Tx, acc *ngtypes.Contract, balance int
 	}
 }
 
-func fakeTransactTx(participants []ngtypes.Address, values []*big.Int) *ngtypes.FullTx {
+func fakeTransactTx(to ngtypes.Address, value *big.Int) *ngtypes.FullTx {
 	return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
-		participants, values, big.NewInt(0), nil, nil)
+		to, value, big.NewInt(0), nil, nil)
 }
 
 // --- the tests ---
@@ -122,7 +122,7 @@ func TestVMLog(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -142,7 +142,7 @@ func TestVMKVSet(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ func TestVMTransfer(t *testing.T) {
 		contractAcc.SetActive(true)
 		putContract(t, txn, contractAcc, 100)
 
-		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, contractAcc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 100)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -250,7 +250,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 		putContract(t, txn, acc, 100)
 
 		// lock the account: the vm becomes active, editing gets frozen
-		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
@@ -275,7 +275,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 		}
 
 		// editing a locked account must fail
-		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 		if err := commitTx.Signature(priv); err != nil {
 			return err
 		}
@@ -284,7 +284,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 		}
 
 		// unlock reverts everything
-		deactivateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		deactivateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 		if err := deactivateTx.Signature(priv); err != nil {
 			return err
 		}
@@ -348,7 +348,7 @@ func TestCommitFlow(t *testing.T) {
 	funded := new(big.Int).Add(ngtypes.DeployFee, big.NewInt(100))
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), deployExtra, nil)
+		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), deployExtra, nil)
 		if err := deployTx.Signature(priv); err != nil {
 			return err
 		}
@@ -377,7 +377,7 @@ func TestCommitFlow(t *testing.T) {
 		}
 
 		// the second edit patches the existing slot: only the tx fee
-		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), patchExtra, nil)
+		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), patchExtra, nil)
 		if err := commitTx.Signature(priv); err != nil {
 			return err
 		}
@@ -400,7 +400,7 @@ func TestCommitFlow(t *testing.T) {
 		}
 
 		// the patched text must still compile and lock
-		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
@@ -415,7 +415,7 @@ func TestCommitFlow(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), staleExtra, nil)
+		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), staleExtra, nil)
 		if err := staleTx.Signature(priv); err != nil {
 			return err
 		}
@@ -475,7 +475,7 @@ func TestContractModuleDeps(t *testing.T) {
 
 		activateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
-				nil, nil, big.NewInt(1), nil, nil)
+				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
@@ -483,7 +483,7 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 		deactivateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, 1,
-				nil, nil, big.NewInt(1), nil, nil)
+				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
@@ -516,7 +516,7 @@ func TestContractModuleDeps(t *testing.T) {
 		// linked execution: leverage's main calls dex's double and
 		// writes 42 into leverage's own kv
 		levAcc, _ := getContract(txn, levAddr)
-		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, levAcc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with deps: %v", err)
 		}
@@ -627,7 +627,7 @@ func TestServiceToken(t *testing.T) {
 
 		lock := func(priv *ngtypes.PrivateKey) error {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
-				nil, nil, big.NewInt(1), nil, nil)
+				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
@@ -649,7 +649,7 @@ func TestServiceToken(t *testing.T) {
 
 		// run the consumer: the ledger updates happen in the TOKEN's kv
 		userAcc, _ := getContract(txn, userAddr)
-		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, userAcc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with service dep: %v", err)
 		}
@@ -715,7 +715,7 @@ func TestVMU256(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -782,11 +782,8 @@ func TestVMTxContext(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		// the tx pays 77 to the contract's address (msg.value) in two legs
-		tx := fakeTransactTx(
-			[]ngtypes.Address{owner, testAddr(0xbb), owner},
-			[]*big.Int{big.NewInt(70), big.NewInt(5), big.NewInt(7)},
-		)
+		// the tx pays 77 to the contract's address (msg.value)
+		tx := fakeTransactTx(owner, big.NewInt(77))
 
 		vm, err := NewVM(txn, acc, tx, 1755264000) // block timestamp
 		if err != nil {
@@ -873,7 +870,7 @@ func TestVMKVScan(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -973,7 +970,7 @@ func TestServiceBigValues(t *testing.T) {
 		caller.SetActive(true)
 		putContract(t, txn, caller, 0)
 
-		vm, err := NewVM(txn, caller, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, caller, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -1030,7 +1027,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		tx := fakeTransactTx(nil, nil)
+		tx := fakeTransactTx(ngtypes.Address{}, nil)
 		state.runContract(txn, emitAddr, tx, VMEntryOnTx, 1)
 
 		runs, err := GetTxRuns(txn, tx.GetHash())
@@ -1063,7 +1060,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		bad.SetActive(true)
 		putContract(t, txn, bad, 0)
 
-		badTx := fakeTransactTx([]ngtypes.Address{badAddr}, []*big.Int{big.NewInt(0)})
+		badTx := fakeTransactTx(badAddr, big.NewInt(0))
 		state.runContract(txn, badAddr, badTx, VMEntryOnTx, 1)
 
 		badRuns, err := GetTxRuns(txn, badTx.GetHash())
@@ -1096,7 +1093,7 @@ func TestGasPricingTiers(t *testing.T) {
 			acc.SetActive(true)
 			putContract(t, txn, acc, 100)
 
-			vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+			vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 			if err != nil {
 				return err
 			}
@@ -1144,7 +1141,7 @@ func TestVMDryRun(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -1191,7 +1188,7 @@ func TestDestroyRules(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 100)
 
-		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 		if err := destroyTx.Signature(priv); err != nil {
 			return err
 		}
@@ -1235,7 +1232,7 @@ func TestActivateRejectsBrokenContract(t *testing.T) {
 		acc := ngtypes.NewContract(addr, []byte(`(module (func (export "main")`), nil)
 		putContract(t, txn, acc, 100)
 
-		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
@@ -1296,7 +1293,7 @@ func TestCallSelector(t *testing.T) {
 			putContract(t, txn, acc, 0)
 
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
-				[]ngtypes.Address{addr}, []*big.Int{big.NewInt(0)}, big.NewInt(0), extra, nil)
+				addr, big.NewInt(0), big.NewInt(0), extra, nil)
 			state.runContract(txn, addr, tx, VMEntryOnTx, 1)
 
 			var err error

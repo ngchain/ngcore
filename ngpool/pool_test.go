@@ -37,8 +37,8 @@ func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 		ngtypes.GetNextDiff(height, blockTime, parent))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
-		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{ngtypes.GetBlockReward(height)},
+		ngtypes.NewAddress(miner),
+		ngtypes.GetBlockReward(height),
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
@@ -100,7 +100,7 @@ func transactTx(t *testing.T, height uint64, owner *ngtypes.PrivateKey, fee int6
 
 	dest := testAddr()
 	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
-		[]ngtypes.Address{dest}, []*big.Int{big.NewInt(10)}, big.NewInt(fee), nil, nil)
+		dest, big.NewInt(10), big.NewInt(fee), nil, nil)
 	if err := tx.Signature(owner); err != nil {
 		t.Fatal(err)
 	}

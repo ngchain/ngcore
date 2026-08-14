@@ -224,7 +224,7 @@ func TestLeverageShowcase(t *testing.T) {
 
 		lock := func(priv *ngtypes.PrivateKey, who string) {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
-				nil, nil, big.NewInt(1), nil, nil)
+				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
@@ -250,7 +250,7 @@ func TestLeverageShowcase(t *testing.T) {
 
 		// open the leveraged position
 		leverageAcc, _ := getContract(txn, addrD)
-		vm, err := NewVM(txn, leverageAcc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, leverageAcc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM: %v", err)
 		}

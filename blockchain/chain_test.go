@@ -55,8 +55,8 @@ func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Pri
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(), diff)
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
-		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{reward},
+		ngtypes.NewAddress(miner),
+		reward,
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
@@ -89,8 +89,8 @@ func mineBlockAt(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 		ngtypes.GetNextDiff(height, blockTime, parent))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
-		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{ngtypes.GetBlockReward(height)},
+		ngtypes.NewAddress(miner),
+		ngtypes.GetBlockReward(height),
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
@@ -443,8 +443,8 @@ func TestBlockTimestampRules(t *testing.T) {
 	future := ngtypes.NewBareBlock(ngtypes.ZERONET, 2, futureTime, b1.GetHash(),
 		ngtypes.GetNextDiff(2, futureTime, b1))
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, 2,
-		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{ngtypes.GetBlockReward(2)},
+		ngtypes.NewAddress(miner),
+		ngtypes.GetBlockReward(2),
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)

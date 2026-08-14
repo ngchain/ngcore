@@ -54,9 +54,9 @@ func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error
 		return err
 	}
 
-	balance := getBalance(txn, tx.Participants[0])
+	balance := getBalance(txn, tx.To)
 
-	err = setBalance(txn, tx.Participants[0], new(big.Int).Add(balance, tx.Values[0]))
+	err = setBalance(txn, tx.To, new(big.Int).Add(balance, tx.Value))
 	if err != nil {
 		return err
 	}
@@ -112,26 +112,17 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 }
 
 func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
-	totalValue := big.NewInt(0)
-	for i := range tx.Values {
-		totalValue.Add(totalValue, tx.Values[i])
-	}
-
-	if _, err := senderAndCharge(txn, tx, new(big.Int).Add(tx.Fee, totalValue)); err != nil {
+	if _, err := senderAndCharge(txn, tx, tx.TotalExpenditure()); err != nil {
 		return err
 	}
 
-	for i := range tx.Participants {
-		participantBalance := getBalance(txn, tx.Participants[i])
+	toBalance := getBalance(txn, tx.To)
+	if err := setBalance(txn, tx.To, new(big.Int).Add(toBalance, tx.Value)); err != nil {
+		return err
+	}
 
-		err = setBalance(txn, tx.Participants[i], new(big.Int).Add(participantBalance, tx.Values[i]))
-		if err != nil {
-			return err
-		}
-
-		if contractExists(txn, tx.Participants[i]) {
-			state.runContract(txn, tx.Participants[i], tx, VMEntryOnTx, blockTime)
-		}
+	if contractExists(txn, tx.To) {
+		state.runContract(txn, tx.To, tx, VMEntryOnTx, blockTime)
 	}
 
 	return nil

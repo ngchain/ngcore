@@ -122,11 +122,11 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 }
 
 type genTransactionParams struct {
-	Participants []string  `json:"participants"` // bs58 addresses
-	Values       []float64 `json:"values"`
-	Fee          float64   `json:"fee"`
-	Entry        string    `json:"entry"` // optional contract entry (eth-style selector)
-	Extra        string    `json:"extra"` // hex args
+	To    string  `json:"to"` // bs58 address
+	Value float64 `json:"value"`
+	Fee   float64 `json:"fee"`
+	Entry string  `json:"entry"` // optional contract entry (eth-style selector)
+	Extra string  `json:"extra"` // hex args
 }
 
 // all genTx should reply protobuf encoded bytes.
@@ -138,21 +138,13 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	participants := make([]ngtypes.Address, len(params.Participants))
-	for i := range params.Participants {
-		addr, err := ngtypes.NewAddressFromBS58(params.Participants[i])
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-		participants[i] = addr
+	to, err := ngtypes.NewAddressFromBS58(params.To)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	values := make([]*big.Int, len(params.Values))
-	for i := range params.Values {
-		values[i] = new(big.Int).SetUint64(uint64(params.Values[i] * ngtypes.FloatNG))
-	}
-
+	value := new(big.Int).SetUint64(uint64(params.Value * ngtypes.FloatNG))
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
 	args, err := hex.DecodeString(params.Extra)
@@ -166,8 +158,8 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		s.pow.Network,
 		ngtypes.TransactTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		participants,
-		values,
+		to,
+		value,
 		fee,
 		extra,
 	)
@@ -214,7 +206,7 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		s.pow.Network,
 		ngtypes.DestroyTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		nil,
+		ngtypes.Address{},
 		nil,
 		fee,
 		extra,
@@ -323,7 +315,7 @@ func (s *Server) buildCommitTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, base
 		s.pow.Network,
 		ngtypes.CommitTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		nil,
+		ngtypes.Address{},
 		nil,
 		fee,
 		rawExtra,
@@ -385,7 +377,7 @@ func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxTy
 		s.pow.Network,
 		txType,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		nil,
+		ngtypes.Address{},
 		nil,
 		fee,
 		extra,

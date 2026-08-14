@@ -20,8 +20,8 @@ func TestDeserialize(t *testing.T) {
 		ngtypes.TESTNET,
 		ngtypes.TransactTx,
 		TEST_HEIGHT,
-		[]ngtypes.Address{ngtypes.GenesisAddress},
-		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
+		ngtypes.GenesisAddress,
+		new(big.Int).Mul(ngtypes.NG, big.NewInt(1000)),
 		big.NewInt(0),
 		nil,
 	)
@@ -42,8 +42,8 @@ func TestTransaction_Signature(t *testing.T) {
 		ngtypes.TESTNET,
 		ngtypes.TransactTx,
 		TEST_HEIGHT,
-		[]ngtypes.Address{ngtypes.GenesisAddress},
-		[]*big.Int{big.NewInt(0)},
+		ngtypes.GenesisAddress,
+		big.NewInt(0),
 		big.NewInt(0),
 		nil,
 	)

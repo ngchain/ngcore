@@ -139,8 +139,8 @@ func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) 
 		ngtypes.GetNextDiff(height, blockTime, parent))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
-		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{ngtypes.GetBlockReward(height)},
+		ngtypes.NewAddress(miner),
+		ngtypes.GetBlockReward(height),
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
@@ -274,8 +274,8 @@ func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 		ngtypes.GetNextDiff(height, blockTime, parent))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
-		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{ngtypes.GetBlockReward(height)},
+		ngtypes.NewAddress(miner),
+		ngtypes.GetBlockReward(height),
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
@@ -317,7 +317,7 @@ func TestTxPropagation(t *testing.T) {
 	var dest ngtypes.Address
 	dest[0] = 0xee
 	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 3,
-		[]ngtypes.Address{dest}, []*big.Int{big.NewInt(10)}, big.NewInt(1), nil, nil)
+		dest, big.NewInt(10), big.NewInt(1), nil, nil)
 	if err := tx.Signature(key); err != nil {
 		t.Fatal(err)
 	}
@@ -515,7 +515,7 @@ func TestContractLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 3,
-		nil, nil, big.NewInt(1), rawExtra, nil)
+		ngtypes.Address{}, nil, big.NewInt(1), rawExtra, nil)
 	if err := commitTx.Signature(key); err != nil {
 		t.Fatal(err)
 	}
@@ -523,7 +523,7 @@ func TestContractLifecycle(t *testing.T) {
 
 	// activate: lock compiles the text and enables the vm
 	activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 4,
-		nil, nil, big.NewInt(1), nil, nil)
+		ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 	if err := activateTx.Signature(key); err != nil {
 		t.Fatal(err)
 	}
@@ -531,7 +531,7 @@ func TestContractLifecycle(t *testing.T) {
 
 	// trigger: a transact tx to the contract account runs `main`
 	transTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 5,
-		[]ngtypes.Address{addr}, []*big.Int{big.NewInt(1)}, big.NewInt(1), nil, nil)
+		addr, big.NewInt(1), big.NewInt(1), nil, nil)
 	if err := transTx.Signature(key); err != nil {
 		t.Fatal(err)
 	}

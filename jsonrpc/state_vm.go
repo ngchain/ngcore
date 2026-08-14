@@ -84,8 +84,8 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 			s.pow.Network,
 			ngtypes.TransactTx,
 			s.pow.Chain.GetLatestBlockHeight()+1,
-			[]ngtypes.Address{account.Owner},
-			[]*big.Int{value},
+			account.Owner,
+			value,
 			big.NewInt(0),
 			ngtypes.EncodeCallData(params.Entry, []byte(params.Extra)),
 		)

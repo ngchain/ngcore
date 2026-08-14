@@ -78,7 +78,7 @@ func (j *vmJournal) balanceOf(txn *bbolt.Tx, addr ngtypes.Address) *big.Int {
 // transfer moves value between two addresses inside the journal
 func (j *vmJournal) transfer(txn *bbolt.Tx, from, to ngtypes.Address, value *big.Int) error {
 	if value.Sign() < 0 {
-		return ngtypes.ErrTxValuesInvalid
+		return ngtypes.ErrTxValueInvalid
 	}
 
 	fromBalance := j.balanceOf(txn, from)

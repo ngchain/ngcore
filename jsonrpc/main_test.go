@@ -178,8 +178,8 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 
 	height := block.GetHeight()
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
-		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{ngtypes.GetBlockReward(height)},
+		ngtypes.NewAddress(miner),
+		ngtypes.GetBlockReward(height),
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
@@ -449,10 +449,10 @@ func TestRPCContractLifecycle(t *testing.T) {
 
 	// trigger for real: a transact tx to the contract address runs main
 	txHash := signAndSend(genResult("genTransaction", map[string]any{
-		"participants": []string{addr.BS58()},
-		"values":       []float64{0},
-		"fee":          0.01,
-		"extra":        "",
+		"to":    addr.BS58(),
+		"value": 0,
+		"fee":   0.01,
+		"extra": "",
 	}))
 	mineViaRPC(t, node, key)
 

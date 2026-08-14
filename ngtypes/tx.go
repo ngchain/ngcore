@@ -34,26 +34,22 @@ const (
 
 // FullTx is the basic implement of Tx (transaction, or operation)
 type FullTx struct {
-	Network      Network
-	Type         TxType
-	Height       uint64 // lock the tx on the specific height, rather than the hash, to make the tx can act on forking
-	Participants []Address
-	Fee          *big.Int
-	Values       []*big.Int // each value is a free-length slice
+	Network Network
+	Type    TxType
+	Height  uint64 // lock the tx on the specific height, rather than the hash, to make the tx can act on forking
+	To      Address
+	Value   *big.Int
+	Fee     *big.Int
 
 	Extra []byte
 	Sign  []byte `rlp:"optional"`
 }
 
 // NewTx is the default constructor for ngtypes.Tx
-func NewTx(network Network, txType TxType, height uint64, participants []Address, values []*big.Int, fee *big.Int,
+func NewTx(network Network, txType TxType, height uint64, to Address, value, fee *big.Int,
 	extraData, sign []byte) *FullTx {
-	if participants == nil {
-		participants = []Address{}
-	}
-
-	if values == nil {
-		values = []*big.Int{}
+	if value == nil {
+		value = big.NewInt(0)
 	}
 
 	if fee == nil {
@@ -69,12 +65,12 @@ func NewTx(network Network, txType TxType, height uint64, participants []Address
 	}
 
 	tx := &FullTx{
-		Network:      network,
-		Type:         txType,
-		Height:       height,
-		Participants: participants,
-		Fee:          fee,
-		Values:       values,
+		Network: network,
+		Type:    txType,
+		Height:  height,
+		To:      to,
+		Value:   value,
+		Fee:     fee,
 
 		Extra: extraData,
 		Sign:  sign,
@@ -84,10 +80,10 @@ func NewTx(network Network, txType TxType, height uint64, participants []Address
 }
 
 // NewUnsignedTx will return an unsigned tx, must using Signature().
-func NewUnsignedTx(network Network, txType TxType, height uint64, participants []Address, values []*big.Int, fee *big.Int,
+func NewUnsignedTx(network Network, txType TxType, height uint64, to Address, value, fee *big.Int,
 	extraData []byte) *FullTx {
 
-	return NewTx(network, txType, height, participants, values, fee, extraData, nil)
+	return NewTx(network, txType, height, to, value, fee, extraData, nil)
 }
 
 // IsSigned will return whether the op has been signed.
@@ -199,24 +195,12 @@ func (x *FullTx) Equals(other merkletree.Content) (bool, error) {
 		return false, nil
 	}
 
-	if len(x.Participants) != len(tx.Participants) {
+	if x.To != tx.To {
 		return false, nil
 	}
 
-	for i := range x.Participants {
-		if x.Participants[i] != tx.Participants[i] {
-			return false, nil
-		}
-	}
-
-	if len(x.Values) != len(tx.Values) {
+	if x.Value.Cmp(tx.Value) != 0 {
 		return false, nil
-	}
-
-	for i := range x.Values {
-		if x.Values[i].Cmp(tx.Values[i]) != 0 {
-			return false, nil
-		}
 	}
 
 	if x.Fee.Cmp(tx.Fee) != 0 {
@@ -240,10 +224,6 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 		return ErrBlockNoHeader
 	}
 
-	if len(x.Values) != len(x.Participants) {
-		return errors.Wrap(ErrTxParticipantsInvalid, "generate should have same len with participants")
-	}
-
 	if !(x.TotalExpenditure().Cmp(GetBlockReward(blockHeight)) == 0) {
 		return errors.Wrapf(ErrRewardInvalid, "expect %s but reward is %s", GetBlockReward(blockHeight), x.TotalExpenditure())
 	}
@@ -262,8 +242,8 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 		if err != nil {
 			return err
 		}
-		if len(x.Participants) != 1 || !sender.Equals(x.Participants[0]) {
-			return errors.Wrap(ErrTxParticipantsInvalid, "generate must pay its own signer")
+		if !sender.Equals(x.To) {
+			return errors.Wrap(ErrTxRecipientInvalid, "generate must pay its own signer")
 		}
 	}
 
@@ -277,15 +257,25 @@ func (x *FullTx) CheckDestroy() error {
 		return ErrTxNoHeader
 	}
 
-	if len(x.Participants) != 0 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "destroy should have NO participant")
-	}
-
-	if len(x.Values) != 0 {
-		return errors.Wrap(ErrTxValuesInvalid, "destroy should have NO value")
+	if err := x.checkNoTransfer("destroy"); err != nil {
+		return err
 	}
 
 	return x.Verify()
+}
+
+// checkNoTransfer refuses a recipient or value on tx types which only
+// act on the sender's own slot
+func (x *FullTx) checkNoTransfer(verb string) error {
+	if x.To != (Address{}) {
+		return errors.Wrapf(ErrTxRecipientInvalid, "%s should have NO recipient", verb)
+	}
+
+	if x.Value.Sign() != 0 {
+		return errors.Wrapf(ErrTxValueInvalid, "%s should have NO value", verb)
+	}
+
+	return nil
 }
 
 // CheckTransaction does a self check for normal transaction tx
@@ -294,8 +284,8 @@ func (x *FullTx) CheckTransaction() error {
 		return ErrTxNoHeader
 	}
 
-	if len(x.Values) != len(x.Participants) {
-		return errors.Wrap(ErrTxParticipantsInvalid, "transact should have same len with participants")
+	if x.Value.Sign() < 0 {
+		return errors.Wrap(ErrTxValueInvalid, "transact value cannot be negative")
 	}
 
 	return x.Verify()
@@ -308,12 +298,8 @@ func (x *FullTx) CheckCommit() error {
 		return ErrTxNoHeader
 	}
 
-	if len(x.Participants) != 0 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "edit should have NO participant")
-	}
-
-	if len(x.Values) != 0 {
-		return errors.Wrap(ErrTxValuesInvalid, "edit should have NO value")
+	if err := x.checkNoTransfer("commit"); err != nil {
+		return err
 	}
 
 	return x.Verify()
@@ -325,12 +311,8 @@ func (x *FullTx) CheckActivate() error {
 		return ErrTxNoHeader
 	}
 
-	if len(x.Participants) != 0 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "lock should have NO participant")
-	}
-
-	if len(x.Values) != 0 {
-		return errors.Wrap(ErrTxValuesInvalid, "lock should have NO value")
+	if err := x.checkNoTransfer("activate"); err != nil {
+		return err
 	}
 
 	return x.Verify()
@@ -342,12 +324,8 @@ func (x *FullTx) CheckDeactivate() error {
 		return ErrTxNoHeader
 	}
 
-	if len(x.Participants) != 0 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "unlock should have NO participant")
-	}
-
-	if len(x.Values) != 0 {
-		return errors.Wrap(ErrTxValuesInvalid, "unlock should have NO value")
+	if err := x.checkNoTransfer("deactivate"); err != nil {
+		return err
 	}
 
 	return x.Verify()
@@ -378,11 +356,5 @@ func (x *FullTx) ManuallySetSignature(sign []byte) {
 
 // TotalExpenditure helps calculate the total expenditure which the tx caller should pay
 func (x *FullTx) TotalExpenditure() *big.Int {
-	total := big.NewInt(0)
-
-	for i := range x.Values {
-		total.Add(total, x.Values[i])
-	}
-
-	return new(big.Int).Add(x.Fee, total)
+	return new(big.Int).Add(x.Fee, x.Value)
 }

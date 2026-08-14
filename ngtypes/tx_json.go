@@ -8,13 +8,13 @@ import (
 )
 
 type jsonTx struct {
-	Network      string     `json:"network"`
-	Type         TxType     `json:"type"`
-	Height       uint64     `json:"prevBlockHash"`
-	Participants []Address  `json:"participants"`
-	Fee          *big.Int   `json:"fee"`
-	Values       []*big.Int `json:"values"`
-	Extra        string     `json:"extra"`
+	Network string   `json:"network"`
+	Type    TxType   `json:"type"`
+	Height  uint64   `json:"height"`
+	To      Address  `json:"to"`
+	Value   *big.Int `json:"value"`
+	Fee     *big.Int `json:"fee"`
+	Extra   string   `json:"extra"`
 
 	Sign string `json:"sign"`
 
@@ -25,13 +25,13 @@ type jsonTx struct {
 // MarshalJSON encodes the tx into the json bytes
 func (x *FullTx) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonTx{
-		Network:      x.Network.String(),
-		Type:         x.Type,
-		Height:       x.Height,
-		Participants: x.Participants,
-		Fee:          x.Fee,
-		Values:       x.Values,
-		Extra:        hex.EncodeToString(x.Extra),
+		Network: x.Network.String(),
+		Type:    x.Type,
+		Height:  x.Height,
+		To:      x.To,
+		Value:   x.Value,
+		Fee:     x.Fee,
+		Extra:   hex.EncodeToString(x.Extra),
 
 		Sign: hex.EncodeToString(x.Sign),
 
@@ -61,8 +61,8 @@ func (x *FullTx) UnmarshalJSON(b []byte) error {
 		GetNetwork(tx.Network),
 		tx.Type,
 		tx.Height,
-		tx.Participants,
-		tx.Values,
+		tx.To,
+		tx.Value,
 		tx.Fee,
 		extra,
 		sign,

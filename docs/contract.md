@@ -113,13 +113,10 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_network() -> i32        get_height() -> i64
          get_timestamp() -> i64      ; enclosing block time (unix s)
          get_paid_size() -> i32      get_paid(ptr) -> i32
-         ; msg.value: what this tx pays to the EXECUTING address's
-         ; owner, big-endian big.Int bytes
+         ; msg.value: what this tx pays to the EXECUTING address
+         ; (zero unless it is the recipient), big-endian big.Int bytes
          get_sender(ptr) -> i32     ; the tx sender's address
-         get_participants_count() -> i32
-         get_participant_size() -> i32
-         get_participant(i, ptr) -> i32
-         get_value_size(i) -> i32    get_value(i, ptr) -> i32
+         get_to(ptr) -> i32         ; the tx recipient's address
          get_fee_size() -> i32       get_fee(ptr) -> i32
          get_extra_size() -> i32     get_extra(ptr) -> i32
          ; the ARGS part of the calldata (see the selector convention)

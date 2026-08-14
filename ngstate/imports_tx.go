@@ -1,8 +1,6 @@
 package ngstate
 
 import (
-	"math/big"
-
 	"github.com/c0mm4nd/wasman"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -63,19 +61,15 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	// get_paid exposes msg.value: the total this tx pays to the address
-	// executing right now, as big-endian big.Int bytes
+	// get_paid exposes msg.value: what this tx pays to the address
+	// executing right now, as big-endian big.Int bytes (zero for any
+	// frame other than the recipient)
 	paidToCurrent := func() []byte {
-		current := vm.currentAddress()
-
-		total := new(big.Int)
-		for i := range vm.caller.Participants {
-			if i < len(vm.caller.Values) && vm.caller.Participants[i] == current {
-				total.Add(total, vm.caller.Values[i])
-			}
+		if vm.caller.To != vm.currentAddress() {
+			return nil
 		}
 
-		return total.Bytes()
+		return vm.caller.Value.Bytes()
 	}
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_paid_size", func(ins *wasman.Instance) interface{} {
@@ -125,63 +119,10 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("tx", "get_participants_count", func(ins *wasman.Instance) interface{} {
-		return func() uint32 {
-			return uint32(len(vm.caller.Participants))
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("tx", "get_participant_size", func(ins *wasman.Instance) interface{} {
-		return func() uint32 {
-			return uint32(len(ngtypes.Address{}))
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("tx", "get_participant", func(ins *wasman.Instance) interface{} {
-		return func(i, ptr uint32) uint32 {
-			if i >= uint32(len(vm.caller.Participants)) {
-				return 0
-			}
-
-			l, err := cp(ins, ptr, vm.caller.Participants[i][:])
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			return l
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("tx", "get_value_size", func(ins *wasman.Instance) interface{} {
-		return func(i uint32) uint32 {
-			if i >= uint32(len(vm.caller.Values)) {
-				return 0
-			}
-
-			return uint32(len(vm.caller.Values[i].Bytes()))
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("tx", "get_value", func(ins *wasman.Instance) interface{} {
-		return func(i, ptr uint32) uint32 {
-			if i >= uint32(len(vm.caller.Values)) {
-				return 0
-			}
-
-			l, err := cp(ins, ptr, vm.caller.Values[i].Bytes())
+	// get_to writes the tx's recipient address
+	err = vm.linker.DefineAdvancedFunc("tx", "get_to", func(ins *wasman.Instance) interface{} {
+		return func(ptr uint32) uint32 {
+			l, err := cp(ins, ptr, vm.caller.To[:])
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

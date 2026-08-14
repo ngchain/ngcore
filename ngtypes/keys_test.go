@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func testTx(participant Address) *FullTx {
+func testTx(to Address) *FullTx {
 	return NewUnsignedTx(ZERONET, TransactTx, 1,
-		[]Address{participant}, []*big.Int{big.NewInt(1)},
+		to, big.NewInt(1),
 		big.NewInt(0), nil)
 }
 
