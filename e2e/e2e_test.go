@@ -31,13 +31,22 @@ type testNode struct {
 	pow   *consensus.PoWork
 	chain *blockchain.Chain
 	local *ngp2p.LocalNode
+	db    *bbolt.DB
+
+	stopped bool
 }
 
 // newNode boots a full node on an ephemeral tcp port with its own db
 func newNode(t *testing.T) *testNode {
 	t.Helper()
 
-	dir := t.TempDir()
+	return newNodeAt(t, t.TempDir())
+}
+
+// newNodeAt boots (or re-boots) a full node from the given data dir, so
+// restart tests can resume from a persisted chain
+func newNodeAt(t *testing.T, dir string) *testNode {
+	t.Helper()
 
 	db, err := bbolt.Open(filepath.Join(dir, "chain.db"), 0o600, nil)
 	if err != nil {
@@ -66,15 +75,25 @@ func newNode(t *testing.T) *testNode {
 	})
 	pow.GoLoop()
 
+	node := &testNode{pow: pow, chain: chain, local: local, db: db}
+
 	// a stopped node must not touch the db anymore, so closing it right
 	// after is safe — this is the shutdown api's e2e coverage
-	t.Cleanup(func() {
-		pow.Stop()
-		time.Sleep(100 * time.Millisecond) // let the loops drain
-		_ = db.Close()
-	})
+	t.Cleanup(node.shutdown)
 
-	return &testNode{pow: pow, chain: chain, local: local}
+	return node
+}
+
+// shutdown stops the node and closes its db; safe to call twice
+func (n *testNode) shutdown() {
+	if n.stopped {
+		return
+	}
+	n.stopped = true
+
+	n.pow.Stop()
+	time.Sleep(100 * time.Millisecond) // let the loops drain
+	_ = n.db.Close()
 }
 
 // connect dials b from a and waits until the pubsub meshes know each other
@@ -340,6 +359,48 @@ func TestTxPropagation(t *testing.T) {
 			t.Fatalf("node%s: pool must reset on the tip change", name)
 		}
 	}
+}
+
+// TestRestartPersistence: a node stopped cleanly must come back from
+// its data dir with the chain and state intact, stay live (mine more)
+// and serve peers again
+func TestRestartPersistence(t *testing.T) {
+	dir := t.TempDir()
+	miner, _ := secp256k1.GeneratePrivateKey()
+
+	// first life: mine three blocks onto the persistent db
+	node := newNodeAt(t, dir)
+	var tip *ngtypes.FullBlock
+	for i := 0; i < 3; i++ {
+		tip = mineAndSubmit(t, node, miner)
+	}
+	wantBalance := balanceOf(t, node, miner)
+	node.shutdown()
+
+	// second life: same data dir
+	node = newNodeAt(t, dir)
+
+	if h := node.chain.GetLatestBlockHeight(); h != 3 {
+		t.Fatalf("restarted height = %d, want 3", h)
+	}
+	if !bytes.Equal(node.chain.GetLatestBlockHash(), tip.GetHash()) {
+		t.Fatal("restarted tip mismatch")
+	}
+	if got := balanceOf(t, node, miner); got.Cmp(wantBalance) != 0 {
+		t.Fatalf("restarted balance = %s, want %s", got, wantBalance)
+	}
+
+	// still live: extends its own chain past the checkpoint round...
+	var newTip *ngtypes.FullBlock
+	for node.chain.GetLatestBlockHeight() < uint64(ngtypes.BlockCheckRound)+2 {
+		newTip = mineAndSubmit(t, node, miner)
+	}
+
+	// ...and serves a fresh peer over the wired sync protocol (the peer
+	// is behind a full round, so its sync loop fetches the whole chain)
+	peer := newNode(t)
+	connect(t, peer, node)
+	waitTip(t, peer, newTip.GetHash(), 45*time.Second)
 }
 
 // TestDeepForkConvergeViaSync covers the sync-module path: two nodes
