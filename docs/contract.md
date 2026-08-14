@@ -95,6 +95,9 @@ kv:      get_size(kptr, klen) -> i32
          key_size_at(pptr, plen, i) -> i32   ; sorted, non-reserved keys
          key_at(pptr, plen, i, out) -> i32
 env:     get_gas() -> i64            ; remaining toll of the call tree
+         buf_set(slot, ptr, len) -> i32   ; cross-frame transfer slots
+         buf_size(slot) -> i32            ; (8 x 4KB): byte payloads
+         buf_get(slot, ptr) -> i32        ; crossing service boundaries
 u128/u256: add/sub/mul/div_u/div_s/rem_u/rem_s(dst, a, b)
          and/or/xor(dst, a, b)   not(dst, a)
          shl/shr_u/shr_s(dst, a, bits)
@@ -164,7 +167,10 @@ which is exactly how a token keeps one ledger shared by all callers.
 for authorization; `account.get_host` returns the executing account.
 Within one transaction execution, a contract that is still executing
 cannot be re-entered (calls after it returned are fine); service
-exports use scalar (i32/i64) params and returns.
+exports use scalar (i32/i64) params and returns — byte payloads
+(u256 amounts, strings) cross through the env transfer slots: the
+caller stages bytes with buf_set before the call, the callee reads
+them with buf_get and returns results the same way.
 
 Exports a contract may provide:
 

@@ -30,6 +30,10 @@ const (
 	vmMaxToll = 1 << 24
 	// vmCallDepth bounds the wasm call stack depth per contract call
 	vmCallDepth uint64 = 512
+
+	// vmBufSlots / vmBufMaxLen bound the cross-frame transfer slots
+	vmBufSlots  = 8
+	vmBufMaxLen = 4096
 )
 
 // VM is the sandbox env for exec a contract, based on wasman.
@@ -54,6 +58,11 @@ type VM struct {
 	// events accumulate during the run and only survive a SUCCESSFUL
 	// call (mirroring the journal semantics)
 	events []Event
+
+	// bufs are the cross-frame transfer slots: byte payloads (256-bit
+	// amounts, strings) crossing service boundaries go through them,
+	// since instances do not share linear memory
+	bufs [vmBufSlots][]byte
 
 	logger *logging.ZapEventLogger
 }

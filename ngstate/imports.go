@@ -128,5 +128,64 @@ func initEnvImports(vm *VM) error {
 		return err
 	}
 
+	// the transfer slots ferry byte payloads across service frames:
+	// instances have separate linear memories, so the caller stages
+	// bytes into a slot before the call and the callee reads them out
+	// (and writes results back the same way)
+	err = vm.linker.DefineAdvancedFunc("env", "buf_set", func(ins *wasman.Instance) interface{} {
+		return func(slot, ptr, size uint32) uint32 {
+			if slot >= vmBufSlots || size > vmBufMaxLen {
+				return 0
+			}
+
+			data, err := readMem(ins, ptr, size)
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			buf := make([]byte, len(data))
+			copy(buf, data)
+			vm.bufs[slot] = buf
+
+			return 1
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = vm.linker.DefineAdvancedFunc("env", "buf_size", func(ins *wasman.Instance) interface{} {
+		return func(slot uint32) uint32 {
+			if slot >= vmBufSlots {
+				return 0
+			}
+
+			return uint32(len(vm.bufs[slot]))
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = vm.linker.DefineAdvancedFunc("env", "buf_get", func(ins *wasman.Instance) interface{} {
+		return func(slot, ptr uint32) uint32 {
+			if slot >= vmBufSlots {
+				return 0
+			}
+
+			l, err := cp(ins, ptr, vm.bufs[slot])
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			return l
+		}
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

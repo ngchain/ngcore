@@ -858,6 +858,107 @@ const emitWat = `
     (drop (call $set (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 5)))))
 `
 
+// bigVaultWat is a service accumulating a 256-bit total: the amount
+// arrives through transfer slot 0 (32 bytes), the new total returns
+// the same way — u256 crossing the service boundary
+const bigVaultWat = `
+(module
+  (import "env" "buf_get" (func $bget (param i32 i32) (result i32)))
+  (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
+  (import "kv" "get" (func $kvget (param i32 i32 i32) (result i32)))
+  (import "kv" "set" (func $kvset (param i32 i32 i32 i32) (result i32)))
+  (import "u256" "add" (func $add256 (param i32 i32 i32)))
+  (memory 1)
+  (data (i32.const 0) "tot")
+  ;; 32: incoming amount, 64: stored total, 96: new total
+  (func (export "deposit_big")
+    (drop (call $bget (i32.const 0) (i32.const 32)))
+    (drop (call $kvget (i32.const 0) (i32.const 3) (i32.const 64)))
+    (call $add256 (i32.const 96) (i32.const 64) (i32.const 32))
+    (drop (call $kvset (i32.const 0) (i32.const 3) (i32.const 96) (i32.const 32)))
+    (drop (call $bset (i32.const 0) (i32.const 96) (i32.const 32)))))
+`
+
+// bigCallerWat deposits (2^128 - 1) twice: the second call must carry
+// the full 256-bit total back across the boundary
+func bigCallerWat() string {
+	return `
+(module
+  (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
+  (import "env" "buf_get" (func $bget (param i32 i32) (result i32)))
+  (import "kv" "set" (func $kvset (param i32 i32 i32 i32) (result i32)))
+  (import "service/700" "deposit_big" (func $deposit))
+  (memory 1)
+  (data (i32.const 0) "got")
+  (data (i32.const 32) "\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff")
+  (func (export "main")
+    (drop (call $bset (i32.const 0) (i32.const 32) (i32.const 32)))
+    (call $deposit)
+    (drop (call $bset (i32.const 0) (i32.const 32) (i32.const 32)))
+    (call $deposit)
+    ;; read the final total from slot 0 into 64.. and store it
+    (drop (call $bget (i32.const 0) (i32.const 64)))
+    (drop (call $kvset (i32.const 0) (i32.const 3) (i32.const 64) (i32.const 32)))))
+`
+}
+
+// TestServiceBigValues: 256-bit values cross the service boundary via
+// the transfer slots, with carries intact
+func TestServiceBigValues(t *testing.T) {
+	db := newTestDB(t)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		vault := ngtypes.NewAccount(700, testAddr(0xaa), []byte(bigVaultWat), nil)
+		vault.SetLock(true)
+		putAccount(t, txn, vault, 0)
+
+		caller := ngtypes.NewAccount(730, testAddr(0xdd), []byte(bigCallerWat()), nil)
+		caller.SetLock(true)
+		putAccount(t, txn, caller, 0)
+
+		vm, err := NewVM(txn, caller, fakeTransactTx(nil, nil), 1)
+		if err != nil {
+			return err
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			return err
+		}
+
+		// 2 * (2^128 - 1) = 2^129 - 2: LE bytes fe ff*15 then byte16=01
+		want := make([]byte, 32)
+		want[0] = 0xfe
+		for i := 1; i < 16; i++ {
+			want[i] = 0xff
+		}
+		want[16] = 0x01
+
+		callerAcc, _ := getAccountByNum(txn, 730)
+		got := callerAcc.Context.Get("got")
+		if len(got) != 32 {
+			t.Fatalf("got length = %d, want 32", len(got))
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Fatalf("got[%d] = %#x, want %#x (full total: %x)", i, got[i], want[i], got)
+			}
+		}
+
+		// the vault's own kv holds the same total
+		vaultAcc, _ := getAccountByNum(txn, 700)
+		tot := vaultAcc.Context.Get("tot")
+		for i := range want {
+			if tot[i] != want[i] {
+				t.Fatalf("vault tot mismatch at %d: %x", i, tot)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestReceiptsAndEvents: contract runs land in the local receipt with
 // their events; failed runs record the failure without events
 func TestReceiptsAndEvents(t *testing.T) {
