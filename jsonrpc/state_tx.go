@@ -122,8 +122,9 @@ type genTransactionParams struct {
 	Participants []string  `json:"participants"` // bs58 addresses
 	Values       []float64 `json:"values"`
 	Fee          float64   `json:"fee"`
-	Entry        string    `json:"entry"` // optional contract entry (eth-style selector)
-	Extra        string    `json:"extra"` // hex args
+	// per-participant calldata (both optional, aligned when present)
+	Entries []string `json:"entries"` // entry names (eth-style selector)
+	Extras  []string `json:"extras"`  // hex args
 }
 
 // all genTx should reply protobuf encoded bytes.
@@ -152,12 +153,36 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	args, err := hex.DecodeString(params.Extra)
+	if (len(params.Entries) != 0 && len(params.Entries) != len(participants)) ||
+		(len(params.Extras) != 0 && len(params.Extras) != len(participants)) {
+		err := errors.New("entries/extras must align with participants")
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	calldatas := make([][]byte, len(participants))
+	for i := range participants {
+		entry := ""
+		if len(params.Entries) != 0 {
+			entry = params.Entries[i]
+		}
+		var args []byte
+		if len(params.Extras) != 0 {
+			var err error
+			args, err = hex.DecodeString(params.Extras[i])
+			if err != nil {
+				log.Error(err)
+				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+			}
+		}
+		calldatas[i] = ngtypes.EncodeCallData(entry, args)
+	}
+
+	extra, err := ngtypes.EncodeTransactExtras(calldatas)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	extra := ngtypes.EncodeCallData(params.Entry, args)
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,

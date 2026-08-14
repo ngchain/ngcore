@@ -298,6 +298,11 @@ func (x *FullTx) CheckTransaction() error {
 		return errors.Wrap(ErrTxParticipantsInvalid, "transact should have same len with participants")
 	}
 
+	// the extra must be one calldata per participant (or empty)
+	if _, err := DecodeTransactExtras(x.Extra, len(x.Participants)); err != nil {
+		return err
+	}
+
 	return x.Verify()
 }
 

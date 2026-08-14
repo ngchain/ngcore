@@ -87,12 +87,13 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 			[]ngtypes.Address{account.Owner},
 			[]*big.Int{value},
 			big.NewInt(0),
-			ngtypes.EncodeCallData(params.Entry, []byte(params.Extra)),
+			nil,
 		)
 
 		latest := s.pow.Chain.GetLatestBlock().(*ngtypes.FullBlock)
 
-		vm, err := ngstate.NewVM(txn, account, fakeTx, latest.BlockHeader.Timestamp)
+		vm, err := ngstate.NewVM(txn, account, fakeTx,
+			ngtypes.EncodeCallData(params.Entry, []byte(params.Extra)), latest.BlockHeader.Timestamp)
 		if err != nil {
 			return err
 		}

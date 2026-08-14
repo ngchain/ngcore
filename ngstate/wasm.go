@@ -69,9 +69,11 @@ type VM struct {
 	// contract this vm was built for, service calls push their callee
 	frames []ngtypes.Address
 
-	// callArgs is what tx.get_extra serves: the args part of the
-	// calldata once EntryFor consumed the selector (the whole extra
-	// when the call falls back to the default entry)
+	// calldata is THIS contract's slice of the tx's per-participant
+	// calldatas; callArgs is what tx.get_extra serves — the args part
+	// once EntryFor consumed the selector (the whole calldata when the
+	// call falls back to the default entry)
+	calldata []byte
 	callArgs []byte
 
 	// events accumulate during the run and only survive a SUCCESSFUL
@@ -101,8 +103,10 @@ func CompileContract(contract []byte) ([]byte, error) {
 // NewVM compiles the address's contract text, binds the built-in host
 // modules and links the declared contract dependencies (DAG order, one
 // shared gas budget). The tx is the calling tx which triggers this
-// execution; blockTime is the enclosing block's timestamp
-func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTime uint64) (*VM, error) {
+// execution, calldata this contract's slice of the tx's
+// per-participant calldatas; blockTime is the enclosing block's
+// timestamp
+func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, calldata []byte, blockTime uint64) (*VM, error) {
 	bin, err := CompileContract(account.Source)
 	if err != nil {
 		return nil, err
@@ -131,7 +135,8 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTi
 		self:      account,
 		txn:       txn,
 		blockTime: blockTime,
-		callArgs:  tx.Extra,
+		calldata:  calldata,
+		callArgs:  calldata,
 		journal:   newVMJournal(account),
 		frames:    []ngtypes.Address{account.Owner},
 		cfg:       cfg,
@@ -243,13 +248,13 @@ func (vm *VM) charge(cost uint64) {
 // against the contract's zero-arg exports in sorted name order, the
 // reserved init entry excluded; a match runs that entry with the args
 // after the selector. Anything unresolvable falls back to the default
-// entry, which — like eth's fallback — sees the WHOLE extra as args
+// entry, which — like eth's fallback — sees the WHOLE calldata as args
 func (vm *VM) EntryFor(defaultEntry string) string {
-	if defaultEntry != VMEntryOnTx || len(vm.caller.Extra) < 4 {
+	if defaultEntry != VMEntryOnTx || len(vm.calldata) < 4 {
 		return defaultEntry
 	}
 
-	sel := vm.caller.Extra[:4]
+	sel := vm.calldata[:4]
 
 	names := make([]string, 0, len(vm.module.ExportSection))
 	for name := range vm.module.ExportSection {
@@ -266,7 +271,7 @@ func (vm *VM) EntryFor(defaultEntry string) string {
 			continue
 		}
 		if bytes.Equal(ngtypes.CallSelector(name), sel) {
-			vm.callArgs = vm.caller.Extra[4:]
+			vm.callArgs = vm.calldata[4:]
 			return name
 		}
 	}

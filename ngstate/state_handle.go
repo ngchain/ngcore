@@ -121,6 +121,11 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 		return err
 	}
 
+	calldatas, err := ngtypes.DecodeTransactExtras(tx.Extra, len(tx.Participants))
+	if err != nil {
+		return err
+	}
+
 	for i := range tx.Participants {
 		participantBalance := getBalance(txn, tx.Participants[i])
 
@@ -130,7 +135,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 		}
 
 		if contractExists(txn, tx.Participants[i]) {
-			state.runContract(txn, tx.Participants[i], tx, VMEntryOnTx, blockTime)
+			state.runContract(txn, tx.Participants[i], tx, calldatas[i], VMEntryOnTx, blockTime)
 		}
 	}
 
@@ -245,7 +250,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 
-	state.runContract(txn, sender, tx, VMEntryOnActivate, blockTime)
+	state.runContract(txn, sender, tx, nil, VMEntryOnActivate, blockTime)
 
 	return nil
 }
@@ -307,7 +312,7 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 // its slot is locked and has one. A contract failure is final for this
 // call (its journal is dropped) but NEVER fails the tx itself: every
 // node hits the same result, so consensus is kept
-func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, entry string, blockTime uint64) {
+func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, calldata []byte, entry string, blockTime uint64) {
 	account, err := getContract(txn, addr)
 	if err != nil {
 		return // no contract slot on this address
@@ -319,7 +324,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 
 	run := ContractRun{Contract: addr.Bytes(), Entry: entry}
 
-	vm, err := NewVM(txn, account, tx, blockTime)
+	vm, err := NewVM(txn, account, tx, calldata, blockTime)
 	if err != nil {
 		log.Errorf("failed to build the vm for %s: %v", addr, err)
 		run.Error = err.Error()

@@ -250,7 +250,7 @@ func TestLeverageShowcase(t *testing.T) {
 
 		// open the leveraged position
 		leverageAcc, _ := getContract(txn, addrD)
-		vm, err := NewVM(txn, leverageAcc, fakeTransactTx(nil, nil), 1)
+		vm, err := NewVM(txn, leverageAcc, fakeTransactTx(nil, nil), nil, 1)
 		if err != nil {
 			t.Fatalf("NewVM: %v", err)
 		}
