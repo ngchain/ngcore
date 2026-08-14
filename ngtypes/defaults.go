@@ -64,8 +64,12 @@ const (
 
 	// PrivSize is the length of one private key in bytes
 	PrivSize = 32
-	// AddressSize some for tx
-	AddressSize = 35
+	// AddressSize is the byte length of an Address: one schnorr
+	// compressed public key. (The pre-2022 legacy format was 35 bytes —
+	// a 2-byte private-key checksum plus the public key — and survives
+	// only in the genesis sheet strings, handled by
+	// NewAddressFromLegacyBS58.)
+	AddressSize = 33
 	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
 	SignatureSize = 64
 )

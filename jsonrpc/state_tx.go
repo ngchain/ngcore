@@ -137,12 +137,12 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	for i := range params.Participants {
 		switch p := params.Participants[i].(type) {
 		case string:
-			bs58, err := base58.FastBase58Decoding(p)
+			addr, err := ngtypes.NewAddressFromBS58(p)
 			if err != nil {
 				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
-			participants[i] = new(ngtypes.Address).SetBytes(bs58)
+			participants[i] = addr
 		case float64:
 			accountID := uint64(p)
 			account, err := s.pow.State.GetAccountByNum(accountID)

@@ -88,7 +88,9 @@ func init() {
 			panic(fmt.Sprintf("failed to load balance: %s", strBal))
 		}
 
-		addr, err := NewAddressFromBS58(strAddr)
+		// the sheet predates the 33-byte address migration, so its
+		// strings still carry the legacy 2-byte checksum prefix
+		addr, err := NewAddressFromLegacyBS58(strAddr)
 		if err != nil {
 			panic(err)
 		}

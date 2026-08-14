@@ -4,16 +4,20 @@ import (
 	"github.com/mr-tron/base58"
 	"github.com/ngchain/go-schnorr"
 	"github.com/ngchain/secp256k1"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/utils"
 )
 
+// ErrAddressLenInvalid means the raw bytes are not exactly AddressSize long
+var ErrAddressLenInvalid = errors.New("address length is invalid")
+
 // Address is the anonymous publickey for receiving coin
-type Address [33]byte
+type Address [AddressSize]byte
 
 // NewAddress will return a publickey address
 func NewAddress(privKey *secp256k1.PrivateKey) Address {
-	addr := [33]byte{}
+	addr := Address{}
 
 	copy(addr[:], utils.PublicKey2Bytes(privKey.PubKey()))
 
@@ -22,7 +26,7 @@ func NewAddress(privKey *secp256k1.PrivateKey) Address {
 
 // NewAddressFromMultiKeys will return a publickey address
 func NewAddressFromMultiKeys(privKeys ...*secp256k1.PrivateKey) (Address, error) {
-	addr := [33]byte{}
+	addr := Address{}
 
 	if len(privKeys) == 0 {
 		panic("no private key entered")
@@ -39,33 +43,48 @@ func NewAddressFromMultiKeys(privKeys ...*secp256k1.PrivateKey) (Address, error)
 }
 
 // mustAddressFromBS58 is NewAddressFromBS58 for hardcoded constants:
-// it panics at init when the string is invalid or not exactly 33 bytes,
-// instead of silently yielding a wrong address
+// it panics at init instead of silently yielding a wrong address
 func mustAddressFromBS58(s string) Address {
-	addr := Address{}
-
-	raw, err := base58.FastBase58Decoding(s)
+	addr, err := NewAddressFromBS58(s)
 	if err != nil {
-		panic(err)
-	}
-	if len(raw) != len(addr) {
-		panic("address constant " + s + " does not decode to 33 bytes")
+		panic("bad address constant " + s + ": " + err.Error())
 	}
 
-	copy(addr[:], raw)
 	return addr
 }
 
 // NewAddressFromBS58 converts a base58 string into the Address
 func NewAddressFromBS58(s string) (Address, error) {
-	addr := [33]byte{}
+	addr := Address{}
 
 	raw, err := base58.FastBase58Decoding(s)
 	if err != nil {
-		return Address{}, err
+		return addr, err
+	}
+	if len(raw) != AddressSize {
+		return addr, errors.Wrapf(ErrAddressLenInvalid, "%q decodes to %d bytes", s, len(raw))
 	}
 
 	copy(addr[:], raw)
+	return addr, nil
+}
+
+// NewAddressFromLegacyBS58 reads the pre-2022 35-byte address format —
+// a 2-byte private-key checksum followed by the 33-byte compressed
+// public key — and returns the canonical pubkey address. Only the
+// genesis sheet still speaks this format
+func NewAddressFromLegacyBS58(s string) (Address, error) {
+	addr := Address{}
+
+	raw, err := base58.FastBase58Decoding(s)
+	if err != nil {
+		return addr, err
+	}
+	if len(raw) != AddressSize+2 {
+		return addr, errors.Wrapf(ErrAddressLenInvalid, "legacy %q decodes to %d bytes", s, len(raw))
+	}
+
+	copy(addr[:], raw[2:])
 	return addr, nil
 }
 
@@ -74,7 +93,13 @@ func (a Address) PubKey() *secp256k1.PublicKey {
 	return utils.Bytes2PublicKey(a[:])
 }
 
+// SetBytes rebuilds the Address from its raw bytes; the length is an
+// internal invariant, so a mismatch is a programming error
 func (a Address) SetBytes(b []byte) Address {
+	if len(b) != AddressSize {
+		panic(errors.Wrapf(ErrAddressLenInvalid, "SetBytes with %d bytes", len(b)))
+	}
+
 	copy(a[:], b)
 
 	return a
