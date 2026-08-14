@@ -42,7 +42,7 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("genContractUpdate", s.genContractUpdateFunc)
 	s.RegisterJsonRpcHandleFunc("getContract", s.getContractFunc)
 
-	s.RegisterJsonRpcHandleFunc("getAccountByAddress", s.requireSynced(s.getAccountByAddressFunc))
+	s.RegisterJsonRpcHandleFunc("getContractInfo", s.requireSynced(s.getContractInfoFunc))
 	s.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
 
 	// mining

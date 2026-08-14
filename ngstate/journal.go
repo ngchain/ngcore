@@ -10,14 +10,14 @@ import (
 )
 
 // vmJournal buffers every state change one contract execution makes —
-// across ALL touched accounts (service calls write to the callee's
+// across ALL touched addresses (service calls write to the callee's
 // state). Reads go through the overlay first (read-your-writes), and
 // nothing hits the db until flush, so a failed call leaves the chain
 // state untouched
 type vmJournal struct {
 	// accounts are the loaded working copies, keyed by address; their
 	// Context fields are private clones the kv module mutates
-	accounts map[ngtypes.Address]*ngtypes.Account
+	accounts map[ngtypes.Address]*ngtypes.Contract
 
 	// balances holds the pending absolute balance per address
 	balances map[ngtypes.Address]*big.Int
@@ -27,24 +27,24 @@ func bigIntFromUint64(v uint64) *big.Int {
 	return new(big.Int).SetUint64(v)
 }
 
-func newVMJournal(self *ngtypes.Account) *vmJournal {
+func newVMJournal(self *ngtypes.Contract) *vmJournal {
 	selfCopy := *self
 	selfCopy.Context = self.Context.Clone()
 
 	return &vmJournal{
-		accounts: map[ngtypes.Address]*ngtypes.Account{self.Owner: &selfCopy},
+		accounts: map[ngtypes.Address]*ngtypes.Contract{self.Owner: &selfCopy},
 		balances: make(map[ngtypes.Address]*big.Int),
 	}
 }
 
-// accountOf returns the journal's working copy of the account, loading
+// contractOf returns the journal's working copy of the account, loading
 // and cloning it on first touch
-func (j *vmJournal) accountOf(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Account, error) {
+func (j *vmJournal) contractOf(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, error) {
 	if acc, ok := j.accounts[addr]; ok {
 		return acc, nil
 	}
 
-	loaded, err := getAccount(txn, addr)
+	loaded, err := getContract(txn, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +57,8 @@ func (j *vmJournal) accountOf(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Acc
 }
 
 // contextOf returns the journaled context of the account
-func (j *vmJournal) contextOf(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.AccountContext, error) {
-	acc, err := j.accountOf(txn, addr)
+func (j *vmJournal) contextOf(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.ContractContext, error) {
+	acc, err := j.contractOf(txn, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (j *vmJournal) flush(txn *bbolt.Tx) error {
 	}
 
 	for addr, acc := range j.accounts {
-		if err := setAccount(txn, acc); err != nil {
+		if err := setContract(txn, acc); err != nil {
 			return errors.Wrapf(err, "failed to flush account %s", addr)
 		}
 	}

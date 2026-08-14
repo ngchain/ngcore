@@ -9,7 +9,7 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-var ErrTxrBalanceInsufficient = errors.New("account's balance is not sufficient for the tx")
+var ErrTxrBalanceInsufficient = errors.New("address balance is not sufficient for the tx")
 
 // CheckBlockTxs will check all requirements for txs in block
 func CheckBlockTxs(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
@@ -120,16 +120,16 @@ func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	if err != nil {
 		return err
 	}
 
 	if slot.IsActive() {
-		return ErrAccountActive
+		return ErrContractActive
 	}
 	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
+		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
 	}
 
 	return nil
@@ -162,13 +162,13 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 	baseText := []byte(nil)
 	expense := new(big.Int).Set(commitTx.Fee)
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	if err == nil {
 		// an active contract is immutable
 		if slot.IsActive() {
-			return ErrAccountActive
+			return ErrContractActive
 		}
-		baseText = slot.Contract
+		baseText = slot.Source
 	} else {
 		// no slot yet: this edit is the namespace purchase
 		expense.Add(expense, ngtypes.DeployFee)
@@ -201,19 +201,19 @@ func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	if err != nil {
 		return err
 	}
 
 	if slot.IsActive() {
-		return ErrAccountActive
+		return ErrContractActive
 	}
 
 	// locking activates the vm, so the contract text must compile, and
 	// every declared module dependency must be an active contract
-	if len(slot.Contract) != 0 {
-		deps, err := extractContractDeps(slot.Contract)
+	if len(slot.Source) != 0 {
+		deps, err := extractContractDeps(slot.Source)
 		if err != nil {
 			return err
 		}
@@ -221,11 +221,11 @@ func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
 			if depAddr.Equals(sender) {
 				return ErrDepSelf
 			}
-			depAcc, err := getAccount(txn, depAddr)
+			depAcc, err := getContract(txn, depAddr)
 			if err != nil {
 				return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
 			}
-			if !depAcc.IsActive() || len(depAcc.Contract) == 0 {
+			if !depAcc.IsActive() || len(depAcc.Source) == 0 {
 				return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
 			}
 		}
@@ -245,18 +245,18 @@ func checkDeactivate(txn *bbolt.Tx, deactivateTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	if err != nil {
 		return err
 	}
 
 	if !slot.IsActive() {
-		return ErrAccountNotActive
+		return ErrContractNotActive
 	}
 
 	// a depended-on module cannot deactivate
 	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
+		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
 	}
 
 	return nil

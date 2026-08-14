@@ -11,7 +11,7 @@ var genesisBalances = []*Balance{}
 // slots — everything on this chain is earned and deployed after birth
 func GetGenesisSheet(network Network) *Sheet {
 	if genesisSheet == nil {
-		genesisSheet = NewSheet(network, 0, GetGenesisBlock(network).GetHash(), genesisBalances, []*Account{})
+		genesisSheet = NewSheet(network, 0, GetGenesisBlock(network).GetHash(), genesisBalances, []*Contract{})
 	}
 
 	return genesisSheet

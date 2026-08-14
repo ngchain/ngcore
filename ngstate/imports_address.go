@@ -18,10 +18,10 @@ func readAddr(ins *wasman.Instance, ptr uint32) (ngtypes.Address, error) {
 	return addr, nil
 }
 
-// initAccountImports binds the account module. Identities are plain
+// initAddressImports binds the account module. Identities are plain
 // 32-byte addresses passed through linear memory
-func initAccountImports(vm *VM) error {
-	err := vm.linker.DefineAdvancedFunc("account", "get_size", func(ins *wasman.Instance) interface{} {
+func initAddressImports(vm *VM) error {
+	err := vm.linker.DefineAdvancedFunc("address", "get_size", func(ins *wasman.Instance) interface{} {
 		return func() uint32 {
 			return uint32(ngtypes.AddressSize)
 		}
@@ -32,9 +32,9 @@ func initAccountImports(vm *VM) error {
 
 	// get_host writes the address whose code is executing right now:
 	// for a service call this is the CALLEE
-	err = vm.linker.DefineAdvancedFunc("account", "get_host", func(ins *wasman.Instance) interface{} {
+	err = vm.linker.DefineAdvancedFunc("address", "get_host", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {
-			addr := vm.currentAccount()
+			addr := vm.currentAddress()
 			l, err := cp(ins, ptr, addr[:])
 			if err != nil {
 				vm.logger.Error(err)
@@ -50,9 +50,9 @@ func initAccountImports(vm *VM) error {
 
 	// get_caller writes msg.sender: the contract which invoked the
 	// current frame; the zero address for the outermost frame
-	err = vm.linker.DefineAdvancedFunc("account", "get_caller", func(ins *wasman.Instance) interface{} {
+	err = vm.linker.DefineAdvancedFunc("address", "get_caller", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {
-			addr := vm.callerAccount()
+			addr := vm.callerAddress()
 			l, err := cp(ins, ptr, addr[:])
 			if err != nil {
 				vm.logger.Error(err)
@@ -66,7 +66,7 @@ func initAccountImports(vm *VM) error {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("account", "get_contract_size", func(ins *wasman.Instance) interface{} {
+	err = vm.linker.DefineAdvancedFunc("address", "get_contract_size", func(ins *wasman.Instance) interface{} {
 		return func(addrPtr uint32) uint32 {
 			addr, err := readAddr(ins, addrPtr)
 			if err != nil {
@@ -74,19 +74,19 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			acc, err := getAccount(vm.txn, addr)
+			acc, err := getContract(vm.txn, addr)
 			if err != nil {
 				return 0
 			}
 
-			return uint32(len(acc.Contract))
+			return uint32(len(acc.Source))
 		}
 	})
 	if err != nil {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("account", "get_contract", func(ins *wasman.Instance) interface{} {
+	err = vm.linker.DefineAdvancedFunc("address", "get_contract", func(ins *wasman.Instance) interface{} {
 		return func(addrPtr, ptr uint32) uint32 {
 			addr, err := readAddr(ins, addrPtr)
 			if err != nil {
@@ -94,12 +94,12 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			acc, err := getAccount(vm.txn, addr)
+			acc, err := getContract(vm.txn, addr)
 			if err != nil {
 				return 0
 			}
 
-			l, err := cp(ins, ptr, acc.Contract)
+			l, err := cp(ins, ptr, acc.Source)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -112,7 +112,7 @@ func initAccountImports(vm *VM) error {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("account", "is_active", func(ins *wasman.Instance) interface{} {
+	err = vm.linker.DefineAdvancedFunc("address", "is_active", func(ins *wasman.Instance) interface{} {
 		return func(addrPtr uint32) uint32 {
 			addr, err := readAddr(ins, addrPtr)
 			if err != nil {
@@ -120,7 +120,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			acc, err := getAccount(vm.txn, addr)
+			acc, err := getContract(vm.txn, addr)
 			if err != nil {
 				return 0
 			}

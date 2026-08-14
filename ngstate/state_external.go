@@ -61,13 +61,13 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 	return balance, nil
 }
 
-// GetAccountByAddress returns the contract slot of the address, if it
+// GetContract returns the contract slot of the address, if it
 // ever deployed
-func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Account, error) {
-	var account *ngtypes.Account
+func (state *State) GetContract(address ngtypes.Address) (*ngtypes.Contract, error) {
+	var account *ngtypes.Contract
 	err := state.View(func(txn *bbolt.Tx) error {
 		var err error
-		account, err = getAccount(txn, address)
+		account, err = getContract(txn, address)
 		return err
 	})
 	if err != nil {

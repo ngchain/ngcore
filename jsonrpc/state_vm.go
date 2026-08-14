@@ -73,7 +73,7 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 
 	result := &callContractResult{}
 	err = s.pow.State.View(func(txn *bbolt.Tx) error {
-		account, err := s.pow.State.GetAccountByAddress(contractAddr)
+		account, err := s.pow.State.GetContract(contractAddr)
 		if err != nil {
 			return err
 		}

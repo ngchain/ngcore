@@ -289,7 +289,7 @@ func TestRPCAccountQueries(t *testing.T) {
 	}
 
 	// an address without a contract slot has no account entry
-	if _, rpcErr := node.call(t, "getAccountByAddress",
+	if _, rpcErr := node.call(t, "getContractInfo",
 		map[string]any{"address": ngtypes.NewAddress(miner).BS58()}); rpcErr == nil {
 		t.Fatal("getAccountByAddress before deploying should fail")
 	}
@@ -400,7 +400,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	var account struct {
 		Owner string `json:"owner"`
 	}
-	decodeInto(t, node.mustCall(t, "getAccountByAddress",
+	decodeInto(t, node.mustCall(t, "getContractInfo",
 		map[string]any{"address": addr.BS58()}), &account)
 	if account.Owner != addr.BS58() {
 		t.Fatalf("slot owner = %s, want %s", account.Owner, addr.BS58())
@@ -439,7 +439,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 		t.Fatalf("dry-run events = %+v", dryRun.Events)
 	}
 
-	acc, err := node.pow.State.GetAccountByAddress(addr)
+	acc, err := node.pow.State.GetContract(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -456,7 +456,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	}))
 	mineViaRPC(t, node, key)
 
-	acc, err = node.pow.State.GetAccountByAddress(addr)
+	acc, err = node.pow.State.GetContract(addr)
 	if err != nil {
 		t.Fatal(err)
 	}

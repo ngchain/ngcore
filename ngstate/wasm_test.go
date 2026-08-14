@@ -95,11 +95,11 @@ func testAddr(b byte) ngtypes.Address {
 	return addr
 }
 
-// putAccount stores the contract slot and funds its address
-func putAccount(t *testing.T, txn *bbolt.Tx, acc *ngtypes.Account, balance int64) {
+// putContract stores the contract slot and funds its address
+func putContract(t *testing.T, txn *bbolt.Tx, acc *ngtypes.Contract, balance int64) {
 	t.Helper()
 
-	if err := setAccount(txn, acc); err != nil {
+	if err := setContract(txn, acc); err != nil {
 		t.Fatal(err)
 	}
 	if err := setBalance(txn, acc.Owner, big.NewInt(balance)); err != nil {
@@ -118,9 +118,9 @@ func TestVMLog(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(logWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), []byte(logWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 0)
+		putContract(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -138,9 +138,9 @@ func TestVMKVSet(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), []byte(kvWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 0)
+		putContract(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -152,7 +152,7 @@ func TestVMKVSet(t *testing.T) {
 		}
 
 		// reload from the db to prove the journal got flushed
-		reloaded, err := getAccount(txn, testAddr(0xaa))
+		reloaded, err := getContract(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -175,9 +175,9 @@ func TestVMTransfer(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		contractAcc := ngtypes.NewAccount(testAddr(0xaa), []byte(transferWatTo(testAddr(0xbb))), nil)
+		contractAcc := ngtypes.NewContract(testAddr(0xaa), []byte(transferWatTo(testAddr(0xbb))), nil)
 		contractAcc.SetActive(true)
-		putAccount(t, txn, contractAcc, 100)
+		putContract(t, txn, contractAcc, 100)
 
 		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -206,9 +206,9 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(burnWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), []byte(burnWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 100)
+		putContract(t, txn, acc, 100)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -220,7 +220,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 		}
 
 		// the kv write before the loop must be gone
-		reloaded, err := getAccount(txn, testAddr(0xaa))
+		reloaded, err := getContract(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -246,8 +246,8 @@ func TestActivateDeactivateFlow(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(addr, []byte(logWat), nil)
-		putAccount(t, txn, acc, 100)
+		acc := ngtypes.NewContract(addr, []byte(logWat), nil)
+		putContract(t, txn, acc, 100)
 
 		// lock the account: the vm becomes active, editing gets frozen
 		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
@@ -258,7 +258,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 			t.Fatalf("handleActivate: %v", err)
 		}
 
-		locked, err := getAccount(txn, addr)
+		locked, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}
@@ -279,8 +279,8 @@ func TestActivateDeactivateFlow(t *testing.T) {
 		if err := commitTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrAccountActive) {
-			t.Fatalf("edit on locked account: got %v, want ErrAccountActive", err)
+		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrContractActive) {
+			t.Fatalf("edit on locked account: got %v, want ErrContractActive", err)
 		}
 
 		// unlock reverts everything
@@ -292,7 +292,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 			t.Fatalf("handleDeactivate: %v", err)
 		}
 
-		unlocked, err := getAccount(txn, addr)
+		unlocked, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}
@@ -388,12 +388,12 @@ func TestCommitFlow(t *testing.T) {
 			t.Fatalf("handleCommit patch: %v", err)
 		}
 
-		reloaded, err := getAccount(txn, addr)
+		reloaded, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}
-		if string(reloaded.Contract) != newWat {
-			t.Fatalf("contract not patched:\n%s", reloaded.Contract)
+		if string(reloaded.Source) != newWat {
+			t.Fatalf("contract not patched:\n%s", reloaded.Source)
 		}
 		if got := getBalance(txn, addr); got.Cmp(big.NewInt(98)) != 0 {
 			t.Fatalf("edit fee not charged, balance = %s", got)
@@ -419,7 +419,7 @@ func TestCommitFlow(t *testing.T) {
 		if err := staleTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := checkCommit(txn, staleTx); !errors.Is(err, ErrAccountActive) {
+		if err := checkCommit(txn, staleTx); !errors.Is(err, ErrContractActive) {
 			t.Fatalf("stale edit on locked account: got %v", err)
 		}
 
@@ -468,10 +468,10 @@ func TestContractModuleDeps(t *testing.T) {
 	levAddr := ngtypes.NewAddress(privLev)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		dex := ngtypes.NewAccount(dexAddr, []byte(dexWat), nil)
-		putAccount(t, txn, dex, 100)
-		lev := ngtypes.NewAccount(levAddr, []byte(leverageWatFor(dexAddr)), nil)
-		putAccount(t, txn, lev, 100)
+		dex := ngtypes.NewContract(dexAddr, []byte(dexWat), nil)
+		putContract(t, txn, dex, 100)
+		lev := ngtypes.NewContract(levAddr, []byte(leverageWatFor(dexAddr)), nil)
+		putContract(t, txn, lev, 100)
 
 		activateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
@@ -503,19 +503,19 @@ func TestContractModuleDeps(t *testing.T) {
 			t.Fatalf("lock leverage: %v", err)
 		}
 
-		dexAcc, _ := getAccount(txn, dexAddr)
+		dexAcc, _ := getContract(txn, dexAddr)
 		if getRefCount(dexAcc) != 1 {
 			t.Fatalf("dex refcount = %d, want 1", getRefCount(dexAcc))
 		}
 
 		// the depended-on module can neither unlock nor be destroyed
-		if err := state.handleDeactivate(txn, deactivateTx(privDex)); !errors.Is(err, ErrAccountRefdBy) {
-			t.Fatalf("unlock dex while referenced: got %v, want ErrAccountRefdBy", err)
+		if err := state.handleDeactivate(txn, deactivateTx(privDex)); !errors.Is(err, ErrContractRefdBy) {
+			t.Fatalf("unlock dex while referenced: got %v, want ErrContractRefdBy", err)
 		}
 
 		// linked execution: leverage's main calls dex's double and
 		// writes 42 into leverage's own kv
-		levAcc, _ := getAccount(txn, levAddr)
+		levAcc, _ := getContract(txn, levAddr)
 		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with deps: %v", err)
@@ -524,12 +524,12 @@ func TestContractModuleDeps(t *testing.T) {
 			t.Fatalf("linked run: %v", err)
 		}
 
-		levAcc, _ = getAccount(txn, levAddr)
+		levAcc, _ = getContract(txn, levAddr)
 		if got := levAcc.Context.Get("num"); len(got) != 1 || got[0] != 42 {
 			t.Fatalf("leverage kv num = %v, want [42]", got)
 		}
 		// delegate semantics: dex's own state stays untouched
-		dexAcc, _ = getAccount(txn, dexAddr)
+		dexAcc, _ = getContract(txn, dexAddr)
 		if got := dexAcc.Context.Get("num"); len(got) != 0 {
 			t.Fatal("dex state must stay untouched")
 		}
@@ -538,7 +538,7 @@ func TestContractModuleDeps(t *testing.T) {
 		if err := state.handleDeactivate(txn, deactivateTx(privLev)); err != nil {
 			t.Fatalf("unlock leverage: %v", err)
 		}
-		dexAcc, _ = getAccount(txn, dexAddr)
+		dexAcc, _ = getContract(txn, dexAddr)
 		if getRefCount(dexAcc) != 0 {
 			t.Fatalf("dex refcount = %d after release, want 0", getRefCount(dexAcc))
 		}
@@ -559,7 +559,7 @@ func TestContractModuleDeps(t *testing.T) {
 // account.get_caller (= msg.sender) authorizes the debit
 const tokenWat = `
 (module
-  (import "account" "get_caller" (func $caller (param i32) (result i32)))
+  (import "address" "get_caller" (func $caller (param i32) (result i32)))
   (import "env" "buf_get" (func $bget (param i32 i32) (result i32)))
   (import "kv" "get" (func $get (param i32 i32 i32) (result i32)))
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
@@ -620,10 +620,10 @@ func TestServiceToken(t *testing.T) {
 	dest := testAddr(0xcc)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		token := ngtypes.NewAccount(tokenAddr, []byte(tokenWat), nil)
-		putAccount(t, txn, token, 100)
-		user := ngtypes.NewAccount(userAddr, []byte(tokenUserWatFor(tokenAddr, userAddr, dest)), nil)
-		putAccount(t, txn, user, 100)
+		token := ngtypes.NewContract(tokenAddr, []byte(tokenWat), nil)
+		putContract(t, txn, token, 100)
+		user := ngtypes.NewContract(userAddr, []byte(tokenUserWatFor(tokenAddr, userAddr, dest)), nil)
+		putContract(t, txn, user, 100)
 
 		lock := func(priv *ngtypes.PrivateKey) error {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
@@ -642,13 +642,13 @@ func TestServiceToken(t *testing.T) {
 		}
 
 		// the service dependency pins the token like a library dep does
-		tokenAcc, _ := getAccount(txn, tokenAddr)
+		tokenAcc, _ := getContract(txn, tokenAddr)
 		if getRefCount(tokenAcc) != 1 {
 			t.Fatalf("token refcount = %d, want 1", getRefCount(tokenAcc))
 		}
 
 		// run the consumer: the ledger updates happen in the TOKEN's kv
-		userAcc, _ := getAccount(txn, userAddr)
+		userAcc, _ := getContract(txn, userAddr)
 		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with service dep: %v", err)
@@ -657,7 +657,7 @@ func TestServiceToken(t *testing.T) {
 			t.Fatalf("service run: %v", err)
 		}
 
-		tokenAcc, _ = getAccount(txn, tokenAddr)
+		tokenAcc, _ = getContract(txn, tokenAddr)
 		balOf := func(addr ngtypes.Address) uint64 {
 			raw := tokenAcc.Context.Get(string(addr[:]))
 			if len(raw) != 8 {
@@ -675,7 +675,7 @@ func TestServiceToken(t *testing.T) {
 
 		// the consumer's own kv stays empty (reserved keys aside): the
 		// ledger lived in the callee
-		userAcc, _ = getAccount(txn, userAddr)
+		userAcc, _ = getContract(txn, userAddr)
 		for _, k := range userAcc.Context.Keys {
 			if !strings.HasPrefix(k, "_") {
 				t.Fatalf("user context leaked a ledger key: %q", k)
@@ -711,9 +711,9 @@ func TestVMU256(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(u256Wat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), []byte(u256Wat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 0)
+		putContract(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -723,7 +723,7 @@ func TestVMU256(t *testing.T) {
 			return err
 		}
 
-		reloaded, err := getAccount(txn, testAddr(0xaa))
+		reloaded, err := getContract(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -778,9 +778,9 @@ func TestVMTxContext(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		owner := testAddr(0xaa)
-		acc := ngtypes.NewAccount(owner, []byte(txCtxWat), nil)
+		acc := ngtypes.NewContract(owner, []byte(txCtxWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 0)
+		putContract(t, txn, acc, 0)
 
 		// the tx pays 77 to the contract's address (msg.value) in two legs
 		tx := fakeTransactTx(
@@ -796,7 +796,7 @@ func TestVMTxContext(t *testing.T) {
 			return err
 		}
 
-		reloaded, err := getAccount(txn, owner)
+		reloaded, err := getContract(txn, owner)
 		if err != nil {
 			return err
 		}
@@ -869,9 +869,9 @@ func TestVMKVScan(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvScanWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), []byte(kvScanWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 0)
+		putContract(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -881,7 +881,7 @@ func TestVMKVScan(t *testing.T) {
 			return err
 		}
 
-		reloaded, err := getAccount(txn, testAddr(0xaa))
+		reloaded, err := getContract(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -965,13 +965,13 @@ func TestServiceBigValues(t *testing.T) {
 	callerAddr := testAddr(0xdd)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		vault := ngtypes.NewAccount(vaultAddr, []byte(bigVaultWat), nil)
+		vault := ngtypes.NewContract(vaultAddr, []byte(bigVaultWat), nil)
 		vault.SetActive(true)
-		putAccount(t, txn, vault, 0)
+		putContract(t, txn, vault, 0)
 
-		caller := ngtypes.NewAccount(callerAddr, []byte(bigCallerWatFor(vaultAddr)), nil)
+		caller := ngtypes.NewContract(callerAddr, []byte(bigCallerWatFor(vaultAddr)), nil)
 		caller.SetActive(true)
-		putAccount(t, txn, caller, 0)
+		putContract(t, txn, caller, 0)
 
 		vm, err := NewVM(txn, caller, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -989,7 +989,7 @@ func TestServiceBigValues(t *testing.T) {
 		}
 		want[16] = 0x01
 
-		callerAcc, _ := getAccount(txn, callerAddr)
+		callerAcc, _ := getContract(txn, callerAddr)
 		got := callerAcc.Context.Get("got")
 		if len(got) != 32 {
 			t.Fatalf("got length = %d, want 32", len(got))
@@ -1001,7 +1001,7 @@ func TestServiceBigValues(t *testing.T) {
 		}
 
 		// the vault's own kv holds the same total
-		vaultAcc, _ := getAccount(txn, vaultAddr)
+		vaultAcc, _ := getContract(txn, vaultAddr)
 		tot := vaultAcc.Context.Get("tot")
 		for i := range want {
 			if tot[i] != want[i] {
@@ -1026,9 +1026,9 @@ func TestReceiptsAndEvents(t *testing.T) {
 	badAddr := testAddr(0xbb)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(emitAddr, []byte(emitWat), nil)
+		acc := ngtypes.NewContract(emitAddr, []byte(emitWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 0)
+		putContract(t, txn, acc, 0)
 
 		tx := fakeTransactTx(nil, nil)
 		state.runContract(txn, emitAddr, tx, VMEntryOnTx, 1)
@@ -1059,9 +1059,9 @@ func TestReceiptsAndEvents(t *testing.T) {
 		}
 
 		// a failing contract records the failure and drops its events
-		bad := ngtypes.NewAccount(badAddr, []byte(burnWat), nil)
+		bad := ngtypes.NewContract(badAddr, []byte(burnWat), nil)
 		bad.SetActive(true)
-		putAccount(t, txn, bad, 0)
+		putContract(t, txn, bad, 0)
 
 		badTx := fakeTransactTx([]ngtypes.Address{badAddr}, []*big.Int{big.NewInt(0)})
 		state.runContract(txn, badAddr, badTx, VMEntryOnTx, 1)
@@ -1092,9 +1092,9 @@ func TestGasPricingTiers(t *testing.T) {
 	run := func(wat string) uint64 {
 		var gas uint64
 		err := db.Update(func(txn *bbolt.Tx) error {
-			acc := ngtypes.NewAccount(testAddr(0xaa), []byte(wat), nil)
+			acc := ngtypes.NewContract(testAddr(0xaa), []byte(wat), nil)
 			acc.SetActive(true)
-			putAccount(t, txn, acc, 100)
+			putContract(t, txn, acc, 100)
 
 			vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 			if err != nil {
@@ -1140,9 +1140,9 @@ func TestVMDryRun(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), []byte(kvWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 0)
+		putContract(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -1158,7 +1158,7 @@ func TestVMDryRun(t *testing.T) {
 		}
 
 		// the kv write the contract performed must NOT be visible
-		reloaded, err := getAccount(txn, testAddr(0xaa))
+		reloaded, err := getContract(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -1187,9 +1187,9 @@ func TestDestroyRules(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(addr, []byte(logWat), nil)
+		acc := ngtypes.NewContract(addr, []byte(logWat), nil)
 		acc.SetActive(true)
-		putAccount(t, txn, acc, 100)
+		putContract(t, txn, acc, 100)
 
 		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := destroyTx.Signature(priv); err != nil {
@@ -1203,13 +1203,13 @@ func TestDestroyRules(t *testing.T) {
 
 		// unlocked: destroy goes through and the slot is gone
 		acc.SetActive(false)
-		if err := setAccount(txn, acc); err != nil {
+		if err := setContract(txn, acc); err != nil {
 			return err
 		}
 		if err := state.handleDestroy(txn, destroyTx); err != nil {
 			t.Fatalf("destroy after unlocking: %v", err)
 		}
-		if _, err := getAccount(txn, addr); err == nil {
+		if _, err := getContract(txn, addr); err == nil {
 			t.Fatal("the slot (and its context) must be removed")
 		}
 
@@ -1232,8 +1232,8 @@ func TestActivateRejectsBrokenContract(t *testing.T) {
 
 	err = db.Update(func(txn *bbolt.Tx) error {
 		// a half-edited contract text must not be lockable
-		acc := ngtypes.NewAccount(addr, []byte(`(module (func (export "main")`), nil)
-		putAccount(t, txn, acc, 100)
+		acc := ngtypes.NewContract(addr, []byte(`(module (func (export "main")`), nil)
+		putContract(t, txn, acc, 100)
 
 		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := activateTx.Signature(priv); err != nil {
@@ -1247,7 +1247,7 @@ func TestActivateRejectsBrokenContract(t *testing.T) {
 			t.Fatal("handleActivate should reject a non-compiling contract")
 		}
 
-		reloaded, err := getAccount(txn, addr)
+		reloaded, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}

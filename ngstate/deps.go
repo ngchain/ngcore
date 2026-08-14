@@ -31,7 +31,7 @@ const ContractDepPrefix = "contract/"
 
 // ServiceDepPrefix is the wat import namespace for SERVICE modules:
 // calls run on the dependency's own state (tokens, pools, any shared
-// ledger), with account.get_caller exposing the invoking contract
+// ledger), with address.get_caller exposing the invoking contract
 const ServiceDepPrefix = "service/"
 
 const (
@@ -45,7 +45,7 @@ var (
 	ErrDepNotActive     = errors.New("dependency contract is not active")
 	ErrDepSelf          = errors.New("contract cannot depend on itself")
 	ErrDepLimit         = errors.New("too many contract dependencies")
-	ErrAccountRefdBy    = errors.New("account is depended on by other contracts")
+	ErrContractRefdBy   = errors.New("contract is depended on by other contracts")
 	ErrDepInvalidImport = errors.New("malformed contract dependency import")
 )
 
@@ -149,8 +149,8 @@ func resolveDepAddrs(deps []contractDep) ([]ngtypes.Address, error) {
 	return addrs, nil
 }
 
-// getContractDeps reads the recorded dependency list of the account
-func getContractDeps(acc *ngtypes.Account) ([]ngtypes.Address, error) {
+// getContractDeps reads the recorded dependency list of the contract
+func getContractDeps(acc *ngtypes.Contract) ([]ngtypes.Address, error) {
 	raw := acc.Context.Get(contextKeyDeps)
 	if len(raw) == 0 {
 		return nil, nil
@@ -172,7 +172,7 @@ func getContractDeps(acc *ngtypes.Account) ([]ngtypes.Address, error) {
 	return deps, nil
 }
 
-func setContractDeps(acc *ngtypes.Account, deps []ngtypes.Address) error {
+func setContractDeps(acc *ngtypes.Contract, deps []ngtypes.Address) error {
 	if len(deps) == 0 {
 		acc.Context.Del(contextKeyDeps)
 		return nil
@@ -192,8 +192,8 @@ func setContractDeps(acc *ngtypes.Account, deps []ngtypes.Address) error {
 	return nil
 }
 
-// getRefCount reads how many active contracts depend on the account
-func getRefCount(acc *ngtypes.Account) uint64 {
+// getRefCount reads how many active contracts depend on the contract
+func getRefCount(acc *ngtypes.Contract) uint64 {
 	raw := acc.Context.Get(contextKeyRefs)
 	if len(raw) != 8 {
 		return 0
@@ -202,7 +202,7 @@ func getRefCount(acc *ngtypes.Account) uint64 {
 	return binary.LittleEndian.Uint64(raw)
 }
 
-func setRefCount(acc *ngtypes.Account, refs uint64) {
+func setRefCount(acc *ngtypes.Contract, refs uint64) {
 	if refs == 0 {
 		acc.Context.Del(contextKeyRefs)
 		return

@@ -54,7 +54,7 @@ const (
 // survives across txs, which keeps the execution deterministic
 type VM struct {
 	caller    *ngtypes.FullTx
-	self      *ngtypes.Account
+	self      *ngtypes.Contract
 	txn       *bbolt.Tx
 	blockTime uint64 // the enclosing block's timestamp
 
@@ -92,12 +92,12 @@ func CompileContract(contract []byte) ([]byte, error) {
 	return bin, nil
 }
 
-// NewVM compiles the account's contract text, binds the built-in host
+// NewVM compiles the address's contract text, binds the built-in host
 // modules and links the declared contract dependencies (DAG order, one
 // shared gas budget). The tx is the calling tx which triggers this
 // execution; blockTime is the enclosing block's timestamp
-func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx, blockTime uint64) (*VM, error) {
-	bin, err := CompileContract(account.Contract)
+func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTime uint64) (*VM, error) {
+	bin, err := CompileContract(account.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx, blockTim
 // the whole set loads in dependency order.
 //
 // NOTE the delegate semantics: dependency code runs with THIS vm's host
-// modules, so its kv/coin effects act on the CALLING account's state —
+// modules, so its kv/coin effects act on the CALLING address's state —
 // a dependency contributes code, not its own state
 func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 	deps, err := parseContractDeps(module)
@@ -181,11 +181,11 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 			return ErrDepSelf
 		}
 
-		depAcc, err := getAccount(vm.txn, addr)
+		depAcc, err := getContract(vm.txn, addr)
 		if err != nil {
 			return errors.Wrapf(err, "unknown dependency contract %s", addr)
 		}
-		if !depAcc.IsActive() || len(depAcc.Contract) == 0 {
+		if !depAcc.IsActive() || len(depAcc.Source) == 0 {
 			return errors.Wrapf(ErrDepNotActive, "contract %s", addr)
 		}
 
@@ -199,7 +199,7 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 
 		// library: the dependency's code links directly and runs on the
 		// caller's state
-		depBin, err := CompileContract(depAcc.Contract)
+		depBin, err := CompileContract(depAcc.Source)
 		if err != nil {
 			return errors.Wrapf(err, "dependency contract %s does not compile", addr)
 		}

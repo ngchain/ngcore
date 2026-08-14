@@ -300,12 +300,12 @@ func (s *Server) slotText(address string) []byte {
 		return nil
 	}
 
-	account, err := s.pow.State.GetAccountByAddress(addr)
+	account, err := s.pow.State.GetContract(addr)
 	if err != nil {
 		return nil
 	}
 
-	return account.Contract
+	return account.Source
 }
 
 func (s *Server) buildCommitTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, baseText []byte, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
@@ -423,13 +423,13 @@ func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	account, err := s.pow.State.GetAccountByAddress(addr)
+	account, err := s.pow.State.GetContract(addr)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(string(account.Contract))
+	raw, err := utils.JSON.Marshal(string(account.Source))
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

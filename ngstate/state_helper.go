@@ -11,9 +11,9 @@ import (
 	"github.com/ngchain/ngcore/storage"
 )
 
-// getAccount loads the contract slot of an address; ErrKeyNotFound
+// getContract loads the contract slot of an address; ErrKeyNotFound
 // when the address never deployed
-func getAccount(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Account, error) {
+func getContract(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, error) {
 	contractBucket := txn.Bucket(storage.ContractBucketName)
 
 	rawAcc := contractBucket.Get(addr[:])
@@ -21,7 +21,7 @@ func getAccount(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Account, error) {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no contract slot on %s", addr)
 	}
 
-	var acc ngtypes.Account
+	var acc ngtypes.Contract
 	err := rlp.DecodeBytes(rawAcc, &acc)
 	if err != nil {
 		return nil, err
@@ -30,11 +30,11 @@ func getAccount(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Account, error) {
 	return &acc, nil
 }
 
-func accountExists(txn *bbolt.Tx, addr ngtypes.Address) bool {
+func contractExists(txn *bbolt.Tx, addr ngtypes.Address) bool {
 	return txn.Bucket(storage.ContractBucketName).Get(addr[:]) != nil
 }
 
-func setAccount(txn *bbolt.Tx, account *ngtypes.Account) error {
+func setContract(txn *bbolt.Tx, account *ngtypes.Contract) error {
 	rawAccount, err := rlp.EncodeToBytes(account)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func setAccount(txn *bbolt.Tx, account *ngtypes.Account) error {
 	return nil
 }
 
-func delAccount(txn *bbolt.Tx, addr ngtypes.Address) error {
+func delContract(txn *bbolt.Tx, addr ngtypes.Address) error {
 	return txn.Bucket(storage.ContractBucketName).Delete(addr[:])
 }
 

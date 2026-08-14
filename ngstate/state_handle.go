@@ -96,19 +96,19 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 		return err
 	}
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	if err != nil {
 		return err
 	}
 
 	if slot.IsActive() {
-		return ErrAccountActive
+		return ErrContractActive
 	}
 	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
+		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
 	}
 
-	return delAccount(txn, sender)
+	return delContract(txn, sender)
 }
 
 func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
@@ -129,7 +129,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 			return err
 		}
 
-		if accountExists(txn, tx.Participants[i]) {
+		if contractExists(txn, tx.Participants[i]) {
 			state.runContract(txn, tx.Participants[i], tx, VMEntryOnTx, blockTime)
 		}
 	}
@@ -150,14 +150,14 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	deploying := err != nil // no slot yet: this edit buys the namespace
 	if deploying {
-		slot = ngtypes.NewAccount(sender, nil, nil)
+		slot = ngtypes.NewContract(sender, nil, nil)
 	}
 
 	if slot.IsActive() {
-		return ErrAccountActive
+		return ErrContractActive
 	}
 
 	expense := new(big.Int).Set(tx.Fee)
@@ -174,12 +174,12 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
-	slot.Contract, err = editExtra.Apply(slot.Contract)
+	slot.Source, err = editExtra.Apply(slot.Source)
 	if err != nil {
 		return err
 	}
 
-	return setAccount(txn, slot)
+	return setContract(txn, slot)
 }
 
 // handleActivate freezes the sender's contract: the body becomes immutable
@@ -194,25 +194,25 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	if err != nil {
 		return err
 	}
 
 	if slot.IsActive() {
-		return ErrAccountActive
+		return ErrContractActive
 	}
 
 	// locking activates the vm, so the contract text must compile
-	if len(slot.Contract) != 0 {
-		if _, err := CompileContract(slot.Contract); err != nil {
+	if len(slot.Source) != 0 {
+		if _, err := CompileContract(slot.Source); err != nil {
 			return err
 		}
 	}
 
 	// module dependencies: every imported contract must be active, and
 	// each dependee gets a reference pinned until this contract deactivates
-	deps, err := extractContractDeps(slot.Contract)
+	deps, err := extractContractDeps(slot.Source)
 	if err != nil {
 		return err
 	}
@@ -221,16 +221,16 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 			return ErrDepSelf
 		}
 
-		depAcc, err := getAccount(txn, depAddr)
+		depAcc, err := getContract(txn, depAddr)
 		if err != nil {
 			return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
 		}
-		if !depAcc.IsActive() || len(depAcc.Contract) == 0 {
+		if !depAcc.IsActive() || len(depAcc.Source) == 0 {
 			return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
 		}
 
 		setRefCount(depAcc, getRefCount(depAcc)+1)
-		if err := setAccount(txn, depAcc); err != nil {
+		if err := setContract(txn, depAcc); err != nil {
 			return err
 		}
 	}
@@ -240,7 +240,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 
-	err = setAccount(txn, slot)
+	err = setContract(txn, slot)
 	if err != nil {
 		return err
 	}
@@ -262,19 +262,19 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 		return err
 	}
 
-	slot, err := getAccount(txn, sender)
+	slot, err := getContract(txn, sender)
 	if err != nil {
 		return err
 	}
 
 	if !slot.IsActive() {
-		return ErrAccountNotActive
+		return ErrContractNotActive
 	}
 
 	// a depended-on module cannot deactivate: its dependents would lose
 	// the code they link against
 	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
+		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
 	}
 
 	// release the references this contract held on its dependencies
@@ -283,13 +283,13 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 		return err
 	}
 	for _, depAddr := range deps {
-		depAcc, err := getAccount(txn, depAddr)
+		depAcc, err := getContract(txn, depAddr)
 		if err != nil {
 			return err
 		}
 		if refs := getRefCount(depAcc); refs > 0 {
 			setRefCount(depAcc, refs-1)
-			if err := setAccount(txn, depAcc); err != nil {
+			if err := setContract(txn, depAcc); err != nil {
 				return err
 			}
 		}
@@ -300,7 +300,7 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 		return err
 	}
 
-	return setAccount(txn, slot)
+	return setContract(txn, slot)
 }
 
 // runContract executes the entry export of the address's contract, if
@@ -308,12 +308,12 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 // call (its journal is dropped) but NEVER fails the tx itself: every
 // node hits the same result, so consensus is kept
 func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, entry string, blockTime uint64) {
-	account, err := getAccount(txn, addr)
+	account, err := getContract(txn, addr)
 	if err != nil {
 		return // no contract slot on this address
 	}
 
-	if !account.IsActive() || len(account.Contract) == 0 {
+	if !account.IsActive() || len(account.Source) == 0 {
 		return
 	}
 

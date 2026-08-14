@@ -81,7 +81,7 @@ writes into `ptr`):
 log:     debug(ptr, size)            error(ptr, size)
          emit(tptr, tlen, dptr, dlen) -> i32
          ; records an event (topic + data) into the tx's LOCAL receipt;
-         ; attributed to the executing account, dropped on failed runs
+         ; attributed to the executing address, dropped on failed runs
 account: get_size() -> i32          ; address length (32)
          get_host(ptr) -> i32       ; writes the EXECUTING address
          get_caller(ptr) -> i32     ; msg.sender address (zero addr at top)
@@ -113,7 +113,7 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_network() -> i32        get_height() -> i64
          get_timestamp() -> i64      ; enclosing block time (unix s)
          get_paid_size() -> i32      get_paid(ptr) -> i32
-         ; msg.value: what this tx pays to the EXECUTING account's
+         ; msg.value: what this tx pays to the EXECUTING address's
          ; owner, big-endian big.Int bytes
          get_sender(ptr) -> i32     ; the tx sender's address
          get_participants_count() -> i32
@@ -157,7 +157,7 @@ Shared rules:
 
 Library semantics (`contract/<addr>`): the dependency's code links directly
 and runs with the caller's host modules — its kv/coin effects act on
-the calling account. A library contributes code, not state.
+the calling address. A library contributes code, not state.
 
 Service semantics (`service/<addr>`): each call switches the execution frame
 to the dependency's account — its kv/coin effects act on ITS OWN state,

@@ -4,8 +4,8 @@ import "github.com/pkg/errors"
 
 // Errors for Tx
 var (
-	// ErrTxSignInvalid occurs when the signature of the Tx doesnt match the Tx 's caller/account
-	ErrTxSignInvalid    = errors.New("signer of tx is not the own of the account")
+	// ErrTxSignInvalid occurs when the signature envelope does not verify
+	ErrTxSignInvalid    = errors.New("tx signature is invalid")
 	ErrTxUnsigned       = errors.New("unsigned tx")
 	ErrInvalidPublicKey = errors.New("invalid public key")
 

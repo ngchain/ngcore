@@ -27,7 +27,7 @@ import (
 func (vm *VM) initBuiltInImports() error {
 	for _, init := range []func(*VM) error{
 		initLogImports,
-		initAccountImports,
+		initAddressImports,
 		initCoinImports,
 		initKVImports,
 		initTxImports,
@@ -73,7 +73,7 @@ func initLogImports(vm *VM) error {
 	}
 
 	// emit records a contract event into the tx receipt (local,
-	// non-consensus data); attributed to the EXECUTING account
+	// non-consensus data); attributed to the EXECUTING address
 	err = vm.linker.DefineAdvancedFunc("log", "emit", func(ins *wasman.Instance) interface{} {
 		return func(topicPtr, topicLen, dataPtr, dataLen uint32) uint32 {
 			vm.charge(gasEventBase + gasEventPerByte*uint64(topicLen+dataLen))
@@ -97,7 +97,7 @@ func initLogImports(vm *VM) error {
 			dataCopy := make([]byte, len(data))
 			copy(dataCopy, data)
 			vm.events = append(vm.events, Event{
-				Contract: vm.currentAccount().Bytes(),
+				Contract: vm.currentAddress().Bytes(),
 				Topic:    string(topic),
 				Data:     dataCopy,
 			})

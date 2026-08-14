@@ -14,10 +14,10 @@ func isReservedKey(key string) bool {
 	return strings.HasPrefix(key, "_")
 }
 
-// vmContext resolves the journaled context of the account executing
+// vmContext resolves the journaled context of the address executing
 // right now (the top call frame): a service callee gets ITS OWN storage
-func vmContext(vm *VM) *ngtypes.AccountContext {
-	ctx, err := vm.journal.contextOf(vm.txn, vm.currentAccount())
+func vmContext(vm *VM) *ngtypes.ContractContext {
+	ctx, err := vm.journal.contextOf(vm.txn, vm.currentAddress())
 	if err != nil {
 		vm.logger.Error(err)
 		panic(err) // unreachable for loaded frames; abort the call
@@ -27,7 +27,7 @@ func vmContext(vm *VM) *ngtypes.AccountContext {
 }
 
 // initKVImports binds the kv module: the contract's persistent key-value
-// storage, backed by the EXECUTING account's Context. All writes go
+// storage, backed by the EXECUTING address's Context. All writes go
 // through the journal and get discarded when the call fails
 func initKVImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("kv", "get_size", func(ins *wasman.Instance) interface{} {
@@ -109,7 +109,7 @@ func initKVImports(vm *VM) error {
 		return err
 	}
 
-	// prefix iteration over the executing account's context: keys are
+	// prefix iteration over the executing address's context: keys are
 	// canonically sorted, so index-based access is deterministic.
 	// Reserved ("_"-prefixed) keys stay invisible
 	matchingKeys := func(prefix []byte) []string {

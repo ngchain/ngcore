@@ -84,7 +84,7 @@ func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 	contractBucket := txn.Bucket(storage.ContractBucketName)
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
-	for _, account := range sheet.Accounts {
+	for _, account := range sheet.Contracts {
 		rawAccount, err := rlp.EncodeToBytes(account)
 		if err != nil {
 			return err

@@ -13,7 +13,7 @@ type getAccountByAddressParams struct {
 	Address string `json:"address"`
 }
 
-func (s *Server) getAccountByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+func (s *Server) getContractInfoFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params getAccountByAddressParams
 
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -27,7 +27,7 @@ func (s *Server) getAccountByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	account, err := s.pow.State.GetAccountByAddress(addr)
+	account, err := s.pow.State.GetContract(addr)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

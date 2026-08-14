@@ -66,7 +66,7 @@ func initTxImports(vm *VM) error {
 	// get_paid exposes msg.value: the total this tx pays to the address
 	// executing right now, as big-endian big.Int bytes
 	paidToCurrent := func() []byte {
-		current := vm.currentAccount()
+		current := vm.currentAddress()
 
 		total := new(big.Int)
 		for i := range vm.caller.Participants {

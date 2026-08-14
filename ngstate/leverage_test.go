@@ -29,7 +29,7 @@ import (
 // Memory: 0..64 key area, 64..72 value scratch, 96..128 / 128..160 addr scratch
 const usdtTokenWat = `
 (module
-  (import "account" "get_caller" (func $caller (param i32) (result i32)))
+  (import "address" "get_caller" (func $caller (param i32) (result i32)))
   (import "env" "buf_get" (func $bget (param i32 i32) (result i32)))
   (import "kv" "get" (func $kvget (param i32 i32 i32) (result i32)))
   (import "kv" "set" (func $kvset (param i32 i32 i32 i32) (result i32)))
@@ -98,8 +98,8 @@ const usdtTokenWat = `
 func dexWatFor(token ngtypes.Address) string {
 	return `
 (module
-  (import "account" "get_caller" (func $caller (param i32) (result i32)))
-  (import "account" "get_host" (func $host (param i32) (result i32)))
+  (import "address" "get_caller" (func $caller (param i32) (result i32)))
+  (import "address" "get_host" (func $host (param i32) (result i32)))
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
   (import "coin" "transfer" (func $pay (param i32 i64) (result i32)))
   (import "service/` + token.String() + `" "transfer_from"
@@ -123,8 +123,8 @@ func dexWatFor(token ngtypes.Address) string {
 func lendingWatFor(token ngtypes.Address) string {
 	return `
 (module
-  (import "account" "get_caller" (func $caller (param i32) (result i32)))
-  (import "account" "get_host" (func $host (param i32) (result i32)))
+  (import "address" "get_caller" (func $caller (param i32) (result i32)))
+  (import "address" "get_host" (func $host (param i32) (result i32)))
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
   (import "kv" "get" (func $kvget (param i32 i32 i32) (result i32)))
   (import "kv" "set" (func $kvset (param i32 i32 i32 i32) (result i32)))
@@ -206,21 +206,21 @@ func TestLeverageShowcase(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		// the token launches with the lending pool pre-seeded: 1000 usdt
-		seeded := ngtypes.NewAccountContext()
+		seeded := ngtypes.NewContractContext()
 		seeded.Set(string(addrC[:]), func() []byte {
 			raw := make([]byte, 8)
 			binary.LittleEndian.PutUint64(raw, 1000)
 			return raw
 		}())
 
-		usdt := ngtypes.NewAccount(addrA, []byte(usdtTokenWat), seeded)
-		putAccount(t, txn, usdt, 100)
-		dex := ngtypes.NewAccount(addrB, []byte(dexWatFor(addrA)), nil)
-		putAccount(t, txn, dex, 1000) // the dex pool holds native NG
-		lending := ngtypes.NewAccount(addrC, []byte(lendingWatFor(addrA)), nil)
-		putAccount(t, txn, lending, 100)
-		leverage := ngtypes.NewAccount(addrD, []byte(strategyWatFor(addrA, addrB, addrC)), nil)
-		putAccount(t, txn, leverage, 100)
+		usdt := ngtypes.NewContract(addrA, []byte(usdtTokenWat), seeded)
+		putContract(t, txn, usdt, 100)
+		dex := ngtypes.NewContract(addrB, []byte(dexWatFor(addrA)), nil)
+		putContract(t, txn, dex, 1000) // the dex pool holds native NG
+		lending := ngtypes.NewContract(addrC, []byte(lendingWatFor(addrA)), nil)
+		putContract(t, txn, lending, 100)
+		leverage := ngtypes.NewContract(addrD, []byte(strategyWatFor(addrA, addrB, addrC)), nil)
+		putContract(t, txn, leverage, 100)
 
 		lock := func(priv *ngtypes.PrivateKey, who string) {
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
@@ -242,14 +242,14 @@ func TestLeverageShowcase(t *testing.T) {
 		// the reference ledger across projects:
 		// usdt <- dex, lending, leverage; dex <- leverage; lending <- leverage
 		for addr, want := range map[ngtypes.Address]uint64{addrA: 3, addrB: 1, addrC: 1} {
-			acc, _ := getAccount(txn, addr)
+			acc, _ := getContract(txn, addr)
 			if got := getRefCount(acc); got != want {
 				t.Fatalf("refcount(%s) = %d, want %d", addr, got, want)
 			}
 		}
 
 		// open the leveraged position
-		leverageAcc, _ := getAccount(txn, addrD)
+		leverageAcc, _ := getContract(txn, addrD)
 		vm, err := NewVM(txn, leverageAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM: %v", err)
@@ -260,7 +260,7 @@ func TestLeverageShowcase(t *testing.T) {
 
 		// the usdt ledger (inside the TOKEN's kv):
 		// lending 1000-100=900, dex +100, leverage borrowed then spent = 0
-		usdtAcc, _ := getAccount(txn, addrA)
+		usdtAcc, _ := getContract(txn, addrA)
 		if got := leU64(usdtAcc.Context.Get(string(addrC[:]))); got != 900 {
 			t.Fatalf("usdt[lending] = %d, want 900", got)
 		}
@@ -272,7 +272,7 @@ func TestLeverageShowcase(t *testing.T) {
 		}
 
 		// the debt book (inside the LENDING's kv)
-		lendingAcc, _ := getAccount(txn, addrC)
+		lendingAcc, _ := getContract(txn, addrC)
 		if got := leU64(lendingAcc.Context.Get(string(addrD[:]))); got != 100 {
 			t.Fatalf("loan[leverage] = %d, want 100", got)
 		}

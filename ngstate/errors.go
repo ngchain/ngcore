@@ -5,9 +5,9 @@ import "github.com/pkg/errors"
 var (
 	ErrSnapshotNofFound = errors.New("cannot find the snapshot")
 
-	// ErrAccountActive occurs when committing to / destroying / activating
-	// an already-active account
-	ErrAccountActive = errors.New("account is active")
-	// ErrAccountNotActive occurs when deactivating an inactive account
-	ErrAccountNotActive = errors.New("account is not active")
+	// ErrContractActive occurs when committing to / destroying / activating
+	// an already-active contract
+	ErrContractActive = errors.New("contract is active")
+	// ErrContractNotActive occurs when deactivating an inactive contract
+	ErrContractNotActive = errors.New("contract is not active")
 )

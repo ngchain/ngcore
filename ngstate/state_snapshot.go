@@ -93,7 +93,7 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 // latest block (a checkpoint) inside the given txn, making it servable
 // to snapshot-syncing peers
 func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
-	accounts := make([]*ngtypes.Account, 0)
+	contracts := make([]*ngtypes.Contract, 0)
 	balances := make([]*ngtypes.Balance, 0)
 
 	blockBucket := txn.Bucket(storage.BlockBucketName)
@@ -105,13 +105,13 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 	contractBucket := txn.Bucket(storage.ContractBucketName)
 	c := contractBucket.Cursor()
 	for addr, rawAccount := c.First(); addr != nil; addr, rawAccount = c.Next() {
-		var account ngtypes.Account
+		var account ngtypes.Contract
 		err = rlp.DecodeBytes(rawAccount, &account)
 		if err != nil {
 			return err
 		}
 
-		accounts = append(accounts, &account)
+		contracts = append(contracts, &account)
 	}
 
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
@@ -124,7 +124,7 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 		})
 	}
 
-	sheet := ngtypes.NewSheet(state.Network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, accounts)
+	sheet := ngtypes.NewSheet(state.Network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, contracts)
 
 	return state.PutSnapshotTxn(txn, sheet)
 }

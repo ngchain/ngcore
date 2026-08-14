@@ -1,51 +1,17 @@
-/*
-Package ngtypes implements the block structure and related types.
-
-# RULE: NGTYPES
-
-## Account
-
-# Account is not an unlimited resource, the account is created when register tx and removed with destroy tx
-
-## Block
-
-Block is not only a tx mass, but a vault for network status.
-
-It means that the security can be ensured with a specific length sub-chain,
-the blocks before the chain can be throw.
-
-The block has several steps to be mature
-
-	(sheetHash)--> BareBlock --(+txs&mtree)--> Unsealing --(+nonce)--> SealedBlock
-
-The sheetHash is the sheet before applying bactivate txs.
-
-## Tx
-
-Tx is a basic operation method in the ngchain network, acting as extendable structure for the network's functions.
-
-Tx can handle more than one transfer of coins or operations because of it's values field and participants
-field. Also, with the schnorr signature,
-the coin can be owned by multi-person at the same time and the account is able to send tx only when all owners signed
-the tx.
-
-# Currently, there are 5 types of tx
-
-1. Generate Tx: generate tx works when generating the coin, only miner can send this,
-and it can also have multi-participants.
-
-2. Register Tx: register the account
-
-3. Destroy Tx: destroy the account
-
-4. Transaction: normal tx, can be used for sending money, or trigger the vm's onTx function
-
-5. Assign Tx: assign raw bytes to Contract, overwriting
-
-5. Append Tx: append raw bytes to Contract
-
-## Sheet
-
-Sheet is the aggregation of all status, not only accounts, but anonymous addresses
-*/
+// Package ngtypes exposes the chain's base types.
+//
+// The chain knows two nouns only:
+//
+//   - Address: the 32-byte keccak hash of a public key — the identity,
+//     the balance holder and the namespace. Addresses spend directly;
+//     nothing is registered.
+//   - Contract: the code slot an address may open under its own
+//     namespace (CommitTx against the empty base burns DeployFee).
+//     Its Source is plain wat text, changed by committing diff hunks,
+//     frozen and executed while active.
+//
+// Tx verbs: Generate (mining reward), Transact (pay addresses and
+// trigger their active contracts), Commit (change your contract
+// source), Activate / Deactivate (turn the vm on / off), Destroy
+// (remove your slot).
 package ngtypes

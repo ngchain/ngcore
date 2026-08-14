@@ -10,7 +10,7 @@ import (
 
 // GenesisAddressBase58 is the genesis address in base58 str: the
 // all-zero 32-byte address ('1' is the base58 digit for a zero byte).
-// No keyset descriptor hashes to it, so it doubles as the burn address
+// No public key hashes to it, so it doubles as the burn address
 const (
 	GenesisAddressBase58 = "11111111111111111111111111111111"
 )
@@ -65,9 +65,9 @@ const (
 	// PrivSize is the length of one private key in bytes
 	PrivSize = 32
 	// AddressSize is the byte length of an Address: the keccak-256
-	// hash of the account's keyset descriptor (threshold + member
-	// public keys). Hashing keeps public keys off chain until spend
-	// time and makes post-quantum keys usable as compact addresses
+	// hash of the owner's public key (see AddressOfPubKey). Hashing
+	// keeps public keys off chain until spend time and makes the 1.3 KB
+	// post-quantum keys usable as compact addresses
 	AddressSize = 32
 	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
 	SignatureSize = 64

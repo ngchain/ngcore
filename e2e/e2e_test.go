@@ -539,11 +539,11 @@ func TestContractLifecycle(t *testing.T) {
 
 	// both nodes hold the identical contract state written by the vm
 	for name, node := range map[string]*testNode{"A": nodeA, "B": nodeB} {
-		acc, err := node.chain.State.GetAccountByAddress(addr)
+		acc, err := node.chain.State.GetContract(addr)
 		if err != nil {
 			t.Fatalf("node%s: %v", name, err)
 		}
-		if string(acc.Contract) != contractWat {
+		if string(acc.Source) != contractWat {
 			t.Fatalf("node%s: contract text mismatch", name)
 		}
 		if !acc.IsActive() {

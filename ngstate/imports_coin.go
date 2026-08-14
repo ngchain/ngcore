@@ -56,7 +56,7 @@ func initCoinImports(vm *VM) error {
 				return 0
 			}
 
-			err = vm.journal.transfer(vm.txn, vm.currentAccount(), to, bigIntFromUint64(value))
+			err = vm.journal.transfer(vm.txn, vm.currentAddress(), to, bigIntFromUint64(value))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
