@@ -48,7 +48,7 @@ func initAddressImports(vm *VM) error {
 		return err
 	}
 
-	// get_caller writes msg.sender: the contract which invoked the
+	// get_caller writes msg.from: the contract which invoked the
 	// current frame; the zero address for the outermost frame
 	err = vm.linker.DefineAdvancedFunc("address", "get_caller", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {

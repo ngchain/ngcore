@@ -93,34 +93,34 @@ func checkGenerate(generateTx *ngtypes.FullTx, blockHeight uint64) error {
 	return generateTx.CheckGenerate(blockHeight)
 }
 
-// senderWithBalance derives the sender and checks it can afford the
+// fromWithBalance derives the From address and checks it can afford the
 // expense
-func senderWithBalance(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
-	sender, err := tx.Sender()
+func fromWithBalance(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
+	from, err := tx.From()
 	if err != nil {
 		return ngtypes.Address{}, err
 	}
 
-	if getBalance(txn, sender).Cmp(expense) < 0 {
+	if getBalance(txn, from).Cmp(expense) < 0 {
 		return ngtypes.Address{}, ErrTxrBalanceInsufficient
 	}
 
-	return sender, nil
+	return from, nil
 }
 
-// checkDestroy checks destroy tx: the sender clears its own slot,
+// checkDestroy checks destroy tx: the From address clears its own slot,
 // which must exist, be inactive and unreferenced
 func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 	if err := destroyTx.CheckDestroy(); err != nil {
 		return err
 	}
 
-	sender, err := senderWithBalance(txn, destroyTx, destroyTx.TotalExpenditure())
+	from, err := fromWithBalance(txn, destroyTx, destroyTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	_, err := senderWithBalance(txn, transactionTx, transactionTx.TotalExpenditure())
+	_, err := fromWithBalance(txn, transactionTx, transactionTx.TotalExpenditure())
 
 	return err
 }
@@ -154,7 +154,7 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	sender, err := commitTx.Sender()
+	from, err := commitTx.From()
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 	baseText := []byte(nil)
 	expense := new(big.Int).Set(commitTx.Fee)
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	if err == nil {
 		// an active contract is immutable
 		if slot.IsActive() {
@@ -174,7 +174,7 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 		expense.Add(expense, ngtypes.DeployFee)
 	}
 
-	if getBalance(txn, sender).Cmp(expense) < 0 {
+	if getBalance(txn, from).Cmp(expense) < 0 {
 		return ErrTxrBalanceInsufficient
 	}
 
@@ -196,12 +196,12 @@ func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	sender, err := senderWithBalance(txn, activateTx, activateTx.TotalExpenditure())
+	from, err := fromWithBalance(txn, activateTx, activateTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	if err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
 			return err
 		}
 		for _, depAddr := range deps {
-			if depAddr.Equals(sender) {
+			if depAddr.Equals(from) {
 				return ErrDepSelf
 			}
 			depAcc, err := getContract(txn, depAddr)
@@ -240,12 +240,12 @@ func checkDeactivate(txn *bbolt.Tx, deactivateTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	sender, err := senderWithBalance(txn, deactivateTx, deactivateTx.TotalExpenditure())
+	from, err := fromWithBalance(txn, deactivateTx, deactivateTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	if err != nil {
 		return err
 	}

@@ -70,18 +70,18 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 			tx.GetHash(), tx.Height, nextHeight)
 	}
 
-	sender, err := tx.Sender()
+	from, err := tx.From()
 	if err != nil {
 		return err
 	}
 
-	// same-sender replacement: only a higher fee replaces
-	if existing := pool.txMap[sender]; existing != nil {
+	// same-from replacement: only a higher fee replaces
+	if existing := pool.txMap[from]; existing != nil {
 		if existing.Fee.Cmp(tx.Fee) >= 0 {
-			return errors.Wrapf(ErrTxFeeTooLow, "sender %s already queues a tx with fee %s",
-				sender, existing.Fee)
+			return errors.Wrapf(ErrTxFeeTooLow, "from %s already queues a tx with fee %s",
+				from, existing.Fee)
 		}
-		pool.txMap[sender] = tx
+		pool.txMap[from] = tx
 
 		return nil
 	}
@@ -96,7 +96,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 		delete(pool.txMap, evictAddr)
 	}
 
-	pool.txMap[sender] = tx
+	pool.txMap[from] = tx
 
 	return nil
 }

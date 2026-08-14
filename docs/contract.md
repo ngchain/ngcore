@@ -84,7 +84,7 @@ log:     debug(ptr, size)            error(ptr, size)
          ; attributed to the executing address, dropped on failed runs
 account: get_size() -> i32          ; address length (32)
          get_host(ptr) -> i32       ; writes the EXECUTING address
-         get_caller(ptr) -> i32     ; msg.sender address (zero addr at top)
+         get_caller(ptr) -> i32     ; msg.From address (zero addr at top)
          get_contract_size(addr_ptr) -> i32
          get_contract(addr_ptr, ptr) -> i32
          is_active(addr_ptr) -> i32
@@ -115,7 +115,7 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_paid_size() -> i32      get_paid(ptr) -> i32
          ; msg.value: what this tx pays to the EXECUTING address
          ; (zero unless it is the To address), big-endian big.Int bytes
-         get_sender(ptr) -> i32     ; the tx sender's address
+         get_sender(ptr) -> i32     ; the tx from's address
          get_to(ptr) -> i32         ; the tx's To address
          get_fee_size() -> i32       get_fee(ptr) -> i32
          get_extra_size() -> i32     get_extra(ptr) -> i32
@@ -178,7 +178,7 @@ Service semantics (`service/<addr>`): each call switches the execution frame
 to the dependency's account — its kv/coin effects act on ITS OWN state,
 which is exactly how a token keeps one ledger shared by all callers.
 `account.get_caller` writes the invoking contract's address
-(msg.sender) for authorization; `account.get_host` the executing one.
+(msg.from) for authorization; `account.get_host` the executing one.
 Within one transaction execution, a contract that is still executing
 cannot be re-entered (calls after it returned are fine); service
 exports use scalar (i32/i64) params and returns — byte payloads

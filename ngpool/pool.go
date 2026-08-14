@@ -25,7 +25,7 @@ type TxPool struct {
 	sync.Mutex
 
 	db    *bbolt.DB
-	txMap map[ngtypes.Address]*ngtypes.FullTx // sender address -> queued tx
+	txMap map[ngtypes.Address]*ngtypes.FullTx // From address -> queued tx
 
 	// MaxSize caps the pool; when full, a new tx must outbid the
 	// cheapest queued one

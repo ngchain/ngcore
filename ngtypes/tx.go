@@ -22,8 +22,8 @@ const (
 
 	TransactTx
 
-	// CommitTx commits a change set (diff hunks) onto the sender's
-	// contract slot, like a git commit onto the sender's namespace. The
+	// CommitTx commits a change set (diff hunks) onto the From address's
+	// contract slot, like a git commit onto the From address's namespace. The
 	// FIRST commit (against the empty base) creates the slot — that is
 	// the namespace purchase, burning DeployFee on top of the tx fee
 	CommitTx
@@ -91,10 +91,10 @@ func (x *FullTx) IsSigned() bool {
 	return len(x.Sign) != 0
 }
 
-// Sender derives the sender address from the public key embedded in
+// From derives the From address from the public key embedded in
 // the signature envelope: whoever holds the key IS the address. The
-// state layer enforces every spending rule against this derived sender
-func (x *FullTx) Sender() (Address, error) {
+// state layer enforces every spending rule against this derived From address
+func (x *FullTx) From() (Address, error) {
 	if len(x.Sign) != PublicKeySize+TxSignatureSize {
 		return Address{}, ErrTxUnsigned
 	}
@@ -102,7 +102,7 @@ func (x *FullTx) Sender() (Address, error) {
 	return AddressOfPubKey(x.Sign[:PublicKeySize]), nil
 }
 
-// Verify checks the tx signature — a flat envelope of the sender's
+// Verify checks the tx signature — a flat envelope of the From address's
 // public key followed by its signature over the unsigned tx hash. The
 // public key is only revealed here, at spend time, never by the
 // address itself
@@ -238,11 +238,11 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 
 	// the reward must go to the miner who signed the block's generate
 	if x.Height != 0 {
-		sender, err := x.Sender()
+		from, err := x.From()
 		if err != nil {
 			return err
 		}
-		if !sender.Equals(x.To) {
+		if !from.Equals(x.To) {
 			return errors.Wrap(ErrTxToInvalid, "generate must pay its own signer")
 		}
 	}
@@ -250,7 +250,7 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 	return nil
 }
 
-// CheckDestroy does a self check for destroy tx: the sender clears its
+// CheckDestroy does a self check for destroy tx: the From address clears its
 // own contract slot
 func (x *FullTx) CheckDestroy() error {
 	if x == nil {
@@ -265,7 +265,7 @@ func (x *FullTx) CheckDestroy() error {
 }
 
 // checkNoTransfer refuses a To address or value on tx types which
-// only act on the sender's own slot
+// only act on the From address's own slot
 func (x *FullTx) checkNoTransfer(verb string) error {
 	if x.To != (Address{}) {
 		return errors.Wrapf(ErrTxToInvalid, "%s must not set To", verb)
@@ -291,7 +291,7 @@ func (x *FullTx) CheckTransaction() error {
 	return x.Verify()
 }
 
-// CheckCommit does a self check for commit tx: the sender patches its own
+// CheckCommit does a self check for commit tx: the From address patches its own
 // contract slot
 func (x *FullTx) CheckCommit() error {
 	if x == nil {

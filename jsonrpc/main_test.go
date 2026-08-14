@@ -412,7 +412,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 		t.Fatal("getContract mismatch after the commit tx")
 	}
 
-	// activate: the sender locks its own slot
+	// activate: the From address locks its own slot
 	signAndSend(genResult("genActivate", map[string]any{"fee": 0.05}))
 	mineViaRPC(t, node, key)
 

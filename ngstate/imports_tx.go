@@ -96,17 +96,17 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	// get_sender writes the tx sender's address (derived from the
+	// get_from writes the tx's From address (derived from the
 	// signature envelope); zero address when the tx is unsigned
-	err = vm.linker.DefineAdvancedFunc("tx", "get_sender", func(ins *wasman.Instance) interface{} {
+	err = vm.linker.DefineAdvancedFunc("tx", "get_from", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {
-			sender, err := vm.caller.Sender()
+			from, err := vm.caller.From()
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
 			}
 
-			l, err := cp(ins, ptr, sender[:])
+			l, err := cp(ins, ptr, from[:])
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

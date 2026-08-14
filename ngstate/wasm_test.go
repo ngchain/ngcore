@@ -189,7 +189,7 @@ func TestVMTransfer(t *testing.T) {
 		}
 
 		if got := getBalance(txn, testAddr(0xaa)); got.Int64() != 90 {
-			t.Fatalf("sender balance = %d, want 90", got.Int64())
+			t.Fatalf("from balance = %d, want 90", got.Int64())
 		}
 		if got := getBalance(txn, testAddr(0xbb)); got.Int64() != 10 {
 			t.Fatalf("receiver balance = %d, want 10", got.Int64())
@@ -556,7 +556,7 @@ func TestContractModuleDeps(t *testing.T) {
 // tokenWat is a shared-ledger service (erc20-style): balances live in
 // the TOKEN's own kv, keyed by the 32-byte address. The target address
 // of transfer/mint_to crosses the service boundary through buf slot 1;
-// account.get_caller (= msg.sender) authorizes the debit
+// account.get_caller (= msg.from) authorizes the debit
 const tokenWat = `
 (module
   (import "address" "get_caller" (func $caller (param i32) (result i32)))

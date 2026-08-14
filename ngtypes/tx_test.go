@@ -56,12 +56,12 @@ func TestTransaction_Signature(t *testing.T) {
 		t.Errorf("signed tx must verify: %v", err)
 	}
 
-	sender, _ := o.Sender()
-	if !sender.Equals(ngtypes.NewAddress(priv1)) {
-		t.Errorf("sender must be priv1's address")
+	from, _ := o.From()
+	if !from.Equals(ngtypes.NewAddress(priv1)) {
+		t.Errorf("from must be priv1's address")
 	}
-	if sender.Equals(ngtypes.NewAddress(priv2)) {
-		t.Errorf("sender must not be priv2's address")
+	if from.Equals(ngtypes.NewAddress(priv2)) {
+		t.Errorf("from must not be priv2's address")
 	}
 }
 

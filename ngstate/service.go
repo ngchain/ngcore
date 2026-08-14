@@ -24,7 +24,7 @@ func (vm *VM) currentAddress() ngtypes.Address {
 }
 
 // callerAddress is the address which invoked the current frame
-// (msg.sender); the zero address for the outermost frame
+// (msg.from); the zero address for the outermost frame
 func (vm *VM) callerAddress() ngtypes.Address {
 	if len(vm.frames) < 2 {
 		return ngtypes.Address{}

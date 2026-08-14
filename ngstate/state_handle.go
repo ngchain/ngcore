@@ -64,39 +64,39 @@ func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error
 	return nil
 }
 
-// senderAndCharge verifies the tx, derives its sender and burns the
-// expenditure from the sender's balance
-func senderAndCharge(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
+// chargeFrom verifies the tx, derives its From address and burns the
+// expenditure from the From address's balance
+func chargeFrom(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
 	if err := tx.Verify(); err != nil {
 		return ngtypes.Address{}, err
 	}
 
-	sender, err := tx.Sender()
+	from, err := tx.From()
 	if err != nil {
 		return ngtypes.Address{}, err
 	}
 
-	balance := getBalance(txn, sender)
+	balance := getBalance(txn, from)
 	if balance.Cmp(expense) < 0 {
 		return ngtypes.Address{}, ErrTxrBalanceInsufficient
 	}
 
-	if err := setBalance(txn, sender, new(big.Int).Sub(balance, expense)); err != nil {
+	if err := setBalance(txn, from, new(big.Int).Sub(balance, expense)); err != nil {
 		return ngtypes.Address{}, err
 	}
 
-	return sender, nil
+	return from, nil
 }
 
-// handleDestroy removes the sender's contract slot entirely (contract
+// handleDestroy removes the sender's own contract slot entirely (contract
 // text AND context); the slot must be inactive and unreferenced
 func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	sender, err := senderAndCharge(txn, tx, tx.Fee)
+	from, err := chargeFrom(txn, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	if err != nil {
 		return err
 	}
@@ -108,11 +108,11 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
 	}
 
-	return delContract(txn, sender)
+	return delContract(txn, from)
 }
 
 func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
-	if _, err := senderAndCharge(txn, tx, tx.TotalExpenditure()); err != nil {
+	if _, err := chargeFrom(txn, tx, tx.TotalExpenditure()); err != nil {
 		return err
 	}
 
@@ -128,7 +128,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 	return nil
 }
 
-// handleCommit applies a whole patch (CommitExtra hunks) onto the sender's
+// handleCommit applies a whole patch (CommitExtra hunks) onto the From address's
 // contract slot atomically. The first edit OPENS the slot — that is
 // the namespace purchase, charged at DeployFee on top of the tx fee
 func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
@@ -136,15 +136,15 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
-	sender, err := tx.Sender()
+	from, err := tx.From()
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	deploying := err != nil // no slot yet: this edit buys the namespace
 	if deploying {
-		slot = ngtypes.NewContract(sender, nil, nil)
+		slot = ngtypes.NewContract(from, nil, nil)
 	}
 
 	if slot.IsActive() {
@@ -156,7 +156,7 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		expense.Add(expense, ngtypes.DeployFee)
 	}
 
-	if _, err := senderAndCharge(txn, tx, expense); err != nil {
+	if _, err := chargeFrom(txn, tx, expense); err != nil {
 		return err
 	}
 
@@ -173,19 +173,19 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 	return setContract(txn, slot)
 }
 
-// handleActivate freezes the sender's contract: the body becomes immutable
+// handleActivate freezes the From address's contract: the body becomes immutable
 // and the vm gets active. The optional `init` export runs once here
 func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
 	if err := tx.CheckActivate(); err != nil {
 		return err
 	}
 
-	sender, err := senderAndCharge(txn, tx, tx.Fee)
+	from, err := chargeFrom(txn, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 	for _, depAddr := range deps {
-		if depAddr.Equals(sender) {
+		if depAddr.Equals(from) {
 			return ErrDepSelf
 		}
 
@@ -236,24 +236,24 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 
-	state.runContract(txn, sender, tx, VMEntryOnActivate, blockTime)
+	state.runContract(txn, from, tx, VMEntryOnActivate, blockTime)
 
 	return nil
 }
 
-// handleDeactivate disables the vm of the sender's contract and makes the
+// handleDeactivate disables the vm of the From address's contract and makes the
 // body editable again
 func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	if err := tx.CheckDeactivate(); err != nil {
 		return err
 	}
 
-	sender, err := senderAndCharge(txn, tx, tx.Fee)
+	from, err := chargeFrom(txn, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, sender)
+	slot, err := getContract(txn, from)
 	if err != nil {
 		return err
 	}

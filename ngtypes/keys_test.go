@@ -11,7 +11,7 @@ func testTx(to Address) *FullTx {
 		big.NewInt(0), nil)
 }
 
-// TestTxSignatureRoundTrip: a signed tx verifies, derives its sender
+// TestTxSignatureRoundTrip: a signed tx verifies, derives its From address
 // from the embedded key, and any tampering invalidates it
 func TestTxSignatureRoundTrip(t *testing.T) {
 	key, _ := GenerateKey()
@@ -25,15 +25,15 @@ func TestTxSignatureRoundTrip(t *testing.T) {
 		t.Fatalf("verify: %v", err)
 	}
 
-	sender, err := tx.Sender()
+	from, err := tx.From()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !sender.Equals(NewAddress(key)) {
-		t.Fatal("the sender must derive from the signer's key")
+	if !from.Equals(NewAddress(key)) {
+		t.Fatal("the From address must derive from the signer's key")
 	}
-	if sender.Equals(NewAddress(other)) {
-		t.Fatal("the sender must not equal a foreign address")
+	if from.Equals(NewAddress(other)) {
+		t.Fatal("the From address must not equal a foreign address")
 	}
 
 	tx.Extra = []byte("tampered")
@@ -66,8 +66,8 @@ func TestKeySerializeRoundTrip(t *testing.T) {
 	if err := tx.Verify(); err != nil {
 		t.Fatalf("restored key cannot spend: %v", err)
 	}
-	if sender, _ := tx.Sender(); !sender.Equals(NewAddress(key)) {
-		t.Fatal("restored key derives a different sender")
+	if from, _ := tx.From(); !from.Equals(NewAddress(key)) {
+		t.Fatal("restored key derives a different from")
 	}
 
 	// a wrong-length secret must be rejected

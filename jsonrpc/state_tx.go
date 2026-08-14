@@ -340,7 +340,7 @@ type genActivateParams struct {
 	Fee float64 `json:"fee"`
 }
 
-// genActivateFunc composes an unsigned activate tx (the sender locks its own
+// genActivateFunc composes an unsigned activate tx (the From address locks its own
 // contract slot)
 func (s *Server) genActivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genActivateParams
@@ -369,7 +369,7 @@ func (s *Server) genDeactivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonR
 	return s.buildSimpleTx(msg, ngtypes.DeactivateTx, params.Fee, nil)
 }
 
-// buildSimpleTx composes an unsigned sender-only tx of the given type
+// buildSimpleTx composes an unsigned from-only tx of the given type
 func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxType, feeNG float64, extra []byte) *jsonrpc2.JsonRpcMessage {
 	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
 
