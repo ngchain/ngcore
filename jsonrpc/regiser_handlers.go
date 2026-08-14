@@ -39,6 +39,7 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("genLock", s.genLockFunc)
 	s.RegisterJsonRpcHandleFunc("genUnlock", s.genUnlockFunc)
 	s.RegisterJsonRpcHandleFunc("resolveContract", s.resolveContractFunc)
+	s.RegisterJsonRpcHandleFunc("callContract", s.callContractFunc)
 	s.RegisterJsonRpcHandleFunc("genContractUpdate", s.genContractUpdateFunc)
 	s.RegisterJsonRpcHandleFunc("getContract", s.getContractFunc)
 

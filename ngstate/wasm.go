@@ -215,6 +215,20 @@ func (vm *VM) Run(entry string) error {
 	return vm.journal.flush(vm.txn)
 }
 
+// DryRun executes the entry like Run but NEVER flushes the journal:
+// the chain state stays untouched, making it safe inside a read-only
+// txn. It reports the gas the call burned
+func (vm *VM) DryRun(entry string) (gasUsed uint64, err error) {
+	ins, err := vm.linker.Instantiate(vm.module)
+	if err != nil {
+		return vm.cfg.TollStation.GetToll(), errors.Wrap(err, "failed to instantiate the contract")
+	}
+
+	_, _, err = ins.CallExportedFunc(entry)
+
+	return vm.cfg.TollStation.GetToll(), err
+}
+
 // IsExportMissing tells whether the Run error is just the contract not
 // exporting the entry, which is legal for optional entries like init
 func IsExportMissing(err error) bool {

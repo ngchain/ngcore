@@ -845,6 +845,45 @@ func TestVMKVScan(t *testing.T) {
 	}
 }
 
+// TestVMDryRun: a dry run executes fully (gas burned, result visible)
+// but never touches the chain state
+func TestVMDryRun(t *testing.T) {
+	db := newTestDB(t)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(kvWat), nil)
+		acc.SetLock(true)
+		putAccount(t, txn, acc, 0)
+
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		if err != nil {
+			return err
+		}
+
+		gasUsed, err := vm.DryRun(VMEntryOnTx)
+		if err != nil {
+			t.Fatalf("dry run failed: %v", err)
+		}
+		if gasUsed == 0 {
+			t.Fatal("dry run must report burned gas")
+		}
+
+		// the kv write the contract performed must NOT be visible
+		reloaded, err := getAccountByNum(txn, 500)
+		if err != nil {
+			return err
+		}
+		if got := reloaded.Context.Get("key"); len(got) != 0 {
+			t.Fatalf("dry run leaked state: key=%q", got)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestNamedContractDeps: contracts are addressable as deployer.name —
 // the name registers at lock time, imports resolve through the registry,
 // conflicts are refused, and destroy releases the name
