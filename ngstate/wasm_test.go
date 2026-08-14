@@ -635,6 +635,67 @@ func TestServiceToken(t *testing.T) {
 	}
 }
 
+// u256Wat exercises the wide-integer extension: (2^128 - 1) + 1 with
+// full carry propagation across the 64-bit limbs, the 32-byte result
+// stored into kv
+const u256Wat = `
+(module
+  (import "u256" "add" (func $add256 (param i32 i32 i32)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "sum")
+  (data (i32.const 32) "\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff")
+  (data (i32.const 64) "\01")
+  (func (export "main")
+    (call $add256 (i32.const 96) (i32.const 32) (i32.const 64))
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 96) (i32.const 32)))))
+`
+
+// TestVMU256: contracts can do 256-bit arithmetic through the wideint
+// host modules — the basis for evm-scale token amounts
+func TestVMU256(t *testing.T) {
+	db := newTestDB(t)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(u256Wat), nil)
+		acc.SetLock(true)
+		putAccount(t, txn, acc, 0)
+
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil))
+		if err != nil {
+			return err
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			return err
+		}
+
+		reloaded, err := getAccountByNum(txn, 500)
+		if err != nil {
+			return err
+		}
+
+		// (2^128 - 1) + 1 = 2^128: LE byte 16 is 1, all others 0
+		got := reloaded.Context.Get("sum")
+		if len(got) != 32 {
+			t.Fatalf("sum length = %d, want 32", len(got))
+		}
+		for i, b := range got {
+			want := byte(0)
+			if i == 16 {
+				want = 1
+			}
+			if b != want {
+				t.Fatalf("sum[%d] = %#x, want %#x (carry must cross the limbs)", i, b, want)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestNamedContractDeps: contracts are addressable as deployer.name —
 // the name registers at lock time, imports resolve through the registry,
 // conflicts are refused, and destroy releases the name

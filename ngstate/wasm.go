@@ -80,6 +80,9 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, er
 		DisableFloatPoint: true, // floats are not deterministic across platforms
 		Recover:           true, // a contract panic must never kill the node
 		CallDepthLimit:    &callDepth,
+		// the deterministic wide-integer host modules ("u128"/"u256"
+		// import namespaces): 256-bit token amounts without float math
+		EnableWideInt: true,
 		// ONE toll station across the whole link set: dependency code
 		// burns the caller's gas
 		TollStation: tollstation.NewSimpleTollStation(vmMaxToll),

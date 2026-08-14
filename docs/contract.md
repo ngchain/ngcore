@@ -88,6 +88,13 @@ kv:      get_size(kptr, klen) -> i32
          get(kptr, klen, vptr) -> i32
          set(kptr, klen, vptr, vlen) -> i32
          del(kptr, klen) -> i32
+u128/u256: add/sub/mul/div_u/div_s/rem_u/rem_s(dst, a, b)
+         and/or/xor(dst, a, b)   not(dst, a)
+         shl/shr_u/shr_s(dst, a, bits)
+         cmp_u/cmp_s(a, b) -> i32   iszero(a) -> i32
+         ; wide-integer extension: values are 16/32-byte little-endian
+         ; limbs in linear memory passed by pointer — deterministic
+         ; 256-bit token math without floats (evm division conventions)
 tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_network() -> i32        get_height() -> i64
          get_convener() -> i64
