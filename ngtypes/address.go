@@ -38,6 +38,24 @@ func NewAddressFromMultiKeys(privKeys ...*secp256k1.PrivateKey) (Address, error)
 	return addr, nil
 }
 
+// mustAddressFromBS58 is NewAddressFromBS58 for hardcoded constants:
+// it panics at init when the string is invalid or not exactly 33 bytes,
+// instead of silently yielding a wrong address
+func mustAddressFromBS58(s string) Address {
+	addr := Address{}
+
+	raw, err := base58.FastBase58Decoding(s)
+	if err != nil {
+		panic(err)
+	}
+	if len(raw) != len(addr) {
+		panic("address constant " + s + " does not decode to 33 bytes")
+	}
+
+	copy(addr[:], raw)
+	return addr
+}
+
 // NewAddressFromBS58 converts a base58 string into the Address
 func NewAddressFromBS58(s string) (Address, error) {
 	addr := [33]byte{}

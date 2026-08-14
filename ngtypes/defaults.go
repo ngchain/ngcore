@@ -8,14 +8,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-// GenesisAddressBase58 is the genesis address in base58 str
+// GenesisAddressBase58 is the genesis address in base58 str: the
+// all-zero 33-byte address, whose base58 digit for a zero byte is '1'
+// ('0' is not in the base58 alphabet at all)
 const (
-	GenesisAddressBase58 = "000000000000000000000000000000000000000000000000"
+	GenesisAddressBase58 = "111111111111111111111111111111111"
 )
 
 // decoded genesis variables
 var (
-	GenesisAddress, _ = NewAddressFromBS58(GenesisAddressBase58)
+	GenesisAddress = mustAddressFromBS58(GenesisAddressBase58)
 	AvailableNetworks = []Network{
 		ZERONET,
 		TESTNET,
