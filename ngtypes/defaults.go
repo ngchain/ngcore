@@ -29,6 +29,10 @@ const (
 	TargetTime        = 1 * time.Second // aggressive fast-block design
 	BlockCheckRound   = 10 // do converge if fall behind one round
 
+	// TimestampDriftTolerance bounds how far (seconds) a block timestamp
+	// may run ahead of the local clock
+	TimestampDriftTolerance = 15
+
 	MatureRound  = 10                            // not mandatory required, can be modified by different daemons
 	MatureHeight = MatureRound * BlockCheckRound // just for calculating the immature balance
 )

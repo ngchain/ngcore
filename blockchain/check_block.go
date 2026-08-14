@@ -60,7 +60,17 @@ func (chain *Chain) checkBlockTxn(txn *bbolt.Tx, block *ngtypes.FullBlock) error
 	return nil
 }
 
+var ErrBlockTimeNotMonotonic = errors.New("block timestamp must be greater than its parent's")
+
 func checkBlockTarget(block, prevBlock *ngtypes.FullBlock) error {
+	// contracts read the timestamp, and the retarget depends on it:
+	// without monotonicity a miner could freely manipulate both. The
+	// future-drift bound lives in FullBlock.CheckError
+	if block.BlockHeader.Timestamp <= prevBlock.BlockHeader.Timestamp {
+		return errors.Wrapf(ErrBlockTimeNotMonotonic, "block@%d: %d <= parent %d",
+			block.GetHeight(), block.BlockHeader.Timestamp, prevBlock.BlockHeader.Timestamp)
+	}
+
 	correctDiff := ngtypes.GetNextDiff(block.GetHeight(), block.BlockHeader.Timestamp, prevBlock)
 	blockDiff := new(big.Int).SetBytes(block.BlockHeader.Difficulty)
 	actualDiff := block.GetActualDiff()

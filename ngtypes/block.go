@@ -266,8 +266,10 @@ func (x *FullBlock) CheckError() error {
 		return errors.Wrapf(ErrInvalidNonce, "block%d's Nonce length is incorrect", x.BlockHeader.Height)
 	}
 
-	if x.BlockHeader.Timestamp > uint64(time.Now().Unix()) {
-		return errors.Wrapf(ErrBlockTimestampInvalid, "block%d's timestamp %d is invalid", x.BlockHeader.Height, x.BlockHeader.Timestamp)
+	// allow a small clock drift; a block rejected as futuristic becomes
+	// acceptable once the local clock catches up
+	if x.BlockHeader.Timestamp > uint64(time.Now().Unix())+TimestampDriftTolerance {
+		return errors.Wrapf(ErrBlockTimestampInvalid, "block%d's timestamp %d is too far in the future", x.BlockHeader.Height, x.BlockHeader.Timestamp)
 	}
 
 	if !x.IsSealed() {

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/ngchain/secp256k1"
 	"go.etcd.io/bbolt"
@@ -76,6 +77,39 @@ func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.P
 	}
 
 	t.Fatal("failed to seal a ZERONET block within 1e6 nonces")
+	return nil
+}
+
+// mineBlockAt is mineBlockReward with an explicit timestamp, for the
+// timestamp-rule tests
+func mineBlockAt(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.PrivateKey, blockTime uint64) *ngtypes.FullBlock {
+	t.Helper()
+
+	height := parent.GetHeight() + 1
+	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
+		ngtypes.GetNextDiff(height, blockTime, parent))
+
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height, 0,
+		[]ngtypes.Address{ngtypes.NewAddress(miner)},
+		[]*big.Int{ngtypes.GetBlockReward(height)},
+		big.NewInt(0), nil, nil)
+	if err := genTx.Signature(miner); err != nil {
+		t.Fatal(err)
+	}
+	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
+		t.Fatal(err)
+	}
+
+	for n := uint64(0); n < 1_000_000; n++ {
+		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
+			t.Fatal(err)
+		}
+		if block.CheckError() == nil {
+			return block
+		}
+	}
+
+	t.Fatal("failed to seal")
 	return nil
 }
 
@@ -383,6 +417,53 @@ func TestSideBlockPruning(t *testing.T) {
 	}
 	if canon2.GetHeight() != 2 {
 		t.Fatal("canonical chain must stay intact")
+	}
+}
+
+// TestBlockTimestampRules: non-monotonic and far-future timestamps are
+// consensus-invalid (miners must not manipulate contract-visible time)
+func TestBlockTimestampRules(t *testing.T) {
+	chain := newTestChain(t)
+	miner, _ := secp256k1.GeneratePrivateKey()
+
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	b1 := mineBlock(t, genesis, miner)
+	if err := chain.ApplyBlock(b1); err != nil {
+		t.Fatal(err)
+	}
+
+	// equal-to-parent timestamp: rejected
+	stale := mineBlockAt(t, b1, miner, b1.BlockHeader.Timestamp)
+	if err := chain.ApplyBlock(stale); !errors.Is(err, blockchain.ErrBlockTimeNotMonotonic) {
+		t.Fatalf("stale timestamp: got %v, want ErrBlockTimeNotMonotonic", err)
+	}
+
+	// far-future timestamp: rejected (for now). Sealed manually — the
+	// miner-side CheckError loop would refuse to build it
+	futureTime := uint64(time.Now().Unix()) + 3600
+	future := ngtypes.NewBareBlock(ngtypes.ZERONET, 2, futureTime, b1.GetHash(),
+		ngtypes.GetNextDiff(2, futureTime, b1))
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, 2, 0,
+		[]ngtypes.Address{ngtypes.NewAddress(miner)},
+		[]*big.Int{ngtypes.GetBlockReward(2)},
+		big.NewInt(0), nil, nil)
+	if err := genTx.Signature(miner); err != nil {
+		t.Fatal(err)
+	}
+	if err := future.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
+		t.Fatal(err)
+	}
+	if err := future.ToSealed(utils.PackUint64LE(0)); err != nil {
+		t.Fatal(err)
+	}
+	if err := chain.ApplyBlock(future); !errors.Is(err, ngtypes.ErrBlockTimestampInvalid) {
+		t.Fatalf("future timestamp: got %v, want ErrBlockTimestampInvalid", err)
+	}
+
+	// a sane timestamp extends fine
+	ok := mineBlockAt(t, b1, miner, b1.BlockHeader.Timestamp+1)
+	if err := chain.ApplyBlock(ok); err != nil {
+		t.Fatalf("sane timestamp rejected: %v", err)
 	}
 }
 
