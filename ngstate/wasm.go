@@ -8,6 +8,7 @@ import (
 	"github.com/c0mm4nd/wasman/config"
 	"github.com/c0mm4nd/wasman/tollstation"
 	"github.com/c0mm4nd/wasman/wasm"
+	"github.com/c0mm4nd/wasman/wat"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
@@ -47,18 +48,35 @@ type VM struct {
 	logger *logging.ZapEventLogger
 }
 
-// NewVM compiles the account's contract and binds the built-in host modules.
-// The tx is the calling tx which triggers this execution
+// CompileContract translates the on-chain contract text (wat) into its
+// binary encoding. The compilation is deterministic, so every node gets
+// the same bytes for the same on-chain text
+func CompileContract(contract []byte) ([]byte, error) {
+	bin, err := wat.Compile(contract)
+	if err != nil {
+		return nil, errors.Wrap(err, "contract text does not compile")
+	}
+
+	return bin, nil
+}
+
+// NewVM compiles the account's contract text and binds the built-in host
+// modules. The tx is the calling tx which triggers this execution
 func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, error) {
+	bin, err := CompileContract(account.Contract)
+	if err != nil {
+		return nil, err
+	}
+
 	callDepth := vmCallDepth
 	module, err := wasman.NewModule(config.ModuleConfig{
 		DisableFloatPoint: true, // floats are not deterministic across platforms
 		Recover:           true, // a contract panic must never kill the node
 		CallDepthLimit:    &callDepth,
 		TollStation:       tollstation.NewSimpleTollStation(vmMaxToll),
-	}, bytes.NewReader(account.Contract))
+	}, bytes.NewReader(bin))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compile the contract module")
+		return nil, errors.Wrap(err, "failed to load the compiled contract")
 	}
 
 	vm := &VM{

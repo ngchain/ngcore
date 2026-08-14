@@ -311,6 +311,13 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return ErrAccountLocked
 	}
 
+	// locking activates the vm, so the contract text must compile
+	if len(convener.Contract) != 0 {
+		if _, err := CompileContract(convener.Contract); err != nil {
+			return err
+		}
+	}
+
 	convenerBalance := getBalance(txn, convener.Owner)
 	if convenerBalance.Cmp(tx.Fee) < 0 {
 		return ErrTxrBalanceInsufficient

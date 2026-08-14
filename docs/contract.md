@@ -2,17 +2,24 @@
 
 The contract engine is a deterministic WebAssembly sandbox built on
 [wasman v1](https://github.com/c0mm4nd/wasman), living in the `ngstate`
-package. A contract is just the `Contract` bytes of an account; its
+package.
+
+A contract lives on chain as **WebAssembly text (wat)** in the account's
+`Contract` field — human-readable, diff-able and editable in place by
+append/delete txs, like a script. It is compiled to binary by the
+deterministic `wat.Compile` only when the account gets locked (and on
+each execution); an account whose text does not compile cannot be
+locked, so every active contract is guaranteed valid. The contract's
 persistent storage is the account's `Context` (an on-chain sorted k-v).
 
 ## Lifecycle
 
 | step | tx type | effect |
 |---|---|---|
-| deploy | `AppendTx` / `DeleteTx` | edit the account's `Contract` bytes (only while unlocked) |
-| activate | `LockTx` | freeze the bytes, run the optional `init` export once, enable the vm |
+| deploy | `AppendTx` / `DeleteTx` | edit the account's contract text (only while unlocked) |
+| activate | `LockTx` | compile-check + freeze the text, run the optional `init` export once, enable the vm |
 | execute | `TransactTx` | when a locked contract account is a participant, its `main` export runs |
-| upgrade | `UnlockTx` → edit → `LockTx` | disable the vm, edit, re-activate |
+| upgrade | `UnlockTx` → edit → `LockTx` | disable the vm, edit the text, re-activate |
 
 The lock flag is stored in the account context under the reserved key
 `_locked`. Keys prefixed with `_` are system-reserved and invisible to
@@ -74,5 +81,15 @@ Exports a contract may provide:
 - `main` — required to react to incoming transact txs
 - `init` — optional, runs once on `LockTx`
 
-See `ngstate/wasm_test.go` for hand-assembled example contracts
-exercising every module.
+Example — a complete on-chain contract:
+
+```wat
+(module
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "keyval")
+  (func (export "main")
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
+```
+
+See `ngstate/wasm_test.go` for more contracts exercising every module.

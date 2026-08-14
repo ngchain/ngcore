@@ -134,3 +134,5 @@ require (
 	google.golang.org/protobuf v1.36.12 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+
+replace github.com/c0mm4nd/wasman => ../wasman

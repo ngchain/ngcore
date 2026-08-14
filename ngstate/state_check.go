@@ -285,7 +285,8 @@ func checkAppend(txn *bbolt.Tx, appendTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	if appendExtra.Pos >= uint64(len(convener.Contract)) {
+	// Pos == len(Contract) appends at the tail (and starts an empty contract)
+	if appendExtra.Pos > uint64(len(convener.Contract)) {
 		return ErrPosOutOfBound
 	}
 
@@ -327,7 +328,8 @@ func checkDelete(txn *bbolt.Tx, deleteTx *ngtypes.FullTx) error {
 		return ErrPosOutOfBound
 	}
 
-	if appendExtra.Pos+uint64(len(appendExtra.Content)) >= uint64(len(convener.Contract)) {
+	// a deletion may end exactly at the contract tail
+	if appendExtra.Pos+uint64(len(appendExtra.Content)) > uint64(len(convener.Contract)) {
 		return ErrLenExcess
 	}
 
@@ -354,6 +356,13 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 
 	if convener.IsLocked() {
 		return ErrAccountLocked
+	}
+
+	// locking activates the vm, so the contract text must compile
+	if len(convener.Contract) != 0 {
+		if _, err := CompileContract(convener.Contract); err != nil {
+			return err
+		}
 	}
 
 	// check balance

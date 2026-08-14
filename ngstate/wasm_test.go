@@ -12,176 +12,45 @@ import (
 	"github.com/ngchain/ngcore/storage"
 )
 
-// --- tiny wasm assembler helpers, enough for the test contracts ---
+// The on-chain contracts are plain wat text — human-readable and
+// editable through append/delete txs
 
-func uleb(v uint32) []byte {
-	var out []byte
-	for {
-		b := byte(v & 0x7f)
-		v >>= 7
-		if v != 0 {
-			b |= 0x80
-		}
-		out = append(out, b)
-		if v == 0 {
-			return out
-		}
-	}
-}
+const kvWat = `
+(module
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "keyval")
+  (func (export "main")
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
+`
 
-func wasmVec(items ...[]byte) []byte {
-	out := uleb(uint32(len(items)))
-	for _, item := range items {
-		out = append(out, item...)
-	}
-	return out
-}
+const transferWat = `
+(module
+  (import "coin" "transfer" (func $transfer (param i64 i64) (result i32)))
+  (func (export "main")
+    (drop (call $transfer (i64.const 1) (i64.const 10)))))
+`
 
-func wasmString(s string) []byte {
-	return append(uleb(uint32(len(s))), s...)
-}
-
-func wasmSection(id byte, payload []byte) []byte {
-	return append(append([]byte{id}, uleb(uint32(len(payload)))...), payload...)
-}
-
-func wasmModule(sections ...[]byte) []byte {
-	out := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00} // magic + version
-	for _, s := range sections {
-		out = append(out, s...)
-	}
-	return out
-}
-
-func funcType(params, results []byte) []byte {
-	out := []byte{0x60}
-	out = append(out, uleb(uint32(len(params)))...)
-	out = append(out, params...)
-	out = append(out, uleb(uint32(len(results)))...)
-	out = append(out, results...)
-	return out
-}
-
-func funcImport(mod, name string, typeIdx byte) []byte {
-	out := wasmString(mod)
-	out = append(out, wasmString(name)...)
-	out = append(out, 0x00, typeIdx)
-	return out
-}
-
-func funcBody(code []byte) []byte {
-	body := append([]byte{0x00}, code...) // no locals
-	return append(uleb(uint32(len(body))), body...)
-}
-
-const (
-	i32 = 0x7f
-	i64 = 0x7e
-)
-
-// kvWasm is:
-//
-//	(module
-//	  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
-//	  (memory 1) (data (i32.const 0) "keyval")
-//	  (func (export "main")
-//	    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
-func kvWasm() []byte {
-	return wasmModule(
-		wasmSection(1, wasmVec(
-			funcType([]byte{i32, i32, i32, i32}, []byte{i32}),
-			funcType(nil, nil),
-		)),
-		wasmSection(2, wasmVec(funcImport("kv", "set", 0))),
-		wasmSection(3, wasmVec([]byte{1})),
-		wasmSection(5, wasmVec([]byte{0x00, 0x01})), // memory min=1
-		wasmSection(7, wasmVec(append(wasmString("main"), 0x00, 0x01))),
-		wasmSection(10, wasmVec(funcBody([]byte{
-			0x41, 0x00, // i32.const 0 (key ptr)
-			0x41, 0x03, // i32.const 3 (key len)
-			0x41, 0x03, // i32.const 3 (val ptr)
-			0x41, 0x03, // i32.const 3 (val len)
-			0x10, 0x00, // call $set
-			0x1a, // drop
-			0x0b, // end
-		}))),
-		wasmSection(11, wasmVec(append(
-			[]byte{0x00, 0x41, 0x00, 0x0b}, // (data (i32.const 0)
-			append(uleb(6), "keyval"...)...,
-		))),
-	)
-}
-
-// transferWasm calls coin.transfer(to=1, value=10) once
-func transferWasm() []byte {
-	return wasmModule(
-		wasmSection(1, wasmVec(
-			funcType([]byte{i64, i64}, []byte{i32}),
-			funcType(nil, nil),
-		)),
-		wasmSection(2, wasmVec(funcImport("coin", "transfer", 0))),
-		wasmSection(3, wasmVec([]byte{1})),
-		wasmSection(7, wasmVec(append(wasmString("main"), 0x00, 0x01))),
-		wasmSection(10, wasmVec(funcBody([]byte{
-			0x42, 0x01, // i64.const 1 (to account num)
-			0x42, 0x0a, // i64.const 10 (value)
-			0x10, 0x00, // call $transfer
-			0x1a, // drop
-			0x0b, // end
-		}))),
-	)
-}
-
-// burnWasm writes a kv entry and then spins forever, so the toll station
+// burnWat writes a kv entry and then spins forever, so the toll station
 // must abort it and the kv write must be rolled back
-func burnWasm() []byte {
-	return wasmModule(
-		wasmSection(1, wasmVec(
-			funcType([]byte{i32, i32, i32, i32}, []byte{i32}),
-			funcType(nil, nil),
-		)),
-		wasmSection(2, wasmVec(funcImport("kv", "set", 0))),
-		wasmSection(3, wasmVec([]byte{1})),
-		wasmSection(5, wasmVec([]byte{0x00, 0x01})),
-		wasmSection(7, wasmVec(append(wasmString("main"), 0x00, 0x01))),
-		wasmSection(10, wasmVec(funcBody([]byte{
-			0x41, 0x00, 0x41, 0x03, 0x41, 0x03, 0x41, 0x03,
-			0x10, 0x00, 0x1a, // kv.set("key", "val") then drop
-			0x03, 0x40, // loop
-			0x0c, 0x00, // br 0
-			0x0b, // end loop
-			0x0b, // end
-		}))),
-		wasmSection(11, wasmVec(append(
-			[]byte{0x00, 0x41, 0x00, 0x0b},
-			append(uleb(6), "keyval"...)...,
-		))),
-	)
-}
+const burnWat = `
+(module
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "keyval")
+  (func (export "main")
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))
+    (loop $forever (br $forever))))
+`
 
-// logWasm calls log.debug with "hello" from its data segment
-func logWasm() []byte {
-	return wasmModule(
-		wasmSection(1, wasmVec(
-			funcType([]byte{i32, i32}, nil),
-			funcType(nil, nil),
-		)),
-		wasmSection(2, wasmVec(funcImport("log", "debug", 0))),
-		wasmSection(3, wasmVec([]byte{1})),
-		wasmSection(5, wasmVec([]byte{0x00, 0x01})),
-		wasmSection(7, wasmVec(append(wasmString("main"), 0x00, 0x01))),
-		wasmSection(10, wasmVec(funcBody([]byte{
-			0x41, 0x00, // i32.const 0
-			0x41, 0x05, // i32.const 5
-			0x10, 0x00, // call $debug
-			0x0b, // end
-		}))),
-		wasmSection(11, wasmVec(append(
-			[]byte{0x00, 0x41, 0x00, 0x0b},
-			append(uleb(5), "hello"...)...,
-		))),
-	)
-}
+const logWat = `
+(module
+  (import "log" "debug" (func $debug (param i32 i32)))
+  (memory 1)
+  (data (i32.const 0) "hello")
+  (func (export "main")
+    (call $debug (i32.const 0) (i32.const 5))))
+`
 
 // --- test env helpers ---
 
@@ -233,7 +102,7 @@ func TestVMLog(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), logWasm(), nil)
+		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(logWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
@@ -253,7 +122,7 @@ func TestVMKVSet(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), kvWasm(), nil)
+		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(kvWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
@@ -290,7 +159,7 @@ func TestVMTransfer(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		contractAcc := ngtypes.NewAccount(500, testAddr(0xaa), transferWasm(), nil)
+		contractAcc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(transferWat), nil)
 		contractAcc.SetLock(true)
 		putAccount(t, txn, contractAcc, 100)
 
@@ -324,7 +193,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), burnWasm(), nil)
+		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(burnWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 100)
 
@@ -364,7 +233,7 @@ func TestLockUnlockFlow(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(600, addr, logWasm(), nil)
+		acc := ngtypes.NewAccount(600, addr, []byte(logWat), nil)
 		putAccount(t, txn, acc, 100)
 
 		// lock the account: the vm becomes active, editing gets frozen
@@ -421,6 +290,48 @@ func TestLockUnlockFlow(t *testing.T) {
 		// double unlock must fail
 		if err := state.handleUnlock(txn, unlockTx); err == nil {
 			t.Fatal("unlocking an unlocked account should fail")
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLockRejectsBrokenContract(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	priv, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ngtypes.NewAddress(priv)
+
+	err = db.Update(func(txn *bbolt.Tx) error {
+		// a half-edited contract text must not be lockable
+		acc := ngtypes.NewAccount(700, addr, []byte(`(module (func (export "main")`), nil)
+		putAccount(t, txn, acc, 100)
+
+		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, 700, nil, nil, big.NewInt(1), nil, nil)
+		if err := lockTx.Signature(priv); err != nil {
+			return err
+		}
+
+		if err := checkLock(txn, lockTx); err == nil {
+			t.Fatal("checkLock should reject a non-compiling contract")
+		}
+		if err := state.handleLock(txn, lockTx); err == nil {
+			t.Fatal("handleLock should reject a non-compiling contract")
+		}
+
+		reloaded, err := getAccountByNum(txn, 700)
+		if err != nil {
+			return err
+		}
+		if reloaded.IsLocked() {
+			t.Fatal("account must stay unlocked after a failed lock")
 		}
 
 		return nil
