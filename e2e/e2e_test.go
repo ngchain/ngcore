@@ -8,6 +8,7 @@ import (
 	"context"
 	"math/big"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -633,4 +634,245 @@ func TestDeepForkConvergeViaSync(t *testing.T) {
 	if got := balanceOf(t, nodeA, minerA); got.Sign() != 0 {
 		t.Fatalf("minerA balance = %s, want 0 (whole A-chain reverted)", got)
 	}
+}
+
+// TestAllTxVerbsViaNetwork drives every tx verb through the FULL
+// network path — submitted into node A's pool, gossiped to node B,
+// mined there and settled on both — asserting the state effects and
+// the exact fee burns of the whole lifecycle:
+//
+//	Generate -> Transact(pay) -> Commit(deploy) -> Commit(patch) ->
+//	Activate(init) -> Transact(main+value) -> Transact(selector) ->
+//	Deactivate -> Commit(patch again) -> Destroy
+func TestAllTxVerbsViaNetwork(t *testing.T) {
+	// data layout: boot@0(4) hit@4(3) main@7(4) ping@11(4) paid@15(4) args@19(4)
+	const srcV1 = `
+(module
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (import "tx" "get_extra" (func $args (param i32) (result i32)))
+  (import "tx" "get_paid" (func $paid (param i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "boothitmainpingpaidargs")
+  (func (export "init")
+    (drop (call $set (i32.const 0) (i32.const 4) (i32.const 0) (i32.const 4))))
+  (func (export "main")
+    (drop (call $set (i32.const 4) (i32.const 3) (i32.const 7) (i32.const 4)))
+    (drop (call $set (i32.const 15) (i32.const 4) (i32.const 64) (call $paid (i32.const 64)))))
+  (func (export "ping")
+    (drop (call $set (i32.const 4) (i32.const 3) (i32.const 11) (i32.const 4)))
+    (drop (call $set (i32.const 19) (i32.const 4) (i32.const 64) (call $args (i32.const 64))))))
+`
+	srcV2 := strings.Replace(srcV1, "boothitmainping", "boothitMAINping", 1)
+	srcV3 := strings.Replace(srcV2, "boothitMAINping", "boothitM3INping", 1)
+
+	nodeA := newNode(t)
+	nodeB := newNode(t)
+	connect(t, nodeA, nodeB)
+
+	deployer, _ := ngtypes.GenerateKey()
+	addr := ngtypes.NewAddress(deployer)
+	minerB, _ := ngtypes.GenerateKey()
+
+	// Generate: the deployer mines its own funds on node A
+	for i := 0; i < 3; i++ {
+		b := mineAndSubmit(t, nodeA, deployer)
+		waitTip(t, nodeB, b.GetHash(), 10*time.Second)
+	}
+
+	// relay pushes a signed tx through A's pool, waits for the gossip
+	// to reach B, lets B mine it and both nodes converge
+	relay := func(build func(height uint64) *ngtypes.FullTx) *ngtypes.FullTx {
+		t.Helper()
+
+		next := nodeA.chain.GetLatestBlockHeight() + 1
+		tx := build(next)
+		if err := tx.Signature(deployer); err != nil {
+			t.Fatal(err)
+		}
+		if err := nodeA.pow.Pool.PutNewTxFromLocal(tx); err != nil {
+			t.Fatalf("submit %d tx: %v", tx.Type, err)
+		}
+
+		deadline := time.Now().Add(10 * time.Second)
+		for {
+			if exists, _ := nodeB.pow.Pool.IsInPool(tx.GetHash()); exists {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("tx type %d never reached nodeB's pool", tx.Type)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		pack := nodeB.pow.Pool.GetPack(next)
+		if len(pack) != 1 {
+			t.Fatalf("nodeB pack size = %d, want 1", len(pack))
+		}
+		tip := nodeB.chain.GetLatestBlock().(*ngtypes.FullBlock)
+		b := mineOnTxs(t, tip, minerB, pack...)
+		if err := nodeB.pow.MinedNewBlock(b); err != nil {
+			t.Fatalf("mine tx type %d: %v", tx.Type, err)
+		}
+		waitTip(t, nodeA, b.GetHash(), 10*time.Second)
+		return tx
+	}
+
+	bothNodes := func(check func(name string, node *testNode)) {
+		t.Helper()
+		for name, node := range map[string]*testNode{"A": nodeA, "B": nodeB} {
+			check(name, node)
+		}
+	}
+
+	// Transact: a plain payment to a fresh address
+	var payee ngtypes.Address
+	payee[0] = 0xe1
+	oneNG := new(big.Int).Set(ngtypes.NG)
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h,
+			payee, oneNG, nil, nil, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		if got, _ := node.chain.State.GetTotalBalanceByAddress(payee); got.Cmp(oneNG) != 0 {
+			t.Fatalf("node%s: payee balance = %s, want %s", name, got, oneNG)
+		}
+	})
+
+	// Commit (deploy): the first commit opens the namespace — the
+	// DeployFee burns automatically on top of the (zero) tx fee
+	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: []byte(srcV1)}}).Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
+			ngtypes.Address{}, nil, nil, deployExtra, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		c, err := node.chain.State.GetContract(addr)
+		if err != nil {
+			t.Fatalf("node%s: deploy did not open the slot: %v", name, err)
+		}
+		if string(c.Source) != srcV1 || c.IsActive() {
+			t.Fatalf("node%s: unexpected slot state after deploy", name)
+		}
+	})
+
+	// Commit (patch): a minimal diff updates the source pre-activation
+	patchExtra, err := ngtypes.NewCommitExtra([]byte(srcV1), ngtypes.DiffHunks([]byte(srcV1), []byte(srcV2))).Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
+			ngtypes.Address{}, nil, nil, patchExtra, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		c, _ := node.chain.State.GetContract(addr)
+		if string(c.Source) != srcV2 {
+			t.Fatalf("node%s: patch commit did not apply", name)
+		}
+	})
+
+	// Activate: the vm goes live and init runs exactly here
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, h,
+			ngtypes.Address{}, nil, nil, nil, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		c, _ := node.chain.State.GetContract(addr)
+		if !c.IsActive() {
+			t.Fatalf("node%s: contract should be active", name)
+		}
+		if got := string(c.Context.Get("boot")); got != "boot" {
+			t.Fatalf("node%s: init did not run, boot=%q", name, got)
+		}
+	})
+
+	// Transact (fallback): value + empty extra runs main, which
+	// records the patched marker and msg.value
+	twoNG := new(big.Int).Mul(ngtypes.NG, big.NewInt(2))
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h,
+			addr, twoNG, nil, nil, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		c, _ := node.chain.State.GetContract(addr)
+		if got := string(c.Context.Get("hit")); got != "MAIN" {
+			t.Fatalf("node%s: main hit = %q, want MAIN (patched code)", name, got)
+		}
+		if got := c.Context.Get("paid"); !bytes.Equal(got, twoNG.Bytes()) {
+			t.Fatalf("node%s: paid = %x, want %x", name, got, twoNG.Bytes())
+		}
+	})
+
+	// Transact (selector): the eth-style selector routes to ping
+	selTx := relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h,
+			addr, nil, nil, ngtypes.EncodeCallData("ping", []byte("xy")), nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		c, _ := node.chain.State.GetContract(addr)
+		if got := string(c.Context.Get("hit")); got != "ping" {
+			t.Fatalf("node%s: selector hit = %q, want ping", name, got)
+		}
+		if got := string(c.Context.Get("args")); got != "xy" {
+			t.Fatalf("node%s: selector args = %q, want xy", name, got)
+		}
+		runs, err := node.chain.State.GetTxRuns(selTx.GetHash())
+		if err != nil || len(runs) != 1 || runs[0].Entry != "ping" || !runs[0].Ok {
+			t.Fatalf("node%s: receipt runs = %+v (%v)", name, runs, err)
+		}
+	})
+
+	// Deactivate: the vm goes off, the source reopens
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, h,
+			ngtypes.Address{}, nil, nil, nil, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		c, _ := node.chain.State.GetContract(addr)
+		if c.IsActive() {
+			t.Fatalf("node%s: contract should be inactive", name)
+		}
+	})
+
+	// Commit (after deactivation): the slot is editable again
+	patch3, err := ngtypes.NewCommitExtra([]byte(srcV2), ngtypes.DiffHunks([]byte(srcV2), []byte(srcV3))).Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
+			ngtypes.Address{}, nil, nil, patch3, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		c, _ := node.chain.State.GetContract(addr)
+		if string(c.Source) != srcV3 {
+			t.Fatalf("node%s: post-deactivation commit did not apply", name)
+		}
+	})
+
+	// Destroy: the slot (source AND context) disappears
+	relay(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, h,
+			ngtypes.Address{}, nil, nil, nil, nil)
+	})
+	bothNodes(func(name string, node *testNode) {
+		if _, err := node.chain.State.GetContract(addr); err == nil {
+			t.Fatalf("node%s: the slot must be gone after destroy", name)
+		}
+	})
+
+	// the exact fee ledger: 3 rewards in, 1 NG paid away, DeployFee
+	// burned; the 2 NG to the own contract was a self-transfer
+	want := new(big.Int).Mul(ngtypes.GetBlockReward(1), big.NewInt(3))
+	want.Sub(want, oneNG)
+	want.Sub(want, ngtypes.DeployFee)
+	bothNodes(func(name string, node *testNode) {
+		got, _ := node.chain.State.GetTotalBalanceByAddress(addr)
+		if got.Cmp(want) != 0 {
+			t.Fatalf("node%s: deployer balance = %s, want %s", name, got, want)
+		}
+	})
 }
