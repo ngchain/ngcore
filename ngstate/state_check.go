@@ -146,21 +146,19 @@ func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 	return err
 }
 
-// checkCommit checks commit tx: a dry-run of the whole patch application.
-// The first edit on an address opens its contract slot and must carry
-// the one-time DeployFee on top
+// checkCommit checks commit tx: a dry-run of the whole patch
+// application; the first commit on an address opens its contract slot
 func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 	if err := commitTx.CheckCommit(); err != nil {
 		return err
 	}
 
-	from, err := commitTx.From()
+	from, err := fromWithBalance(txn, commitTx, commitTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
 	baseText := []byte(nil)
-	expense := new(big.Int).Set(commitTx.Fee)
 
 	slot, err := getContract(txn, from)
 	if err == nil {
@@ -169,13 +167,6 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 			return ErrContractActive
 		}
 		baseText = slot.Source
-	} else {
-		// no slot yet: this edit is the namespace purchase
-		expense.Add(expense, ngtypes.DeployFee)
-	}
-
-	if getBalance(txn, from).Cmp(expense) < 0 {
-		return ErrTxrBalanceInsufficient
 	}
 
 	editExtra, err := ngtypes.DecodeCommitExtra(commitTx.Extra)

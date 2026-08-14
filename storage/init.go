@@ -12,7 +12,7 @@ var (
 
 	// state buckets
 	// ContractBucketName maps an address to its contract slot
-	// (opened once the deploy fee is paid — the address IS the namespace)
+	// (opened by the first commit — the address IS the namespace)
 	ContractBucketName = []byte("addr:contract")
 	Addr2BalBucketName = []byte("addr:bal")
 

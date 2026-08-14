@@ -6,7 +6,7 @@
 //     the balance holder and the namespace. Addresses spend directly;
 //     nothing is registered.
 //   - Contract: the code slot an address may open under its own
-//     namespace (CommitTx against the empty base burns DeployFee).
+//     namespace (the first CommitTx against the empty base opens it).
 //     Its Source is plain wat text, changed by committing diff hunks,
 //     frozen and executed while active.
 //

@@ -507,8 +507,7 @@ func TestContractLifecycle(t *testing.T) {
 	submit()
 	submit()
 
-	// deploy: the FIRST edit opens the address's slot (namespace
-	// purchase, DeployFee burned on top of the tx fee)
+	// deploy: the FIRST commit opens the address's slot
 	rawExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{
 		{Pos: 0, Ins: []byte(contractWat)},
 	}).Encode()
@@ -738,8 +737,8 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		}
 	})
 
-	// Commit (deploy): the first commit opens the namespace — the
-	// DeployFee burns automatically on top of the (zero) tx fee
+	// Commit (deploy): the first commit opens the namespace at plain
+	// tx-fee cost
 	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: []byte(srcV1)}}).Encode()
 	if err != nil {
 		t.Fatal(err)
@@ -864,11 +863,10 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		}
 	})
 
-	// the exact fee ledger: 3 rewards in, 1 NG paid away, DeployFee
-	// burned; the 2 NG to the own contract was a self-transfer
+	// the exact fee ledger: 3 rewards in, 1 NG paid away; the 2 NG to
+	// the own contract was a self-transfer, and every tx fee was zero
 	want := new(big.Int).Mul(ngtypes.GetBlockReward(1), big.NewInt(3))
 	want.Sub(want, oneNG)
-	want.Sub(want, ngtypes.DeployFee)
 	bothNodes(func(name string, node *testNode) {
 		got, _ := node.chain.State.GetTotalBalanceByAddress(addr)
 		if got.Cmp(want) != 0 {

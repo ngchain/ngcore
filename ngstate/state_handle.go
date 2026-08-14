@@ -128,9 +128,8 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 	return nil
 }
 
-// handleCommit applies a whole patch (CommitExtra hunks) onto the From address's
-// contract slot atomically. The first edit OPENS the slot — that is
-// the namespace purchase, charged at DeployFee on top of the tx fee
+// handleCommit applies a whole patch (CommitExtra hunks) onto the
+// sender's contract slot atomically; the first commit OPENS the slot
 func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	if err := tx.CheckCommit(); err != nil {
 		return err
@@ -142,8 +141,7 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 	}
 
 	slot, err := getContract(txn, from)
-	deploying := err != nil // no slot yet: this edit buys the namespace
-	if deploying {
+	if err != nil { // no slot yet: this commit opens the namespace
 		slot = ngtypes.NewContract(from, nil, nil)
 	}
 
@@ -151,12 +149,7 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return ErrContractActive
 	}
 
-	expense := new(big.Int).Set(tx.Fee)
-	if deploying {
-		expense.Add(expense, ngtypes.DeployFee)
-	}
-
-	if _, err := chargeFrom(txn, tx, expense); err != nil {
+	if _, err := chargeFrom(txn, tx, tx.TotalExpenditure()); err != nil {
 		return err
 	}
 

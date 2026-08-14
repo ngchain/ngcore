@@ -22,10 +22,9 @@ const (
 
 	TransactTx
 
-	// CommitTx commits a change set (diff hunks) onto the From address's
-	// contract slot, like a git commit onto the From address's namespace. The
-	// FIRST commit (against the empty base) creates the slot — that is
-	// the namespace purchase, burning DeployFee on top of the tx fee
+	// CommitTx commits a change set (diff hunks) onto the sender's
+	// contract slot, like a git commit onto the sender's namespace.
+	// The FIRST commit (against the empty base) creates the slot
 	CommitTx
 
 	ActivateTx   // freeze the contract: no more commits, and the vm gets active

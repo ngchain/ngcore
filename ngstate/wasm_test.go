@@ -345,25 +345,19 @@ func TestCommitFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	funded := new(big.Int).Add(ngtypes.DeployFee, big.NewInt(100))
-
 	err = db.Update(func(txn *bbolt.Tx) error {
 		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), deployExtra, nil)
 		if err := deployTx.Signature(priv); err != nil {
 			return err
 		}
 
-		// the FIRST edit must cover fee + DeployFee: the bare deploy fee
-		// alone is not enough
-		if err := setBalance(txn, addr, ngtypes.DeployFee); err != nil {
-			return err
-		}
+		// an unfunded address cannot even pay the tx fee
 		if err := checkCommit(txn, deployTx); err == nil {
-			t.Fatal("deploy without covering the deploy fee must fail")
+			t.Fatal("deploy without covering the fee must fail")
 		}
 
-		// funded properly: the namespace purchase goes through
-		if err := setBalance(txn, addr, funded); err != nil {
+		// funded: the first commit opens the slot at plain fee cost
+		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 		if err := checkCommit(txn, deployTx); err != nil {
@@ -376,7 +370,7 @@ func TestCommitFlow(t *testing.T) {
 			t.Fatalf("deploy fee not burned, balance = %s", got)
 		}
 
-		// the second edit patches the existing slot: only the tx fee
+		// the second commit patches the existing slot
 		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), patchExtra, nil)
 		if err := commitTx.Signature(priv); err != nil {
 			return err
