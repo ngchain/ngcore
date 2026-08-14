@@ -155,7 +155,16 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 	// the memoized work of the branch stays valid: it only depends on
 	// prev links, which do not change on a canonical switch
 
-	return chain.State.RebuildFromBlockStoreTxn(txn)
+	if err := chain.State.RebuildFromBlockStoreTxn(txn); err != nil {
+		return err
+	}
+
+	// the switch may land on a checkpoint tip: keep it servable
+	if branch[len(branch)-1].IsHead() {
+		return chain.State.GenerateSnapshotTxn(txn)
+	}
+
+	return nil
 }
 
 // SwitchToBranch validates a connected branch fetched from a remote and

@@ -48,6 +48,19 @@ func newNode(t *testing.T) *testNode {
 func newNodeAt(t *testing.T, dir string) *testNode {
 	t.Helper()
 
+	return bootNode(t, dir, false)
+}
+
+// newSnapshotNode boots a node running in snapshot (fast-sync) mode
+func newSnapshotNode(t *testing.T) *testNode {
+	t.Helper()
+
+	return bootNode(t, t.TempDir(), true)
+}
+
+func bootNode(t *testing.T, dir string, snapshotMode bool) *testNode {
+	t.Helper()
+
 	db, err := bbolt.Open(filepath.Join(dir, "chain.db"), 0o600, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -71,6 +84,7 @@ func newNodeAt(t *testing.T, dir string) *testNode {
 
 	pow := consensus.InitPoWConsensus(db, chain, pool, state, local, consensus.PoWorkConfig{
 		Network:                     ngtypes.ZERONET,
+		SnapshotMode:                snapshotMode,
 		DisableConnectingBootstraps: true,
 	})
 	pow.GoLoop()
@@ -401,6 +415,44 @@ func TestRestartPersistence(t *testing.T) {
 	peer := newNode(t)
 	connect(t, peer, node)
 	waitTip(t, peer, newTip.GetHash(), 45*time.Second)
+}
+
+// TestSnapshotSync: a fresh node in snapshot mode fast-syncs to the
+// serving node's checkpoint by fetching the chain segment plus the
+// checkpoint state sheet, applied atomically (no tx replay)
+func TestSnapshotSync(t *testing.T) {
+	if testing.Short() {
+		t.Skip("snapshot sync needs the 10s sync loop")
+	}
+
+	server := newNode(t)
+	miner, _ := secp256k1.GeneratePrivateKey()
+
+	// the server mines past its first checkpoint, which makes a servable
+	// state snapshot at height BlockCheckRound
+	var checkpoint *ngtypes.FullBlock
+	for i := 0; i < int(ngtypes.BlockCheckRound)+2; i++ {
+		b := mineAndSubmit(t, server, miner)
+		if b.GetHeight() == uint64(ngtypes.BlockCheckRound) {
+			checkpoint = b
+		}
+	}
+
+	client := newSnapshotNode(t)
+	connect(t, client, server)
+
+	// the snapshot sync lands the client exactly on the checkpoint
+	waitTip(t, client, checkpoint.GetHash(), 45*time.Second)
+
+	// the client state came from the sheet: the miner holds the rewards
+	// of blocks 1..checkpoint
+	want := big.NewInt(0)
+	for h := uint64(1); h <= uint64(ngtypes.BlockCheckRound); h++ {
+		want.Add(want, ngtypes.GetBlockReward(h))
+	}
+	if got := balanceOf(t, client, miner); got.Cmp(want) != 0 {
+		t.Fatalf("client balance = %s, want %s (from the sheet)", got, want)
+	}
 }
 
 // TestDeepForkConvergeViaSync covers the sync-module path: two nodes

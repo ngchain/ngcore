@@ -24,7 +24,7 @@ func (w *Wired) SendGetSheet(peerID peer.ID, checkpointHeight uint64, checkpoint
 
 	// create message data
 	req := &Message{
-		Header:  NewHeader(w.host, w.network, id, GetChainMsg),
+		Header:  NewHeader(w.host, w.network, id, GetSheetMsg),
 		Payload: payload,
 	}
 
@@ -66,6 +66,7 @@ func (w *Wired) onGetSheet(stream network.Stream, msg *Message) {
 	sheet := w.chain.GetSnapshot(getSheetPayload.Height, getSheetPayload.Hash)
 	if sheet == nil {
 		w.sendReject(msg.Header.ID, stream, ngstate.ErrSnapshotNofFound)
+		return
 	}
 
 	w.sendSheet(msg.Header.ID, stream, sheet)

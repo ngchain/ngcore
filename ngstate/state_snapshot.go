@@ -21,9 +21,24 @@ type SnapshotManager struct {
 	hashToSnapshot map[string]*ngtypes.Sheet // hash->sheet
 }
 
+// snapshotRetention bounds how many checkpoint rounds of snapshots stay
+// in memory (must cover the mature-balance lookback window)
+const snapshotRetention = 16
+
 func (sm *SnapshotManager) PutSnapshot(height uint64, hash []byte, sheet *ngtypes.Sheet) {
 	sm.Lock()
 	defer sm.Unlock()
+
+	// prune everything older than the retention window
+	if height > snapshotRetention*ngtypes.BlockCheckRound {
+		floor := height - snapshotRetention*ngtypes.BlockCheckRound
+		for h, hexHash := range sm.heightToHash {
+			if h < floor {
+				delete(sm.hashToSnapshot, hexHash)
+				delete(sm.heightToHash, h)
+			}
+		}
+	}
 
 	hexHash := hex.EncodeToString(hash)
 
@@ -72,8 +87,10 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 	return sm.hashToSnapshot[hex.EncodeToString(hash)]
 }
 
-// generateSnapshot when the block is a checkpoint
-func (state *State) generateSnapshot(txn *bbolt.Tx) error {
+// GenerateSnapshotTxn captures the current state as the sheet of the
+// latest block (a checkpoint) inside the given txn, making it servable
+// to snapshot-syncing peers
+func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 	accounts := make([]*ngtypes.Account, 0)
 	balances := make([]*ngtypes.Balance, 0)
 
@@ -85,7 +102,7 @@ func (state *State) generateSnapshot(txn *bbolt.Tx) error {
 
 	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
 	c := num2accBucket.Cursor()
-	for num, rawAccount := c.Seek(nil); num != nil; c.Next() {
+	for num, rawAccount := c.First(); num != nil; num, rawAccount = c.Next() {
 		var account ngtypes.Account
 		err = rlp.DecodeBytes(rawAccount, &account)
 		if err != nil {
@@ -98,7 +115,7 @@ func (state *State) generateSnapshot(txn *bbolt.Tx) error {
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 	c = addr2balBucket.Cursor()
 
-	for addr, rawBalance := c.Seek(nil); addr != nil; c.Next() {
+	for addr, rawBalance := c.First(); addr != nil; addr, rawBalance = c.Next() {
 		balances = append(balances, &ngtypes.Balance{
 			Address: new(ngtypes.Address).SetBytes(addr),
 			Amount:  new(big.Int).SetBytes(rawBalance),

@@ -20,7 +20,7 @@ func (w *Wired) sendSheet(uuid []byte, stream network.Stream, sheet *ngtypes.She
 	}
 
 	resp := &Message{
-		Header:  NewHeader(w.host, w.network, uuid, PongMsg),
+		Header:  NewHeader(w.host, w.network, uuid, SheetMsg),
 		Payload: rawPayload,
 	}
 

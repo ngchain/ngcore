@@ -78,7 +78,7 @@ func (w *Wired) handleStream(stream network.Stream) {
 	case GetChainMsg:
 		w.onGetChain(stream, &msg)
 	case GetSheetMsg:
-		w.onGetChain(stream, &msg)
+		w.onGetSheet(stream, &msg)
 	default:
 		w.sendReject(msg.Header.ID, stream, ErrMsgTypeInvalid)
 	}

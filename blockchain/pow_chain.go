@@ -43,7 +43,16 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 			}
 
 			tipMoved = true
-			return chain.State.Upgrade(txn, block)
+			if err := chain.State.Upgrade(txn, block); err != nil {
+				return err
+			}
+
+			// checkpoint tips get a servable state snapshot
+			if block.IsHead() {
+				return chain.State.GenerateSnapshotTxn(txn)
+			}
+
+			return nil
 		}
 
 		// side path: the block forks off the canonical chain

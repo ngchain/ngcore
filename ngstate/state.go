@@ -108,25 +108,29 @@ func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 
 // RebuildFromSheet will overwrite a state from the given sheet
 func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
-	if err := state.Update(func(txn *bbolt.Tx) error {
-		err := txn.DeleteBucket(storage.Addr2NumBucketName)
-		if err != nil {
+	return state.Update(func(txn *bbolt.Tx) error {
+		return state.RebuildFromSheetTxn(txn, sheet)
+	})
+}
+
+// RebuildFromSheetTxn resets the state to the sheet INSIDE the given
+// write txn, so a snapshot application can swap the chain and the state
+// atomically
+func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
+	for _, name := range [][]byte{
+		storage.Addr2NumBucketName,
+		storage.Addr2BalBucketName,
+		storage.Num2AccBucketName,
+	} {
+		if err := txn.DeleteBucket(name); err != nil {
 			return err
 		}
-		err = txn.DeleteBucket(storage.Addr2BalBucketName)
-		if err != nil {
+		if _, err := txn.CreateBucket(name); err != nil {
 			return err
 		}
-		err = txn.DeleteBucket(storage.Num2AccBucketName)
-		if err != nil {
-			return err
-		}
-		return initFromSheet(txn, sheet)
-	}); err != nil {
-		return err
 	}
 
-	return nil
+	return initFromSheet(txn, sheet)
 }
 
 // RebuildFromBlockStore works for doing converge and remove all
