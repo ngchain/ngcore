@@ -9,9 +9,11 @@ import (
 	"github.com/c0mm4nd/rlp"
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
+	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 )
 
 // Contracts compose like code modules: a contract imports another
@@ -53,11 +55,89 @@ var (
 const (
 	contextKeyDeps = "_deps" // rlp []uint64 on the DEPENDENT
 	contextKeyRefs = "_refs" // 8-byte LE counter on the DEPENDEE
+	contextKeyName = "_name" // the registered name of the contract
 )
 
+// maxContractNameLen bounds a registered contract name
+const maxContractNameLen = 32
+
+var (
+	ErrNameInvalid = errors.New("invalid contract name")
+	ErrNameTaken   = errors.New("contract name is already registered")
+	ErrNameUnknown = errors.New("unknown contract name")
+)
+
+// validContractName enforces [a-z0-9_-]{1,32}
+func validContractName(name string) bool {
+	if len(name) == 0 || len(name) > maxContractNameLen {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func contractNameKey(deployer ngtypes.Address, name string) []byte {
+	return append(append([]byte{}, deployer[:]...), name...)
+}
+
+// getNumByName resolves a (deployer, name) pair to the hosting account
+func getNumByName(txn *bbolt.Tx, deployer ngtypes.Address, name string) (uint64, error) {
+	raw := txn.Bucket(storage.ContractNameBucketName).Get(contractNameKey(deployer, name))
+	if len(raw) != 8 {
+		return 0, errors.Wrapf(ErrNameUnknown, "%s.%s", deployer.String(), name)
+	}
+
+	return binary.LittleEndian.Uint64(raw), nil
+}
+
+func setContractName(txn *bbolt.Tx, deployer ngtypes.Address, name string, num uint64) error {
+	raw := make([]byte, 8)
+	binary.LittleEndian.PutUint64(raw, num)
+
+	return txn.Bucket(storage.ContractNameBucketName).Put(contractNameKey(deployer, name), raw)
+}
+
+func delContractName(txn *bbolt.Tx, deployer ngtypes.Address, name string) error {
+	return txn.Bucket(storage.ContractNameBucketName).Delete(contractNameKey(deployer, name))
+}
+
+// resolveDepNum turns a dependency identifier into the hosting account
+// num. Two forms exist:
+//   - "700"                     — the raw account num
+//   - "<deployerBS58>.<name>"   — the registered addr.name handle
+func resolveDepNum(txn *bbolt.Tx, raw string) (uint64, error) {
+	if dot := strings.IndexByte(raw, '.'); dot >= 0 {
+		deployer, err := ngtypes.NewAddressFromBS58(raw[:dot])
+		if err != nil {
+			return 0, errors.Wrapf(ErrDepInvalidImport, "bad deployer address in %q: %v", raw, err)
+		}
+
+		name := raw[dot+1:]
+		if !validContractName(name) {
+			return 0, errors.Wrapf(ErrDepInvalidImport, "bad contract name in %q", raw)
+		}
+
+		return getNumByName(txn, deployer, name)
+	}
+
+	num, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil {
+		return 0, errors.Wrapf(ErrDepInvalidImport, "bad dependency identifier %q", raw)
+	}
+
+	return num, nil
+}
+
 // extractContractDeps compiles the contract text and returns its
-// declared dependencies (for the lock-time bookkeeping)
-func extractContractDeps(contractText []byte) ([]uint64, error) {
+// declared dependencies resolved to account nums (for the lock-time
+// bookkeeping)
+func extractContractDeps(txn *bbolt.Tx, contractText []byte) ([]uint64, error) {
 	if len(contractText) == 0 {
 		return nil, nil
 	}
@@ -77,13 +157,14 @@ func extractContractDeps(contractText []byte) ([]uint64, error) {
 		return nil, err
 	}
 
-	return depNums(deps), nil
+	return resolveDepNums(txn, deps)
 }
 
 // contractDep is one declared dependency: a library (code on the
-// caller's state) or a service (code on its own state)
+// caller's state) or a service (code on its own state). Raw is the
+// identifier as written in the import ("700" or "<bs58>.<name>")
 type contractDep struct {
-	Num     uint64
+	Raw     string
 	Service bool
 }
 
@@ -106,14 +187,9 @@ func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
 			continue
 		}
 
-		num, err := strconv.ParseUint(numStr, 10, 64)
-		if err != nil {
-			return nil, errors.Wrapf(ErrDepInvalidImport, "bad import namespace %q", imp.Module)
-		}
-
 		if !seen[imp.Module] {
 			seen[imp.Module] = true
-			deps = append(deps, contractDep{Num: num, Service: service})
+			deps = append(deps, contractDep{Raw: numStr, Service: service})
 		}
 	}
 
@@ -124,18 +200,22 @@ func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
 	return deps, nil
 }
 
-// depNums flattens the dependency set into the unique account nums the
-// reference ledger tracks
-func depNums(deps []contractDep) []uint64 {
+// resolveDepNums flattens the dependency set into the unique account
+// nums the reference ledger tracks
+func resolveDepNums(txn *bbolt.Tx, deps []contractDep) ([]uint64, error) {
 	seen := make(map[uint64]bool)
 	nums := make([]uint64, 0, len(deps))
 	for _, dep := range deps {
-		if !seen[dep.Num] {
-			seen[dep.Num] = true
-			nums = append(nums, dep.Num)
+		num, err := resolveDepNum(txn, dep.Raw)
+		if err != nil {
+			return nil, err
+		}
+		if !seen[num] {
+			seen[num] = true
+			nums = append(nums, num)
 		}
 	}
-	return nums
+	return nums, nil
 }
 
 // getContractDeps reads the recorded dependency list of the account

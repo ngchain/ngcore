@@ -3,7 +3,6 @@ package ngstate
 import (
 	"bytes"
 	"reflect"
-	"strconv"
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/types"
@@ -52,7 +51,7 @@ func (vm *VM) onStack(num uint64) bool {
 // to the dependency's account, runs the export on the dependency's own
 // instance, and returns. State effects land on the CALLEE's journal
 // slice — this is how shared-ledger contracts (tokens, pools) work
-func (vm *VM) linkServiceDep(num uint64, depAcc *ngtypes.Account, depth int) error {
+func (vm *VM) linkServiceDep(linkName string, num uint64, depAcc *ngtypes.Account, depth int) error {
 	depBin, err := CompileContract(depAcc.Contract)
 	if err != nil {
 		return errors.Wrapf(err, "service contract %d does not compile", num)
@@ -72,7 +71,6 @@ func (vm *VM) linkServiceDep(num uint64, depAcc *ngtypes.Account, depth int) err
 		return errors.Wrapf(err, "failed to instantiate service contract %d", num)
 	}
 
-	name := ServiceDepPrefix + strconv.FormatUint(num, 10)
 	for exportName := range depModule.ExportSection {
 		sig, ok := exportFuncSig(depModule, exportName)
 		if !ok {
@@ -80,10 +78,10 @@ func (vm *VM) linkServiceDep(num uint64, depAcc *ngtypes.Account, depth int) err
 		}
 
 		wrapper := vm.makeServiceWrapper(num, ins, exportName, sig)
-		if err := vm.linker.DefineAdvancedFunc(name, exportName, func(_ *wasman.Instance) interface{} {
+		if err := vm.linker.DefineAdvancedFunc(linkName, exportName, func(_ *wasman.Instance) interface{} {
 			return wrapper
 		}); err != nil {
-			return errors.Wrapf(ErrServiceBadExport, "%s.%s: %v", name, exportName, err)
+			return errors.Wrapf(ErrServiceBadExport, "%s.%s: %v", linkName, exportName, err)
 		}
 	}
 

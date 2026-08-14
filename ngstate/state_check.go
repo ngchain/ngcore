@@ -294,10 +294,21 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 		return ErrAccountLocked
 	}
 
+	// a non-empty lock extra must be a valid, free (or own) name
+	if len(lockTx.Extra) != 0 {
+		name := string(lockTx.Extra)
+		if !validContractName(name) {
+			return errors.Wrapf(ErrNameInvalid, "%q", name)
+		}
+		if existing, err := getNumByName(txn, convener.Owner, name); err == nil && existing != uint64(lockTx.Convener) {
+			return errors.Wrapf(ErrNameTaken, "%s -> account %d", name, existing)
+		}
+	}
+
 	// locking activates the vm, so the contract text must compile, and
 	// every declared module dependency must be an active contract
 	if len(convener.Contract) != 0 {
-		deps, err := extractContractDeps(convener.Contract)
+		deps, err := extractContractDeps(txn, convener.Contract)
 		if err != nil {
 			return err
 		}

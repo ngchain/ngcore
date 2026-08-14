@@ -106,12 +106,21 @@ picked per import by its namespace:
 
 ```wat
 ;; library: code runs on the CALLER's state (math, curves, algorithms)
-(import "contract/500" "double" (func $double (param i64) (result i64)))
+(import "contract/<id>" "double" (func $double (param i64) (result i64)))
 
 ;; service: code runs on the DEPENDENCY's own state (tokens, pools,
 ;; any shared ledger)
-(import "service/700" "transfer" (func $transfer (param i64 i64) (result i32)))
+(import "service/<id>" "transfer" (func $transfer (param i64 i64) (result i32)))
 ```
+
+`<id>` addresses the dependency in either form:
+
+- `<deployerBS58>.<name>` — the RECOMMENDED handle: a lock tx with a
+  non-empty extra registers `<owner-address>.<name>` for the contract
+  ([a-z0-9_-], max 32; unique per deployer, released on destroy). The
+  deployer's address in the identifier anchors WHO published the code
+  you link against, like a Go module path
+- `<num>` — the raw hosting account number (low-level form)
 
 Shared rules:
 

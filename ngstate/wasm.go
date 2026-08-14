@@ -137,25 +137,30 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		if dep.Service {
 			prefix = ServiceDepPrefix
 		}
-		name := prefix + strconv.FormatUint(dep.Num, 10)
+		name := prefix + dep.Raw
 		if _, linked := vm.linker.Modules[name]; linked {
 			continue
 		}
-		if dep.Num == vm.self.Num {
+
+		num, err := resolveDepNum(vm.txn, dep.Raw)
+		if err != nil {
+			return err
+		}
+		if num == vm.self.Num {
 			return ErrDepSelf
 		}
 
-		depAcc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(dep.Num))
+		depAcc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(num))
 		if err != nil {
-			return errors.Wrapf(err, "unknown dependency contract %d", dep.Num)
+			return errors.Wrapf(err, "unknown dependency contract %d", num)
 		}
 		if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
-			return errors.Wrapf(ErrDepNotActive, "contract %d", dep.Num)
+			return errors.Wrapf(ErrDepNotActive, "contract %d", num)
 		}
 
 		if dep.Service {
 			// service: own-state semantics via a host wrapper module
-			if err := vm.linkServiceDep(dep.Num, depAcc, depth); err != nil {
+			if err := vm.linkServiceDep(name, num, depAcc, depth); err != nil {
 				return err
 			}
 			continue
@@ -165,11 +170,11 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		// caller's state
 		depBin, err := CompileContract(depAcc.Contract)
 		if err != nil {
-			return errors.Wrapf(err, "dependency contract %d does not compile", dep.Num)
+			return errors.Wrapf(err, "dependency contract %d does not compile", num)
 		}
 		depModule, err := wasman.NewModule(vm.cfg, bytes.NewReader(depBin))
 		if err != nil {
-			return errors.Wrapf(err, "failed to load dependency contract %d", dep.Num)
+			return errors.Wrapf(err, "failed to load dependency contract %d", num)
 		}
 
 		// resolve the dependency's own imports first (DAG order)
@@ -178,7 +183,7 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		}
 
 		if _, err := vm.linker.Instantiate(depModule); err != nil {
-			return errors.Wrapf(err, "failed to instantiate dependency contract %d", dep.Num)
+			return errors.Wrapf(err, "failed to instantiate dependency contract %d", num)
 		}
 
 		vm.linker.Define(name, depModule)

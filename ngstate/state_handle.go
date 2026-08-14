@@ -129,6 +129,13 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
 	}
 
+	// destroying releases the registered name
+	if name := convener.Context.Get(contextKeyName); len(name) != 0 {
+		if err := delContractName(txn, convener.Owner, string(name)); err != nil {
+			return err
+		}
+	}
+
 	totalExpense := new(big.Int).Set(tx.Fee)
 
 	balance := getBalance(txn, convener.Owner)
@@ -296,9 +303,25 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
+	// optional naming: a non-empty lock extra registers
+	// <owner-address>.<name> as this contract's handle
+	if len(tx.Extra) != 0 {
+		name := string(tx.Extra)
+		if !validContractName(name) {
+			return errors.Wrapf(ErrNameInvalid, "%q", name)
+		}
+		if existing, err := getNumByName(txn, convener.Owner, name); err == nil && existing != uint64(tx.Convener) {
+			return errors.Wrapf(ErrNameTaken, "%s -> account %d", name, existing)
+		}
+		if err := setContractName(txn, convener.Owner, name, uint64(tx.Convener)); err != nil {
+			return err
+		}
+		convener.Context.Set(contextKeyName, []byte(name))
+	}
+
 	// module dependencies: every imported contract must be active, and
 	// each dependee gets a reference pinned until this contract unlocks
-	deps, err := extractContractDeps(convener.Contract)
+	deps, err := extractContractDeps(txn, convener.Contract)
 	if err != nil {
 		return err
 	}

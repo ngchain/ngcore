@@ -15,6 +15,10 @@ var (
 	// SnapshotBucketName persists the checkpoint state sheets, so the
 	// mature-balance lookups survive restarts
 	SnapshotBucketName = []byte("snapshot")
+
+	// ContractNameBucketName maps deployer-address + name to the account
+	// num hosting the contract, backing the addr.name import form
+	ContractNameBucketName = []byte("contract:names")
 )
 
 var (
@@ -27,6 +31,11 @@ var (
 func InitDB(db *bbolt.DB) {
 	db.Update(func(txn *bbolt.Tx) error {
 		_, err := txn.CreateBucketIfNotExists(BlockBucketName)
+		if err != nil {
+			return err
+		}
+
+		_, err = txn.CreateBucketIfNotExists(ContractNameBucketName)
 		if err != nil {
 			return err
 		}

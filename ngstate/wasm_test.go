@@ -635,6 +635,98 @@ func TestServiceToken(t *testing.T) {
 	}
 }
 
+// TestNamedContractDeps: contracts are addressable as deployer.name —
+// the name registers at lock time, imports resolve through the registry,
+// conflicts are refused, and destroy releases the name
+func TestNamedContractDeps(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	privToken, _ := secp256k1.GeneratePrivateKey()
+	privUser, _ := secp256k1.GeneratePrivateKey()
+	tokenDeployer := ngtypes.NewAddress(privToken)
+
+	// the consumer imports the token via <deployerBS58>.token
+	namedUserWat := `
+(module
+  (import "service/` + tokenDeployer.String() + `.token" "mint_to" (func $mint (param i64 i64)))
+  (func (export "main")
+    (call $mint (i64.const 600) (i64.const 5))))
+`
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		token := ngtypes.NewAccount(700, tokenDeployer, []byte(tokenWat), nil)
+		putAccount(t, txn, token, 100)
+		user := ngtypes.NewAccount(600, ngtypes.NewAddress(privUser), []byte(namedUserWat), nil)
+		putAccount(t, txn, user, 100)
+
+		lock := func(convener uint64, priv *secp256k1.PrivateKey, name string) error {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
+				nil, nil, big.NewInt(1), []byte(name), nil)
+			if err := tx.Signature(priv); err != nil {
+				t.Fatal(err)
+			}
+			return state.handleLock(txn, tx)
+		}
+
+		// the consumer cannot lock before the name exists
+		if err := lock(600, privUser, ""); err == nil {
+			t.Fatal("locking against an unregistered name must fail")
+		}
+
+		// lock the token under its name, then the consumer resolves it
+		if err := lock(700, privToken, "token"); err != nil {
+			t.Fatalf("lock named token: %v", err)
+		}
+		if err := lock(600, privUser, ""); err != nil {
+			t.Fatalf("lock consumer: %v", err)
+		}
+
+		// the registry pinned the dependency by resolved num
+		tokenAcc, _ := getAccountByNum(txn, 700)
+		if getRefCount(tokenAcc) != 1 {
+			t.Fatalf("token refcount = %d, want 1", getRefCount(tokenAcc))
+		}
+
+		// named execution works end to end
+		userAcc, _ := getAccountByNum(txn, 600)
+		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil))
+		if err != nil {
+			t.Fatalf("NewVM with named dep: %v", err)
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			t.Fatalf("named service run: %v", err)
+		}
+
+		// another account of the SAME deployer cannot take the name
+		other := ngtypes.NewAccount(701, tokenDeployer, []byte(dexWat), nil)
+		putAccount(t, txn, other, 100)
+		if err := lock(701, privToken, "token"); !errors.Is(err, ErrNameTaken) {
+			t.Fatalf("name conflict: got %v, want ErrNameTaken", err)
+		}
+
+		// a DIFFERENT deployer may use the same name (separate namespace)
+		otherDeployer, _ := secp256k1.GeneratePrivateKey()
+		foreign := ngtypes.NewAccount(702, ngtypes.NewAddress(otherDeployer), []byte(dexWat), nil)
+		putAccount(t, txn, foreign, 100)
+		if err := lock(702, otherDeployer, "token"); err != nil {
+			t.Fatalf("same name under another deployer must work: %v", err)
+		}
+
+		// invalid names are rejected
+		bad := ngtypes.NewAccount(703, ngtypes.NewAddress(privUser), []byte(dexWat), nil)
+		putAccount(t, txn, bad, 100)
+		if err := lock(703, privUser, "Bad.Name!"); !errors.Is(err, ErrNameInvalid) {
+			t.Fatalf("invalid name: got %v, want ErrNameInvalid", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestDestroyRules: an account cannot be destroyed while its contract
 // is active (locked) or non-empty — downstream contracts may depend on
 // it; after unlock + clearing, destroy goes through and removes the

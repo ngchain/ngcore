@@ -184,3 +184,16 @@ func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Accou
 
 	return account, nil
 }
+
+// ResolveContractName resolves a deployer.name handle to the hosting
+// account num
+func (state *State) ResolveContractName(deployer ngtypes.Address, name string) (uint64, error) {
+	var num uint64
+	err := state.View(func(txn *bbolt.Tx) error {
+		var err error
+		num, err = getNumByName(txn, deployer, name)
+		return err
+	})
+
+	return num, err
+}

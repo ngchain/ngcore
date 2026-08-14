@@ -389,6 +389,107 @@ func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, convener uint64, feeN
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
+type genLockParams struct {
+	Convener uint64  `json:"convener"`
+	Fee      float64 `json:"fee"`
+	Name     string  `json:"name"` // optional: registers <owner>.<name>
+}
+
+// genLockFunc composes an unsigned lock tx, optionally registering the
+// contract's addr.name handle
+func (s *Server) genLockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genLockParams
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return s.buildSimpleTx(msg, ngtypes.LockTx, params.Convener, params.Fee, []byte(params.Name))
+}
+
+type genUnlockParams struct {
+	Convener uint64  `json:"convener"`
+	Fee      float64 `json:"fee"`
+}
+
+// genUnlockFunc composes an unsigned unlock tx
+func (s *Server) genUnlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genUnlockParams
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return s.buildSimpleTx(msg, ngtypes.UnlockTx, params.Convener, params.Fee, nil)
+}
+
+// buildSimpleTx composes an unsigned convener-only tx of the given type
+func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxType, convener uint64, feeNG float64, extra []byte) *jsonrpc2.JsonRpcMessage {
+	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
+
+	tx := ngtypes.NewUnsignedTx(
+		s.pow.Network,
+		txType,
+		s.pow.Chain.GetLatestBlockHeight()+1,
+		ngtypes.AccountNum(convener),
+		nil,
+		nil,
+		fee,
+		extra,
+	)
+
+	rawTx, err := rlp.EncodeToBytes(tx)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
+
+type resolveContractParams struct {
+	Deployer string `json:"deployer"` // bs58 address
+	Name     string `json:"name"`
+}
+
+// resolveContractFunc resolves a deployer.name handle to its account num
+func (s *Server) resolveContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params resolveContractParams
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	deployer, err := ngtypes.NewAddressFromBS58(params.Deployer)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	num, err := s.pow.State.ResolveContractName(deployer, params.Name)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := utils.JSON.Marshal(num)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
+
 type getContractParams struct {
 	Num uint64 `json:"num"`
 }
