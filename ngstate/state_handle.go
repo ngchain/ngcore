@@ -117,13 +117,18 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 		return err
 	}
 
+	// mirror checkDestroy: no destroying an account with a contract or
+	// while locked (an active contract may be depended on downstream)
+	if len(convener.Contract) != 0 {
+		return ErrDestroyAccountContractNotEmpty
+	}
+	if convener.IsLocked() {
+		return ErrAccountLocked
+	}
+
 	totalExpense := new(big.Int).Set(tx.Fee)
 
 	balance := getBalance(txn, convener.Owner)
-
-	if err = tx.Verify(pk); err != nil {
-		return err
-	}
 
 	if balance.Cmp(totalExpense) < 0 {
 		return ErrTxrBalanceInsufficient

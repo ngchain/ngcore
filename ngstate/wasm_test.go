@@ -387,6 +387,63 @@ func TestEditFlow(t *testing.T) {
 	}
 }
 
+// TestDestroyRules: an account cannot be destroyed while its contract
+// is active (locked) or non-empty — downstream contracts may depend on
+// it; after unlock + clearing, destroy goes through and removes the
+// account (with its Context) entirely
+func TestDestroyRules(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	priv, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ngtypes.NewAddress(priv)
+
+	err = db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewAccount(900, addr, []byte(logWat), nil)
+		acc.SetLock(true)
+		putAccount(t, txn, acc, 100)
+
+		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, 900, nil, nil, big.NewInt(1), nil, nil)
+		if err := destroyTx.Signature(priv); err != nil {
+			return err
+		}
+
+		// locked: refused
+		if err := state.handleDestroy(txn, destroyTx); err == nil {
+			t.Fatal("destroying a locked account must fail")
+		}
+
+		// unlocked but the contract text remains: still refused
+		acc.SetLock(false)
+		if err := setAccount(txn, 900, acc); err != nil {
+			return err
+		}
+		if err := state.handleDestroy(txn, destroyTx); err != ErrDestroyAccountContractNotEmpty {
+			t.Fatalf("destroying with a contract: got %v, want ErrDestroyAccountContractNotEmpty", err)
+		}
+
+		// cleared: destroy goes through and the account is gone
+		acc.Contract = nil
+		if err := setAccount(txn, 900, acc); err != nil {
+			return err
+		}
+		if err := state.handleDestroy(txn, destroyTx); err != nil {
+			t.Fatalf("destroy after clearing: %v", err)
+		}
+		if _, err := getAccountByNum(txn, 900); err == nil {
+			t.Fatal("account (and its context) must be removed")
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestLockRejectsBrokenContract(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}

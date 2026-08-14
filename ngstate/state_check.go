@@ -206,10 +206,11 @@ func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 		return ErrDestroyAccountContractNotEmpty
 	}
 
-	// TODO
-	// if len(convener.Context) != 0 {
-	//	return fmt.Errorf("you should clear your context before destroy")
-	// }
+	// an active (locked) contract may be depended on by others: it must
+	// be unlocked first, which also re-enables clearing the contract
+	if convener.IsLocked() {
+		return ErrAccountLocked
+	}
 
 	return nil
 }
