@@ -14,19 +14,19 @@ import (
 
 // Event is one contract-emitted log entry
 type Event struct {
-	Contract uint64 // the account which emitted (the executing frame)
+	Contract []byte // the address which emitted (the executing frame)
 	Topic    string
 	Data     []byte
 }
 
 // ContractRun records one contract execution triggered by a tx
 type ContractRun struct {
-	Account uint64 // the contract the entry ran on
-	Entry   string // main / init
-	Ok      bool
-	Error   string
-	GasUsed uint64
-	Events  []Event
+	Contract []byte // the address the entry ran on
+	Entry    string // main / init
+	Ok       bool
+	Error    string
+	GasUsed  uint64
+	Events   []Event
 }
 
 // emission limits keep the local receipt store abuse-resistant

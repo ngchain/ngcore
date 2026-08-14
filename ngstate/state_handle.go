@@ -1,7 +1,6 @@
 package ngstate
 
 import (
-	"encoding/binary"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -20,10 +19,6 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 			return ngtypes.ErrTxTypeInvalid
 		case ngtypes.GenerateTx:
 			if err := state.handleGenerate(txn, tx); err != nil {
-				return err
-			}
-		case ngtypes.RegisterTx:
-			if err := state.handleRegister(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.DestroyTx:
@@ -55,7 +50,7 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 }
 
 func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.Verify(tx.Participants[0]); err != nil {
+	if err := tx.Verify(); err != nil {
 		return err
 	}
 
@@ -69,132 +64,60 @@ func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error
 	return nil
 }
 
-func (state *State) handleRegister(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	log.Debugf("handling new register: %s", tx.BS58())
-	if err = tx.Verify(tx.Participants[0]); err != nil {
-		return err
+// senderAndCharge verifies the tx, derives its sender and burns the
+// expenditure from the sender's balance
+func senderAndCharge(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
+	if err := tx.Verify(); err != nil {
+		return ngtypes.Address{}, err
 	}
 
-	totalExpense := new(big.Int).Set(tx.Fee)
-
-	balance := getBalance(txn, tx.Participants[0])
-
-	if balance.Cmp(totalExpense) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	err = setBalance(txn, tx.Participants[0], new(big.Int).Sub(balance, totalExpense))
+	sender, err := tx.Sender()
 	if err != nil {
-		return err
+		return ngtypes.Address{}, err
 	}
 
-	newAccount := ngtypes.NewAccount(ngtypes.AccountNum(binary.LittleEndian.Uint64(tx.Extra)), tx.Participants[0], nil, nil)
-
-	num := ngtypes.AccountNum(newAccount.Num)
-	err = setAccount(txn, num, newAccount)
-	if err != nil {
-		return err
+	balance := getBalance(txn, sender)
+	if balance.Cmp(expense) < 0 {
+		return ngtypes.Address{}, ErrTxrBalanceInsufficient
 	}
 
-	// write ownership
-	err = setOwnership(txn, tx.Participants[0], num)
-	if err != nil {
-		return err
+	if err := setBalance(txn, sender, new(big.Int).Sub(balance, expense)); err != nil {
+		return ngtypes.Address{}, err
 	}
 
-	return nil
+	return sender, nil
 }
 
+// handleDestroy removes the sender's contract slot entirely (contract
+// text AND context); the slot must be inactive and unreferenced
 func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	convener, err := getAccountByNum(txn, tx.Convener)
+	sender, err := senderAndCharge(txn, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
 
-	if err = tx.Verify(convener.Owner); err != nil {
+	slot, err := getAccount(txn, sender)
+	if err != nil {
 		return err
 	}
 
-	// mirror checkDestroy: no destroying an account with a contract or
-	// while locked (an active contract may be depended on downstream)
-	if len(convener.Contract) != 0 {
-		return ErrDestroyAccountContractNotEmpty
-	}
-	if convener.IsLocked() {
+	if slot.IsLocked() {
 		return ErrAccountLocked
 	}
-	if refs := getRefCount(convener); refs > 0 {
+	if refs := getRefCount(slot); refs > 0 {
 		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
 	}
 
-	// destroying releases the registered name
-	if name := convener.Context.Get(contextKeyName); len(name) != 0 {
-		if err := delContractName(txn, convener.Owner, string(name)); err != nil {
-			return err
-		}
-	}
-
-	totalExpense := new(big.Int).Set(tx.Fee)
-
-	balance := getBalance(txn, convener.Owner)
-
-	if balance.Cmp(totalExpense) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(balance, totalExpense))
-	if err != nil {
-		return err
-	}
-
-	err = delAccount(txn, ngtypes.AccountNum(convener.Num))
-	if err != nil {
-		return err
-	}
-
-	// remove ownership
-	err = delOwnership(txn, convener.Owner)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return delAccount(txn, sender)
 }
 
 func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
-	convener, err := getAccountByNum(txn, tx.Convener)
-	if err != nil {
-		return err
-	}
-
-	pk := convener.Owner
-
-	if err = tx.Verify(pk); err != nil {
-		return err
-	}
-
 	totalValue := big.NewInt(0)
 	for i := range tx.Values {
 		totalValue.Add(totalValue, tx.Values[i])
 	}
 
-	totalExpense := new(big.Int).Add(tx.Fee, totalValue)
-
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(totalExpense) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, totalExpense))
-	if err != nil {
-		return err
-	}
-
-	// persist the convener BEFORE any contract runs: a contract on the
-	// convener's own account would otherwise be overwritten by this
-	// stale pre-vm copy
-	err = setAccount(txn, tx.Convener, convener)
-	if err != nil {
+	if _, err := senderAndCharge(txn, tx, new(big.Int).Add(tx.Fee, totalValue)); err != nil {
 		return err
 	}
 
@@ -206,45 +129,43 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 			return err
 		}
 
-		if addrHasAccount(txn, tx.Participants[i]) {
-			num, err := getAccountNumByAddr(txn, tx.Participants[i])
-			if err != nil {
-				return err
-			}
-
-			state.runContract(txn, num, tx, VMEntryOnTx, blockTime)
+		if accountExists(txn, tx.Participants[i]) {
+			state.runContract(txn, tx.Participants[i], tx, VMEntryOnTx, blockTime)
 		}
 	}
 
 	return nil
 }
 
-// handleEdit applies a whole patch (EditExtra hunks) onto the contract
-// text atomically; the account must be unlocked
+// handleEdit applies a whole patch (EditExtra hunks) onto the sender's
+// contract slot atomically. The first edit OPENS the slot — that is
+// the namespace purchase, charged at DeployFee on top of the tx fee
 func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	convener, err := getAccountByNum(txn, tx.Convener)
+	if err := tx.CheckEdit(); err != nil {
+		return err
+	}
+
+	sender, err := tx.Sender()
 	if err != nil {
 		return err
 	}
 
-	pk := convener.Owner
-
-	if err = tx.CheckEdit(pk); err != nil {
-		return err
+	slot, err := getAccount(txn, sender)
+	deploying := err != nil // no slot yet: this edit buys the namespace
+	if deploying {
+		slot = ngtypes.NewAccount(sender, nil, nil)
 	}
 
-	if convener.IsLocked() {
+	if slot.IsLocked() {
 		return ErrAccountLocked
 	}
 
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(tx.Fee) < 0 {
-		return ErrTxrBalanceInsufficient
+	expense := new(big.Int).Set(tx.Fee)
+	if deploying {
+		expense.Add(expense, ngtypes.DeployFee)
 	}
 
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))
-	if err != nil {
+	if _, err := senderAndCharge(txn, tx, expense); err != nil {
 		return err
 	}
 
@@ -253,189 +174,154 @@ func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
-	convener.Contract, err = editExtra.Apply(convener.Contract)
+	slot.Contract, err = editExtra.Apply(slot.Contract)
 	if err != nil {
 		return err
 	}
 
-	err = setAccount(txn, tx.Convener, convener)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return setAccount(txn, slot)
 }
 
-// handleLock freezes the contract of the convener account: the contract
-// body becomes immutable and the vm gets active. The optional `init`
-// export runs once here, right after locking
+// handleLock freezes the sender's contract: the body becomes immutable
+// and the vm gets active. The optional `init` export runs once here
 func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
-	convener, err := getAccountByNum(txn, tx.Convener)
+	if err := tx.CheckLock(); err != nil {
+		return err
+	}
+
+	sender, err := senderAndCharge(txn, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
 
-	pk := convener.Owner
-	if err = tx.CheckLock(pk); err != nil {
+	slot, err := getAccount(txn, sender)
+	if err != nil {
 		return err
 	}
 
-	if convener.IsLocked() {
+	if slot.IsLocked() {
 		return ErrAccountLocked
 	}
 
 	// locking activates the vm, so the contract text must compile
-	if len(convener.Contract) != 0 {
-		if _, err := CompileContract(convener.Contract); err != nil {
+	if len(slot.Contract) != 0 {
+		if _, err := CompileContract(slot.Contract); err != nil {
 			return err
 		}
-	}
-
-	convenerBalance := getBalance(txn, convener.Owner)
-	if convenerBalance.Cmp(tx.Fee) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))
-	if err != nil {
-		return err
-	}
-
-	// optional naming: a non-empty lock extra registers
-	// <owner-address>.<name> as this contract's handle
-	if len(tx.Extra) != 0 {
-		name := string(tx.Extra)
-		if !validContractName(name) {
-			return errors.Wrapf(ErrNameInvalid, "%q", name)
-		}
-		if existing, err := getNumByName(txn, convener.Owner, name); err == nil && existing != uint64(tx.Convener) {
-			return errors.Wrapf(ErrNameTaken, "%s -> account %d", name, existing)
-		}
-		if err := setContractName(txn, convener.Owner, name, uint64(tx.Convener)); err != nil {
-			return err
-		}
-		convener.Context.Set(contextKeyName, []byte(name))
 	}
 
 	// module dependencies: every imported contract must be active, and
 	// each dependee gets a reference pinned until this contract unlocks
-	deps, err := extractContractDeps(txn, convener.Contract)
+	deps, err := extractContractDeps(slot.Contract)
 	if err != nil {
 		return err
 	}
-	for _, num := range deps {
-		if num == uint64(tx.Convener) {
+	for _, depAddr := range deps {
+		if depAddr.Equals(sender) {
 			return ErrDepSelf
 		}
 
-		depAcc, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+		depAcc, err := getAccount(txn, depAddr)
 		if err != nil {
-			return errors.Wrapf(err, "unknown dependency contract %d", num)
+			return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
 		}
 		if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
-			return errors.Wrapf(ErrDepNotActive, "contract %d", num)
+			return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
 		}
 
 		setRefCount(depAcc, getRefCount(depAcc)+1)
-		if err := setAccount(txn, ngtypes.AccountNum(num), depAcc); err != nil {
+		if err := setAccount(txn, depAcc); err != nil {
 			return err
 		}
 	}
 
-	convener.SetLock(true)
-	if err := setContractDeps(convener, deps); err != nil {
+	slot.SetLock(true)
+	if err := setContractDeps(slot, deps); err != nil {
 		return err
 	}
 
-	err = setAccount(txn, tx.Convener, convener)
+	err = setAccount(txn, slot)
 	if err != nil {
 		return err
 	}
 
-	state.runContract(txn, tx.Convener, tx, VMEntryOnLock, blockTime)
+	state.runContract(txn, sender, tx, VMEntryOnLock, blockTime)
 
 	return nil
 }
 
-// handleUnlock disables the vm of the convener account and makes the
-// contract body editable again
+// handleUnlock disables the vm of the sender's contract and makes the
+// body editable again
 func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	convener, err := getAccountByNum(txn, tx.Convener)
+	if err := tx.CheckUnlock(); err != nil {
+		return err
+	}
+
+	sender, err := senderAndCharge(txn, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
 
-	pk := convener.Owner
-	if err = tx.CheckUnlock(pk); err != nil {
+	slot, err := getAccount(txn, sender)
+	if err != nil {
 		return err
 	}
 
-	if !convener.IsLocked() {
+	if !slot.IsLocked() {
 		return ErrAccountNotLocked
 	}
 
 	// a depended-on module cannot deactivate: its dependents would lose
 	// the code they link against
-	if refs := getRefCount(convener); refs > 0 {
+	if refs := getRefCount(slot); refs > 0 {
 		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
 	}
 
-	convenerBalance := getBalance(txn, convener.Owner)
-	if convenerBalance.Cmp(tx.Fee) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))
-	if err != nil {
-		return err
-	}
-
 	// release the references this contract held on its dependencies
-	deps, err := getContractDeps(convener)
+	deps, err := getContractDeps(slot)
 	if err != nil {
 		return err
 	}
-	for _, num := range deps {
-		depAcc, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+	for _, depAddr := range deps {
+		depAcc, err := getAccount(txn, depAddr)
 		if err != nil {
 			return err
 		}
 		if refs := getRefCount(depAcc); refs > 0 {
 			setRefCount(depAcc, refs-1)
-			if err := setAccount(txn, ngtypes.AccountNum(num), depAcc); err != nil {
+			if err := setAccount(txn, depAcc); err != nil {
 				return err
 			}
 		}
 	}
 
-	convener.SetLock(false)
-	if err := setContractDeps(convener, nil); err != nil {
+	slot.SetLock(false)
+	if err := setContractDeps(slot, nil); err != nil {
 		return err
 	}
 
-	return setAccount(txn, tx.Convener, convener)
+	return setAccount(txn, slot)
 }
 
-// runContract executes the entry export of the account's contract, if the
-// account is locked and has one. A contract failure is final for this call
-// (its journal is dropped) but NEVER fails the tx itself: every node hits
-// the same result, so consensus is kept
-func (state *State) runContract(txn *bbolt.Tx, num ngtypes.AccountNum, tx *ngtypes.FullTx, entry string, blockTime uint64) {
-	account, err := getAccountByNum(txn, num)
+// runContract executes the entry export of the address's contract, if
+// its slot is locked and has one. A contract failure is final for this
+// call (its journal is dropped) but NEVER fails the tx itself: every
+// node hits the same result, so consensus is kept
+func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, entry string, blockTime uint64) {
+	account, err := getAccount(txn, addr)
 	if err != nil {
-		log.Errorf("failed to load account %d for its contract: %v", num, err)
-		return
+		return // no contract slot on this address
 	}
 
 	if !account.IsLocked() || len(account.Contract) == 0 {
 		return
 	}
 
-	run := ContractRun{Account: uint64(num), Entry: entry}
+	run := ContractRun{Contract: addr.Bytes(), Entry: entry}
 
 	vm, err := NewVM(txn, account, tx, blockTime)
 	if err != nil {
-		log.Errorf("failed to build the vm for account %d: %v", num, err)
+		log.Errorf("failed to build the vm for %s: %v", addr, err)
 		run.Error = err.Error()
 		recordRun(txn, tx, run)
 		return
@@ -448,7 +334,7 @@ func (state *State) runContract(txn *bbolt.Tx, num ngtypes.AccountNum, tx *ngtyp
 			return // optional entry (e.g. init) is absent — no run to record
 		}
 
-		log.Errorf("contract call %s on account %d failed: %v", entry, num, err)
+		log.Errorf("contract call %s on %s failed: %v", entry, addr, err)
 		run.Error = err.Error()
 		recordRun(txn, tx, run)
 		return

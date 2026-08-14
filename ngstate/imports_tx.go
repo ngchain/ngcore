@@ -63,19 +63,14 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	// get_paid exposes msg.value: the total this tx pays to the account
-	// executing right now (sums the values whose participant address is
-	// the current frame's owner), as big-endian big.Int bytes
+	// get_paid exposes msg.value: the total this tx pays to the address
+	// executing right now, as big-endian big.Int bytes
 	paidToCurrent := func() []byte {
-		acc, err := vm.journal.accountOf(vm.txn, vm.currentAccount())
-		if err != nil {
-			vm.logger.Error(err)
-			return nil
-		}
+		current := vm.currentAccount()
 
 		total := new(big.Int)
 		for i := range vm.caller.Participants {
-			if i < len(vm.caller.Values) && vm.caller.Participants[i] == acc.Owner {
+			if i < len(vm.caller.Values) && vm.caller.Participants[i] == current {
 				total.Add(total, vm.caller.Values[i])
 			}
 		}
@@ -107,9 +102,23 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("tx", "get_convener", func(ins *wasman.Instance) interface{} {
-		return func() uint64 {
-			return uint64(vm.caller.Convener)
+	// get_sender writes the tx sender's address (derived from the
+	// signature envelope); zero address when the tx is unsigned
+	err = vm.linker.DefineAdvancedFunc("tx", "get_sender", func(ins *wasman.Instance) interface{} {
+		return func(ptr uint32) uint32 {
+			sender, err := vm.caller.Sender()
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			l, err := cp(ins, ptr, sender[:])
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			return l
 		}
 	})
 	if err != nil {

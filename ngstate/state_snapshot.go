@@ -102,9 +102,9 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 		return err
 	}
 
-	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
-	c := num2accBucket.Cursor()
-	for num, rawAccount := c.First(); num != nil; num, rawAccount = c.Next() {
+	contractBucket := txn.Bucket(storage.ContractBucketName)
+	c := contractBucket.Cursor()
+	for addr, rawAccount := c.First(); addr != nil; addr, rawAccount = c.Next() {
 		var account ngtypes.Account
 		err = rlp.DecodeBytes(rawAccount, &account)
 		if err != nil {

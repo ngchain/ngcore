@@ -11,17 +11,14 @@ var (
 	TxBlockPrefix = []byte("blk:")
 
 	// state buckets
-	Num2AccBucketName  = []byte("num:acc")
+	// ContractBucketName maps an address to its contract slot
+	// (opened once the deploy fee is paid — the address IS the namespace)
+	ContractBucketName = []byte("addr:contract")
 	Addr2BalBucketName = []byte("addr:bal")
-	Addr2NumBucketName = []byte("addr:num")
 
 	// SnapshotBucketName persists the checkpoint state sheets, so the
 	// mature-balance lookups survive restarts
 	SnapshotBucketName = []byte("snapshot")
-
-	// ContractNameBucketName maps deployer-address + name to the account
-	// num hosting the contract, backing the addr.name import form
-	ContractNameBucketName = []byte("contract:names")
 
 	// ReceiptBucketName holds the LOCAL (non-consensus) execution
 	// receipts: tx hash -> contract runs with their events. Every node
@@ -38,44 +35,14 @@ var (
 
 func InitDB(db *bbolt.DB) {
 	db.Update(func(txn *bbolt.Tx) error {
-		_, err := txn.CreateBucketIfNotExists(BlockBucketName)
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.CreateBucketIfNotExists(ReceiptBucketName)
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.CreateBucketIfNotExists(ContractNameBucketName)
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.CreateBucketIfNotExists(SnapshotBucketName)
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.CreateBucketIfNotExists(TxBucketName)
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.CreateBucketIfNotExists(Num2AccBucketName)
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.CreateBucketIfNotExists(Addr2BalBucketName)
-		if err != nil {
-			return err
-		}
-
-		_, err = txn.CreateBucketIfNotExists(Addr2NumBucketName)
-		if err != nil {
-			return err
+		for _, name := range [][]byte{
+			BlockBucketName, TxBucketName,
+			ContractBucketName, Addr2BalBucketName,
+			SnapshotBucketName, ReceiptBucketName,
+		} {
+			if _, err := txn.CreateBucketIfNotExists(name); err != nil {
+				return err
+			}
 		}
 
 		return nil

@@ -1,7 +1,7 @@
 package ngpool_test
 
 import (
-	"encoding/binary"
+	"bytes"
 	"errors"
 	"math/big"
 	"path/filepath"
@@ -36,7 +36,7 @@ func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
 
-	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height, 0,
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		[]ngtypes.Address{ngtypes.NewAddress(miner)},
 		[]*big.Int{ngtypes.GetBlockReward(height)},
 		big.NewInt(0), nil, nil)
@@ -61,22 +61,6 @@ func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	return nil
 }
 
-func registerTx(t *testing.T, height uint64, owner *ngtypes.PrivateKey, num uint64) *ngtypes.FullTx {
-	t.Helper()
-
-	extra := make([]byte, 8)
-	binary.LittleEndian.PutUint64(extra, num)
-
-	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.RegisterTx, height, 1,
-		[]ngtypes.Address{ngtypes.NewAddress(owner)},
-		[]*big.Int{big.NewInt(0)},
-		ngtypes.RegisterFee, extra, nil)
-	if err := tx.Signature(owner); err != nil {
-		t.Fatal(err)
-	}
-	return tx
-}
-
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
@@ -96,14 +80,12 @@ func newTestEnv(t *testing.T) *testEnv {
 	keyA, _ := ngtypes.GenerateKey()
 	keyB, _ := ngtypes.GenerateKey()
 
-	// fund both keys, then register their accounts
+	// fund both keys: addresses spend directly, no registration
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineWithTxs(t, genesis, keyA)
 	b2 := mineWithTxs(t, b1, keyB)
-	b3 := mineWithTxs(t, b2, keyA, registerTx(t, 3, keyA, 500))
-	b4 := mineWithTxs(t, b3, keyB, registerTx(t, 4, keyB, 600))
 
-	for _, b := range []*ngtypes.FullBlock{b1, b2, b3, b4} {
+	for _, b := range []*ngtypes.FullBlock{b1, b2} {
 		if err := chain.ApplyBlock(b); err != nil {
 			t.Fatalf("apply block@%d: %v", b.GetHeight(), err)
 		}
@@ -112,12 +94,12 @@ func newTestEnv(t *testing.T) *testEnv {
 	return &testEnv{chain: chain, pool: pool, keyA: keyA, keyB: keyB}
 }
 
-// transactTx builds a signed transact tx from the given registered account
-func transactTx(t *testing.T, height uint64, convener uint64, owner *ngtypes.PrivateKey, fee int64) *ngtypes.FullTx {
+// transactTx builds a signed transact tx from the owner's address
+func transactTx(t *testing.T, height uint64, owner *ngtypes.PrivateKey, fee int64) *ngtypes.FullTx {
 	t.Helper()
 
 	dest := testAddr()
-	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height, ngtypes.AccountNum(convener),
+	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
 		[]ngtypes.Address{dest}, []*big.Int{big.NewInt(10)}, big.NewInt(fee), nil, nil)
 	if err := tx.Signature(owner); err != nil {
 		t.Fatal(err)
@@ -136,12 +118,12 @@ func TestPutTxHeightGating(t *testing.T) {
 	next := env.chain.GetLatestBlockHeight() + 1 // 5
 
 	// the next block's height is the only admissible lock
-	if err := env.pool.PutTx(transactTx(t, next, 500, env.keyA, 1)); err != nil {
+	if err := env.pool.PutTx(transactTx(t, next, env.keyA, 1)); err != nil {
 		t.Fatalf("tx locked on the next height rejected: %v", err)
 	}
 
 	for _, h := range []uint64{next - 1, next + 1} {
-		err := env.pool.PutTx(transactTx(t, h, 600, env.keyB, 1))
+		err := env.pool.PutTx(transactTx(t, h, env.keyB, 1))
 		if !errors.Is(err, ngpool.ErrTxInvalidHeight) {
 			t.Fatalf("tx locked on height %d: got %v, want ErrTxInvalidHeight", h, err)
 		}
@@ -152,8 +134,8 @@ func TestPutTxReplacementByFee(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	cheap := transactTx(t, next, 500, env.keyA, 1)
-	rich := transactTx(t, next, 500, env.keyA, 5)
+	cheap := transactTx(t, next, env.keyA, 1)
+	rich := transactTx(t, next, env.keyA, 5)
 
 	if err := env.pool.PutTx(cheap); err != nil {
 		t.Fatal(err)
@@ -179,8 +161,8 @@ func TestGetPackFeeSelection(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	txA := transactTx(t, next, 500, env.keyA, 1) // cheap
-	txB := transactTx(t, next, 600, env.keyB, 9) // rich
+	txA := transactTx(t, next, env.keyA, 1) // cheap
+	txB := transactTx(t, next, env.keyB, 9) // rich
 
 	if err := env.pool.PutTx(txA); err != nil {
 		t.Fatal(err)
@@ -189,13 +171,13 @@ func TestGetPackFeeSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// both fit: the pack carries them in canonical (convener) order
+	// both fit: the pack carries them in canonical (tx hash) order
 	pack := env.pool.GetPack(next)
 	if len(pack) != 2 {
 		t.Fatalf("pack size = %d, want 2", len(pack))
 	}
-	if pack[0].Convener != 500 || pack[1].Convener != 600 {
-		t.Fatal("pack must be in canonical convener order")
+	if bytes.Compare(pack[0].GetHash(), pack[1].GetHash()) > 0 {
+		t.Fatal("pack must be in canonical tx-hash order")
 	}
 
 	// wrong height packs nothing
@@ -209,8 +191,8 @@ func TestPoolCapacityEviction(t *testing.T) {
 	env.pool.MaxSize = 1
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	cheap := transactTx(t, next, 500, env.keyA, 1)
-	rich := transactTx(t, next, 600, env.keyB, 9)
+	cheap := transactTx(t, next, env.keyA, 1)
+	rich := transactTx(t, next, env.keyB, 9)
 
 	if err := env.pool.PutTx(cheap); err != nil {
 		t.Fatal(err)
@@ -222,7 +204,7 @@ func TestPoolCapacityEviction(t *testing.T) {
 	}
 
 	pack := env.pool.GetPack(next)
-	if len(pack) != 1 || pack[0].Convener != 600 {
+	if len(pack) != 1 || !bytes.Equal(pack[0].GetHash(), rich.GetHash()) {
 		t.Fatal("pool should hold the rich tx only")
 	}
 
@@ -236,7 +218,7 @@ func TestPoolResetOnTipChange(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	if err := env.pool.PutTx(transactTx(t, next, 500, env.keyA, 1)); err != nil {
+	if err := env.pool.PutTx(transactTx(t, next, env.keyA, 1)); err != nil {
 		t.Fatal(err)
 	}
 	if len(env.pool.GetPack(next)) != 1 {

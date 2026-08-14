@@ -1,6 +1,7 @@
 package ngpool
 
 import (
+	"bytes"
 	"sort"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -10,9 +11,9 @@ import (
 const MaxTxsPerPack = 512
 
 // GetPack returns a TxTrie of the txs packable at the height. The fee
-// order (highest first, ties broken by the lower convener num) decides
-// WHICH txs survive the MaxTxsPerPack cap; the trie then re-sorts the
-// survivors into the canonical in-block order (by convener)
+// order (highest first, ties broken by the tx hash) decides WHICH txs
+// survive the MaxTxsPerPack cap; the trie then re-sorts the survivors
+// into the canonical in-block order (by tx hash)
 func (pool *TxPool) GetPack(height uint64) ngtypes.TxTrie {
 	pool.Lock()
 	defer pool.Unlock()
@@ -31,7 +32,7 @@ func (pool *TxPool) GetPack(height uint64) ngtypes.TxTrie {
 		case -1:
 			return false
 		default:
-			return txs[i].Convener < txs[j].Convener
+			return bytes.Compare(txs[i].GetHash(), txs[j].GetHash()) < 0
 		}
 	})
 

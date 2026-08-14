@@ -18,8 +18,7 @@ type TxType uint8
 const (
 	InvalidTx TxType = iota
 	GenerateTx
-	RegisterTx
-	DestroyTx // renamed from logout
+	DestroyTx
 
 	TransactTx
 
@@ -34,7 +33,6 @@ type FullTx struct {
 	Network      Network
 	Type         TxType
 	Height       uint64 // lock the tx on the specific height, rather than the hash, to make the tx can act on forking
-	Convener     AccountNum
 	Participants []Address
 	Fee          *big.Int
 	Values       []*big.Int // each value is a free-length slice
@@ -44,7 +42,7 @@ type FullTx struct {
 }
 
 // NewTx is the default constructor for ngtypes.Tx
-func NewTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
+func NewTx(network Network, txType TxType, height uint64, participants []Address, values []*big.Int, fee *big.Int,
 	extraData, sign []byte) *FullTx {
 	if participants == nil {
 		participants = []Address{}
@@ -70,7 +68,6 @@ func NewTx(network Network, txType TxType, height uint64, convener AccountNum, p
 		Network:      network,
 		Type:         txType,
 		Height:       height,
-		Convener:     convener,
 		Participants: participants,
 		Fee:          fee,
 		Values:       values,
@@ -83,10 +80,10 @@ func NewTx(network Network, txType TxType, height uint64, convener AccountNum, p
 }
 
 // NewUnsignedTx will return an unsigned tx, must using Signature().
-func NewUnsignedTx(network Network, txType TxType, height uint64, convener AccountNum, participants []Address, values []*big.Int, fee *big.Int,
+func NewUnsignedTx(network Network, txType TxType, height uint64, participants []Address, values []*big.Int, fee *big.Int,
 	extraData []byte) *FullTx {
 
-	return NewTx(network, txType, height, convener, participants, values, fee, extraData, nil)
+	return NewTx(network, txType, height, participants, values, fee, extraData, nil)
 }
 
 // IsSigned will return whether the op has been signed.
@@ -94,12 +91,22 @@ func (x *FullTx) IsSigned() bool {
 	return len(x.Sign) != 0
 }
 
-// Verify checks the tx signature — a flat envelope of the owner's
-// public key followed by its signature — against the owner address:
-// the key must hash to the address and the signature must cover the
-// unsigned tx hash. The public key is only revealed here, at spend
-// time, never by the address itself
-func (x *FullTx) Verify(owner Address) error {
+// Sender derives the sender address from the public key embedded in
+// the signature envelope: whoever holds the key IS the address. The
+// state layer enforces every spending rule against this derived sender
+func (x *FullTx) Sender() (Address, error) {
+	if len(x.Sign) != PublicKeySize+TxSignatureSize {
+		return Address{}, ErrTxUnsigned
+	}
+
+	return AddressOfPubKey(x.Sign[:PublicKeySize]), nil
+}
+
+// Verify checks the tx signature — a flat envelope of the sender's
+// public key followed by its signature over the unsigned tx hash. The
+// public key is only revealed here, at spend time, never by the
+// address itself
+func (x *FullTx) Verify() error {
 	if x.Height == 0 {
 		return nil // ignore all tx error on genesis block
 	}
@@ -116,14 +123,7 @@ func (x *FullTx) Verify(owner Address) error {
 		return errors.Wrapf(ErrTxSignInvalid, "signature envelope is %d bytes", len(x.Sign))
 	}
 
-	pubKey := x.Sign[:PublicKeySize]
-	sig := x.Sign[PublicKeySize:]
-
-	if !AddressOfPubKey(pubKey).Equals(owner) {
-		return errors.Wrap(ErrTxSignInvalid, "public key does not hash to the owner address")
-	}
-
-	if !VerifyHashSig(pubKey, x.GetUnsignedHash(), sig) {
+	if !VerifyHashSig(x.Sign[:PublicKeySize], x.GetUnsignedHash(), x.Sign[PublicKeySize:]) {
 		return ErrTxSignInvalid
 	}
 
@@ -191,10 +191,6 @@ func (x *FullTx) Equals(other merkletree.Content) (bool, error) {
 		return false, nil
 	}
 
-	if x.Convener != tx.Convener {
-		return false, nil
-	}
-
 	if x.Height != tx.Height {
 		return false, nil
 	}
@@ -240,10 +236,6 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 		return ErrBlockNoHeader
 	}
 
-	if x.Convener != 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "generate's convener should be 0")
-	}
-
 	if len(x.Values) != len(x.Participants) {
 		return errors.Wrap(ErrTxParticipantsInvalid, "generate should have same len with participants")
 	}
@@ -256,52 +248,27 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 		return errors.Wrap(ErrTxFeeInvalid, "generate's fee should be ZERO")
 	}
 
-	if err := x.Verify(x.Participants[0]); err != nil {
+	if err := x.Verify(); err != nil {
 		return err
+	}
+
+	// the reward must go to the miner who signed the block's generate
+	if x.Height != 0 {
+		sender, err := x.Sender()
+		if err != nil {
+			return err
+		}
+		if len(x.Participants) != 1 || !sender.Equals(x.Participants[0]) {
+			return errors.Wrap(ErrTxParticipantsInvalid, "generate must pay its own signer")
+		}
 	}
 
 	return nil
 }
 
-// CheckRegister does a self check for register tx
-func (x *FullTx) CheckRegister() error {
-	if x == nil {
-		return ErrTxNoHeader
-	}
-
-	if x.Convener != 0o1 {
-		return errors.Wrap(ErrTxConvenerInvalid, "register's convener should be 1")
-	}
-
-	if len(x.Participants) != 1 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "register should have only one participant")
-	}
-
-	if len(x.Values) != 1 {
-		return errors.Wrap(ErrTxValuesInvalid, "register should have only one value")
-	}
-
-	if x.Values[0].Cmp(big.NewInt(0)) != 0 {
-		return errors.Wrap(ErrTxValuesInvalid, "register should have only one value, the amount of which is 0")
-	}
-
-	if x.Fee.Cmp(RegisterFee) < 0 {
-		return errors.Wrap(ErrTxFeeInvalid, "register should have at least 10NG(one block reward) fee")
-	}
-
-	if len(x.Extra) != 1<<3 {
-		return errors.Wrap(ErrTxExtraInvalid, "register should have uint64 little-endian bytes as extra")
-	}
-
-	if err := x.Verify(x.Participants[0]); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// CheckDestroy does a self check for destroy tx
-func (x *FullTx) CheckDestroy(owner Address) error {
+// CheckDestroy does a self check for destroy tx: the sender clears its
+// own contract slot
+func (x *FullTx) CheckDestroy() error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -310,52 +277,31 @@ func (x *FullTx) CheckDestroy(owner Address) error {
 		return errors.Wrap(ErrTxParticipantsInvalid, "destroy should have NO participant")
 	}
 
-	if x.Convener == 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "destroy's convener should NOT be 0")
-	}
-
-	if len(x.Participants) != 0 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "destroy should have no participants")
-	}
-
 	if len(x.Values) != 0 {
 		return errors.Wrap(ErrTxValuesInvalid, "destroy should have NO value")
 	}
 
-	// the signature envelope itself records the full keyset, so the
-	// old rule of echoing the public key into Extra is obsolete
-	return x.Verify(owner)
+	return x.Verify()
 }
 
 // CheckTransaction does a self check for normal transaction tx
-func (x *FullTx) CheckTransaction(owner Address) error {
+func (x *FullTx) CheckTransaction() error {
 	if x == nil {
 		return ErrTxNoHeader
-	}
-
-	if x.Convener == 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "transact's convener should NOT be 0")
 	}
 
 	if len(x.Values) != len(x.Participants) {
 		return errors.Wrap(ErrTxParticipantsInvalid, "transact should have same len with participants")
 	}
 
-	if err := x.Verify(owner); err != nil {
-		return err
-	}
-
-	return nil
+	return x.Verify()
 }
 
-// CheckEdit does a self check for edit tx
-func (x *FullTx) CheckEdit(owner Address) error {
+// CheckEdit does a self check for edit tx: the sender patches its own
+// contract slot
+func (x *FullTx) CheckEdit() error {
 	if x == nil {
 		return ErrTxNoHeader
-	}
-
-	if x.Convener == 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "edit's convener should NOT be 0")
 	}
 
 	if len(x.Participants) != 0 {
@@ -366,18 +312,13 @@ func (x *FullTx) CheckEdit(owner Address) error {
 		return errors.Wrap(ErrTxValuesInvalid, "edit should have NO value")
 	}
 
-	return x.Verify(owner)
+	return x.Verify()
 }
 
-// Signature will re-sign the Tx with private key.
 // CheckLock does a self check for lock tx
-func (x *FullTx) CheckLock(owner Address) error {
+func (x *FullTx) CheckLock() error {
 	if x == nil {
 		return ErrTxNoHeader
-	}
-
-	if x.Convener == 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "lock's convener should NOT be 0")
 	}
 
 	if len(x.Participants) != 0 {
@@ -388,17 +329,13 @@ func (x *FullTx) CheckLock(owner Address) error {
 		return errors.Wrap(ErrTxValuesInvalid, "lock should have NO value")
 	}
 
-	return x.Verify(owner)
+	return x.Verify()
 }
 
 // CheckUnlock does a self check for unlock tx
-func (x *FullTx) CheckUnlock(owner Address) error {
+func (x *FullTx) CheckUnlock() error {
 	if x == nil {
 		return ErrTxNoHeader
-	}
-
-	if x.Convener == 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "unlock's convener should NOT be 0")
 	}
 
 	if len(x.Participants) != 0 {
@@ -409,7 +346,7 @@ func (x *FullTx) CheckUnlock(owner Address) error {
 		return errors.Wrap(ErrTxValuesInvalid, "unlock should have NO value")
 	}
 
-	return x.Verify(owner)
+	return x.Verify()
 }
 
 // Signature signs the tx, embedding the public key and its signature

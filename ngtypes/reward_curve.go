@@ -13,7 +13,7 @@ const (
 	minBlockRewardNG      = 2
 	floatingBlockRewardNG = maxBlockRewardNG - minBlockRewardNG
 
-	registerFeeNG = maxBlockRewardNG
+	deployFeeNG = maxBlockRewardNG
 )
 
 var (
@@ -21,8 +21,9 @@ var (
 	floatingReward = new(big.Int).Mul(NG, big.NewInt(floatingBlockRewardNG)) // 8NG
 )
 
-// RegisterFee is the fee for registering a new account
-var RegisterFee = new(big.Int).Mul(NG, big.NewInt(registerFeeNG))
+// DeployFee is the one-time fee for opening an address's contract
+// slot (the namespace purchase); it is burned like every fee
+var DeployFee = new(big.Int).Mul(NG, big.NewInt(deployFeeNG))
 
 var (
 	big1  = big.NewInt(1)

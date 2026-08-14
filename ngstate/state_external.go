@@ -3,7 +3,6 @@ package ngstate
 import (
 	"math/big"
 
-	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 
@@ -12,73 +11,12 @@ import (
 	"github.com/ngchain/ngcore/storage"
 )
 
-// GetTotalBalanceByNum get the balance of account by the account's num
-func (state *State) GetTotalBalanceByNum(num uint64) (*big.Int, error) {
-	var balance *big.Int
-
-	err := state.View(func(txn *bbolt.Tx) error {
-		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
-		if err != nil {
-			return err
-		}
-
-		addr := account.Owner
-		balance = getBalance(txn, addr)
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return balance, nil
-}
-
 // GetTotalBalanceByAddress get the total balance of account by the account's address
 func (state *State) GetTotalBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
 	var balance *big.Int
 
 	err := state.View(func(txn *bbolt.Tx) error {
 		balance = getBalance(txn, address)
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return balance, nil
-}
-
-// GetMatureBalanceByNum get the balance of account by the account's num
-func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
-	balance := big.NewInt(0)
-
-	err := state.View(func(txn *bbolt.Tx) error {
-		blockBucket := txn.Bucket(storage.BlockBucketName)
-
-		account, err := getAccountByNum(txn, ngtypes.AccountNum(num))
-		if err != nil {
-			return err
-		}
-
-		addr := ngtypes.Address(account.Owner)
-
-		currentHeight, err := ngblocks.GetLatestHeight(blockBucket)
-		if err != nil {
-			return err
-		}
-
-		matureSnapshot := state.GetSnapshotByHeight(ngtypes.GetMatureHeight(currentHeight))
-		if matureSnapshot == nil {
-			return errors.Wrap(ErrSnapshotNofFound, "cannot find the mature snapshot") // abnormal
-		}
-
-		for i := range matureSnapshot.Balances {
-			if matureSnapshot.Balances[i].Address == addr {
-				balance = matureSnapshot.Balances[i].Amount
-			}
-		}
 
 		return nil
 	})
@@ -123,77 +61,18 @@ func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int
 	return balance, nil
 }
 
-// AccountIsRegistered checks whether the account is registered in state
-func (state *State) AccountIsRegistered(num uint64) bool {
-	exists := true // block register action by default
-
-	_ = state.View(func(txn *bbolt.Tx) error {
-		exists = accountNumExists(txn, ngtypes.AccountNum(num))
-
-		return nil
-	})
-
-	return exists
-}
-
-// GetAccountByNum returns an ngtypes.Account obj by the account's number
-func (state *State) GetAccountByNum(num uint64) (account *ngtypes.Account, err error) {
-	err = state.View(func(txn *bbolt.Tx) error {
-		account, err = getAccountByNum(txn, ngtypes.AccountNum(num))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return account, nil
-}
-
-// GetAccountByAddress returns an ngtypes.Account obj by the account's address
-// this is a heavy action, so dont called by any internal part like p2p and consensus
+// GetAccountByAddress returns the contract slot of the address, if it
+// ever deployed
 func (state *State) GetAccountByAddress(address ngtypes.Address) (*ngtypes.Account, error) {
 	var account *ngtypes.Account
 	err := state.View(func(txn *bbolt.Tx) error {
-		addr2NumBucket := txn.Bucket(storage.Addr2NumBucketName)
-		num2accBucket := txn.Bucket(storage.Num2AccBucketName)
-
-		num := addr2NumBucket.Get(address[:])
-		if num == nil {
-			return errors.Wrapf(storage.ErrKeyNotFound, "cannot find %s's account", address)
-		}
-		rawAccount := num2accBucket.Get(num)
-
-		var acc ngtypes.Account
-		err := rlp.DecodeBytes(rawAccount, &acc)
-		if err != nil {
-			return err
-		}
-
-		if address == acc.Owner {
-			account = &acc
-			return nil
-		}
-		return nil
+		var err error
+		account, err = getAccount(txn, address)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return account, nil
-}
-
-// ResolveContractName resolves a deployer.name handle to the hosting
-// account num
-func (state *State) ResolveContractName(deployer ngtypes.Address, name string) (uint64, error) {
-	var num uint64
-	err := state.View(func(txn *bbolt.Tx) error {
-		var err error
-		num, err = getNumByName(txn, deployer, name)
-		return err
-	})
-
-	return num, err
 }

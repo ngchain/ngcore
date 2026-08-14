@@ -177,7 +177,7 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 	}
 
 	height := block.GetHeight()
-	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height, 0,
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		[]ngtypes.Address{ngtypes.NewAddress(miner)},
 		[]*big.Int{ngtypes.GetBlockReward(height)},
 		big.NewInt(0), nil, nil)
@@ -269,45 +269,29 @@ func TestRPCChainQueries(t *testing.T) {
 	}
 }
 
-// TestRPCAccountQueries covers account and balance lookups on the
-// genesis account and a nonexistent one
+// TestRPCAccountQueries covers balance and slot lookups by address
 func TestRPCAccountQueries(t *testing.T) {
 	node := newRPCNode(t)
 
-	var account struct {
-		Num uint64 `json:"num"`
-	}
-	decodeInto(t, node.mustCall(t, "getAccountByNum", map[string]any{"num": 1}), &account)
-	if account.Num != 1 {
-		t.Fatalf("getAccountByNum(1).Num = %d", account.Num)
-	}
-
-	wantBalance, err := node.pow.State.GetTotalBalanceByNum(1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// balance by address works for any funded address
+	miner, _ := ngtypes.GenerateKey()
+	mineViaRPC(t, node, miner)
 
 	var balance struct {
 		TotalBalance  string
 		MatureBalance string
 		LockedBalance string
 	}
-	decodeInto(t, node.mustCall(t, "getBalanceByNum", map[string]any{"num": 1}), &balance)
-	if balance.TotalBalance != wantBalance.String() {
-		t.Fatalf("getBalanceByNum(1) = %s, want %s", balance.TotalBalance, wantBalance)
-	}
-
-	// balance by address works for any funded address, registered or not
-	miner, _ := ngtypes.GenerateKey()
-	mineViaRPC(t, node, miner)
 	decodeInto(t, node.mustCall(t, "getBalanceByAddress",
 		map[string]any{"address": ngtypes.NewAddress(miner).BS58()}), &balance)
 	if want := ngtypes.GetBlockReward(1).String(); balance.TotalBalance != want {
 		t.Fatalf("getBalanceByAddress = %s, want %s", balance.TotalBalance, want)
 	}
 
-	if _, rpcErr := node.call(t, "getAccountByNum", map[string]any{"num": 12345}); rpcErr == nil {
-		t.Fatal("getAccountByNum(12345) should fail")
+	// an address without a contract slot has no account entry
+	if _, rpcErr := node.call(t, "getAccountByAddress",
+		map[string]any{"address": ngtypes.NewAddress(miner).BS58()}); rpcErr == nil {
+		t.Fatal("getAccountByAddress before deploying should fail")
 	}
 }
 
@@ -359,8 +343,8 @@ func TestRPCMiningLoop(t *testing.T) {
 }
 
 // TestRPCContractLifecycle walks a contract through its whole life
-// purely over rpc: fund -> register -> deploy (edit) -> activate
-// (lock+name) -> resolve -> dry-run -> trigger -> receipt
+// purely over rpc: fund -> deploy (first edit = namespace purchase) ->
+// activate (lock) -> dry-run -> trigger -> receipt
 func TestRPCContractLifecycle(t *testing.T) {
 	const contractWat = `
 (module
@@ -400,67 +384,50 @@ func TestRPCContractLifecycle(t *testing.T) {
 		return rawHex
 	}
 
-	// fund the deployer with one block reward (= the register fee)
+	// fund the deployer: two block rewards cover the deploy fee + change
+	mineViaRPC(t, node, key)
 	mineViaRPC(t, node, key)
 
-	// register account 901 owned by the miner address
-	signAndSend(genResult("genRegister", map[string]any{"owner": addr.BS58(), "num": 901}))
-	mineViaRPC(t, node, key)
-
-	var account struct {
-		Num uint64 `json:"num"`
-	}
-	decodeInto(t, node.mustCall(t, "getAccountByNum", map[string]any{"num": 901}), &account)
-	if account.Num != 901 {
-		t.Fatal("register tx did not land")
-	}
-
-	// the fresh account is also reachable by its owner address
-	decodeInto(t, node.mustCall(t, "getAccountByAddress",
-		map[string]any{"address": addr.BS58()}), &account)
-	if account.Num != 901 {
-		t.Fatalf("getAccountByAddress(deployer).Num = %d, want 901", account.Num)
-	}
-
-	// deploy: the edit tx patches the empty contract to the wat text
+	// deploy: the FIRST edit opens the address's contract slot (the
+	// namespace purchase — DeployFee burned on top of the tx fee)
 	signAndSend(genResult("genEdit", map[string]any{
-		"convener": 901,
-		"fee":      0.05,
-		"hunks":    []map[string]any{{"pos": 0, "del": "", "ins": contractWat}},
+		"address": addr.BS58(),
+		"fee":     0.05,
+		"hunks":   []map[string]any{{"pos": 0, "del": "", "ins": contractWat}},
 	}))
 	mineViaRPC(t, node, key)
 
+	var account struct {
+		Owner string `json:"owner"`
+	}
+	decodeInto(t, node.mustCall(t, "getAccountByAddress",
+		map[string]any{"address": addr.BS58()}), &account)
+	if account.Owner != addr.BS58() {
+		t.Fatalf("slot owner = %s, want %s", account.Owner, addr.BS58())
+	}
+
 	var text string
-	decodeInto(t, node.mustCall(t, "getContract", map[string]any{"num": 901}), &text)
+	decodeInto(t, node.mustCall(t, "getContract", map[string]any{"address": addr.BS58()}), &text)
 	if text != contractWat {
 		t.Fatal("getContract mismatch after the edit tx")
 	}
 
-	// activate under the deployer.name handle
-	signAndSend(genResult("genLock", map[string]any{
-		"convener": 901, "fee": 0.05, "name": "counter",
-	}))
+	// activate: the sender locks its own slot
+	signAndSend(genResult("genLock", map[string]any{"fee": 0.05}))
 	mineViaRPC(t, node, key)
 
-	var num uint64
-	decodeInto(t, node.mustCall(t, "resolveContract",
-		map[string]any{"deployer": addr.BS58(), "name": "counter"}), &num)
-	if num != 901 {
-		t.Fatalf("resolveContract = %d, want 901", num)
-	}
-
-	// dry-run through the name handle: nothing lands on chain, but the
-	// simulated run reports success, gas and events
+	// dry-run by address: nothing lands on chain, but the simulated
+	// run reports success, gas and events
 	var dryRun struct {
 		Success bool   `json:"success"`
 		GasUsed uint64 `json:"gasUsed"`
 		Events  []struct {
-			Contract uint64 `json:"contract"`
+			Contract string `json:"contract"`
 			Topic    string `json:"topic"`
 		} `json:"events"`
 	}
 	decodeInto(t, node.mustCall(t, "callContract", map[string]any{
-		"contract": addr.BS58() + ".counter",
+		"contract": addr.BS58(),
 	}), &dryRun)
 	if !dryRun.Success {
 		t.Fatal("callContract dry-run failed")
@@ -468,11 +435,11 @@ func TestRPCContractLifecycle(t *testing.T) {
 	if dryRun.GasUsed < 1000 {
 		t.Fatalf("dry-run gasUsed = %d: the kv.set tier is missing", dryRun.GasUsed)
 	}
-	if len(dryRun.Events) != 1 || dryRun.Events[0].Topic != "key" || dryRun.Events[0].Contract != 901 {
+	if len(dryRun.Events) != 1 || dryRun.Events[0].Topic != "key" || dryRun.Events[0].Contract != addr.BS58() {
 		t.Fatalf("dry-run events = %+v", dryRun.Events)
 	}
 
-	acc, err := node.pow.State.GetAccountByNum(901)
+	acc, err := node.pow.State.GetAccountByAddress(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -480,17 +447,16 @@ func TestRPCContractLifecycle(t *testing.T) {
 		t.Fatal("the dry-run leaked state onto the chain")
 	}
 
-	// trigger for real: a transact tx to the contract account runs main
+	// trigger for real: a transact tx to the contract address runs main
 	txHash := signAndSend(genResult("genTransaction", map[string]any{
-		"convener":     901,
-		"participants": []any{901},
+		"participants": []string{addr.BS58()},
 		"values":       []float64{0},
 		"fee":          0.01,
 		"extra":        "",
 	}))
 	mineViaRPC(t, node, key)
 
-	acc, err = node.pow.State.GetAccountByNum(901)
+	acc, err = node.pow.State.GetAccountByAddress(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -511,10 +477,10 @@ func TestRPCContractLifecycle(t *testing.T) {
 	var receipt struct {
 		OnChain bool `json:"onChain"`
 		Runs    []struct {
-			Account uint64 `json:"account"`
-			Success bool   `json:"success"`
-			GasUsed uint64 `json:"gasUsed"`
-			Events  []struct {
+			Contract string `json:"contract"`
+			Success  bool   `json:"success"`
+			GasUsed  uint64 `json:"gasUsed"`
+			Events   []struct {
 				Topic string `json:"topic"`
 			} `json:"events"`
 		} `json:"runs"`
@@ -523,7 +489,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	if !receipt.OnChain {
 		t.Fatal("getReceipt: tx should be on chain")
 	}
-	if len(receipt.Runs) != 1 || !receipt.Runs[0].Success || receipt.Runs[0].Account != 901 {
+	if len(receipt.Runs) != 1 || !receipt.Runs[0].Success || receipt.Runs[0].Contract != addr.BS58() {
 		t.Fatalf("getReceipt runs = %+v", receipt.Runs)
 	}
 	if receipt.Runs[0].GasUsed == 0 || len(receipt.Runs[0].Events) != 1 ||

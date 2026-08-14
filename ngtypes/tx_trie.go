@@ -1,6 +1,7 @@
 package ngtypes
 
 import (
+	"bytes"
 	"sort"
 
 	"github.com/cbergoon/merkletree"
@@ -14,7 +15,7 @@ type TxTrie []*FullTx
 // NewTxTrie receives ordered ops.
 func NewTxTrie(txs []*FullTx) TxTrie {
 	sort.Slice(txs, func(i, j int) bool {
-		return txs[i].Convener < txs[j].Convener
+		return bytes.Compare(txs[i].GetHash(), txs[j].GetHash()) < 0
 	})
 	return txs
 }

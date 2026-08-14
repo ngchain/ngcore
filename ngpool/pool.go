@@ -25,7 +25,7 @@ type TxPool struct {
 	sync.Mutex
 
 	db    *bbolt.DB
-	txMap map[uint64]*ngtypes.FullTx // convener num -> queued tx
+	txMap map[ngtypes.Address]*ngtypes.FullTx // sender address -> queued tx
 
 	// MaxSize caps the pool; when full, a new tx must outbid the
 	// cheapest queued one
@@ -39,7 +39,7 @@ func Init(db *bbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *Tx
 	pool := &TxPool{
 		Mutex: sync.Mutex{},
 		db:    db,
-		txMap: make(map[uint64]*ngtypes.FullTx),
+		txMap: make(map[ngtypes.Address]*ngtypes.FullTx),
 
 		MaxSize: DefaultPoolSize,
 
@@ -69,5 +69,5 @@ func (pool *TxPool) Reset() {
 	pool.Lock()
 	defer pool.Unlock()
 
-	pool.txMap = make(map[uint64]*ngtypes.FullTx)
+	pool.txMap = make(map[ngtypes.Address]*ngtypes.FullTx)
 }

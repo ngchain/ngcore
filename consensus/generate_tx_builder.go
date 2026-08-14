@@ -15,7 +15,6 @@ func CreateGenerateTx(network ngtypes.Network, privateKey *ngtypes.PrivateKey, h
 		network,
 		ngtypes.GenerateTx,
 		height,
-		0,
 		[]ngtypes.Address{addr},
 		[]*big.Int{ngtypes.GetBlockReward(height)},
 		fee,

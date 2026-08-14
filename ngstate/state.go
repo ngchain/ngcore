@@ -81,16 +81,16 @@ func InitStateFromGenesis(db *bbolt.DB, network ngtypes.Network) *State {
 
 // initFromSheet will overwrite a state from the given sheet
 func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
-	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
+	contractBucket := txn.Bucket(storage.ContractBucketName)
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
-	for num, account := range sheet.Accounts {
+	for _, account := range sheet.Accounts {
 		rawAccount, err := rlp.EncodeToBytes(account)
 		if err != nil {
 			return err
 		}
 
-		err = num2accBucket.Put(ngtypes.AccountNum(num).Bytes(), rawAccount)
+		err = contractBucket.Put(account.Owner[:], rawAccount)
 		if err != nil {
 			return err
 		}
@@ -118,9 +118,8 @@ func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
 // atomically
 func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 	for _, name := range [][]byte{
-		storage.Addr2NumBucketName,
 		storage.Addr2BalBucketName,
-		storage.Num2AccBucketName,
+		storage.ContractBucketName,
 	} {
 		if err := txn.DeleteBucket(name); err != nil {
 			return err
@@ -143,9 +142,8 @@ func (state *State) RebuildFromBlockStore() error {
 // chain and the state atomically: any failure aborts both
 func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 	for _, name := range [][]byte{
-		storage.Addr2NumBucketName,
 		storage.Addr2BalBucketName,
-		storage.Num2AccBucketName,
+		storage.ContractBucketName,
 		storage.ReceiptBucketName, // receipts regenerate with the replay
 	} {
 		if err := txn.DeleteBucket(name); err != nil {

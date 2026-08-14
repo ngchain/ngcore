@@ -97,7 +97,7 @@ func initLogImports(vm *VM) error {
 			dataCopy := make([]byte, len(data))
 			copy(dataCopy, data)
 			vm.events = append(vm.events, Event{
-				Contract: vm.currentAccount(),
+				Contract: vm.currentAccount().Bytes(),
 				Topic:    string(topic),
 				Data:     dataCopy,
 			})

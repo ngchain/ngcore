@@ -7,7 +7,6 @@ import (
 )
 
 type jsonAccount struct {
-	Num   uint64  `json:"num"`
 	Owner Address `json:"owner"`
 
 	Contract string          `json:"contract"`
@@ -17,7 +16,6 @@ type jsonAccount struct {
 // MarshalJSON converts the Account into json bytes
 func (x *Account) MarshalJSON() ([]byte, error) {
 	return utils.JSON.Marshal(jsonAccount{
-		Num:   x.Num,
 		Owner: x.Owner,
 
 		Contract: hex.EncodeToString(x.Contract),
@@ -39,7 +37,6 @@ func (x *Account) UnmarshalJSON(data []byte) error {
 	}
 
 	*x = *NewAccount(
-		AccountNum(account.Num),
 		account.Owner,
 		contract,
 		account.Context,

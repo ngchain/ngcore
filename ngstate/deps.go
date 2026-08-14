@@ -3,22 +3,20 @@ package ngstate
 import (
 	"bytes"
 	"encoding/binary"
-	"strconv"
-	"strings"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
 	"github.com/pkg/errors"
-	"go.etcd.io/bbolt"
+	"strings"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 // Contracts compose like code modules: a contract imports another
-// LOCKED contract's exports through the "contract/<num>" namespace,
-// e.g. (import "contract/42" "swap" (func $swap ...)).
+// LOCKED contract's exports through the "contract/<deployer bs58
+// address>" namespace, e.g.
+// (import "contract/9VLK...Gkb" "swap" (func $swap ...)).
 //
 // The import section of the wat text declares the dependencies
 // STATICALLY, so the chain extracts them at lock time and maintains a
@@ -53,91 +51,24 @@ var (
 
 // reserved context keys backing the dependency ledger
 const (
-	contextKeyDeps = "_deps" // rlp []uint64 on the DEPENDENT
+	contextKeyDeps = "_deps" // rlp []Address (as [][]byte) on the DEPENDENT
 	contextKeyRefs = "_refs" // 8-byte LE counter on the DEPENDEE
-	contextKeyName = "_name" // the registered name of the contract
 )
 
-// maxContractNameLen bounds a registered contract name
-const maxContractNameLen = 32
-
-var (
-	ErrNameInvalid = errors.New("invalid contract name")
-	ErrNameTaken   = errors.New("contract name is already registered")
-	ErrNameUnknown = errors.New("unknown contract name")
-)
-
-// validContractName enforces [a-z0-9_-]{1,32}
-func validContractName(name string) bool {
-	if len(name) == 0 || len(name) > maxContractNameLen {
-		return false
-	}
-	for i := 0; i < len(name); i++ {
-		c := name[i]
-		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-' {
-			continue
-		}
-		return false
-	}
-	return true
-}
-
-func contractNameKey(deployer ngtypes.Address, name string) []byte {
-	return append(append([]byte{}, deployer[:]...), name...)
-}
-
-// getNumByName resolves a (deployer, name) pair to the hosting account
-func getNumByName(txn *bbolt.Tx, deployer ngtypes.Address, name string) (uint64, error) {
-	raw := txn.Bucket(storage.ContractNameBucketName).Get(contractNameKey(deployer, name))
-	if len(raw) != 8 {
-		return 0, errors.Wrapf(ErrNameUnknown, "%s.%s", deployer.String(), name)
-	}
-
-	return binary.LittleEndian.Uint64(raw), nil
-}
-
-func setContractName(txn *bbolt.Tx, deployer ngtypes.Address, name string, num uint64) error {
-	raw := make([]byte, 8)
-	binary.LittleEndian.PutUint64(raw, num)
-
-	return txn.Bucket(storage.ContractNameBucketName).Put(contractNameKey(deployer, name), raw)
-}
-
-func delContractName(txn *bbolt.Tx, deployer ngtypes.Address, name string) error {
-	return txn.Bucket(storage.ContractNameBucketName).Delete(contractNameKey(deployer, name))
-}
-
-// resolveDepNum turns a dependency identifier into the hosting account
-// num. Two forms exist:
-//   - "700"                     — the raw account num
-//   - "<deployerBS58>.<name>"   — the registered addr.name handle
-func resolveDepNum(txn *bbolt.Tx, raw string) (uint64, error) {
-	if dot := strings.IndexByte(raw, '.'); dot >= 0 {
-		deployer, err := ngtypes.NewAddressFromBS58(raw[:dot])
-		if err != nil {
-			return 0, errors.Wrapf(ErrDepInvalidImport, "bad deployer address in %q: %v", raw, err)
-		}
-
-		name := raw[dot+1:]
-		if !validContractName(name) {
-			return 0, errors.Wrapf(ErrDepInvalidImport, "bad contract name in %q", raw)
-		}
-
-		return getNumByName(txn, deployer, name)
-	}
-
-	num, err := strconv.ParseUint(raw, 10, 64)
+// resolveDepAddr turns a dependency identifier — the deployer's bs58
+// address — into the Address
+func resolveDepAddr(raw string) (ngtypes.Address, error) {
+	addr, err := ngtypes.NewAddressFromBS58(raw)
 	if err != nil {
-		return 0, errors.Wrapf(ErrDepInvalidImport, "bad dependency identifier %q", raw)
+		return ngtypes.Address{}, errors.Wrapf(ErrDepInvalidImport, "bad dependency address %q: %v", raw, err)
 	}
 
-	return num, nil
+	return addr, nil
 }
 
 // extractContractDeps compiles the contract text and returns its
-// declared dependencies resolved to account nums (for the lock-time
-// bookkeeping)
-func extractContractDeps(txn *bbolt.Tx, contractText []byte) ([]uint64, error) {
+// declared dependency addresses (for the lock-time bookkeeping)
+func extractContractDeps(contractText []byte) ([]ngtypes.Address, error) {
 	if len(contractText) == 0 {
 		return nil, nil
 	}
@@ -157,12 +88,12 @@ func extractContractDeps(txn *bbolt.Tx, contractText []byte) ([]uint64, error) {
 		return nil, err
 	}
 
-	return resolveDepNums(txn, deps)
+	return resolveDepAddrs(deps)
 }
 
 // contractDep is one declared dependency: a library (code on the
 // caller's state) or a service (code on its own state). Raw is the
-// identifier as written in the import ("700" or "<bs58>.<name>")
+// deployer address as written in the import
 type contractDep struct {
 	Raw     string
 	Service bool
@@ -175,13 +106,13 @@ func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
 	deps := make([]contractDep, 0)
 
 	for _, imp := range module.ImportSection {
-		var numStr string
+		var addrStr string
 		var service bool
 		switch {
 		case strings.HasPrefix(imp.Module, ContractDepPrefix):
-			numStr = imp.Module[len(ContractDepPrefix):]
+			addrStr = imp.Module[len(ContractDepPrefix):]
 		case strings.HasPrefix(imp.Module, ServiceDepPrefix):
-			numStr = imp.Module[len(ServiceDepPrefix):]
+			addrStr = imp.Module[len(ServiceDepPrefix):]
 			service = true
 		default:
 			continue
@@ -189,7 +120,7 @@ func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
 
 		if !seen[imp.Module] {
 			seen[imp.Module] = true
-			deps = append(deps, contractDep{Raw: numStr, Service: service})
+			deps = append(deps, contractDep{Raw: addrStr, Service: service})
 		}
 	}
 
@@ -200,46 +131,59 @@ func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
 	return deps, nil
 }
 
-// resolveDepNums flattens the dependency set into the unique account
-// nums the reference ledger tracks
-func resolveDepNums(txn *bbolt.Tx, deps []contractDep) ([]uint64, error) {
-	seen := make(map[uint64]bool)
-	nums := make([]uint64, 0, len(deps))
+// resolveDepAddrs flattens the dependency set into the unique
+// addresses the reference ledger tracks
+func resolveDepAddrs(deps []contractDep) ([]ngtypes.Address, error) {
+	seen := make(map[ngtypes.Address]bool)
+	addrs := make([]ngtypes.Address, 0, len(deps))
 	for _, dep := range deps {
-		num, err := resolveDepNum(txn, dep.Raw)
+		addr, err := resolveDepAddr(dep.Raw)
 		if err != nil {
 			return nil, err
 		}
-		if !seen[num] {
-			seen[num] = true
-			nums = append(nums, num)
+		if !seen[addr] {
+			seen[addr] = true
+			addrs = append(addrs, addr)
 		}
 	}
-	return nums, nil
+	return addrs, nil
 }
 
 // getContractDeps reads the recorded dependency list of the account
-func getContractDeps(acc *ngtypes.Account) ([]uint64, error) {
+func getContractDeps(acc *ngtypes.Account) ([]ngtypes.Address, error) {
 	raw := acc.Context.Get(contextKeyDeps)
 	if len(raw) == 0 {
 		return nil, nil
 	}
 
-	var deps []uint64
-	if err := rlp.DecodeBytes(raw, &deps); err != nil {
+	var rawDeps [][]byte
+	if err := rlp.DecodeBytes(raw, &rawDeps); err != nil {
 		return nil, err
+	}
+
+	deps := make([]ngtypes.Address, len(rawDeps))
+	for i := range rawDeps {
+		if len(rawDeps[i]) != ngtypes.AddressSize {
+			return nil, errors.Wrapf(ErrDepInvalidImport, "corrupt dep entry %d", i)
+		}
+		copy(deps[i][:], rawDeps[i])
 	}
 
 	return deps, nil
 }
 
-func setContractDeps(acc *ngtypes.Account, deps []uint64) error {
+func setContractDeps(acc *ngtypes.Account, deps []ngtypes.Address) error {
 	if len(deps) == 0 {
 		acc.Context.Del(contextKeyDeps)
 		return nil
 	}
 
-	raw, err := rlp.EncodeToBytes(deps)
+	rawDeps := make([][]byte, len(deps))
+	for i := range deps {
+		rawDeps[i] = deps[i].Bytes()
+	}
+
+	raw, err := rlp.EncodeToBytes(rawDeps)
 	if err != nil {
 		return err
 	}

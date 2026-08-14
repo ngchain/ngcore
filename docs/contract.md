@@ -38,7 +38,7 @@ The wire encoding minimizes the tx further:
   `TxMaxExtraSize` against zip bombs.
 
 Tooling: the `genContractUpdate` RPC (and the
-`ngcore cli contract-update --num N --file new.wat` subcommand) diffs
+`ngcore cli contract-update --file new.wat` subcommand) diffs
 the on-chain text against the new text server-side (line LCS + byte
 shrinking) and returns the unsigned minimal-patch EditTx; `genEdit`
 accepts explicit hunks; `getContract` reads the current text. Sign and
@@ -82,14 +82,15 @@ log:     debug(ptr, size)            error(ptr, size)
          emit(tptr, tlen, dptr, dlen) -> i32
          ; records an event (topic + data) into the tx's LOCAL receipt;
          ; attributed to the executing account, dropped on failed runs
-account: get_host() -> i64
-         get_owner_size() -> i32     get_owner(num: i64, ptr) -> i32
-         get_contract_size(num: i64) -> i32
-         get_contract(num: i64, ptr) -> i32
-         is_locked(num: i64) -> i32
-coin:    get_balance_size(num: i64) -> i32
-         get_balance(num: i64, ptr) -> i32   ; big-endian bytes
-         transfer(to: i64, value: i64) -> i32
+account: get_size() -> i32          ; address length (32)
+         get_host(ptr) -> i32       ; writes the EXECUTING address
+         get_caller(ptr) -> i32     ; msg.sender address (zero addr at top)
+         get_contract_size(addr_ptr) -> i32
+         get_contract(addr_ptr, ptr) -> i32
+         is_locked(addr_ptr) -> i32
+coin:    get_balance_size(addr_ptr) -> i32
+         get_balance(addr_ptr, ptr) -> i32   ; big-endian bytes
+         transfer(to_ptr, value: i64) -> i32
 kv:      get_size(kptr, klen) -> i32
          get(kptr, klen, vptr) -> i32
          set(kptr, klen, vptr, vlen) -> i32
@@ -114,7 +115,7 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_paid_size() -> i32      get_paid(ptr) -> i32
          ; msg.value: what this tx pays to the EXECUTING account's
          ; owner, big-endian big.Int bytes
-         get_convener() -> i64
+         get_sender(ptr) -> i32     ; the tx sender's address
          get_participants_count() -> i32
          get_participant_size() -> i32
          get_participant(i, ptr) -> i32
@@ -137,14 +138,9 @@ picked per import by its namespace:
 (import "service/<id>" "transfer" (func $transfer (param i64 i64) (result i32)))
 ```
 
-`<id>` addresses the dependency in either form:
-
-- `<deployerBS58>.<name>` — the RECOMMENDED handle: a lock tx with a
-  non-empty extra registers `<owner-address>.<name>` for the contract
-  ([a-z0-9_-], max 32; unique per deployer, released on destroy). The
-  deployer's address in the identifier anchors WHO published the code
-  you link against, like a Go module path
-- `<num>` — the raw hosting account number (low-level form)
+`<id>` is the deployer's bs58 address — the address IS the namespace:
+it anchors WHO published the code you link against, like a Go module
+path, with no name registry to squat or numbers to race for.
 
 Shared rules:
 
@@ -159,15 +155,15 @@ Shared rules:
   list) and `_refs` (dependee's counter), invisible to contracts
 - the whole call tree shares ONE gas budget
 
-Library semantics (`contract/N`): the dependency's code links directly
+Library semantics (`contract/<addr>`): the dependency's code links directly
 and runs with the caller's host modules — its kv/coin effects act on
 the calling account. A library contributes code, not state.
 
-Service semantics (`service/N`): each call switches the execution frame
+Service semantics (`service/<addr>`): each call switches the execution frame
 to the dependency's account — its kv/coin effects act on ITS OWN state,
 which is exactly how a token keeps one ledger shared by all callers.
-`account.get_caller` returns the invoking contract's num (msg.sender)
-for authorization; `account.get_host` returns the executing account.
+`account.get_caller` writes the invoking contract's address
+(msg.sender) for authorization; `account.get_host` the executing one.
 Within one transaction execution, a contract that is still executing
 cannot be re-entered (calls after it returned are fine); service
 exports use scalar (i32/i64) params and returns — byte payloads

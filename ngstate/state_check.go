@@ -1,14 +1,12 @@
 package ngstate
 
 import (
-	"encoding/binary"
+	"math/big"
 
-	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 var ErrTxrBalanceInsufficient = errors.New("account's balance is not sufficient for the tx")
@@ -27,43 +25,15 @@ func CheckBlockTxs(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 			return ngtypes.ErrTxExtraExcess
 		}
 
-		switch tx.Type {
-		case ngtypes.GenerateTx: // generate
-			if err := checkGenerate(txn, tx, block.GetHeight()); err != nil {
+		if tx.Type == ngtypes.GenerateTx {
+			if err := checkGenerate(tx, block.GetHeight()); err != nil {
 				return err
 			}
+			continue
+		}
 
-		case ngtypes.RegisterTx: // register
-			if err := checkRegister(txn, tx); err != nil {
-				return err
-			}
-
-		case ngtypes.DestroyTx: // destroy
-			if err := checkDestroy(txn, tx); err != nil {
-				return err
-			}
-
-		case ngtypes.TransactTx: // transact
-			if err := checkTransaction(txn, tx); err != nil {
-				return err
-			}
-
-		case ngtypes.EditTx: // edit
-			if err := checkEdit(txn, tx); err != nil {
-				return err
-			}
-
-		case ngtypes.LockTx: // lock
-			if err := checkLock(txn, tx); err != nil {
-				return err
-			}
-
-		case ngtypes.UnlockTx: // unlock
-			if err := checkUnlock(txn, tx); err != nil {
-				return err
-			}
-		default:
-			return ngtypes.ErrTxTypeInvalid
+		if err := CheckTx(txn, tx); err != nil {
+			return err
 		}
 	}
 
@@ -85,11 +55,6 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 	switch tx.Type {
 	case ngtypes.GenerateTx: // generate
 		panic("shouldnt check generate tx in this func")
-
-	case ngtypes.RegisterTx: // register
-		if err := checkRegister(txn, tx); err != nil {
-			return err
-		}
 
 	case ngtypes.DestroyTx: // destroy
 		if err := checkDestroy(txn, tx); err != nil {
@@ -115,103 +80,55 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 		if err := checkUnlock(txn, tx); err != nil {
 			return err
 		}
+
+	default:
+		return ngtypes.ErrTxTypeInvalid
 	}
 
 	return nil
 }
 
 // checkGenerate checks the generate tx
-func checkGenerate(txn *bbolt.Tx, generateTx *ngtypes.FullTx, blockHeight uint64) error {
-	num2accBucket := txn.Bucket(storage.Num2AccBucketName)
+func checkGenerate(generateTx *ngtypes.FullTx, blockHeight uint64) error {
+	return generateTx.CheckGenerate(blockHeight)
+}
 
-	rawConvener := num2accBucket.Get(generateTx.Convener.Bytes())
-	if rawConvener == nil {
-		return errors.Wrapf(storage.ErrKeyNotFound, "cannot get convener account %d", generateTx.Convener)
-	}
-
-	var convener ngtypes.Account
-	err := rlp.DecodeBytes(rawConvener, &convener)
+// senderWithBalance derives the sender and checks it can afford the
+// expense
+func senderWithBalance(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
+	sender, err := tx.Sender()
 	if err != nil {
-		return err
+		return ngtypes.Address{}, err
 	}
 
-	// check structure and key
-	if err := generateTx.CheckGenerate(blockHeight); err != nil {
-		return err
+	if getBalance(txn, sender).Cmp(expense) < 0 {
+		return ngtypes.Address{}, ErrTxrBalanceInsufficient
 	}
 
-	// check rew
-
-	return nil
+	return sender, nil
 }
 
-var (
-	ErrTxRegExcess = errors.New("one address can only register one accounts")
-	ErrTxRegExist  = errors.New("account is already registered by others")
-)
-
-// checkRegister checks the register tx
-func checkRegister(txn *bbolt.Tx, registerTx *ngtypes.FullTx) error {
-	// check structure and key
-	if err := registerTx.CheckRegister(); err != nil {
-		return err
-	}
-
-	// check balance
-	payerAddr := registerTx.Participants[0]
-	payerBalance := getBalance(txn, payerAddr)
-
-	expenditure := registerTx.TotalExpenditure()
-	if payerBalance.Cmp(expenditure) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	// check existing ownership
-	if addrHasAccount(txn, payerAddr) {
-		return ErrTxRegExcess
-	}
-
-	// check newAccountNum
-	newAccountNum := binary.LittleEndian.Uint64(registerTx.Extra)
-	if accountNumExists(txn, ngtypes.AccountNum(newAccountNum)) {
-		return errors.Wrapf(ErrTxRegExist, "failed to register account@%d", newAccountNum)
-	}
-
-	return nil
-}
-
-var ErrDestroyAccountContractNotEmpty = errors.New("contract should be empty on destroy tx")
-
-// checkDestroy checks destroy tx
+// checkDestroy checks destroy tx: the sender clears its own slot,
+// which must exist, be unlocked and unreferenced
 func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
-	convener, err := getAccountByNum(txn, destroyTx.Convener)
+	if err := destroyTx.CheckDestroy(); err != nil {
+		return err
+	}
+
+	sender, err := senderWithBalance(txn, destroyTx, destroyTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
-	// check structure and key
-	if err = destroyTx.CheckDestroy(convener.Owner); err != nil {
+	slot, err := getAccount(txn, sender)
+	if err != nil {
 		return err
 	}
 
-	// check balance
-	totalCharge := destroyTx.TotalExpenditure()
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	if len(convener.Contract) != 0 {
-		return ErrDestroyAccountContractNotEmpty
-	}
-
-	// an active (locked) contract may be depended on by others: it must
-	// be unlocked first, which also re-enables clearing the contract
-	if convener.IsLocked() {
+	if slot.IsLocked() {
 		return ErrAccountLocked
 	}
-	if refs := getRefCount(convener); refs > 0 {
+	if refs := getRefCount(slot); refs > 0 {
 		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
 	}
 
@@ -220,49 +137,44 @@ func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 
 // checkTransaction checks normal transaction tx
 func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
-	convener, err := getAccountByNum(txn, transactionTx.Convener)
-	if err != nil {
+	if err := transactionTx.CheckTransaction(); err != nil {
 		return err
 	}
 
-	// check structure and key
-	if err = transactionTx.CheckTransaction(convener.Owner); err != nil {
-		return err
-	}
+	_, err := senderWithBalance(txn, transactionTx, transactionTx.TotalExpenditure())
 
-	// check balance
-	totalCharge := transactionTx.TotalExpenditure()
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	return nil
+	return err
 }
 
-// checkEdit checks edit tx: a dry-run of the whole patch application
+// checkEdit checks edit tx: a dry-run of the whole patch application.
+// The first edit on an address opens its contract slot and must carry
+// the one-time DeployFee on top
 func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
-	convener, err := getAccountByNum(txn, editTx.Convener)
+	if err := editTx.CheckEdit(); err != nil {
+		return err
+	}
+
+	sender, err := editTx.Sender()
 	if err != nil {
 		return err
 	}
 
-	// check structure and key
-	if err = editTx.CheckEdit(convener.Owner); err != nil {
-		return err
+	baseText := []byte(nil)
+	expense := new(big.Int).Set(editTx.Fee)
+
+	slot, err := getAccount(txn, sender)
+	if err == nil {
+		// a locked contract is immutable
+		if slot.IsLocked() {
+			return ErrAccountLocked
+		}
+		baseText = slot.Contract
+	} else {
+		// no slot yet: this edit is the namespace purchase
+		expense.Add(expense, ngtypes.DeployFee)
 	}
 
-	// a locked contract is immutable
-	if convener.IsLocked() {
-		return ErrAccountLocked
-	}
-
-	// check balance
-	totalCharge := editTx.TotalExpenditure()
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
+	if getBalance(txn, sender).Cmp(expense) < 0 {
 		return ErrTxrBalanceInsufficient
 	}
 
@@ -271,7 +183,7 @@ func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	if _, err := editExtra.Apply(convener.Contract); err != nil {
+	if _, err := editExtra.Apply(baseText); err != nil {
 		return err
 	}
 
@@ -280,58 +192,43 @@ func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
 
 // checkLock checks lock tx
 func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
-	convener, err := getAccountByNum(txn, lockTx.Convener)
+	if err := lockTx.CheckLock(); err != nil {
+		return err
+	}
+
+	sender, err := senderWithBalance(txn, lockTx, lockTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
-	// check structure and key
-	if err = lockTx.CheckLock(convener.Owner); err != nil {
+	slot, err := getAccount(txn, sender)
+	if err != nil {
 		return err
 	}
 
-	if convener.IsLocked() {
+	if slot.IsLocked() {
 		return ErrAccountLocked
-	}
-
-	// a non-empty lock extra must be a valid, free (or own) name
-	if len(lockTx.Extra) != 0 {
-		name := string(lockTx.Extra)
-		if !validContractName(name) {
-			return errors.Wrapf(ErrNameInvalid, "%q", name)
-		}
-		if existing, err := getNumByName(txn, convener.Owner, name); err == nil && existing != uint64(lockTx.Convener) {
-			return errors.Wrapf(ErrNameTaken, "%s -> account %d", name, existing)
-		}
 	}
 
 	// locking activates the vm, so the contract text must compile, and
 	// every declared module dependency must be an active contract
-	if len(convener.Contract) != 0 {
-		deps, err := extractContractDeps(txn, convener.Contract)
+	if len(slot.Contract) != 0 {
+		deps, err := extractContractDeps(slot.Contract)
 		if err != nil {
 			return err
 		}
-		for _, num := range deps {
-			if num == uint64(lockTx.Convener) {
+		for _, depAddr := range deps {
+			if depAddr.Equals(sender) {
 				return ErrDepSelf
 			}
-			depAcc, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+			depAcc, err := getAccount(txn, depAddr)
 			if err != nil {
-				return errors.Wrapf(err, "unknown dependency contract %d", num)
+				return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
 			}
 			if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
-				return errors.Wrapf(ErrDepNotActive, "contract %d", num)
+				return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
 			}
 		}
-	}
-
-	// check balance
-	totalCharge := lockTx.TotalExpenditure()
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ErrTxrBalanceInsufficient
 	}
 
 	return nil
@@ -339,31 +236,27 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 
 // checkUnlock checks unlock tx
 func checkUnlock(txn *bbolt.Tx, unlockTx *ngtypes.FullTx) error {
-	convener, err := getAccountByNum(txn, unlockTx.Convener)
+	if err := unlockTx.CheckUnlock(); err != nil {
+		return err
+	}
+
+	sender, err := senderWithBalance(txn, unlockTx, unlockTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
-	// check structure and key
-	if err = unlockTx.CheckUnlock(convener.Owner); err != nil {
+	slot, err := getAccount(txn, sender)
+	if err != nil {
 		return err
 	}
 
-	if !convener.IsLocked() {
+	if !slot.IsLocked() {
 		return ErrAccountNotLocked
 	}
 
 	// a depended-on module cannot deactivate
-	if refs := getRefCount(convener); refs > 0 {
+	if refs := getRefCount(slot); refs > 0 {
 		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
-	}
-
-	// check balance
-	totalCharge := unlockTx.TotalExpenditure()
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ErrTxrBalanceInsufficient
 	}
 
 	return nil

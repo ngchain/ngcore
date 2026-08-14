@@ -3,6 +3,7 @@ package ngstate
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/big"
 	"path/filepath"
 	"strings"
@@ -15,7 +16,8 @@ import (
 )
 
 // The on-chain contracts are plain wat text — human-readable and
-// editable through append/delete txs
+// editable through append/delete txs. Identities are 32-byte addresses
+// passed through linear memory (and buf slots across service frames)
 
 const kvWat = `
 (module
@@ -26,12 +28,27 @@ const kvWat = `
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
 `
 
-const transferWat = `
+// watBytes escapes raw bytes into a wat data-segment string literal
+func watBytes(b []byte) string {
+	var sb strings.Builder
+	for _, c := range b {
+		sb.WriteString(fmt.Sprintf("\\%02x", c))
+	}
+	return sb.String()
+}
+
+// transferWatTo pays 10 raw units to the given address (the recipient
+// address is embedded as a data segment)
+func transferWatTo(to ngtypes.Address) string {
+	return `
 (module
-  (import "coin" "transfer" (func $transfer (param i64 i64) (result i32)))
+  (import "coin" "transfer" (func $transfer (param i32 i64) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "` + watBytes(to[:]) + `")
   (func (export "main")
-    (drop (call $transfer (i64.const 1) (i64.const 10)))))
+    (drop (call $transfer (i32.const 0) (i64.const 10)))))
 `
+}
 
 // burnWat writes a kv entry and then spins forever, so the toll station
 // must abort it and the kv write must be rolled back
@@ -78,14 +95,11 @@ func testAddr(b byte) ngtypes.Address {
 	return addr
 }
 
-// putAccount registers the account with its ownership and balance
+// putAccount stores the contract slot and funds its address
 func putAccount(t *testing.T, txn *bbolt.Tx, acc *ngtypes.Account, balance int64) {
 	t.Helper()
 
-	if err := setAccount(txn, ngtypes.AccountNum(acc.Num), acc); err != nil {
-		t.Fatal(err)
-	}
-	if err := setOwnership(txn, acc.Owner, ngtypes.AccountNum(acc.Num)); err != nil {
+	if err := setAccount(txn, acc); err != nil {
 		t.Fatal(err)
 	}
 	if err := setBalance(txn, acc.Owner, big.NewInt(balance)); err != nil {
@@ -94,7 +108,7 @@ func putAccount(t *testing.T, txn *bbolt.Tx, acc *ngtypes.Account, balance int64
 }
 
 func fakeTransactTx(participants []ngtypes.Address, values []*big.Int) *ngtypes.FullTx {
-	return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1, 2,
+	return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
 		participants, values, big.NewInt(0), nil, nil)
 }
 
@@ -104,7 +118,7 @@ func TestVMLog(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(logWat), nil)
+		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(logWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
@@ -124,7 +138,7 @@ func TestVMKVSet(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(kvWat), nil)
+		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
@@ -138,7 +152,7 @@ func TestVMKVSet(t *testing.T) {
 		}
 
 		// reload from the db to prove the journal got flushed
-		reloaded, err := getAccountByNum(txn, 500)
+		reloaded, err := getAccount(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -161,12 +175,9 @@ func TestVMTransfer(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		contractAcc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(transferWat), nil)
+		contractAcc := ngtypes.NewAccount(testAddr(0xaa), []byte(transferWatTo(testAddr(0xbb))), nil)
 		contractAcc.SetLock(true)
 		putAccount(t, txn, contractAcc, 100)
-
-		receiver := ngtypes.NewAccount(1, testAddr(0xbb), nil, nil)
-		putAccount(t, txn, receiver, 0)
 
 		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
@@ -195,7 +206,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(burnWat), nil)
+		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(burnWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 100)
 
@@ -209,7 +220,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 		}
 
 		// the kv write before the loop must be gone
-		reloaded, err := getAccountByNum(txn, 500)
+		reloaded, err := getAccount(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -235,11 +246,11 @@ func TestLockUnlockFlow(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(600, addr, []byte(logWat), nil)
+		acc := ngtypes.NewAccount(addr, []byte(logWat), nil)
 		putAccount(t, txn, acc, 100)
 
 		// lock the account: the vm becomes active, editing gets frozen
-		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, 600, nil, nil, big.NewInt(1), nil, nil)
+		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := lockTx.Signature(priv); err != nil {
 			return err
 		}
@@ -247,7 +258,7 @@ func TestLockUnlockFlow(t *testing.T) {
 			t.Fatalf("handleLock: %v", err)
 		}
 
-		locked, err := getAccountByNum(txn, 600)
+		locked, err := getAccount(txn, addr)
 		if err != nil {
 			return err
 		}
@@ -264,16 +275,16 @@ func TestLockUnlockFlow(t *testing.T) {
 		}
 
 		// editing a locked account must fail
-		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, 600, nil, nil, big.NewInt(1), nil, nil)
+		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := editTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleEdit(txn, editTx); err != ErrAccountLocked {
+		if err := state.handleEdit(txn, editTx); !errors.Is(err, ErrAccountLocked) {
 			t.Fatalf("edit on locked account: got %v, want ErrAccountLocked", err)
 		}
 
 		// unlock reverts everything
-		unlockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1, 600, nil, nil, big.NewInt(1), nil, nil)
+		unlockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := unlockTx.Signature(priv); err != nil {
 			return err
 		}
@@ -281,7 +292,7 @@ func TestLockUnlockFlow(t *testing.T) {
 			t.Fatalf("handleUnlock: %v", err)
 		}
 
-		unlocked, err := getAccountByNum(txn, 600)
+		unlocked, err := getAccount(txn, addr)
 		if err != nil {
 			return err
 		}
@@ -301,9 +312,9 @@ func TestLockUnlockFlow(t *testing.T) {
 	}
 }
 
-// TestEditFlow upgrades a contract with a minimal diff patch:
-// unlock-free edit on an unlocked account, then lock runs the vm on the
-// new text
+// TestEditFlow upgrades a contract with a minimal diff patch, and
+// covers the namespace purchase: the FIRST edit must carry the
+// one-time deploy fee on top of the tx fee
 func TestEditFlow(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
@@ -314,8 +325,9 @@ func TestEditFlow(t *testing.T) {
 	}
 	addr := ngtypes.NewAddress(priv)
 
-	newWat := strings.Replace(transferWat, "i64.const 10", "i64.const 25", 1)
-	hunks := ngtypes.DiffHunks([]byte(transferWat), []byte(newWat))
+	baseWat := transferWatTo(testAddr(0xbb))
+	newWat := strings.Replace(baseWat, "i64.const 10", "i64.const 25", 1)
+	hunks := ngtypes.DiffHunks([]byte(baseWat), []byte(newWat))
 	patchSize := 0
 	for _, h := range hunks {
 		patchSize += len(h.Del) + len(h.Ins)
@@ -324,40 +336,71 @@ func TestEditFlow(t *testing.T) {
 		t.Fatalf("small edit produced a big patch: %d bytes", patchSize)
 	}
 
-	rawExtra, err := ngtypes.NewEditExtra([]byte(transferWat), hunks).Encode()
+	deployExtra, err := ngtypes.NewEditExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: []byte(baseWat)}}).Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	patchExtra, err := ngtypes.NewEditExtra([]byte(baseWat), hunks).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(800, addr, []byte(transferWat), nil)
-		putAccount(t, txn, acc, 100)
+	funded := new(big.Int).Add(ngtypes.DeployFee, big.NewInt(100))
 
-		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, 800, nil, nil, big.NewInt(1), rawExtra, nil)
-		if err := editTx.Signature(priv); err != nil {
+	err = db.Update(func(txn *bbolt.Tx) error {
+		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), deployExtra, nil)
+		if err := deployTx.Signature(priv); err != nil {
 			return err
 		}
 
-		if err := checkEdit(txn, editTx); err != nil {
-			t.Fatalf("checkEdit: %v", err)
+		// the FIRST edit must cover fee + DeployFee: the bare deploy fee
+		// alone is not enough
+		if err := setBalance(txn, addr, ngtypes.DeployFee); err != nil {
+			return err
 		}
-		if err := state.handleEdit(txn, editTx); err != nil {
-			t.Fatalf("handleEdit: %v", err)
+		if err := checkEdit(txn, deployTx); err == nil {
+			t.Fatal("deploy without covering the deploy fee must fail")
 		}
 
-		reloaded, err := getAccountByNum(txn, 800)
+		// funded properly: the namespace purchase goes through
+		if err := setBalance(txn, addr, funded); err != nil {
+			return err
+		}
+		if err := checkEdit(txn, deployTx); err != nil {
+			t.Fatalf("checkEdit deploy: %v", err)
+		}
+		if err := state.handleEdit(txn, deployTx); err != nil {
+			t.Fatalf("handleEdit deploy: %v", err)
+		}
+		if got := getBalance(txn, addr); got.Cmp(big.NewInt(99)) != 0 {
+			t.Fatalf("deploy fee not burned, balance = %s", got)
+		}
+
+		// the second edit patches the existing slot: only the tx fee
+		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), patchExtra, nil)
+		if err := editTx.Signature(priv); err != nil {
+			return err
+		}
+		if err := checkEdit(txn, editTx); err != nil {
+			t.Fatalf("checkEdit patch: %v", err)
+		}
+		if err := state.handleEdit(txn, editTx); err != nil {
+			t.Fatalf("handleEdit patch: %v", err)
+		}
+
+		reloaded, err := getAccount(txn, addr)
 		if err != nil {
 			return err
 		}
 		if string(reloaded.Contract) != newWat {
 			t.Fatalf("contract not patched:\n%s", reloaded.Contract)
 		}
-		if got := getBalance(txn, addr); got.Int64() != 99 {
-			t.Fatalf("edit fee not charged, balance = %d", got.Int64())
+		if got := getBalance(txn, addr); got.Cmp(big.NewInt(98)) != 0 {
+			t.Fatalf("edit fee not charged, balance = %s", got)
 		}
 
 		// the patched text must still compile and lock
-		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, 800, nil, nil, big.NewInt(1), nil, nil)
+		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := lockTx.Signature(priv); err != nil {
 			return err
 		}
@@ -365,19 +408,18 @@ func TestEditFlow(t *testing.T) {
 			t.Fatalf("handleLock after edit: %v", err)
 		}
 
-		// a mismatching patch (stale base) must be rejected
+		// a mismatching patch on the locked slot is refused as locked
 		staleExtra, err := (&ngtypes.EditExtra{Hunks: []ngtypes.Hunk{
 			{Pos: 0, Del: []byte("XXX"), Ins: []byte("YYY")},
 		}}).Encode()
 		if err != nil {
 			return err
 		}
-		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, 800, nil, nil, big.NewInt(1), staleExtra, nil)
+		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), staleExtra, nil)
 		if err := staleTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := checkEdit(txn, staleTx); err != ErrAccountLocked {
-			// locked now; unlock first to test the mismatch path
+		if err := checkEdit(txn, staleTx); !errors.Is(err, ErrAccountLocked) {
 			t.Fatalf("stale edit on locked account: got %v", err)
 		}
 
@@ -396,11 +438,13 @@ const dexWat = `
     (i64.mul (local.get 0) (i64.const 2))))
 `
 
-// leverageWat composes the dex module: it imports dex's algorithm and
-// stores the computed result into its OWN kv state (delegate semantics)
-const leverageWat = `
+// leverageWatFor composes the dex module by its deployer address: it
+// imports dex's algorithm and stores the computed result into its OWN
+// kv state (delegate semantics)
+func leverageWatFor(dex ngtypes.Address) string {
+	return `
 (module
-  (import "contract/500" "double" (func $double (param i64) (result i64)))
+  (import "contract/` + dex.String() + `" "double" (func $double (param i64) (result i64)))
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "num")
@@ -408,34 +452,37 @@ const leverageWat = `
     (i64.store8 (i32.const 8) (call $double (i64.const 21)))
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 8) (i32.const 1)))))
 `
+}
 
 // TestContractModuleDeps covers the code-module dependency system:
-// leverage(600) imports dex(500), the reference pins dex until leverage
-// releases it, and the linked execution runs dex's code on leverage's
-// state
+// leverage imports dex by address, the reference pins dex until
+// leverage releases it, and the linked execution runs dex's code on
+// leverage's state
 func TestContractModuleDeps(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
 	privDex, _ := ngtypes.GenerateKey()
 	privLev, _ := ngtypes.GenerateKey()
+	dexAddr := ngtypes.NewAddress(privDex)
+	levAddr := ngtypes.NewAddress(privLev)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		dex := ngtypes.NewAccount(500, ngtypes.NewAddress(privDex), []byte(dexWat), nil)
+		dex := ngtypes.NewAccount(dexAddr, []byte(dexWat), nil)
 		putAccount(t, txn, dex, 100)
-		lev := ngtypes.NewAccount(600, ngtypes.NewAddress(privLev), []byte(leverageWat), nil)
+		lev := ngtypes.NewAccount(levAddr, []byte(leverageWatFor(dexAddr)), nil)
 		putAccount(t, txn, lev, 100)
 
-		lockTx := func(convener uint64, priv *ngtypes.PrivateKey) *ngtypes.FullTx {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
+		lockTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1,
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
 			return tx
 		}
-		unlockTx := func(convener uint64, priv *ngtypes.PrivateKey) *ngtypes.FullTx {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1, ngtypes.AccountNum(convener),
+		unlockTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1,
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
@@ -444,31 +491,31 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 
 		// locking leverage before its dependency is active must fail
-		if err := state.handleLock(txn, lockTx(600, privLev), 1); err == nil {
+		if err := state.handleLock(txn, lockTx(privLev), 1); err == nil {
 			t.Fatal("locking with an inactive dependency must fail")
 		}
 
 		// dex first, then leverage: the reference gets pinned
-		if err := state.handleLock(txn, lockTx(500, privDex), 1); err != nil {
+		if err := state.handleLock(txn, lockTx(privDex), 1); err != nil {
 			t.Fatalf("lock dex: %v", err)
 		}
-		if err := state.handleLock(txn, lockTx(600, privLev), 1); err != nil {
+		if err := state.handleLock(txn, lockTx(privLev), 1); err != nil {
 			t.Fatalf("lock leverage: %v", err)
 		}
 
-		dexAcc, _ := getAccountByNum(txn, 500)
+		dexAcc, _ := getAccount(txn, dexAddr)
 		if getRefCount(dexAcc) != 1 {
 			t.Fatalf("dex refcount = %d, want 1", getRefCount(dexAcc))
 		}
 
 		// the depended-on module can neither unlock nor be destroyed
-		if err := state.handleUnlock(txn, unlockTx(500, privDex)); !errors.Is(err, ErrAccountRefdBy) {
+		if err := state.handleUnlock(txn, unlockTx(privDex)); !errors.Is(err, ErrAccountRefdBy) {
 			t.Fatalf("unlock dex while referenced: got %v, want ErrAccountRefdBy", err)
 		}
 
 		// linked execution: leverage's main calls dex's double and
 		// writes 42 into leverage's own kv
-		levAcc, _ := getAccountByNum(txn, 600)
+		levAcc, _ := getAccount(txn, levAddr)
 		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with deps: %v", err)
@@ -477,25 +524,25 @@ func TestContractModuleDeps(t *testing.T) {
 			t.Fatalf("linked run: %v", err)
 		}
 
-		levAcc, _ = getAccountByNum(txn, 600)
+		levAcc, _ = getAccount(txn, levAddr)
 		if got := levAcc.Context.Get("num"); len(got) != 1 || got[0] != 42 {
 			t.Fatalf("leverage kv num = %v, want [42]", got)
 		}
 		// delegate semantics: dex's own state stays untouched
-		dexAcc, _ = getAccountByNum(txn, 500)
+		dexAcc, _ = getAccount(txn, dexAddr)
 		if got := dexAcc.Context.Get("num"); len(got) != 0 {
 			t.Fatal("dex state must stay untouched")
 		}
 
 		// release: unlock leverage, then dex frees up
-		if err := state.handleUnlock(txn, unlockTx(600, privLev)); err != nil {
+		if err := state.handleUnlock(txn, unlockTx(privLev)); err != nil {
 			t.Fatalf("unlock leverage: %v", err)
 		}
-		dexAcc, _ = getAccountByNum(txn, 500)
+		dexAcc, _ = getAccount(txn, dexAddr)
 		if getRefCount(dexAcc) != 0 {
 			t.Fatalf("dex refcount = %d after release, want 0", getRefCount(dexAcc))
 		}
-		if err := state.handleUnlock(txn, unlockTx(500, privDex)); err != nil {
+		if err := state.handleUnlock(txn, unlockTx(privDex)); err != nil {
 			t.Fatalf("unlock dex after release: %v", err)
 		}
 
@@ -507,47 +554,57 @@ func TestContractModuleDeps(t *testing.T) {
 }
 
 // tokenWat is a shared-ledger service (erc20-style): balances live in
-// the TOKEN's own kv, keyed by the 8-byte LE account num. transfer
-// debits the CALLER (account.get_caller = msg.sender)
+// the TOKEN's own kv, keyed by the 32-byte address. The target address
+// of transfer/mint_to crosses the service boundary through buf slot 1;
+// account.get_caller (= msg.sender) authorizes the debit
 const tokenWat = `
 (module
-  (import "account" "get_caller" (func $caller (result i64)))
+  (import "account" "get_caller" (func $caller (param i32) (result i32)))
+  (import "env" "buf_get" (func $bget (param i32 i32) (result i32)))
   (import "kv" "get" (func $get (param i32 i32 i32) (result i32)))
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
-  ;; layout: 0..8 from-key, 8..16 to-key, 16..24 from-bal, 24..32 to-bal
-  (func (export "transfer") (param $to i64) (param $amount i64) (result i32)
-    (i64.store (i32.const 0) (call $caller))
-    (i64.store (i32.const 8) (local.get $to))
-    (i64.store (i32.const 16) (i64.const 0))
-    (i64.store (i32.const 24) (i64.const 0))
-    (drop (call $get (i32.const 0) (i32.const 8) (i32.const 16)))
-    (drop (call $get (i32.const 8) (i32.const 8) (i32.const 24)))
-    (if (i64.lt_u (i64.load (i32.const 16)) (local.get $amount))
+  ;; layout: 0..32 from-key (caller), 32..64 to-key (slot 1), 64..72 from-bal, 72..80 to-bal
+  (func (export "transfer") (param $amount i64) (result i32)
+    (drop (call $caller (i32.const 0)))
+    (drop (call $bget (i32.const 1) (i32.const 32)))
+    (i64.store (i32.const 64) (i64.const 0))
+    (i64.store (i32.const 72) (i64.const 0))
+    (drop (call $get (i32.const 0) (i32.const 32) (i32.const 64)))
+    (drop (call $get (i32.const 32) (i32.const 32) (i32.const 72)))
+    (if (i64.lt_u (i64.load (i32.const 64)) (local.get $amount))
       (then (return (i32.const 0))))
-    (i64.store (i32.const 16) (i64.sub (i64.load (i32.const 16)) (local.get $amount)))
-    (i64.store (i32.const 24) (i64.add (i64.load (i32.const 24)) (local.get $amount)))
-    (drop (call $set (i32.const 0) (i32.const 8) (i32.const 16) (i32.const 8)))
-    (drop (call $set (i32.const 8) (i32.const 8) (i32.const 24) (i32.const 8)))
+    (i64.store (i32.const 64) (i64.sub (i64.load (i32.const 64)) (local.get $amount)))
+    (i64.store (i32.const 72) (i64.add (i64.load (i32.const 72)) (local.get $amount)))
+    (drop (call $set (i32.const 0) (i32.const 32) (i32.const 64) (i32.const 8)))
+    (drop (call $set (i32.const 32) (i32.const 32) (i32.const 72) (i32.const 8)))
     (i32.const 1))
-  (func (export "mint_to") (param $to i64) (param $amount i64)
-    (i64.store (i32.const 8) (local.get $to))
-    (i64.store (i32.const 24) (i64.const 0))
-    (drop (call $get (i32.const 8) (i32.const 8) (i32.const 24)))
-    (i64.store (i32.const 24) (i64.add (i64.load (i32.const 24)) (local.get $amount)))
-    (drop (call $set (i32.const 8) (i32.const 8) (i32.const 24) (i32.const 8)))))
+  (func (export "mint_to") (param $amount i64)
+    (drop (call $bget (i32.const 1) (i32.const 32)))
+    (i64.store (i32.const 72) (i64.const 0))
+    (drop (call $get (i32.const 32) (i32.const 32) (i32.const 72)))
+    (i64.store (i32.const 72) (i64.add (i64.load (i32.const 72)) (local.get $amount)))
+    (drop (call $set (i32.const 32) (i32.const 32) (i32.const 72) (i32.const 8)))))
 `
 
-// tokenUserWat consumes the token service: mints itself 100 units and
-// sends 30 to account 1 — all bookkeeping happens inside the token
-const tokenUserWat = `
+// tokenUserWatFor consumes the token service: mints itself 100 units
+// and sends 30 to dest — all bookkeeping happens inside the token
+func tokenUserWatFor(token, self, dest ngtypes.Address) string {
+	return `
 (module
-  (import "service/700" "mint_to" (func $mint (param i64 i64)))
-  (import "service/700" "transfer" (func $transfer (param i64 i64) (result i32)))
+  (import "service/` + token.String() + `" "mint_to" (func $mint (param i64)))
+  (import "service/` + token.String() + `" "transfer" (func $transfer (param i64) (result i32)))
+  (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "` + watBytes(self[:]) + `")
+  (data (i32.const 32) "` + watBytes(dest[:]) + `")
   (func (export "main")
-    (call $mint (i64.const 600) (i64.const 100))
-    (drop (call $transfer (i64.const 1) (i64.const 30)))))
+    (drop (call $bset (i32.const 1) (i32.const 0) (i32.const 32)))
+    (call $mint (i64.const 100))
+    (drop (call $bset (i32.const 1) (i32.const 32) (i32.const 32)))
+    (drop (call $transfer (i64.const 30)))))
 `
+}
 
 // TestServiceToken covers own-state (service) semantics: the token's
 // ledger lives in the token account's kv and is shared by all callers,
@@ -558,15 +615,18 @@ func TestServiceToken(t *testing.T) {
 
 	privToken, _ := ngtypes.GenerateKey()
 	privUser, _ := ngtypes.GenerateKey()
+	tokenAddr := ngtypes.NewAddress(privToken)
+	userAddr := ngtypes.NewAddress(privUser)
+	dest := testAddr(0xcc)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		token := ngtypes.NewAccount(700, ngtypes.NewAddress(privToken), []byte(tokenWat), nil)
+		token := ngtypes.NewAccount(tokenAddr, []byte(tokenWat), nil)
 		putAccount(t, txn, token, 100)
-		user := ngtypes.NewAccount(600, ngtypes.NewAddress(privUser), []byte(tokenUserWat), nil)
+		user := ngtypes.NewAccount(userAddr, []byte(tokenUserWatFor(tokenAddr, userAddr, dest)), nil)
 		putAccount(t, txn, user, 100)
 
-		lock := func(convener uint64, priv *ngtypes.PrivateKey) error {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
+		lock := func(priv *ngtypes.PrivateKey) error {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1,
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
@@ -574,21 +634,21 @@ func TestServiceToken(t *testing.T) {
 			return state.handleLock(txn, tx, 1)
 		}
 
-		if err := lock(700, privToken); err != nil {
+		if err := lock(privToken); err != nil {
 			t.Fatalf("lock token: %v", err)
 		}
-		if err := lock(600, privUser); err != nil {
+		if err := lock(privUser); err != nil {
 			t.Fatalf("lock token user: %v", err)
 		}
 
 		// the service dependency pins the token like a library dep does
-		tokenAcc, _ := getAccountByNum(txn, 700)
+		tokenAcc, _ := getAccount(txn, tokenAddr)
 		if getRefCount(tokenAcc) != 1 {
 			t.Fatalf("token refcount = %d, want 1", getRefCount(tokenAcc))
 		}
 
 		// run the consumer: the ledger updates happen in the TOKEN's kv
-		userAcc, _ := getAccountByNum(txn, 600)
+		userAcc, _ := getAccount(txn, userAddr)
 		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with service dep: %v", err)
@@ -597,30 +657,25 @@ func TestServiceToken(t *testing.T) {
 			t.Fatalf("service run: %v", err)
 		}
 
-		tokenAcc, _ = getAccountByNum(txn, 700)
-		key := func(num uint64) string {
-			raw := make([]byte, 8)
-			binary.LittleEndian.PutUint64(raw, num)
-			return string(raw)
-		}
-		balOf := func(num uint64) uint64 {
-			raw := tokenAcc.Context.Get(key(num))
+		tokenAcc, _ = getAccount(txn, tokenAddr)
+		balOf := func(addr ngtypes.Address) uint64 {
+			raw := tokenAcc.Context.Get(string(addr[:]))
 			if len(raw) != 8 {
-				t.Fatalf("token ledger entry for %d missing: %v", num, raw)
+				t.Fatalf("token ledger entry for %s missing: %v", addr, raw)
 			}
 			return binary.LittleEndian.Uint64(raw)
 		}
 
-		if got := balOf(600); got != 70 {
-			t.Fatalf("token bal[600] = %d, want 70", got)
+		if got := balOf(userAddr); got != 70 {
+			t.Fatalf("token bal[user] = %d, want 70", got)
 		}
-		if got := balOf(1); got != 30 {
-			t.Fatalf("token bal[1] = %d, want 30", got)
+		if got := balOf(dest); got != 30 {
+			t.Fatalf("token bal[dest] = %d, want 30", got)
 		}
 
 		// the consumer's own kv stays empty (reserved keys aside): the
 		// ledger lived in the callee
-		userAcc, _ = getAccountByNum(txn, 600)
+		userAcc, _ = getAccount(txn, userAddr)
 		for _, k := range userAcc.Context.Keys {
 			if !strings.HasPrefix(k, "_") {
 				t.Fatalf("user context leaked a ledger key: %q", k)
@@ -656,7 +711,7 @@ func TestVMU256(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(u256Wat), nil)
+		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(u256Wat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
@@ -668,7 +723,7 @@ func TestVMU256(t *testing.T) {
 			return err
 		}
 
-		reloaded, err := getAccountByNum(txn, 500)
+		reloaded, err := getAccount(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -723,11 +778,11 @@ func TestVMTxContext(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		owner := testAddr(0xaa)
-		acc := ngtypes.NewAccount(500, owner, []byte(txCtxWat), nil)
+		acc := ngtypes.NewAccount(owner, []byte(txCtxWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
-		// the tx pays 77 to the contract's owner (msg.value) in two legs
+		// the tx pays 77 to the contract's address (msg.value) in two legs
 		tx := fakeTransactTx(
 			[]ngtypes.Address{owner, testAddr(0xbb), owner},
 			[]*big.Int{big.NewInt(70), big.NewInt(5), big.NewInt(7)},
@@ -741,7 +796,7 @@ func TestVMTxContext(t *testing.T) {
 			return err
 		}
 
-		reloaded, err := getAccountByNum(txn, 500)
+		reloaded, err := getAccount(txn, owner)
 		if err != nil {
 			return err
 		}
@@ -814,7 +869,7 @@ func TestVMKVScan(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(kvScanWat), nil)
+		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvScanWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
@@ -826,7 +881,7 @@ func TestVMKVScan(t *testing.T) {
 			return err
 		}
 
-		reloaded, err := getAccountByNum(txn, 500)
+		reloaded, err := getAccount(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -878,15 +933,15 @@ const bigVaultWat = `
     (drop (call $bset (i32.const 0) (i32.const 96) (i32.const 32)))))
 `
 
-// bigCallerWat deposits (2^128 - 1) twice: the second call must carry
-// the full 256-bit total back across the boundary
-func bigCallerWat() string {
+// bigCallerWatFor deposits (2^128 - 1) twice: the second call must
+// carry the full 256-bit total back across the boundary
+func bigCallerWatFor(vault ngtypes.Address) string {
 	return `
 (module
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
   (import "env" "buf_get" (func $bget (param i32 i32) (result i32)))
   (import "kv" "set" (func $kvset (param i32 i32 i32 i32) (result i32)))
-  (import "service/700" "deposit_big" (func $deposit))
+  (import "service/` + vault.String() + `" "deposit_big" (func $deposit))
   (memory 1)
   (data (i32.const 0) "got")
   (data (i32.const 32) "\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff")
@@ -906,12 +961,15 @@ func bigCallerWat() string {
 func TestServiceBigValues(t *testing.T) {
 	db := newTestDB(t)
 
+	vaultAddr := testAddr(0xaa)
+	callerAddr := testAddr(0xdd)
+
 	err := db.Update(func(txn *bbolt.Tx) error {
-		vault := ngtypes.NewAccount(700, testAddr(0xaa), []byte(bigVaultWat), nil)
+		vault := ngtypes.NewAccount(vaultAddr, []byte(bigVaultWat), nil)
 		vault.SetLock(true)
 		putAccount(t, txn, vault, 0)
 
-		caller := ngtypes.NewAccount(730, testAddr(0xdd), []byte(bigCallerWat()), nil)
+		caller := ngtypes.NewAccount(callerAddr, []byte(bigCallerWatFor(vaultAddr)), nil)
 		caller.SetLock(true)
 		putAccount(t, txn, caller, 0)
 
@@ -931,7 +989,7 @@ func TestServiceBigValues(t *testing.T) {
 		}
 		want[16] = 0x01
 
-		callerAcc, _ := getAccountByNum(txn, 730)
+		callerAcc, _ := getAccount(txn, callerAddr)
 		got := callerAcc.Context.Get("got")
 		if len(got) != 32 {
 			t.Fatalf("got length = %d, want 32", len(got))
@@ -943,7 +1001,7 @@ func TestServiceBigValues(t *testing.T) {
 		}
 
 		// the vault's own kv holds the same total
-		vaultAcc, _ := getAccountByNum(txn, 700)
+		vaultAcc, _ := getAccount(txn, vaultAddr)
 		tot := vaultAcc.Context.Get("tot")
 		for i := range want {
 			if tot[i] != want[i] {
@@ -964,13 +1022,16 @@ func TestReceiptsAndEvents(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
+	emitAddr := testAddr(0xaa)
+	badAddr := testAddr(0xbb)
+
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(emitWat), nil)
+		acc := ngtypes.NewAccount(emitAddr, []byte(emitWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
 		tx := fakeTransactTx(nil, nil)
-		state.runContract(txn, 500, tx, VMEntryOnTx, 1)
+		state.runContract(txn, emitAddr, tx, VMEntryOnTx, 1)
 
 		runs, err := GetTxRuns(txn, tx.GetHash())
 		if err != nil {
@@ -980,7 +1041,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 			t.Fatalf("runs = %d, want 1", len(runs))
 		}
 		run := runs[0]
-		if !run.Ok || run.Account != 500 || run.Entry != VMEntryOnTx {
+		if !run.Ok || string(run.Contract) != string(emitAddr[:]) || run.Entry != VMEntryOnTx {
 			t.Fatalf("run = %+v", run)
 		}
 		if run.GasUsed == 0 {
@@ -990,7 +1051,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 			t.Fatalf("events = %d, want 2", len(run.Events))
 		}
 		if run.Events[0].Topic != "transfer" || string(run.Events[0].Data) != "data1" ||
-			run.Events[0].Contract != 500 {
+			string(run.Events[0].Contract) != string(emitAddr[:]) {
 			t.Fatalf("event[0] = %+v", run.Events[0])
 		}
 		if run.Events[1].Topic != "mint" || len(run.Events[1].Data) != 0 {
@@ -998,12 +1059,12 @@ func TestReceiptsAndEvents(t *testing.T) {
 		}
 
 		// a failing contract records the failure and drops its events
-		bad := ngtypes.NewAccount(600, testAddr(0xbb), []byte(burnWat), nil)
+		bad := ngtypes.NewAccount(badAddr, []byte(burnWat), nil)
 		bad.SetLock(true)
 		putAccount(t, txn, bad, 0)
 
-		badTx := fakeTransactTx([]ngtypes.Address{testAddr(0xbb)}, []*big.Int{big.NewInt(0)})
-		state.runContract(txn, 600, badTx, VMEntryOnTx, 1)
+		badTx := fakeTransactTx([]ngtypes.Address{badAddr}, []*big.Int{big.NewInt(0)})
+		state.runContract(txn, badAddr, badTx, VMEntryOnTx, 1)
 
 		badRuns, err := GetTxRuns(txn, badTx.GetHash())
 		if err != nil {
@@ -1031,7 +1092,7 @@ func TestGasPricingTiers(t *testing.T) {
 	run := func(wat string) uint64 {
 		var gas uint64
 		err := db.Update(func(txn *bbolt.Tx) error {
-			acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(wat), nil)
+			acc := ngtypes.NewAccount(testAddr(0xaa), []byte(wat), nil)
 			acc.SetLock(true)
 			putAccount(t, txn, acc, 100)
 
@@ -1079,7 +1140,7 @@ func TestVMDryRun(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(kvWat), nil)
+		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 0)
 
@@ -1097,7 +1158,7 @@ func TestVMDryRun(t *testing.T) {
 		}
 
 		// the kv write the contract performed must NOT be visible
-		reloaded, err := getAccountByNum(txn, 500)
+		reloaded, err := getAccount(txn, testAddr(0xaa))
 		if err != nil {
 			return err
 		}
@@ -1112,102 +1173,9 @@ func TestVMDryRun(t *testing.T) {
 	}
 }
 
-// TestNamedContractDeps: contracts are addressable as deployer.name —
-// the name registers at lock time, imports resolve through the registry,
-// conflicts are refused, and destroy releases the name
-func TestNamedContractDeps(t *testing.T) {
-	db := newTestDB(t)
-	state := &State{Network: ngtypes.ZERONET}
-
-	privToken, _ := ngtypes.GenerateKey()
-	privUser, _ := ngtypes.GenerateKey()
-	tokenDeployer := ngtypes.NewAddress(privToken)
-
-	// the consumer imports the token via <deployerBS58>.token
-	namedUserWat := `
-(module
-  (import "service/` + tokenDeployer.String() + `.token" "mint_to" (func $mint (param i64 i64)))
-  (func (export "main")
-    (call $mint (i64.const 600) (i64.const 5))))
-`
-
-	err := db.Update(func(txn *bbolt.Tx) error {
-		token := ngtypes.NewAccount(700, tokenDeployer, []byte(tokenWat), nil)
-		putAccount(t, txn, token, 100)
-		user := ngtypes.NewAccount(600, ngtypes.NewAddress(privUser), []byte(namedUserWat), nil)
-		putAccount(t, txn, user, 100)
-
-		lock := func(convener uint64, priv *ngtypes.PrivateKey, name string) error {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
-				nil, nil, big.NewInt(1), []byte(name), nil)
-			if err := tx.Signature(priv); err != nil {
-				t.Fatal(err)
-			}
-			return state.handleLock(txn, tx, 1)
-		}
-
-		// the consumer cannot lock before the name exists
-		if err := lock(600, privUser, ""); err == nil {
-			t.Fatal("locking against an unregistered name must fail")
-		}
-
-		// lock the token under its name, then the consumer resolves it
-		if err := lock(700, privToken, "token"); err != nil {
-			t.Fatalf("lock named token: %v", err)
-		}
-		if err := lock(600, privUser, ""); err != nil {
-			t.Fatalf("lock consumer: %v", err)
-		}
-
-		// the registry pinned the dependency by resolved num
-		tokenAcc, _ := getAccountByNum(txn, 700)
-		if getRefCount(tokenAcc) != 1 {
-			t.Fatalf("token refcount = %d, want 1", getRefCount(tokenAcc))
-		}
-
-		// named execution works end to end
-		userAcc, _ := getAccountByNum(txn, 600)
-		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), 1)
-		if err != nil {
-			t.Fatalf("NewVM with named dep: %v", err)
-		}
-		if err := vm.Run(VMEntryOnTx); err != nil {
-			t.Fatalf("named service run: %v", err)
-		}
-
-		// another account of the SAME deployer cannot take the name
-		other := ngtypes.NewAccount(701, tokenDeployer, []byte(dexWat), nil)
-		putAccount(t, txn, other, 100)
-		if err := lock(701, privToken, "token"); !errors.Is(err, ErrNameTaken) {
-			t.Fatalf("name conflict: got %v, want ErrNameTaken", err)
-		}
-
-		// a DIFFERENT deployer may use the same name (separate namespace)
-		otherDeployer, _ := ngtypes.GenerateKey()
-		foreign := ngtypes.NewAccount(702, ngtypes.NewAddress(otherDeployer), []byte(dexWat), nil)
-		putAccount(t, txn, foreign, 100)
-		if err := lock(702, otherDeployer, "token"); err != nil {
-			t.Fatalf("same name under another deployer must work: %v", err)
-		}
-
-		// invalid names are rejected
-		bad := ngtypes.NewAccount(703, ngtypes.NewAddress(privUser), []byte(dexWat), nil)
-		putAccount(t, txn, bad, 100)
-		if err := lock(703, privUser, "Bad.Name!"); !errors.Is(err, ErrNameInvalid) {
-			t.Fatalf("invalid name: got %v, want ErrNameInvalid", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// TestDestroyRules: an account cannot be destroyed while its contract
-// is active (locked) or non-empty — downstream contracts may depend on
-// it; after unlock + clearing, destroy goes through and removes the
-// account (with its Context) entirely
+// TestDestroyRules: a slot cannot be destroyed while its contract is
+// active (locked) — downstream contracts may depend on it; after
+// unlock, destroy removes the slot (with its Context) entirely
 func TestDestroyRules(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
@@ -1219,11 +1187,11 @@ func TestDestroyRules(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewAccount(900, addr, []byte(logWat), nil)
+		acc := ngtypes.NewAccount(addr, []byte(logWat), nil)
 		acc.SetLock(true)
 		putAccount(t, txn, acc, 100)
 
-		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, 900, nil, nil, big.NewInt(1), nil, nil)
+		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := destroyTx.Signature(priv); err != nil {
 			return err
 		}
@@ -1233,25 +1201,16 @@ func TestDestroyRules(t *testing.T) {
 			t.Fatal("destroying a locked account must fail")
 		}
 
-		// unlocked but the contract text remains: still refused
+		// unlocked: destroy goes through and the slot is gone
 		acc.SetLock(false)
-		if err := setAccount(txn, 900, acc); err != nil {
-			return err
-		}
-		if err := state.handleDestroy(txn, destroyTx); err != ErrDestroyAccountContractNotEmpty {
-			t.Fatalf("destroying with a contract: got %v, want ErrDestroyAccountContractNotEmpty", err)
-		}
-
-		// cleared: destroy goes through and the account is gone
-		acc.Contract = nil
-		if err := setAccount(txn, 900, acc); err != nil {
+		if err := setAccount(txn, acc); err != nil {
 			return err
 		}
 		if err := state.handleDestroy(txn, destroyTx); err != nil {
-			t.Fatalf("destroy after clearing: %v", err)
+			t.Fatalf("destroy after unlocking: %v", err)
 		}
-		if _, err := getAccountByNum(txn, 900); err == nil {
-			t.Fatal("account (and its context) must be removed")
+		if _, err := getAccount(txn, addr); err == nil {
+			t.Fatal("the slot (and its context) must be removed")
 		}
 
 		return nil
@@ -1273,10 +1232,10 @@ func TestLockRejectsBrokenContract(t *testing.T) {
 
 	err = db.Update(func(txn *bbolt.Tx) error {
 		// a half-edited contract text must not be lockable
-		acc := ngtypes.NewAccount(700, addr, []byte(`(module (func (export "main")`), nil)
+		acc := ngtypes.NewAccount(addr, []byte(`(module (func (export "main")`), nil)
 		putAccount(t, txn, acc, 100)
 
-		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, 700, nil, nil, big.NewInt(1), nil, nil)
+		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, nil, nil, big.NewInt(1), nil, nil)
 		if err := lockTx.Signature(priv); err != nil {
 			return err
 		}
@@ -1288,7 +1247,7 @@ func TestLockRejectsBrokenContract(t *testing.T) {
 			t.Fatal("handleLock should reject a non-compiling contract")
 		}
 
-		reloaded, err := getAccountByNum(txn, 700)
+		reloaded, err := getAccount(txn, addr)
 		if err != nil {
 			return err
 		}

@@ -2,7 +2,6 @@ package ngstate
 
 import (
 	"bytes"
-	"strconv"
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
@@ -65,9 +64,9 @@ type VM struct {
 	linker *wasman.Linker
 	module *wasman.Module
 
-	// frames is the call stack of executing accounts; frames[0] is the
+	// frames is the call stack of executing addresses; frames[0] is the
 	// contract this vm was built for, service calls push their callee
-	frames []uint64
+	frames []ngtypes.Address
 
 	// events accumulate during the run and only survive a SUCCESSFUL
 	// call (mirroring the journal semantics)
@@ -127,11 +126,11 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx, blockTim
 		txn:       txn,
 		blockTime: blockTime,
 		journal:   newVMJournal(account),
-		frames:    []uint64{account.Num},
+		frames:    []ngtypes.Address{account.Owner},
 		cfg:       cfg,
 		linker:    wasman.NewLinker(config.LinkerConfig{}),
 		module:    module,
-		logger:    logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
+		logger:    logging.Logger("vm-" + account.Owner.String()[:8]),
 	}
 
 	err = vm.initBuiltInImports()
@@ -148,7 +147,7 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx, blockTim
 }
 
 // loadContractDeps recursively links the contract modules imported
-// through the contract/<num> namespace. Dependencies instantiate before
+// through the contract/<bs58 addr> namespace. Dependencies instantiate before
 // their dependents (wasman links against instantiated modules only), so
 // the whole set loads in dependency order.
 //
@@ -174,25 +173,25 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 			continue
 		}
 
-		num, err := resolveDepNum(vm.txn, dep.Raw)
+		addr, err := resolveDepAddr(dep.Raw)
 		if err != nil {
 			return err
 		}
-		if num == vm.self.Num {
+		if addr.Equals(vm.self.Owner) {
 			return ErrDepSelf
 		}
 
-		depAcc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(num))
+		depAcc, err := getAccount(vm.txn, addr)
 		if err != nil {
-			return errors.Wrapf(err, "unknown dependency contract %d", num)
+			return errors.Wrapf(err, "unknown dependency contract %s", addr)
 		}
 		if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
-			return errors.Wrapf(ErrDepNotActive, "contract %d", num)
+			return errors.Wrapf(ErrDepNotActive, "contract %s", addr)
 		}
 
 		if dep.Service {
 			// service: own-state semantics via a host wrapper module
-			if err := vm.linkServiceDep(name, num, depAcc, depth); err != nil {
+			if err := vm.linkServiceDep(name, depAcc, depth); err != nil {
 				return err
 			}
 			continue
@@ -202,11 +201,11 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		// caller's state
 		depBin, err := CompileContract(depAcc.Contract)
 		if err != nil {
-			return errors.Wrapf(err, "dependency contract %d does not compile", num)
+			return errors.Wrapf(err, "dependency contract %s does not compile", addr)
 		}
 		depModule, err := wasman.NewModule(vm.cfg, bytes.NewReader(depBin))
 		if err != nil {
-			return errors.Wrapf(err, "failed to load dependency contract %d", num)
+			return errors.Wrapf(err, "failed to load dependency contract %s", addr)
 		}
 
 		// resolve the dependency's own imports first (DAG order)
@@ -215,7 +214,7 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		}
 
 		if _, err := vm.linker.Instantiate(depModule); err != nil {
-			return errors.Wrapf(err, "failed to instantiate dependency contract %d", num)
+			return errors.Wrapf(err, "failed to instantiate dependency contract %s", addr)
 		}
 
 		vm.linker.Define(name, depModule)

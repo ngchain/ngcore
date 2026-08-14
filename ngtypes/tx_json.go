@@ -11,7 +11,6 @@ type jsonTx struct {
 	Network      string     `json:"network"`
 	Type         TxType     `json:"type"`
 	Height       uint64     `json:"prevBlockHash"`
-	Convener     AccountNum `json:"convener"`
 	Participants []Address  `json:"participants"`
 	Fee          *big.Int   `json:"fee"`
 	Values       []*big.Int `json:"values"`
@@ -29,7 +28,6 @@ func (x *FullTx) MarshalJSON() ([]byte, error) {
 		Network:      x.Network.String(),
 		Type:         x.Type,
 		Height:       x.Height,
-		Convener:     x.Convener,
 		Participants: x.Participants,
 		Fee:          x.Fee,
 		Values:       x.Values,
@@ -63,7 +61,6 @@ func (x *FullTx) UnmarshalJSON(b []byte) error {
 		GetNetwork(tx.Network),
 		tx.Type,
 		tx.Height,
-		tx.Convener,
 		tx.Participants,
 		tx.Values,
 		tx.Fee,

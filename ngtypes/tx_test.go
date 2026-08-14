@@ -20,7 +20,6 @@ func TestDeserialize(t *testing.T) {
 		ngtypes.TESTNET,
 		ngtypes.TransactTx,
 		TEST_HEIGHT,
-		0,
 		[]ngtypes.Address{ngtypes.GenesisAddress},
 		[]*big.Int{new(big.Int).Mul(ngtypes.NG, big.NewInt(1000))},
 		big.NewInt(0),
@@ -43,7 +42,6 @@ func TestTransaction_Signature(t *testing.T) {
 		ngtypes.TESTNET,
 		ngtypes.TransactTx,
 		TEST_HEIGHT,
-		1,
 		[]ngtypes.Address{ngtypes.GenesisAddress},
 		[]*big.Int{big.NewInt(0)},
 		big.NewInt(0),
@@ -54,19 +52,23 @@ func TestTransaction_Signature(t *testing.T) {
 
 	_ = o.Signature(priv1)
 
-	if err := o.Verify(ngtypes.NewAddress(priv1)); err != nil {
-		t.Errorf("priv1 != o")
+	if err := o.Verify(); err != nil {
+		t.Errorf("signed tx must verify: %v", err)
 	}
 
-	if err := o.Verify(ngtypes.NewAddress(priv2)); err == nil {
-		t.Errorf("priv2 == o")
+	sender, _ := o.Sender()
+	if !sender.Equals(ngtypes.NewAddress(priv1)) {
+		t.Errorf("sender must be priv1's address")
+	}
+	if sender.Equals(ngtypes.NewAddress(priv2)) {
+		t.Errorf("sender must not be priv2's address")
 	}
 }
 
 func TestGetGenesisGenerate(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		gg := ngtypes.GetGenesisGenerateTx(net)
-		if err := gg.Verify(gg.Participants[0]); err != nil {
+		if err := gg.Verify(); err != nil {
 			t.Log(err)
 			t.Fail()
 		}

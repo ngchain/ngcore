@@ -3,7 +3,6 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"math/big"
-	"reflect"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
@@ -123,11 +122,10 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 }
 
 type genTransactionParams struct {
-	Convener     uint64        `json:"convener"`
-	Participants []interface{} `json:"participants"`
-	Values       []float64     `json:"values"`
-	Fee          float64       `json:"fee"`
-	Extra        string        `json:"extra"`
+	Participants []string  `json:"participants"` // bs58 addresses
+	Values       []float64 `json:"values"`
+	Fee          float64   `json:"fee"`
+	Extra        string    `json:"extra"`
 }
 
 // all genTx should reply protobuf encoded bytes.
@@ -141,26 +139,12 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	participants := make([]ngtypes.Address, len(params.Participants))
 	for i := range params.Participants {
-		switch p := params.Participants[i].(type) {
-		case string:
-			addr, err := ngtypes.NewAddressFromBS58(p)
-			if err != nil {
-				log.Error(err)
-				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-			}
-			participants[i] = addr
-		case float64:
-			accountID := uint64(p)
-			account, err := s.pow.State.GetAccountByNum(accountID)
-			if err != nil {
-				log.Error(err)
-				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-			}
-			participants[i] = account.Owner
-		default:
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0,
-				errors.Wrapf(ngtypes.ErrTxParticipantsInvalid, "unknown participant type: %s", reflect.TypeOf(p))))
+		addr, err := ngtypes.NewAddressFromBS58(params.Participants[i])
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
+		participants[i] = addr
 	}
 
 	values := make([]*big.Int, len(params.Values))
@@ -180,7 +164,6 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		s.pow.Network,
 		ngtypes.TransactTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.AccountNum(params.Convener),
 		participants,
 		values,
 		fee,
@@ -204,51 +187,9 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type genRegisterParams struct {
-	Owner ngtypes.Address `json:"owner"`
-	Num   uint64          `json:"num"`
-}
-
-func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genRegisterParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	tx := ngtypes.NewUnsignedTx(
-		s.pow.Network,
-		ngtypes.RegisterTx,
-		s.pow.Chain.GetLatestBlockHeight()+1,
-		1,
-		[]ngtypes.Address{
-			params.Owner,
-		},
-		[]*big.Int{big.NewInt(0)},
-		new(big.Int).Mul(ngtypes.NG, big.NewInt(10)),
-		utils.PackUint64LE(params.Num),
-	)
-
-	rawTx, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
-}
-
 type genDestroyParams struct {
-	Convener uint64  `json:"convener"`
-	Fee      float64 `json:"fee"`
-	Extra    string  `json:"extra"` // optional hex payload; the keyset in the signature already records the owner keys
+	Fee   float64 `json:"fee"`
+	Extra string  `json:"extra"` // optional hex payload
 }
 
 func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -271,7 +212,6 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		s.pow.Network,
 		ngtypes.DestroyTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.AccountNum(params.Convener),
 		nil,
 		nil,
 		fee,
@@ -300,9 +240,9 @@ type editHunk struct {
 }
 
 type genEditParams struct {
-	Convener uint64     `json:"convener"`
-	Fee      float64    `json:"fee"`
-	Hunks    []editHunk `json:"hunks"`
+	Address string     `json:"address"` // the deployer's own address (its slot text is the base)
+	Fee     float64    `json:"fee"`
+	Hunks   []editHunk `json:"hunks"`
 }
 
 // genEditFunc composes an unsigned edit tx from explicit hunks
@@ -315,22 +255,18 @@ func (s *Server) genEditFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	account, err := s.pow.State.GetAccountByNum(params.Convener)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
+	baseText := s.slotText(params.Address)
 
 	hunks := make([]ngtypes.Hunk, len(params.Hunks))
 	for i, h := range params.Hunks {
 		hunks[i] = ngtypes.Hunk{Pos: h.Pos, Del: []byte(h.Del), Ins: []byte(h.Ins)}
 	}
 
-	return s.buildEditTx(msg, params.Convener, params.Fee, account.Contract, hunks)
+	return s.buildEditTx(msg, params.Fee, baseText, hunks)
 }
 
 type genContractUpdateParams struct {
-	Convener    uint64  `json:"convener"`
+	Address     string  `json:"address"` // the deployer's own address
 	Fee         float64 `json:"fee"`
 	NewContract string  `json:"newContract"`
 }
@@ -345,22 +281,34 @@ func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.J
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	account, err := s.pow.State.GetAccountByNum(params.Convener)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
+	baseText := s.slotText(params.Address)
 
-	hunks := ngtypes.DiffHunks(account.Contract, []byte(params.NewContract))
+	hunks := ngtypes.DiffHunks(baseText, []byte(params.NewContract))
 	if len(hunks) == 0 {
 		err := errors.New("new contract is identical to the on-chain one")
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildEditTx(msg, params.Convener, params.Fee, account.Contract, hunks)
+	return s.buildEditTx(msg, params.Fee, baseText, hunks)
 }
 
-func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, convener uint64, feeNG float64, baseText []byte, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
+// slotText loads the current contract text of the address; empty when
+// the slot never opened (the edit will then be the deploy)
+func (s *Server) slotText(address string) []byte {
+	addr, err := ngtypes.NewAddressFromBS58(address)
+	if err != nil {
+		return nil
+	}
+
+	account, err := s.pow.State.GetAccountByAddress(addr)
+	if err != nil {
+		return nil
+	}
+
+	return account.Contract
+}
+
+func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, baseText []byte, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
 	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
 
 	rawExtra, err := ngtypes.NewEditExtra(baseText, hunks).Encode()
@@ -373,7 +321,6 @@ func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, convener uint64, feeN
 		s.pow.Network,
 		ngtypes.EditTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.AccountNum(convener),
 		nil,
 		nil,
 		fee,
@@ -396,13 +343,11 @@ func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, convener uint64, feeN
 }
 
 type genLockParams struct {
-	Convener uint64  `json:"convener"`
-	Fee      float64 `json:"fee"`
-	Name     string  `json:"name"` // optional: registers <owner>.<name>
+	Fee float64 `json:"fee"`
 }
 
-// genLockFunc composes an unsigned lock tx, optionally registering the
-// contract's addr.name handle
+// genLockFunc composes an unsigned lock tx (the sender locks its own
+// contract slot)
 func (s *Server) genLockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genLockParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -411,12 +356,11 @@ func (s *Server) genLockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildSimpleTx(msg, ngtypes.LockTx, params.Convener, params.Fee, []byte(params.Name))
+	return s.buildSimpleTx(msg, ngtypes.LockTx, params.Fee, nil)
 }
 
 type genUnlockParams struct {
-	Convener uint64  `json:"convener"`
-	Fee      float64 `json:"fee"`
+	Fee float64 `json:"fee"`
 }
 
 // genUnlockFunc composes an unsigned unlock tx
@@ -428,18 +372,17 @@ func (s *Server) genUnlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildSimpleTx(msg, ngtypes.UnlockTx, params.Convener, params.Fee, nil)
+	return s.buildSimpleTx(msg, ngtypes.UnlockTx, params.Fee, nil)
 }
 
-// buildSimpleTx composes an unsigned convener-only tx of the given type
-func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxType, convener uint64, feeNG float64, extra []byte) *jsonrpc2.JsonRpcMessage {
+// buildSimpleTx composes an unsigned sender-only tx of the given type
+func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxType, feeNG float64, extra []byte) *jsonrpc2.JsonRpcMessage {
 	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
 		txType,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.AccountNum(convener),
 		nil,
 		nil,
 		fee,
@@ -461,46 +404,11 @@ func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxTy
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type resolveContractParams struct {
-	Deployer string `json:"deployer"` // bs58 address
-	Name     string `json:"name"`
-}
-
-// resolveContractFunc resolves a deployer.name handle to its account num
-func (s *Server) resolveContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params resolveContractParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	deployer, err := ngtypes.NewAddressFromBS58(params.Deployer)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	num, err := s.pow.State.ResolveContractName(deployer, params.Name)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	raw, err := utils.JSON.Marshal(num)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
-}
-
 type getContractParams struct {
-	Num uint64 `json:"num"`
+	Address string `json:"address"`
 }
 
-// getContractFunc returns the on-chain contract text of the account
+// getContractFunc returns the on-chain contract text of the address
 func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params getContractParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -509,7 +417,13 @@ func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	account, err := s.pow.State.GetAccountByNum(params.Num)
+	addr, err := ngtypes.NewAddressFromBS58(params.Address)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	account, err := s.pow.State.GetAccountByAddress(addr)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

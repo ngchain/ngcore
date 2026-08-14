@@ -32,21 +32,17 @@ func registerHTTPHandler(s *Server) {
 	// state
 	s.RegisterJsonRpcHandleFunc("sendTx", s.sendTxFunc)
 	s.RegisterJsonRpcHandleFunc("signTx", s.signTxFunc)
-	s.RegisterJsonRpcHandleFunc("genRegister", s.genRegisterFunc)
 	s.RegisterJsonRpcHandleFunc("genDestroy", s.genDestroyFunc)
 	s.RegisterJsonRpcHandleFunc("genTransaction", s.genTransactionFunc)
 	s.RegisterJsonRpcHandleFunc("genEdit", s.genEditFunc)
 	s.RegisterJsonRpcHandleFunc("genLock", s.genLockFunc)
 	s.RegisterJsonRpcHandleFunc("genUnlock", s.genUnlockFunc)
-	s.RegisterJsonRpcHandleFunc("resolveContract", s.resolveContractFunc)
 	s.RegisterJsonRpcHandleFunc("callContract", s.callContractFunc)
 	s.RegisterJsonRpcHandleFunc("getReceipt", s.getReceiptFunc)
 	s.RegisterJsonRpcHandleFunc("genContractUpdate", s.genContractUpdateFunc)
 	s.RegisterJsonRpcHandleFunc("getContract", s.getContractFunc)
 
 	s.RegisterJsonRpcHandleFunc("getAccountByAddress", s.requireSynced(s.getAccountByAddressFunc))
-	s.RegisterJsonRpcHandleFunc("getAccountByNum", s.requireSynced(s.getAccountByNumFunc))
-	s.RegisterJsonRpcHandleFunc("getBalanceByNum", s.requireSynced(s.getBalanceByNumFunc))
 	s.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
 
 	// mining

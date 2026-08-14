@@ -3,10 +3,9 @@ package jsonrpc
 import (
 	"encoding/hex"
 	"math/big"
-	"strconv"
-	"strings"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/mr-tron/base58"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngstate"
@@ -15,10 +14,8 @@ import (
 )
 
 type callContractParams struct {
-	// Contract identifies the target: "700" or "<deployerBS58>.<name>"
+	// Contract is the deployer's bs58 address
 	Contract string `json:"contract"`
-	// Caller poses as the tx convener (default 1)
-	Caller uint64 `json:"caller"`
 	// Value is the NG amount the simulated tx pays to the contract
 	Value float64 `json:"value"`
 	// Extra is the simulated tx extra (the calldata channel)
@@ -26,7 +23,7 @@ type callContractParams struct {
 }
 
 type jsonEvent struct {
-	Contract uint64 `json:"contract"`
+	Contract string `json:"contract"` // bs58 address
 	Topic    string `json:"topic"`
 	Data     string `json:"data"` // hex
 }
@@ -46,7 +43,7 @@ func eventsToJSON(events []ngstate.Event) []jsonEvent {
 	out := make([]jsonEvent, len(events))
 	for i, e := range events {
 		out[i] = jsonEvent{
-			Contract: e.Contract,
+			Contract: base58.FastBase58Encoding(e.Contract),
 			Topic:    e.Topic,
 			Data:     hex.EncodeToString(e.Data),
 		}
@@ -66,21 +63,17 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	num, err := s.resolveContractRef(params.Contract)
+	contractAddr, err := ngtypes.NewAddressFromBS58(params.Contract)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	caller := params.Caller
-	if caller == 0 {
-		caller = 1
-	}
 	value := new(big.Int).SetUint64(uint64(params.Value * ngtypes.FloatNG))
 
 	result := &callContractResult{}
 	err = s.pow.State.View(func(txn *bbolt.Tx) error {
-		account, err := s.pow.State.GetAccountByNum(num)
+		account, err := s.pow.State.GetAccountByAddress(contractAddr)
 		if err != nil {
 			return err
 		}
@@ -89,7 +82,6 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 			s.pow.Network,
 			ngtypes.TransactTx,
 			s.pow.Chain.GetLatestBlockHeight()+1,
-			ngtypes.AccountNum(caller),
 			[]ngtypes.Address{account.Owner},
 			[]*big.Int{value},
 			big.NewInt(0),
@@ -128,31 +120,17 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-// resolveContractRef accepts "700" or "<deployerBS58>.<name>"
-func (s *Server) resolveContractRef(ref string) (uint64, error) {
-	if dot := strings.IndexByte(ref, '.'); dot >= 0 {
-		deployer, err := ngtypes.NewAddressFromBS58(ref[:dot])
-		if err != nil {
-			return 0, err
-		}
-
-		return s.pow.State.ResolveContractName(deployer, ref[dot+1:])
-	}
-
-	return strconv.ParseUint(ref, 10, 64)
-}
-
 type getReceiptParams struct {
 	Hash string `json:"hash"` // hex tx hash
 }
 
 type jsonContractRun struct {
-	Account uint64      `json:"account"`
-	Entry   string      `json:"entry"`
-	Success bool        `json:"success"`
-	Error   string      `json:"error,omitempty"`
-	GasUsed uint64      `json:"gasUsed"`
-	Events  []jsonEvent `json:"events,omitempty"`
+	Contract string      `json:"contract"` // bs58 address
+	Entry    string      `json:"entry"`
+	Success  bool        `json:"success"`
+	Error    string      `json:"error,omitempty"`
+	GasUsed  uint64      `json:"gasUsed"`
+	Events   []jsonEvent `json:"events,omitempty"`
 }
 
 type getReceiptResult struct {
@@ -198,12 +176,12 @@ func (s *Server) getReceiptFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	}
 	for _, run := range runs {
 		result.Runs = append(result.Runs, jsonContractRun{
-			Account: run.Account,
-			Entry:   run.Entry,
-			Success: run.Ok,
-			Error:   run.Error,
-			GasUsed: run.GasUsed,
-			Events:  eventsToJSON(run.Events),
+			Contract: base58.FastBase58Encoding(run.Contract),
+			Entry:    run.Entry,
+			Success:  run.Ok,
+			Error:    run.Error,
+			GasUsed:  run.GasUsed,
+			Events:   eventsToJSON(run.Events),
 		})
 	}
 

@@ -1,6 +1,7 @@
 package ngpool
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -69,54 +70,57 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 			tx.GetHash(), tx.Height, nextHeight)
 	}
 
-	convener := uint64(tx.Convener)
+	sender, err := tx.Sender()
+	if err != nil {
+		return err
+	}
 
-	// same-convener replacement: only a higher fee replaces
-	if existing := pool.txMap[convener]; existing != nil {
+	// same-sender replacement: only a higher fee replaces
+	if existing := pool.txMap[sender]; existing != nil {
 		if existing.Fee.Cmp(tx.Fee) >= 0 {
-			return errors.Wrapf(ErrTxFeeTooLow, "convener %d already queues a tx with fee %s",
-				convener, existing.Fee)
+			return errors.Wrapf(ErrTxFeeTooLow, "sender %s already queues a tx with fee %s",
+				sender, existing.Fee)
 		}
-		pool.txMap[convener] = tx
+		pool.txMap[sender] = tx
 
 		return nil
 	}
 
 	// capacity: when full, the new tx must beat the cheapest entry
 	if len(pool.txMap) >= pool.MaxSize {
-		evictNum, evictFee := cheapestEntry(pool.txMap)
+		evictAddr, evictFee := cheapestEntry(pool.txMap)
 		if evictFee.Cmp(tx.Fee) >= 0 {
 			return errors.Wrapf(ErrPoolFull, "pool holds %d txs and the cheapest fee %s beats %s",
 				len(pool.txMap), evictFee, tx.Fee)
 		}
-		delete(pool.txMap, evictNum)
+		delete(pool.txMap, evictAddr)
 	}
 
-	pool.txMap[convener] = tx
+	pool.txMap[sender] = tx
 
 	return nil
 }
 
 // cheapestEntry finds the pool entry with the lowest fee (the higher
 // convener num breaks the tie, mirroring the pack order)
-func cheapestEntry(txMap map[uint64]*ngtypes.FullTx) (uint64, *big.Int) {
-	var num uint64
+func cheapestEntry(txMap map[ngtypes.Address]*ngtypes.FullTx) (ngtypes.Address, *big.Int) {
+	var addr ngtypes.Address
 	var fee *big.Int
 
-	for n, tx := range txMap {
+	for a, tx := range txMap {
 		if fee == nil {
-			num, fee = n, tx.Fee
+			addr, fee = a, tx.Fee
 			continue
 		}
 		switch tx.Fee.Cmp(fee) {
 		case -1:
-			num, fee = n, tx.Fee
+			addr, fee = a, tx.Fee
 		case 0:
-			if n > num {
-				num, fee = n, tx.Fee
+			if bytes.Compare(a[:], addr[:]) > 0 {
+				addr, fee = a, tx.Fee
 			}
 		}
 	}
 
-	return num, fee
+	return addr, fee
 }

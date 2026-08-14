@@ -1,7 +1,6 @@
 package ngtypes_test
 
 import (
-	"math/rand"
 	"testing"
 
 	logging "github.com/ngchain/zap-log"
@@ -21,19 +20,13 @@ func TestNewAccount(t *testing.T) {
 
 	addr := ngtypes.NewAddress(privateKey)
 
-	randUint64 := rand.Uint64()
-	acc := ngtypes.NewAccount(
-		ngtypes.AccountNum(randUint64),
-		addr,
-		// big.NewInt(0),
-		nil,
-		nil,
-	)
+	acc := ngtypes.NewAccount(addr, nil, nil)
 	t.Log(acc)
 }
 
 func TestJSONAccount(t *testing.T) {
-	account1 := ngtypes.GetGenesisStyleAccount(1)
+	key, _ := ngtypes.GenerateKey()
+	account1 := ngtypes.NewAccount(ngtypes.NewAddress(key), []byte("(module)"), nil)
 	jsonBlock, err := utils.JSON.Marshal(account1)
 	if err != nil {
 		t.Error(err)

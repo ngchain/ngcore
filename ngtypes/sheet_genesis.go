@@ -7,16 +7,11 @@ var genesisSheet *Sheet
 // were dropped when the secp scheme was removed
 var genesisBalances = []*Balance{}
 
-// GetGenesisSheet returns a genesis sheet
+// GetGenesisSheet returns a genesis sheet: no balances, no contract
+// slots — everything on this chain is earned and deployed after birth
 func GetGenesisSheet(network Network) *Sheet {
 	if genesisSheet == nil {
-		accounts := make([]*Account, 0, 100)
-
-		for i := uint64(0); i <= 100; i++ {
-			accounts = append(accounts, GetGenesisStyleAccount(AccountNum(i)))
-		}
-
-		genesisSheet = NewSheet(network, 0, GetGenesisBlock(network).GetHash(), genesisBalances, accounts)
+		genesisSheet = NewSheet(network, 0, GetGenesisBlock(network).GetHash(), genesisBalances, []*Account{})
 	}
 
 	return genesisSheet

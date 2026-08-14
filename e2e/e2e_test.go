@@ -6,7 +6,6 @@ package e2e
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -139,7 +138,7 @@ func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) 
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
 
-	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height, 0,
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		[]ngtypes.Address{ngtypes.NewAddress(miner)},
 		[]*big.Int{ngtypes.GetBlockReward(height)},
 		big.NewInt(0), nil, nil)
@@ -274,7 +273,7 @@ func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
 
-	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height, 0,
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		[]ngtypes.Address{ngtypes.NewAddress(miner)},
 		[]*big.Int{ngtypes.GetBlockReward(height)},
 		big.NewInt(0), nil, nil)
@@ -308,29 +307,16 @@ func TestTxPropagation(t *testing.T) {
 
 	key, _ := ngtypes.GenerateKey()
 
-	// fund the key and register account 700 for it (via node A)
+	// fund the key (via node A): the address spends directly
 	b1 := mineAndSubmit(t, nodeA, key)
 	waitTip(t, nodeB, b1.GetHash(), 10*time.Second)
-
-	extra := make([]byte, 8)
-	binary.LittleEndian.PutUint64(extra, 700)
-	regTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.RegisterTx, 2, 1,
-		[]ngtypes.Address{ngtypes.NewAddress(key)},
-		[]*big.Int{big.NewInt(0)},
-		ngtypes.RegisterFee, extra, nil)
-	if err := regTx.Signature(key); err != nil {
-		t.Fatal(err)
-	}
-	b2 := mineOnTxs(t, b1, key, regTx)
-	if err := nodeA.pow.MinedNewBlock(b2); err != nil {
-		t.Fatalf("submit register block: %v", err)
-	}
+	b2 := mineAndSubmit(t, nodeA, key)
 	waitTip(t, nodeB, b2.GetHash(), 10*time.Second)
 
 	// submit a transact tx on A: it must reach B's pool over the network
 	var dest ngtypes.Address
 	dest[0] = 0xee
-	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 3, 700,
+	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 3,
 		[]ngtypes.Address{dest}, []*big.Int{big.NewInt(10)}, big.NewInt(1), nil, nil)
 	if err := tx.Signature(key); err != nil {
 		t.Fatal(err)
@@ -516,25 +502,19 @@ func TestContractLifecycle(t *testing.T) {
 		return b
 	}
 
-	// fund + register account 800
+	// fund the deployer: two block rewards cover the deploy fee + change
 	submit()
-	extra := make([]byte, 8)
-	binary.LittleEndian.PutUint64(extra, 800)
-	regTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.RegisterTx, 2, 1,
-		[]ngtypes.Address{addr}, []*big.Int{big.NewInt(0)}, ngtypes.RegisterFee, extra, nil)
-	if err := regTx.Signature(key); err != nil {
-		t.Fatal(err)
-	}
-	submit(regTx)
+	submit()
 
-	// deploy: an edit tx patches the empty contract to the wat text
+	// deploy: the FIRST edit opens the address's slot (namespace
+	// purchase, DeployFee burned on top of the tx fee)
 	rawExtra, err := ngtypes.NewEditExtra(nil, []ngtypes.Hunk{
 		{Pos: 0, Ins: []byte(contractWat)},
 	}).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
-	editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 3, 800,
+	editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 3,
 		nil, nil, big.NewInt(1), rawExtra, nil)
 	if err := editTx.Signature(key); err != nil {
 		t.Fatal(err)
@@ -542,7 +522,7 @@ func TestContractLifecycle(t *testing.T) {
 	submit(editTx)
 
 	// activate: lock compiles the text and enables the vm
-	lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 4, 800,
+	lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 4,
 		nil, nil, big.NewInt(1), nil, nil)
 	if err := lockTx.Signature(key); err != nil {
 		t.Fatal(err)
@@ -550,7 +530,7 @@ func TestContractLifecycle(t *testing.T) {
 	submit(lockTx)
 
 	// trigger: a transact tx to the contract account runs `main`
-	transTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 5, 800,
+	transTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 5,
 		[]ngtypes.Address{addr}, []*big.Int{big.NewInt(1)}, big.NewInt(1), nil, nil)
 	if err := transTx.Signature(key); err != nil {
 		t.Fatal(err)
@@ -559,7 +539,7 @@ func TestContractLifecycle(t *testing.T) {
 
 	// both nodes hold the identical contract state written by the vm
 	for name, node := range map[string]*testNode{"A": nodeA, "B": nodeB} {
-		acc, err := node.chain.State.GetAccountByNum(800)
+		acc, err := node.chain.State.GetAccountByAddress(addr)
 		if err != nil {
 			t.Fatalf("node%s: %v", name, err)
 		}
