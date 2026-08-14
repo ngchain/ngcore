@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"go.etcd.io/bbolt"
 
@@ -131,7 +130,7 @@ func connect(t *testing.T, a, b *testNode) {
 
 // mineOn seals a valid ZERONET block on the given parent (instant: the
 // regression network's difficulty is 1)
-func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKey) *ngtypes.FullBlock {
+func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -166,7 +165,7 @@ func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKey) *n
 
 // mineAndSubmit mines on the node's current tip and submits through the
 // full MinedNewBlock path (import + p2p broadcast)
-func mineAndSubmit(t *testing.T, node *testNode, miner *btcec.PrivateKey) *ngtypes.FullBlock {
+func mineAndSubmit(t *testing.T, node *testNode, miner *ngtypes.PrivateKey) *ngtypes.FullBlock {
 	t.Helper()
 
 	tip := node.chain.GetLatestBlock().(*ngtypes.FullBlock)
@@ -193,7 +192,7 @@ func waitTip(t *testing.T, node *testNode, want []byte, timeout time.Duration) {
 		node.chain.GetLatestBlockHeight(), want)
 }
 
-func balanceOf(t *testing.T, node *testNode, key *btcec.PrivateKey) *big.Int {
+func balanceOf(t *testing.T, node *testNode, key *ngtypes.PrivateKey) *big.Int {
 	t.Helper()
 
 	balance, err := node.chain.State.GetTotalBalanceByAddress(ngtypes.NewAddress(key))
@@ -211,8 +210,8 @@ func TestForkResolutionViaBroadcast(t *testing.T) {
 	nodeB := newNode(t)
 	connect(t, nodeA, nodeB)
 
-	minerA, _ := btcec.NewPrivateKey()
-	minerB, _ := btcec.NewPrivateKey()
+	minerA, _ := ngtypes.GenerateKey()
+	minerB, _ := ngtypes.GenerateKey()
 
 	// shared prefix mined by A, propagated to B over pubsub
 	shared := mineAndSubmit(t, nodeA, minerA)
@@ -266,7 +265,7 @@ func TestForkResolutionViaBroadcast(t *testing.T) {
 }
 
 // mineOnTxs is mineOn with extra (non-generate) txs packed in
-func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKey, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
+func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -307,7 +306,7 @@ func TestTxPropagation(t *testing.T) {
 	nodeB := newNode(t)
 	connect(t, nodeA, nodeB)
 
-	key, _ := btcec.NewPrivateKey()
+	key, _ := ngtypes.GenerateKey()
 
 	// fund the key and register account 700 for it (via node A)
 	b1 := mineAndSubmit(t, nodeA, key)
@@ -382,7 +381,7 @@ func TestTxPropagation(t *testing.T) {
 // and serve peers again
 func TestRestartPersistence(t *testing.T) {
 	dir := t.TempDir()
-	miner, _ := btcec.NewPrivateKey()
+	miner, _ := ngtypes.GenerateKey()
 
 	// first life: mine three blocks onto the persistent db
 	node := newNodeAt(t, dir)
@@ -423,7 +422,7 @@ func TestRestartPersistence(t *testing.T) {
 // parents get parked and cascade in as soon as the gap closes
 func TestOrphanOutOfOrderImport(t *testing.T) {
 	node := newNode(t)
-	miner, _ := btcec.NewPrivateKey()
+	miner, _ := ngtypes.GenerateKey()
 
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 	b1 := mineOn(t, genesis, miner)
@@ -474,7 +473,7 @@ func TestPeerReconnect(t *testing.T) {
 	for time.Now().Before(deadline) {
 		if len(nodeA.local.Network().Peers()) >= 1 {
 			// the link is back; make sure it actually works end to end
-			miner, _ := btcec.NewPrivateKey()
+			miner, _ := ngtypes.GenerateKey()
 			time.Sleep(time.Second) // let pubsub re-mesh
 			b := mineAndSubmit(t, nodeA, miner)
 			waitTip(t, nodeB, b.GetHash(), 10*time.Second)
@@ -504,7 +503,7 @@ func TestContractLifecycle(t *testing.T) {
 	nodeB := newNode(t)
 	connect(t, nodeA, nodeB)
 
-	key, _ := btcec.NewPrivateKey()
+	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
 	submit := func(txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
@@ -585,7 +584,7 @@ func TestSnapshotSync(t *testing.T) {
 	}
 
 	server := newNode(t)
-	miner, _ := btcec.NewPrivateKey()
+	miner, _ := ngtypes.GenerateKey()
 
 	// the server mines past its first checkpoint, which makes a servable
 	// state snapshot at height BlockCheckRound
@@ -626,8 +625,8 @@ func TestDeepForkConvergeViaSync(t *testing.T) {
 	nodeA := newNode(t)
 	nodeB := newNode(t)
 
-	minerA, _ := btcec.NewPrivateKey()
-	minerB, _ := btcec.NewPrivateKey()
+	minerA, _ := ngtypes.GenerateKey()
+	minerB, _ := ngtypes.GenerateKey()
 
 	// isolated: A mines 3 blocks, B mines a full checkpoint round + 2
 	for i := 0; i < 3; i++ {

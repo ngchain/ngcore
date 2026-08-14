@@ -1,7 +1,6 @@
 package jsonrpc
 
 import (
-	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 
@@ -28,7 +27,7 @@ func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	privKeys := make([]*btcec.PrivateKey, len(params.PrivateKeys))
+	privKeys := make([]*ngtypes.PrivateKey, len(params.PrivateKeys))
 	for i := 0; i < len(params.PrivateKeys); i++ {
 		bPriv, err := base58.FastBase58Decoding(params.PrivateKeys[i])
 		if err != nil {
@@ -36,7 +35,11 @@ func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
 
-		privKeys[i], _ = btcec.PrivKeyFromBytes(bPriv)
+		privKeys[i], err = ngtypes.ParsePrivateKey(bPriv)
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
 	}
 
 	addr, err := ngtypes.NewAddressFromMultiKeys(privKeys...)

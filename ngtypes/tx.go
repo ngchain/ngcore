@@ -5,15 +5,11 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/c0mm4nd/rlp"
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
-
-	"github.com/ngchain/ngcore/utils"
 )
 
 type TxType uint8
@@ -94,36 +90,85 @@ func NewUnsignedTx(network Network, txType TxType, height uint64, convener Accou
 
 // IsSigned will return whether the op has been signed.
 func (x *FullTx) IsSigned() bool {
-	return x.Sign != nil
+	return len(x.Sign) != 0
 }
 
-// Verify helps verify the transaction whether signed by the public key
-// owner. The signature scheme is BIP-340 schnorr, verified against the
-// x-only form of the key (the address keeps the full compressed point)
-func (x *FullTx) Verify(publicKey *btcec.PublicKey) error {
+// TxKeySet is the signature envelope carried in FullTx.Sign: the whole
+// keyset descriptor (which must hash to the owner address) plus exactly
+// threshold member signatures. Public keys are only revealed here, at
+// spend time — never by the address itself
+type TxKeySet struct {
+	Threshold uint64
+	Schemes   []byte
+	PubKeys   [][]byte
+	Sigs      [][]byte // parallel to PubKeys; empty slot = did not sign
+}
+
+// KeysetMember describes one member key of a multisig keyset for
+// signers who do not hold that member's private key
+type KeysetMember struct {
+	Scheme SigScheme
+	PubKey []byte
+}
+
+// Verify checks the tx signature envelope against the owner address:
+// the embedded keyset must hash to the address, and exactly threshold
+// member signatures must all be valid over the unsigned tx hash
+func (x *FullTx) Verify(owner Address) error {
 	if x.Height == 0 {
 		return nil // ignore all tx error on genesis block
 	}
 
-	if x.Sign == nil {
+	if len(x.Sign) == 0 {
 		return ErrTxUnsigned
-	}
-
-	if publicKey == nil {
-		return ErrInvalidPublicKey
 	}
 
 	if len(x.Extra) > TxMaxExtraSize {
 		return ErrTxExtraExcess
 	}
 
-	signature, err := schnorr.ParseSignature(x.Sign)
-	if err != nil {
+	var keyset TxKeySet
+	if err := rlp.DecodeBytes(x.Sign, &keyset); err != nil {
 		return errors.Wrap(ErrTxSignInvalid, err.Error())
 	}
 
-	if !signature.Verify(x.GetUnsignedHash(), publicKey) {
-		return ErrTxSignInvalid
+	if len(keyset.Schemes) != len(keyset.PubKeys) || len(keyset.Sigs) != len(keyset.PubKeys) {
+		return errors.Wrap(ErrTxSignInvalid, "keyset arrays misaligned")
+	}
+	if keyset.Threshold > MaxKeysetKeys {
+		return errors.Wrapf(ErrTxSignInvalid, "threshold %d", keyset.Threshold)
+	}
+
+	schemes := make([]SigScheme, len(keyset.Schemes))
+	for i := range keyset.Schemes {
+		schemes[i] = SigScheme(keyset.Schemes[i])
+	}
+
+	addr, err := KeysetAddress(int(keyset.Threshold), schemes, keyset.PubKeys)
+	if err != nil {
+		return errors.Wrap(ErrTxSignInvalid, err.Error())
+	}
+	if !addr.Equals(owner) {
+		return errors.Wrap(ErrTxSignInvalid, "keyset does not hash to the owner address")
+	}
+
+	hash := x.GetUnsignedHash()
+	signed := 0
+	for i := range keyset.Sigs {
+		if len(keyset.Sigs[i]) == 0 {
+			continue
+		}
+		if !VerifyHashSig(schemes[i], keyset.PubKeys[i], hash, keyset.Sigs[i]) {
+			return errors.Wrapf(ErrTxSignInvalid, "member %d signature invalid", i)
+		}
+		signed++
+	}
+
+	// EXACTLY threshold signatures: with surplus valid signatures a
+	// third party could strip one and mint a second valid encoding of
+	// the same tx (signature malleability)
+	if signed != int(keyset.Threshold) {
+		return errors.Wrapf(ErrTxSignInvalid, "%d signatures, threshold is %d", signed, keyset.Threshold)
 	}
 
 	return nil
@@ -259,9 +304,7 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 		return errors.Wrap(ErrTxFeeInvalid, "generate's fee should be ZERO")
 	}
 
-	publicKey := x.Participants[0].PubKey()
-	err := x.Verify(publicKey)
-	if err != nil {
+	if err := x.Verify(x.Participants[0]); err != nil {
 		return err
 	}
 
@@ -298,9 +341,7 @@ func (x *FullTx) CheckRegister() error {
 		return errors.Wrap(ErrTxExtraInvalid, "register should have uint64 little-endian bytes as extra")
 	}
 
-	publicKey := x.Participants[0].PubKey()
-	err := x.Verify(publicKey)
-	if err != nil {
+	if err := x.Verify(x.Participants[0]); err != nil {
 		return err
 	}
 
@@ -308,7 +349,7 @@ func (x *FullTx) CheckRegister() error {
 }
 
 // CheckDestroy does a self check for destroy tx
-func (x *FullTx) CheckDestroy(publicKey *btcec.PublicKey) error {
+func (x *FullTx) CheckDestroy(owner Address) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -329,22 +370,13 @@ func (x *FullTx) CheckDestroy(publicKey *btcec.PublicKey) error {
 		return errors.Wrap(ErrTxValuesInvalid, "destroy should have NO value")
 	}
 
-	err := x.Verify(publicKey)
-	if err != nil {
-		return err
-	}
-
-	// RULE: destroy should takes owner's pubKey in Extra for verify and recording to make Tx reversible
-	publicKeyFromExtra := utils.Bytes2PublicKey(x.Extra)
-	if !publicKey.IsEqual(publicKeyFromExtra) {
-		return errors.Wrap(ErrTxExtraInvalid, "invalid raw bytes public key in destroy's Extra field")
-	}
-
-	return nil
+	// the signature envelope itself records the full keyset, so the
+	// old rule of echoing the public key into Extra is obsolete
+	return x.Verify(owner)
 }
 
 // CheckTransaction does a self check for normal transaction tx
-func (x *FullTx) CheckTransaction(publicKey *btcec.PublicKey) error {
+func (x *FullTx) CheckTransaction(owner Address) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -357,8 +389,7 @@ func (x *FullTx) CheckTransaction(publicKey *btcec.PublicKey) error {
 		return errors.Wrap(ErrTxParticipantsInvalid, "transact should have same len with participants")
 	}
 
-	err := x.Verify(publicKey)
-	if err != nil {
+	if err := x.Verify(owner); err != nil {
 		return err
 	}
 
@@ -366,7 +397,7 @@ func (x *FullTx) CheckTransaction(publicKey *btcec.PublicKey) error {
 }
 
 // CheckEdit does a self check for edit tx
-func (x *FullTx) CheckEdit(publicKey *btcec.PublicKey) error {
+func (x *FullTx) CheckEdit(owner Address) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -383,12 +414,12 @@ func (x *FullTx) CheckEdit(publicKey *btcec.PublicKey) error {
 		return errors.Wrap(ErrTxValuesInvalid, "edit should have NO value")
 	}
 
-	return x.Verify(publicKey)
+	return x.Verify(owner)
 }
 
 // Signature will re-sign the Tx with private key.
 // CheckLock does a self check for lock tx
-func (x *FullTx) CheckLock(publicKey *btcec.PublicKey) error {
+func (x *FullTx) CheckLock(owner Address) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -405,11 +436,11 @@ func (x *FullTx) CheckLock(publicKey *btcec.PublicKey) error {
 		return errors.Wrap(ErrTxValuesInvalid, "lock should have NO value")
 	}
 
-	return x.Verify(publicKey)
+	return x.Verify(owner)
 }
 
 // CheckUnlock does a self check for unlock tx
-func (x *FullTx) CheckUnlock(publicKey *btcec.PublicKey) error {
+func (x *FullTx) CheckUnlock(owner Address) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -426,29 +457,69 @@ func (x *FullTx) CheckUnlock(publicKey *btcec.PublicKey) error {
 		return errors.Wrap(ErrTxValuesInvalid, "unlock should have NO value")
 	}
 
-	return x.Verify(publicKey)
+	return x.Verify(owner)
 }
 
-// Signature signs the tx with a standard BIP-340 schnorr signature.
-// Multiple keys are one owner's shards: signing uses the scalar sum,
-// whose public key equals the sum of the shard pubkeys — exactly the
-// multi-key address from NewAddressFromMultiKeys
-func (x *FullTx) Signature(privateKeys ...*btcec.PrivateKey) error {
-	if len(privateKeys) == 0 {
-		return ErrTxUnsigned
+// Signature signs with the all-must-sign keyset of the given keys
+// (N-of-N), matching NewAddress / NewAddressFromMultiKeys
+func (x *FullTx) Signature(privateKeys ...*PrivateKey) error {
+	members := make([]KeysetMember, len(privateKeys))
+	for i := range privateKeys {
+		members[i] = KeysetMember{Scheme: privateKeys[i].Scheme, PubKey: privateKeys[i].PublicBytes()}
 	}
 
-	key, err := CombinePrivateKeys(privateKeys...)
+	return x.SignMultisig(len(privateKeys), members, privateKeys...)
+}
+
+// SignMultisig signs a threshold-of-N keyset: members lists the WHOLE
+// keyset (as committed by the address), signers the exactly-threshold
+// subset whose keys are at hand
+func (x *FullTx) SignMultisig(threshold int, members []KeysetMember, signers ...*PrivateKey) error {
+	if len(signers) != threshold {
+		return errors.Wrapf(ErrTxSignInvalid, "need exactly %d signers, got %d", threshold, len(signers))
+	}
+
+	keyset := TxKeySet{
+		Threshold: uint64(threshold),
+		Schemes:   make([]byte, len(members)),
+		PubKeys:   make([][]byte, len(members)),
+		Sigs:      make([][]byte, len(members)),
+	}
+	for i := range members {
+		keyset.Schemes[i] = byte(members[i].Scheme)
+		keyset.PubKeys[i] = members[i].PubKey
+		keyset.Sigs[i] = []byte{}
+	}
+
+	x.Sign = nil
+	hash := x.GetUnsignedHash()
+
+	for _, signer := range signers {
+		slot := -1
+		pub := signer.PublicBytes()
+		for i := range members {
+			if members[i].Scheme == signer.Scheme && bytes.Equal(members[i].PubKey, pub) && len(keyset.Sigs[i]) == 0 {
+				slot = i
+				break
+			}
+		}
+		if slot < 0 {
+			return errors.Wrap(ErrTxSignInvalid, "a signer is not an unsigned member of the keyset")
+		}
+
+		sig, err := signer.SignHash(hash)
+		if err != nil {
+			return err
+		}
+		keyset.Sigs[slot] = sig
+	}
+
+	raw, err := rlp.EncodeToBytes(&keyset)
 	if err != nil {
 		return err
 	}
 
-	sign, err := schnorr.Sign(key, x.GetUnsignedHash())
-	if err != nil {
-		return err
-	}
-
-	x.Sign = sign.Serialize()
+	x.Sign = raw
 	return nil
 }
 

@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/c0mm4nd/rlp"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -50,16 +49,16 @@ func TestTransaction_Signature(t *testing.T) {
 		big.NewInt(0),
 		nil,
 	)
-	priv1, _ := btcec.NewPrivateKey()
-	priv2, _ := btcec.NewPrivateKey()
+	priv1, _ := ngtypes.GenerateKey()
+	priv2, _ := ngtypes.GenerateKey()
 
 	_ = o.Signature(priv1)
 
-	if err := o.Verify(priv1.PubKey()); err != nil {
+	if err := o.Verify(ngtypes.NewAddress(priv1)); err != nil {
 		t.Errorf("priv1 != o")
 	}
 
-	if err := o.Verify(priv2.PubKey()); err == nil {
+	if err := o.Verify(ngtypes.NewAddress(priv2)); err == nil {
 		t.Errorf("priv2 == o")
 	}
 }
@@ -67,7 +66,7 @@ func TestTransaction_Signature(t *testing.T) {
 func TestGetGenesisGenerate(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		gg := ngtypes.GetGenesisGenerateTx(net)
-		if err := gg.Verify(gg.Participants[0].PubKey()); err != nil {
+		if err := gg.Verify(gg.Participants[0]); err != nil {
 			t.Log(err)
 			t.Fail()
 		}

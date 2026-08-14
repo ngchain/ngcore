@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/ngchain/ngcore/consensus"
 	"github.com/ngchain/ngcore/jsonrpc"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -15,7 +14,7 @@ type Job struct {
 	GenTx  string
 }
 
-func NewJob(network ngtypes.Network, priv *btcec.PrivateKey, reply *jsonrpc.GetWorkReply) *Job {
+func NewJob(network ngtypes.Network, priv *ngtypes.PrivateKey, reply *jsonrpc.GetWorkReply) *Job {
 	var block ngtypes.FullBlock
 	var txs []*ngtypes.FullTx
 	err := utils.HexRLPDecode(reply.Block, &block)

@@ -1,7 +1,5 @@
 package ngtypes
 
-import "github.com/btcsuite/btcd/btcec/v2"
-
 var _ Tx = (*FullTx)(nil)
 
 // Tx is an abstract transaction interface.
@@ -40,5 +38,5 @@ type Consensus interface {
 	GoLoop()
 	GetChain() Chain
 	ImportBlock(Block) error
-	GetBlockTemplate(privateKey *btcec.PrivateKey) Block
+	GetBlockTemplate(privateKey *PrivateKey) Block
 }

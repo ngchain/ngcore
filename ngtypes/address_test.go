@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/mr-tron/base58"
 )
 
 // TestGenesisAddress pins the genesis address: the bs58 constant must
-// decode to the all-zero 33-byte address and round-trip back — a bad
+// decode to the all-zero 32-byte address and round-trip back — a bad
 // constant used to be silently swallowed into the zero value
 func TestGenesisAddress(t *testing.T) {
 	if GenesisAddress != (Address{}) {
@@ -24,7 +24,7 @@ func TestGenesisAddress(t *testing.T) {
 // inside a struct field (the decode used to hit a value receiver and
 // silently return the zero address)
 func TestAddressJSONRoundTrip(t *testing.T) {
-	key, err := btcec.NewPrivateKey()
+	key, err := GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,9 +46,9 @@ func TestAddressJSONRoundTrip(t *testing.T) {
 }
 
 // TestAddressLength pins the canonical length and both decode paths:
-// modern strings must be exactly 33 bytes, and the legacy 35-byte
-// genesis format must strip its 2-byte checksum down to the real
-// public key instead of truncating it
+// modern strings must be exactly 32 bytes, and the legacy 35-byte
+// genesis format (2-byte checksum + secp pubkey) must lift into the
+// keyset address of that public key
 func TestAddressLength(t *testing.T) {
 	if AddressSize != len(Address{}) {
 		t.Fatalf("AddressSize %d != len(Address) %d", AddressSize, len(Address{}))
@@ -65,20 +65,27 @@ func TestAddressLength(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// the payload is a compressed public key, so it starts 0x02 or 0x03
-	if prefix := addr.Bytes()[0]; prefix != 0x02 && prefix != 0x03 {
-		t.Fatalf("legacy decode kept the checksum: first byte %#02x", prefix)
+
+	// the lift must be exactly the 1-of-1 secp keyset address of the
+	// embedded public key, so the original key owner can spend it
+	raw, _ := base58.FastBase58Decoding(legacy)
+	want, err := KeysetAddress(1, []SigScheme{SchemeSecpSchnorr}, [][]byte{raw[2:]})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !addr.Equals(want) {
+		t.Fatalf("legacy lift mismatch: %s != %s", addr, want)
 	}
 
 	if _, err := NewAddressFromLegacyBS58(GenesisAddressBase58); err == nil {
-		t.Fatal("a 33-byte string must be rejected by the legacy decoder")
+		t.Fatal("a 32-byte string must be rejected by the legacy decoder")
 	}
 }
 
 // TestNewAddressFromMultiKeys: a single-key multi-address must equal
 // the plain address of that key (the pubkey list used to stay empty)
 func TestNewAddressFromMultiKeys(t *testing.T) {
-	key, err := btcec.NewPrivateKey()
+	key, err := GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}

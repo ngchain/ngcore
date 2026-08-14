@@ -1,9 +1,8 @@
 package ngtypes
 
 import (
-	"math/big"
+	"encoding/binary"
 
-	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
 
@@ -13,52 +12,79 @@ import (
 // ErrAddressLenInvalid means the raw bytes are not exactly AddressSize long
 var ErrAddressLenInvalid = errors.New("address length is invalid")
 
-// Address is the anonymous publickey for receiving coin
+// ErrKeysetInvalid means a keyset descriptor is malformed
+var ErrKeysetInvalid = errors.New("invalid keyset")
+
+// MaxKeysetKeys bounds how many member keys one address may commit to
+const MaxKeysetKeys = 16
+
+// addressVersion tags the descriptor preimage, so future address
+// layouts can never collide with the current one
+const addressVersion = 0x01
+
+// Address is the keccak-256 hash of a keyset descriptor: it commits to
+// a signing threshold and the member public keys without revealing
+// them. Public keys only appear on chain inside a spending tx's
+// signature, which keeps unspent funds shielded and post-quantum keys
+// (1.3 KB public keys) usable as compact addresses
 type Address [AddressSize]byte
 
-// NewAddress will return a publickey address
-func NewAddress(privKey *btcec.PrivateKey) Address {
+// KeysetAddress computes the address committing to threshold-of-keys:
+//
+//	keccak256(version || threshold || N × (scheme || len(pub) BE16 || pub))
+func KeysetAddress(threshold int, schemes []SigScheme, pubKeys [][]byte) (Address, error) {
 	addr := Address{}
 
-	copy(addr[:], utils.PublicKey2Bytes(privKey.PubKey()))
+	if len(schemes) != len(pubKeys) {
+		return addr, errors.Wrap(ErrKeysetInvalid, "schemes and keys misaligned")
+	}
+	if len(pubKeys) == 0 || len(pubKeys) > MaxKeysetKeys {
+		return addr, errors.Wrapf(ErrKeysetInvalid, "%d member keys", len(pubKeys))
+	}
+	if threshold < 1 || threshold > len(pubKeys) {
+		return addr, errors.Wrapf(ErrKeysetInvalid, "threshold %d of %d keys", threshold, len(pubKeys))
+	}
+
+	preimage := []byte{addressVersion, byte(threshold)}
+	for i := range pubKeys {
+		if len(pubKeys[i]) == 0 || len(pubKeys[i]) > 1<<16-1 {
+			return addr, errors.Wrapf(ErrKeysetInvalid, "member %d key size %d", i, len(pubKeys[i]))
+		}
+		preimage = append(preimage, byte(schemes[i]))
+		preimage = binary.BigEndian.AppendUint16(preimage, uint16(len(pubKeys[i])))
+		preimage = append(preimage, pubKeys[i]...)
+	}
+
+	copy(addr[:], utils.KeccakSum256(preimage))
+	return addr, nil
+}
+
+// NewAddress returns the 1-of-1 address of a single key
+func NewAddress(key *PrivateKey) Address {
+	addr, err := KeysetAddress(1, []SigScheme{key.Scheme}, [][]byte{key.PublicBytes()})
+	if err != nil {
+		panic(err) // a single well-formed key cannot fail
+	}
 
 	return addr
 }
 
-// NewAddressFromMultiKeys will return a publickey address: the shards
-// of one owner combine into a single key by scalar addition, so the
-// address is the plain pubkey of the combined secret and signatures
-// stay standard BIP-340
-func NewAddressFromMultiKeys(privKeys ...*btcec.PrivateKey) (Address, error) {
-	key, err := CombinePrivateKeys(privKeys...)
-	if err != nil {
-		return Address{}, err
+// NewMultisigAddress commits to native threshold-of-N multisig over the
+// given keys; the schemes may mix (e.g. one secp + one ML-DSA shard)
+func NewMultisigAddress(threshold int, privKeys ...*PrivateKey) (Address, error) {
+	schemes := make([]SigScheme, len(privKeys))
+	pubKeys := make([][]byte, len(privKeys))
+	for i := range privKeys {
+		schemes[i] = privKeys[i].Scheme
+		pubKeys[i] = privKeys[i].PublicBytes()
 	}
 
-	return NewAddress(key), nil
+	return KeysetAddress(threshold, schemes, pubKeys)
 }
 
-// ErrKeysInvalid means the private keys cannot form a usable combined key
-var ErrKeysInvalid = errors.New("invalid private keys")
-
-// CombinePrivateKeys folds one owner's key shards into the single
-// secret whose public key is the sum of the shard public keys
-func CombinePrivateKeys(privKeys ...*btcec.PrivateKey) (*btcec.PrivateKey, error) {
-	if len(privKeys) == 0 {
-		return nil, errors.Wrap(ErrKeysInvalid, "no private key entered")
-	}
-
-	d := new(big.Int)
-	for i := range privKeys {
-		d.Add(d, new(big.Int).SetBytes(privKeys[i].Serialize()))
-	}
-	d.Mod(d, btcec.S256().N)
-	if d.Sign() == 0 {
-		return nil, errors.Wrap(ErrKeysInvalid, "the combined secret is zero")
-	}
-
-	key, _ := btcec.PrivKeyFromBytes(d.FillBytes(make([]byte, 32)))
-	return key, nil
+// NewAddressFromMultiKeys is the all-must-sign form: N-of-N multisig
+func NewAddressFromMultiKeys(privKeys ...*PrivateKey) (Address, error) {
+	return NewMultisigAddress(len(privKeys), privKeys...)
 }
 
 // mustAddressFromBS58 is NewAddressFromBS58 for hardcoded constants:
@@ -88,29 +114,21 @@ func NewAddressFromBS58(s string) (Address, error) {
 	return addr, nil
 }
 
-// NewAddressFromLegacyBS58 reads the pre-2022 35-byte address format —
+// NewAddressFromLegacyBS58 reads the pre-2022 raw-key address format —
 // a 2-byte private-key checksum followed by the 33-byte compressed
-// public key — and returns the canonical pubkey address. Only the
-// genesis sheet still speaks this format
+// secp public key — and lifts it into a 1-of-1 secp keyset address, so
+// the original key owner can still spend. Only the genesis sheet
+// still speaks this format
 func NewAddressFromLegacyBS58(s string) (Address, error) {
-	addr := Address{}
-
 	raw, err := base58.FastBase58Decoding(s)
 	if err != nil {
-		return addr, err
+		return Address{}, err
 	}
-	if len(raw) != AddressSize+2 {
-		return addr, errors.Wrapf(ErrAddressLenInvalid, "legacy %q decodes to %d bytes", s, len(raw))
+	if len(raw) != 35 {
+		return Address{}, errors.Wrapf(ErrAddressLenInvalid, "legacy %q decodes to %d bytes", s, len(raw))
 	}
 
-	copy(addr[:], raw[2:])
-	return addr, nil
-}
-
-// PubKey gets the public key from address for validation; nil when the
-// address bytes are not a valid curve point
-func (a Address) PubKey() *btcec.PublicKey {
-	return utils.Bytes2PublicKey(a[:])
+	return KeysetAddress(1, []SigScheme{SchemeSecpSchnorr}, [][]byte{raw[2:]})
 }
 
 // SetBytes rebuilds the Address from its raw bytes; the length is an
@@ -160,6 +178,9 @@ func (a *Address) UnmarshalJSON(b []byte) error {
 	addr, err := base58.FastBase58Decoding(bs58Addr)
 	if err != nil {
 		return err
+	}
+	if len(addr) != AddressSize {
+		return errors.Wrapf(ErrAddressLenInvalid, "%q decodes to %d bytes", bs58Addr, len(addr))
 	}
 
 	copy(a[:], addr)

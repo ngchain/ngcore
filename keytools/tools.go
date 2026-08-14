@@ -6,16 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/mr-tron/base58"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-// ReadLocalKey will read the local AES-256-GCM encrypted secp256k1 key file to load an ecdsa private key.
-func ReadLocalKey(filename string, password string) *btcec.PrivateKey {
-	var key *btcec.PrivateKey
+// ReadLocalKey will read the local AES-256-GCM encrypted key file to
+// load a private key (scheme byte + 32-byte seed).
+func ReadLocalKey(filename string, password string) *ngtypes.PrivateKey {
+	var key *ngtypes.PrivateKey
 
 	if filename == "" {
 		path := GetDefaultFolder()
@@ -40,15 +40,18 @@ func ReadLocalKey(filename string, password string) *btcec.PrivateKey {
 		}
 
 		rawPK := utils.AES256GCMDecrypt(raw, []byte(password))
-		key, _ = btcec.PrivKeyFromBytes(rawPK)
+		key, err = ngtypes.ParsePrivateKey(rawPK)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return key
 }
 
 // NewLocalKey will create a privateKey only.
-func NewLocalKey() *btcec.PrivateKey {
-	key, err := btcec.NewPrivateKey()
+func NewLocalKey() *ngtypes.PrivateKey {
+	key, err := ngtypes.GenerateKey()
 	if err != nil {
 		panic(err)
 	}
@@ -57,7 +60,7 @@ func NewLocalKey() *btcec.PrivateKey {
 }
 
 // CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm.
-func CreateLocalKey(filename, password string) *btcec.PrivateKey {
+func CreateLocalKey(filename, password string) *ngtypes.PrivateKey {
 	key := NewLocalKey()
 
 	if filename == "" {
@@ -91,13 +94,16 @@ func CreateLocalKey(filename, password string) *btcec.PrivateKey {
 }
 
 // RecoverLocalKey will recover a keyfile named *filename* with the password from the privateKey string.
-func RecoverLocalKey(filename, password, privateKey string) *btcec.PrivateKey {
+func RecoverLocalKey(filename, password, privateKey string) *ngtypes.PrivateKey {
 	bKey, err := base58.FastBase58Decoding(privateKey)
 	if err != nil {
 		panic(err)
 	}
 
-	key, _ := btcec.PrivKeyFromBytes(bKey)
+	key, err := ngtypes.ParsePrivateKey(bKey)
+	if err != nil {
+		panic(err)
+	}
 
 	if filename == "" {
 		path := GetDefaultFolder()
@@ -130,13 +136,10 @@ func RecoverLocalKey(filename, password, privateKey string) *btcec.PrivateKey {
 }
 
 // PrintKeysAndAddress will print the **privateKey and its publicKey** to the console.
-func PrintKeysAndAddress(privateKey *btcec.PrivateKey) {
-	rawPrivateKey := privateKey.Serialize() // its D
-	fmt.Println("private key: ", base58.FastBase58Encoding(rawPrivateKey))
-
-	bPubKey := utils.PublicKey2Bytes(privateKey.PubKey())
-	fmt.Println("public key: ", base58.FastBase58Encoding(bPubKey))
+func PrintKeysAndAddress(privateKey *ngtypes.PrivateKey) {
+	fmt.Println("private key: ", base58.FastBase58Encoding(privateKey.Serialize()))
+	fmt.Println("public key: ", base58.FastBase58Encoding(privateKey.PublicBytes()))
 
 	address := ngtypes.NewAddress(privateKey)
-	fmt.Println("address: ", base58.FastBase58Encoding(address[:]))
+	fmt.Println("address: ", address.BS58())
 }

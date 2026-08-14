@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec/v2"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/blockchain"
@@ -24,11 +23,11 @@ import (
 type testEnv struct {
 	chain *blockchain.Chain
 	pool  *ngpool.TxPool
-	keyA  *btcec.PrivateKey
-	keyB  *btcec.PrivateKey
+	keyA  *ngtypes.PrivateKey
+	keyB  *ngtypes.PrivateKey
 }
 
-func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKey, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
+func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -62,7 +61,7 @@ func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *btcec.PrivateKe
 	return nil
 }
 
-func registerTx(t *testing.T, height uint64, owner *btcec.PrivateKey, num uint64) *ngtypes.FullTx {
+func registerTx(t *testing.T, height uint64, owner *ngtypes.PrivateKey, num uint64) *ngtypes.FullTx {
 	t.Helper()
 
 	extra := make([]byte, 8)
@@ -94,8 +93,8 @@ func newTestEnv(t *testing.T) *testEnv {
 	pool := ngpool.Init(db, chain, nil)
 	chain.OnTipChanged = pool.Reset
 
-	keyA, _ := btcec.NewPrivateKey()
-	keyB, _ := btcec.NewPrivateKey()
+	keyA, _ := ngtypes.GenerateKey()
+	keyB, _ := ngtypes.GenerateKey()
 
 	// fund both keys, then register their accounts
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
@@ -114,7 +113,7 @@ func newTestEnv(t *testing.T) *testEnv {
 }
 
 // transactTx builds a signed transact tx from the given registered account
-func transactTx(t *testing.T, height uint64, convener uint64, owner *btcec.PrivateKey, fee int64) *ngtypes.FullTx {
+func transactTx(t *testing.T, height uint64, convener uint64, owner *ngtypes.PrivateKey, fee int64) *ngtypes.FullTx {
 	t.Helper()
 
 	dest := testAddr()

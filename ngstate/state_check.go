@@ -190,7 +190,7 @@ func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 	}
 
 	// check structure and key
-	if err = destroyTx.CheckDestroy(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = destroyTx.CheckDestroy(convener.Owner); err != nil {
 		return err
 	}
 
@@ -226,7 +226,7 @@ func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 	}
 
 	// check structure and key
-	if err = transactionTx.CheckTransaction(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = transactionTx.CheckTransaction(convener.Owner); err != nil {
 		return err
 	}
 
@@ -249,7 +249,7 @@ func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
 	}
 
 	// check structure and key
-	if err = editTx.CheckEdit(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = editTx.CheckEdit(convener.Owner); err != nil {
 		return err
 	}
 
@@ -286,7 +286,7 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 	}
 
 	// check structure and key
-	if err = lockTx.CheckLock(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = lockTx.CheckLock(convener.Owner); err != nil {
 		return err
 	}
 
@@ -345,7 +345,7 @@ func checkUnlock(txn *bbolt.Tx, unlockTx *ngtypes.FullTx) error {
 	}
 
 	// check structure and key
-	if err = unlockTx.CheckUnlock(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = unlockTx.CheckUnlock(convener.Owner); err != nil {
 		return err
 	}
 

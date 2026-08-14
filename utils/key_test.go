@@ -22,7 +22,7 @@ func TestKeys(t *testing.T) {
 		t.Fail()
 	}
 
-	msgHash := utils.Sha3Sum256([]byte("msg"))
-	hash := [32]byte{}
-	copy(hash[:], msgHash)
+	if utils.Bytes2PublicKey([]byte{0xff, 0x01}) != nil {
+		t.Fatal("garbage bytes must not parse into a public key")
+	}
 }

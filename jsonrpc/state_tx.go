@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
 	"github.com/mr-tron/base58"
@@ -84,7 +83,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	privateKeys := make([]*btcec.PrivateKey, len(params.PrivateKeys))
+	privateKeys := make([]*ngtypes.PrivateKey, len(params.PrivateKeys))
 	for i := range params.PrivateKeys {
 		d, err := base58.FastBase58Decoding(params.PrivateKeys[i])
 		if err != nil {
@@ -92,7 +91,11 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
 
-		privateKeys[i], _ = btcec.PrivKeyFromBytes(d)
+		privateKeys[i], err = ngtypes.ParsePrivateKey(d)
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
 	}
 
 	err = tx.Signature(privateKeys...)
@@ -240,9 +243,9 @@ func (s *Server) genRegisterFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 }
 
 type genDestroyParams struct {
-	Convener  uint64  `json:"convener"`
-	Fee       float64 `json:"fee"`
-	PublicKey string  `json:"publicKey"` // compressed publicKey, beginning with 02 or 03 (not 04).
+	Convener uint64  `json:"convener"`
+	Fee      float64 `json:"fee"`
+	Extra    string  `json:"extra"` // optional hex payload; the keyset in the signature already records the owner keys
 }
 
 func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -255,7 +258,7 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	extra, err := hex.DecodeString(params.PublicKey)
+	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

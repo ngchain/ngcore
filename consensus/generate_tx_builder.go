@@ -3,14 +3,12 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/btcsuite/btcd/btcec/v2"
-
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // CreateGenerateTx will create a generate Tx for new Block.
 // generate Tx is disallowed to edit external so use more local var.
-func CreateGenerateTx(network ngtypes.Network, privateKey *btcec.PrivateKey, height uint64, extraData []byte) *ngtypes.FullTx {
+func CreateGenerateTx(network ngtypes.Network, privateKey *ngtypes.PrivateKey, height uint64, extraData []byte) *ngtypes.FullTx {
 	addr := ngtypes.NewAddress(privateKey)
 	fee := big.NewInt(0)
 	gen := ngtypes.NewUnsignedTx(

@@ -55,8 +55,7 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 }
 
 func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	publicKey := tx.Participants[0].PubKey()
-	if err := tx.Verify(publicKey); err != nil {
+	if err := tx.Verify(tx.Participants[0]); err != nil {
 		return err
 	}
 
@@ -72,8 +71,7 @@ func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error
 
 func (state *State) handleRegister(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	log.Debugf("handling new register: %s", tx.BS58())
-	publicKey := tx.Participants[0].PubKey()
-	if err = tx.Verify(publicKey); err != nil {
+	if err = tx.Verify(tx.Participants[0]); err != nil {
 		return err
 	}
 
@@ -113,8 +111,7 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 		return err
 	}
 
-	pk := ngtypes.Address(convener.Owner).PubKey()
-	if err = tx.Verify(pk); err != nil {
+	if err = tx.Verify(convener.Owner); err != nil {
 		return err
 	}
 
@@ -170,7 +167,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 		return err
 	}
 
-	pk := ngtypes.Address(convener.Owner).PubKey()
+	pk := convener.Owner
 
 	if err = tx.Verify(pk); err != nil {
 		return err
@@ -230,7 +227,7 @@ func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
-	pk := ngtypes.Address(convener.Owner).PubKey()
+	pk := convener.Owner
 
 	if err = tx.CheckEdit(pk); err != nil {
 		return err
@@ -278,7 +275,7 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint
 		return err
 	}
 
-	pk := ngtypes.Address(convener.Owner).PubKey()
+	pk := convener.Owner
 	if err = tx.CheckLock(pk); err != nil {
 		return err
 	}
@@ -368,7 +365,7 @@ func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
-	pk := ngtypes.Address(convener.Owner).PubKey()
+	pk := convener.Owner
 	if err = tx.CheckUnlock(pk); err != nil {
 		return err
 	}

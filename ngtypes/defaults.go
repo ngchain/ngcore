@@ -9,10 +9,10 @@ import (
 )
 
 // GenesisAddressBase58 is the genesis address in base58 str: the
-// all-zero 33-byte address, whose base58 digit for a zero byte is '1'
-// ('0' is not in the base58 alphabet at all)
+// all-zero 32-byte address ('1' is the base58 digit for a zero byte).
+// No keyset descriptor hashes to it, so it doubles as the burn address
 const (
-	GenesisAddressBase58 = "111111111111111111111111111111111"
+	GenesisAddressBase58 = "11111111111111111111111111111111"
 )
 
 // decoded genesis variables
@@ -64,12 +64,11 @@ const (
 
 	// PrivSize is the length of one private key in bytes
 	PrivSize = 32
-	// AddressSize is the byte length of an Address: one schnorr
-	// compressed public key. (The pre-2022 legacy format was 35 bytes —
-	// a 2-byte private-key checksum plus the public key — and survives
-	// only in the genesis sheet strings, handled by
-	// NewAddressFromLegacyBS58.)
-	AddressSize = 33
+	// AddressSize is the byte length of an Address: the keccak-256
+	// hash of the account's keyset descriptor (threshold + member
+	// public keys). Hashing keeps public keys off chain until spend
+	// time and makes post-quantum keys usable as compact addresses
+	AddressSize = 32
 	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
 	SignatureSize = 64
 )
