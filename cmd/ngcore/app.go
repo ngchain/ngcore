@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"os"
@@ -28,14 +29,16 @@ import (
 
 var nonStrictModeFlag = &cli.BoolFlag{
 	Name: "non-strict",
-	// Value: true, // local chain will be able to start from a checkpoint if false
-	Usage: "Enable forcing ngcore starts from the genesis block",
+	Usage: "Run as a light-verification node: may start from a remote " +
+		"checkpoint and use snapshot (fast) sync, trusting the served " +
+		"state sheets. The default strict mode verifies everything from " +
+		"the genesis block",
 }
 
 var snapshotModeFlag = &cli.BoolFlag{
 	Name:  "snapshot",
 	Value: false,
-	Usage: "Enable snapshot boost for syncing and converging",
+	Usage: "Enable snapshot (fast) sync and converging; requires --non-strict",
 }
 
 var p2pTCPPortFlag = &cli.IntFlag{
@@ -88,6 +91,11 @@ var p2pKeyFileFlag = &cli.StringFlag{
 	Value: "",
 }
 
+var minerExtraFlag = &cli.StringFlag{
+	Name:  "miner-extra",
+	Usage: "Extra data embedded in the generate tx of locally mined blocks",
+}
+
 var inMemFlag = &cli.BoolFlag{
 	Name:  "in-mem",
 	Usage: "Run the database of blocks, vaults in memory",
@@ -106,6 +114,12 @@ var action = func(c *cli.Context) error {
 
 	strictMode := isBootstrapNode || !c.Bool(nonStrictModeFlag.Name)
 	snapshotMode := c.Bool(snapshotModeFlag.Name)
+
+	// strict nodes verify every tx from the genesis block; snapshot sync
+	// trusts remotely served state sheets — the two are incompatible
+	if strictMode && snapshotMode {
+		return errors.New("--snapshot requires --non-strict: snapshot sync trusts remote state sheets")
+	}
 
 	p2pTCPPort := c.Int(p2pTCPPortFlag.Name)
 	rpcHost := c.String(rpcHostFlag.Name)
@@ -184,6 +198,7 @@ var action = func(c *cli.Context) error {
 			Network:                     network,
 			StrictMode:                  strictMode,
 			SnapshotMode:                snapshotMode,
+			MinerExtraData:              []byte(c.String(minerExtraFlag.Name)),
 			DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.ZERONET,
 		},
 	)

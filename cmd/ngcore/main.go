@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/urfave/cli/v2"
@@ -16,7 +17,7 @@ func main() {
 	app.Version = Version
 	app.Action = action
 	app.Flags = []cli.Flag{
-		nonStrictModeFlag, snapshotModeFlag,
+		nonStrictModeFlag, snapshotModeFlag, minerExtraFlag,
 		p2pTCPPortFlag, p2pKeyFileFlag,
 		rpcHostFlag, rpcPortFlag, rpcDisableFlag,
 		isBootstrapFlag, profileFlag,
@@ -33,8 +34,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
 	}
-
-	os.Exit(0)
 }

@@ -44,6 +44,10 @@ type PoWorkConfig struct {
 	StrictMode                  bool
 	SnapshotMode                bool
 	DisableConnectingBootstraps bool
+
+	// MinerExtraData is embedded in the generate tx of locally mined
+	// blocks (capped by TxMaxExtraSize)
+	MinerExtraData []byte
 }
 
 // InitPoWConsensus creates and initializes the PoW consensus.
@@ -100,9 +104,7 @@ func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) ngtypes.Bl
 		newDiff,
 	)
 
-	var extraData []byte // FIXME
-
-	genTx := CreateGenerateTx(pow.Network, privateKey, blockHeight, extraData)
+	genTx := CreateGenerateTx(pow.Network, privateKey, blockHeight, pow.MinerExtraData)
 	txs := pow.Pool.GetPack(blockHeight)
 	txsWithGen := append([]*ngtypes.FullTx{genTx}, txs...)
 
@@ -132,8 +134,6 @@ func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, 
 		currentBlockHash,
 		newDiff,
 	)
-
-	// var extraData []byte // FIXME
 
 	txs = pow.Pool.GetPack(blockHeight)
 	// genTx := pow.createGenerateTx(privateKey, blockHeight, extraData)

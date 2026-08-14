@@ -1,12 +1,19 @@
 package main
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/ngchain/ngcore/keytools"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/urfave/cli/v2"
 )
+
+var threadsFlag = &cli.IntFlag{
+	Name:    "threads",
+	Aliases: []string{"t"},
+	Usage:   "mining threads (0 = all cpu cores)",
+}
 
 var coreAddrFlag = &cli.StringFlag{
 	Name:    "addr",
@@ -50,7 +57,10 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 
 	foundCh := make(chan Job)
 
-	threadNum := 2 // TODO
+	threadNum := context.Int(threadsFlag.Name)
+	if threadNum <= 0 {
+		threadNum = runtime.NumCPU()
+	}
 
 	du := time.Second * 10
 	timeCh := time.NewTicker(du)

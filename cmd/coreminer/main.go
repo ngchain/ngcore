@@ -20,7 +20,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		coreAddrFlag, corePortFlag,
 		keyFileFlag, keyPassFlag,
-		networkFlag,
+		networkFlag, threadsFlag,
 	}
 
 	app.Commands = []*cli.Command{}
