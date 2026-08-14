@@ -6,7 +6,7 @@ package.
 
 A contract lives on chain as **WebAssembly text (wat)** in the account's
 `Contract` field — human-readable, diff-able and editable in place by
-append/delete txs, like a script. It is compiled to binary by the
+patch (edit) txs, like a script. It is compiled to binary by the
 deterministic `wat.Compile` only when the account gets locked (and on
 each execution); an account whose text does not compile cannot be
 locked, so every active contract is guaranteed valid. The contract's
@@ -16,10 +16,23 @@ persistent storage is the account's `Context` (an on-chain sorted k-v).
 
 | step | tx type | effect |
 |---|---|---|
-| deploy | `AppendTx` / `DeleteTx` | edit the account's contract text (only while unlocked) |
+| deploy / edit | `EditTx` | apply a patch (hunks) onto the contract text atomically (only while unlocked) |
 | activate | `LockTx` | compile-check + freeze the text, run the optional `init` export once, enable the vm |
 | execute | `TransactTx` | when a locked contract account is a participant, its `main` export runs |
-| upgrade | `UnlockTx` → edit → `LockTx` | disable the vm, edit the text, re-activate |
+| upgrade | `UnlockTx` → `EditTx` → `LockTx` | disable the vm, patch the text, re-activate |
+
+An `EditTx` carries `EditExtra{Hunks}`: each hunk replaces `Del` with
+`Ins` at a byte offset of the ORIGINAL text; hunks are sorted, must not
+overlap, and `Del` must match the on-chain bytes (a stale patch fails
+whole). A small source change therefore costs a patch proportional to
+the change, not to the contract size.
+
+Tooling: the `genContractUpdate` RPC (and the
+`ngcore cli contract-update --num N --file new.wat` subcommand) diffs
+the on-chain text against the new text server-side (line LCS + byte
+shrinking) and returns the unsigned minimal-patch EditTx; `genEdit`
+accepts explicit hunks; `getContract` reads the current text. Sign and
+broadcast with the existing `signTx` / `sendTx` methods.
 
 The lock flag is stored in the account context under the reserved key
 `_locked`. Keys prefixed with `_` are system-reserved and invisible to

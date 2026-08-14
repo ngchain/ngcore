@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/utils"
 )
 
 // HandleTxs will apply the tx into the state if tx is VALID
@@ -35,12 +34,8 @@ func (state *State) HandleTxs(txn *bbolt.Tx, txs ...*ngtypes.FullTx) (err error)
 			if err := state.handleTransaction(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.AppendTx: // append tx
-			if err := state.handleAppend(txn, tx); err != nil {
-				return err
-			}
-		case ngtypes.DeleteTx: // delete tx
-			if err := state.handleDelete(txn, tx); err != nil {
+		case ngtypes.EditTx: // edit tx
+			if err := state.handleEdit(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.LockTx:
@@ -209,7 +204,9 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx) (err er
 	return nil
 }
 
-func (state *State) handleAppend(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
+// handleEdit applies a whole patch (EditExtra hunks) onto the contract
+// text atomically; the account must be unlocked
+func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 	convener, err := getAccountByNum(txn, tx.Convener)
 	if err != nil {
 		return err
@@ -217,7 +214,7 @@ func (state *State) handleAppend(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 
 	pk := ngtypes.Address(convener.Owner).PubKey()
 
-	if err = tx.Verify(pk); err != nil {
+	if err = tx.CheckEdit(pk); err != nil {
 		return err
 	}
 
@@ -236,54 +233,16 @@ func (state *State) handleAppend(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
-	// append the extra bytes
-	var appendExtra ngtypes.AppendExtra
-	err = rlp.DecodeBytes(tx.Extra, &appendExtra)
+	var editExtra ngtypes.EditExtra
+	err = rlp.DecodeBytes(tx.Extra, &editExtra)
 	if err != nil {
 		return err
 	}
 
-	convener.Contract = utils.InsertBytes(convener.Contract, int(appendExtra.Pos), appendExtra.Content...)
-
-	err = setAccount(txn, tx.Convener, convener)
+	convener.Contract, err = ngtypes.ApplyEdits(convener.Contract, editExtra.Hunks)
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (state *State) handleDelete(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	convener, err := getAccountByNum(txn, tx.Convener)
-	if err != nil {
-		return err
-	}
-
-	pk := ngtypes.Address(convener.Owner).PubKey()
-
-	if err = tx.Verify(pk); err != nil {
-		return err
-	}
-
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(tx.Fee) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	err = setBalance(txn, convener.Owner, new(big.Int).Sub(convenerBalance, tx.Fee))
-	if err != nil {
-		return err
-	}
-
-	// append the extra bytes
-	var deleteExtra ngtypes.DeleteExtra
-	err = rlp.DecodeBytes(tx.Extra, &deleteExtra)
-	if err != nil {
-		return err
-	}
-
-	convener.Contract = utils.CutBytes(convener.Contract, int(deleteExtra.Pos), int(deleteExtra.Pos)+len(deleteExtra.Content))
 
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {

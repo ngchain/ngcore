@@ -1,7 +1,6 @@
 package ngstate
 
 import (
-	"bytes"
 	"encoding/binary"
 
 	"github.com/c0mm4nd/rlp"
@@ -49,13 +48,8 @@ func CheckBlockTxs(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 				return err
 			}
 
-		case ngtypes.AppendTx: // append
-			if err := checkAppend(txn, tx); err != nil {
-				return err
-			}
-
-		case ngtypes.DeleteTx: // delete
-			if err := checkDelete(txn, tx); err != nil {
+		case ngtypes.EditTx: // edit
+			if err := checkEdit(txn, tx); err != nil {
 				return err
 			}
 
@@ -107,13 +101,8 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 			return err
 		}
 
-	case ngtypes.DeleteTx: // delete
-		if err := checkDelete(txn, tx); err != nil {
-			return err
-		}
-
-	case ngtypes.AppendTx: // append
-		if err := checkAppend(txn, tx); err != nil {
+	case ngtypes.EditTx: // edit
+		if err := checkEdit(txn, tx); err != nil {
 			return err
 		}
 
@@ -248,21 +237,15 @@ func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 	return nil
 }
 
-var (
-	ErrPosOutOfBound = errors.New("pos out of bound")
-	ErrLenExcess     = errors.New("length is excess")
-	ErrLenInvalid    = errors.New("length is invalid")
-)
-
-// checkAppend checks append tx
-func checkAppend(txn *bbolt.Tx, appendTx *ngtypes.FullTx) error {
-	convener, err := getAccountByNum(txn, appendTx.Convener)
+// checkEdit checks edit tx: a dry-run of the whole patch application
+func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
+	convener, err := getAccountByNum(txn, editTx.Convener)
 	if err != nil {
 		return err
 	}
 
 	// check structure and key
-	if err = appendTx.CheckAppend(ngtypes.Address(convener.Owner).PubKey()); err != nil {
+	if err = editTx.CheckEdit(ngtypes.Address(convener.Owner).PubKey()); err != nil {
 		return err
 	}
 
@@ -272,71 +255,21 @@ func checkAppend(txn *bbolt.Tx, appendTx *ngtypes.FullTx) error {
 	}
 
 	// check balance
-	totalCharge := appendTx.TotalExpenditure()
+	totalCharge := editTx.TotalExpenditure()
 	convenerBalance := getBalance(txn, convener.Owner)
 
 	if convenerBalance.Cmp(totalCharge) < 0 {
 		return ErrTxrBalanceInsufficient
 	}
 
-	var appendExtra ngtypes.AppendExtra
-	err = rlp.DecodeBytes(appendTx.Extra, &appendExtra)
+	var editExtra ngtypes.EditExtra
+	err = rlp.DecodeBytes(editTx.Extra, &editExtra)
 	if err != nil {
 		return err
 	}
 
-	// Pos == len(Contract) appends at the tail (and starts an empty contract)
-	if appendExtra.Pos > uint64(len(convener.Contract)) {
-		return ErrPosOutOfBound
-	}
-
-	return nil
-}
-
-// checkDelete checks delete tx
-func checkDelete(txn *bbolt.Tx, deleteTx *ngtypes.FullTx) error {
-	convener, err := getAccountByNum(txn, deleteTx.Convener)
-	if err != nil {
+	if _, err := ngtypes.ApplyEdits(convener.Contract, editExtra.Hunks); err != nil {
 		return err
-	}
-
-	// check structure and key
-	if err = deleteTx.CheckDelete(ngtypes.Address(convener.Owner).PubKey()); err != nil {
-		return err
-	}
-
-	// a locked contract is immutable
-	if convener.IsLocked() {
-		return ErrAccountLocked
-	}
-
-	// check balance
-	totalCharge := deleteTx.TotalExpenditure()
-	convenerBalance := getBalance(txn, convener.Owner)
-
-	if convenerBalance.Cmp(totalCharge) < 0 {
-		return ErrTxrBalanceInsufficient
-	}
-
-	var appendExtra ngtypes.DeleteExtra
-	err = rlp.DecodeBytes(deleteTx.Extra, &appendExtra)
-	if err != nil {
-		return err
-	}
-
-	if appendExtra.Pos >= uint64(len(convener.Contract)) {
-		return ErrPosOutOfBound
-	}
-
-	// a deletion may end exactly at the contract tail
-	if appendExtra.Pos+uint64(len(appendExtra.Content)) > uint64(len(convener.Contract)) {
-		return ErrLenExcess
-	}
-
-	if !bytes.Equal(
-		convener.Contract[int(appendExtra.Pos):int(appendExtra.Pos)+len(appendExtra.Content)],
-		appendExtra.Content) {
-		return ErrLenInvalid
 	}
 
 	return nil

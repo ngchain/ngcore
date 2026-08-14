@@ -3,8 +3,10 @@ package ngstate
 import (
 	"math/big"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/ngchain/secp256k1"
 	"go.etcd.io/bbolt"
 
@@ -261,13 +263,13 @@ func TestLockUnlockFlow(t *testing.T) {
 			t.Fatal("locking a locked account should fail")
 		}
 
-		// append on a locked account must fail
-		appendTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.AppendTx, 1, 600, nil, nil, big.NewInt(1), nil, nil)
-		if err := appendTx.Signature(priv); err != nil {
+		// editing a locked account must fail
+		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, 600, nil, nil, big.NewInt(1), nil, nil)
+		if err := editTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleAppend(txn, appendTx); err != ErrAccountLocked {
-			t.Fatalf("append on locked account: got %v, want ErrAccountLocked", err)
+		if err := state.handleEdit(txn, editTx); err != ErrAccountLocked {
+			t.Fatalf("edit on locked account: got %v, want ErrAccountLocked", err)
 		}
 
 		// unlock reverts everything
@@ -290,6 +292,93 @@ func TestLockUnlockFlow(t *testing.T) {
 		// double unlock must fail
 		if err := state.handleUnlock(txn, unlockTx); err == nil {
 			t.Fatal("unlocking an unlocked account should fail")
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestEditFlow upgrades a contract with a minimal diff patch:
+// unlock-free edit on an unlocked account, then lock runs the vm on the
+// new text
+func TestEditFlow(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	priv, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ngtypes.NewAddress(priv)
+
+	newWat := strings.Replace(transferWat, "i64.const 10", "i64.const 25", 1)
+	hunks := ngtypes.DiffHunks([]byte(transferWat), []byte(newWat))
+	patchSize := 0
+	for _, h := range hunks {
+		patchSize += len(h.Del) + len(h.Ins)
+	}
+	if patchSize > 16 {
+		t.Fatalf("small edit produced a big patch: %d bytes", patchSize)
+	}
+
+	rawExtra, err := rlp.EncodeToBytes(&ngtypes.EditExtra{Hunks: hunks})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewAccount(800, addr, []byte(transferWat), nil)
+		putAccount(t, txn, acc, 100)
+
+		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, 800, nil, nil, big.NewInt(1), rawExtra, nil)
+		if err := editTx.Signature(priv); err != nil {
+			return err
+		}
+
+		if err := checkEdit(txn, editTx); err != nil {
+			t.Fatalf("checkEdit: %v", err)
+		}
+		if err := state.handleEdit(txn, editTx); err != nil {
+			t.Fatalf("handleEdit: %v", err)
+		}
+
+		reloaded, err := getAccountByNum(txn, 800)
+		if err != nil {
+			return err
+		}
+		if string(reloaded.Contract) != newWat {
+			t.Fatalf("contract not patched:\n%s", reloaded.Contract)
+		}
+		if got := getBalance(txn, addr); got.Int64() != 99 {
+			t.Fatalf("edit fee not charged, balance = %d", got.Int64())
+		}
+
+		// the patched text must still compile and lock
+		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, 800, nil, nil, big.NewInt(1), nil, nil)
+		if err := lockTx.Signature(priv); err != nil {
+			return err
+		}
+		if err := state.handleLock(txn, lockTx); err != nil {
+			t.Fatalf("handleLock after edit: %v", err)
+		}
+
+		// a mismatching patch (stale base) must be rejected
+		staleExtra, err := rlp.EncodeToBytes(&ngtypes.EditExtra{Hunks: []ngtypes.Hunk{
+			{Pos: 0, Del: []byte("XXX"), Ins: []byte("YYY")},
+		}})
+		if err != nil {
+			return err
+		}
+		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, 800, nil, nil, big.NewInt(1), staleExtra, nil)
+		if err := staleTx.Signature(priv); err != nil {
+			return err
+		}
+		if err := checkEdit(txn, staleTx); err != ErrAccountLocked {
+			// locked now; unlock first to test the mismatch path
+			t.Fatalf("stale edit on locked account: got %v", err)
 		}
 
 		return nil

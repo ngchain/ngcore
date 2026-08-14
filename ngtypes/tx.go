@@ -26,11 +26,10 @@ const (
 
 	TransactTx
 
-	AppendTx // add content to the tail of contract
-	DeleteTx
+	EditTx // apply a patch (a set of hunks) onto the contract text
 
-	LockTx   // freeze the contract: no more append/delete, and the vm gets active
-	UnlockTx // disable the vm, and enable appending and deleting again
+	LockTx   // freeze the contract: no more editing, and the vm gets active
+	UnlockTx // disable the vm, and enable editing again
 )
 
 // FullTx is the basic implement of Tx (transaction, or operation)
@@ -371,63 +370,25 @@ func (x *FullTx) CheckTransaction(publicKey *secp256k1.PublicKey) error {
 	return nil
 }
 
-// CheckAppend does a self check for append tx
-func (x *FullTx) CheckAppend(key *secp256k1.PublicKey) error {
+// CheckEdit does a self check for edit tx
+func (x *FullTx) CheckEdit(publicKey *secp256k1.PublicKey) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
 
 	if x.Convener == 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "append's convener should NOT be 0")
+		return errors.Wrap(ErrTxConvenerInvalid, "edit's convener should NOT be 0")
 	}
 
 	if len(x.Participants) != 0 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "append should have NO participant")
+		return errors.Wrap(ErrTxParticipantsInvalid, "edit should have NO participant")
 	}
 
 	if len(x.Values) != 0 {
-		return errors.Wrap(ErrTxValuesInvalid, "append should have NO value")
+		return errors.Wrap(ErrTxValuesInvalid, "edit should have NO value")
 	}
 
-	err := x.Verify(key)
-	if err != nil {
-		return err
-	}
-
-	// check this on chain
-	// var appendExtra AppendExtra
-	// err = rlp.DecodeBytes(x.Extra, &appendExtra)
-	// if err != nil {
-	//	return err
-	// }
-
-	return nil
-}
-
-// CheckDelete does a self check for delete tx
-func (x *FullTx) CheckDelete(publicKey *secp256k1.PublicKey) error {
-	if x == nil {
-		return ErrTxNoHeader
-	}
-
-	if x.Convener == 0 {
-		return errors.Wrap(ErrTxConvenerInvalid, "deleteTx convener should NOT be 0")
-	}
-
-	if len(x.Participants) != 0 {
-		return errors.Wrap(ErrTxParticipantsInvalid, "deleteTx should have NO participant")
-	}
-
-	if len(x.Values) != 0 {
-		return errors.Wrap(ErrTxValuesInvalid, "deleteTx should have NO value")
-	}
-
-	err := x.Verify(publicKey)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return x.Verify(publicKey)
 }
 
 // Signature will re-sign the Tx with private key.

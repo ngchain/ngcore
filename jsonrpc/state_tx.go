@@ -287,35 +287,71 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type genAppendParams struct {
-	Convener     uint64  `json:"convener"`
-	Fee          float64 `json:"fee"`
-	ExtraPos     uint64  `json:"extraPos"`
-	ExtraContent string  `json:"extraContent"`
+type editHunk struct {
+	Pos uint64 `json:"pos"`
+	Del string `json:"del"`
+	Ins string `json:"ins"`
 }
 
-func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genAppendParams
+type genEditParams struct {
+	Convener uint64     `json:"convener"`
+	Fee      float64    `json:"fee"`
+	Hunks    []editHunk `json:"hunks"`
+}
+
+// genEditFunc composes an unsigned edit tx from explicit hunks
+// (del/ins are the plain contract text pieces)
+func (s *Server) genEditFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genEditParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
+	hunks := make([]ngtypes.Hunk, len(params.Hunks))
+	for i, h := range params.Hunks {
+		hunks[i] = ngtypes.Hunk{Pos: h.Pos, Del: []byte(h.Del), Ins: []byte(h.Ins)}
+	}
 
-	extraContent, err := hex.DecodeString(params.ExtraContent)
+	return s.buildEditTx(msg, params.Convener, params.Fee, hunks)
+}
+
+type genContractUpdateParams struct {
+	Convener    uint64  `json:"convener"`
+	Fee         float64 `json:"fee"`
+	NewContract string  `json:"newContract"`
+}
+
+// genContractUpdateFunc diffs the on-chain contract text against
+// newContract and composes an unsigned edit tx carrying the minimal patch
+func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genContractUpdateParams
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	extra := &ngtypes.DeleteExtra{
-		Pos:     params.ExtraPos,
-		Content: extraContent,
+	account, err := s.pow.State.GetAccountByNum(params.Convener)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	rawExtra, err := rlp.EncodeToBytes(extra)
+	hunks := ngtypes.DiffHunks(account.Contract, []byte(params.NewContract))
+	if len(hunks) == 0 {
+		err := errors.New("new contract is identical to the on-chain one")
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return s.buildEditTx(msg, params.Convener, params.Fee, hunks)
+}
+
+func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, convener uint64, feeNG float64, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
+	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
+
+	rawExtra, err := rlp.EncodeToBytes(&ngtypes.EditExtra{Hunks: hunks})
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -323,9 +359,9 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.AppendTx,
+		ngtypes.EditTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.AccountNum(params.Convener),
+		ngtypes.AccountNum(convener),
 		nil,
 		nil,
 		fee,
@@ -347,59 +383,26 @@ func (s *Server) genAppendFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type genDeleteParams struct {
-	Convener uint64  `json:"convener"`
-	Fee      float64 `json:"fee"`
-
-	ExtraContent string `json:"extraContent"`
-	ExtraPos     uint64 `json:"extraPos"`
+type getContractParams struct {
+	Num uint64 `json:"num"`
 }
 
-func (s *Server) genDeleteFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genDeleteParams
+// getContractFunc returns the on-chain contract text of the account
+func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getContractParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
-
-	extraContent, err := hex.DecodeString(params.ExtraContent)
+	account, err := s.pow.State.GetAccountByNum(params.Num)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	extra := &ngtypes.DeleteExtra{
-		Pos:     params.ExtraPos,
-		Content: extraContent,
-	}
-
-	rawExtra, err := rlp.EncodeToBytes(extra)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	tx := ngtypes.NewUnsignedTx(
-		s.pow.Network,
-		ngtypes.DeleteTx,
-		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.AccountNum(params.Convener),
-		nil,
-		nil,
-		fee,
-		rawExtra,
-	)
-
-	rawTx, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
+	raw, err := utils.JSON.Marshal(string(account.Contract))
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
