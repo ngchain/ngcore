@@ -52,7 +52,7 @@ func (state *State) GetTotalBalanceByAddress(address ngtypes.Address) (*big.Int,
 
 // GetMatureBalanceByNum get the balance of account by the account's num
 func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
-	var balance *big.Int
+	balance := big.NewInt(0)
 
 	err := state.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
@@ -91,7 +91,7 @@ func (state *State) GetMatureBalanceByNum(num uint64) (*big.Int, error) {
 
 // GetMatureBalanceByAddress get the locked balance of account by the account's address
 func (state *State) GetMatureBalanceByAddress(address ngtypes.Address) (*big.Int, error) {
-	var balance *big.Int
+	balance := big.NewInt(0)
 
 	err := state.View(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)

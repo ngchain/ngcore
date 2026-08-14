@@ -11,6 +11,10 @@ var (
 	Num2AccBucketName  = []byte("num:acc")
 	Addr2BalBucketName = []byte("addr:bal")
 	Addr2NumBucketName = []byte("addr:num")
+
+	// SnapshotBucketName persists the checkpoint state sheets, so the
+	// mature-balance lookups survive restarts
+	SnapshotBucketName = []byte("snapshot")
 )
 
 var (
@@ -23,6 +27,11 @@ var (
 func InitDB(db *bbolt.DB) {
 	db.Update(func(txn *bbolt.Tx) error {
 		_, err := txn.CreateBucketIfNotExists(BlockBucketName)
+		if err != nil {
+			return err
+		}
+
+		_, err = txn.CreateBucketIfNotExists(SnapshotBucketName)
 		if err != nil {
 			return err
 		}

@@ -337,6 +337,57 @@ func TestTipChangedHook(t *testing.T) {
 	}
 }
 
+// TestSnapshotPersistence: checkpoint sheets must survive a state
+// "restart" (fresh in-mem cache over the same db) so mature-balance
+// lookups keep working
+func TestSnapshotPersistence(t *testing.T) {
+	db, err := bbolt.Open(filepath.Join(t.TempDir(), "chain.db"), 0o600, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	storage.InitDB(db)
+	store := ngblocks.Init(db, ngtypes.ZERONET)
+	state := ngstate.InitStateFromGenesis(db, ngtypes.ZERONET)
+	chain := blockchain.Init(db, ngtypes.ZERONET, store, state)
+
+	miner, _ := secp256k1.GeneratePrivateKey()
+	parent := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	var checkpoint *ngtypes.FullBlock
+	for h := 0; h < int(ngtypes.BlockCheckRound)+2; h++ {
+		b := mineBlock(t, parent, miner)
+		if err := chain.ApplyBlock(b); err != nil {
+			t.Fatalf("apply block@%d: %v", b.GetHeight(), err)
+		}
+		if b.IsHead() {
+			checkpoint = b
+		}
+		parent = b
+	}
+
+	// "restart": a fresh State over the same db has an empty mem cache
+	// and must load the sheet from the snapshot bucket
+	restarted := ngstate.InitStateFromGenesis(db, ngtypes.ZERONET)
+
+	sheet := restarted.GetSnapshotByHeight(checkpoint.GetHeight())
+	if sheet == nil {
+		t.Fatal("persisted snapshot not found after restart")
+	}
+	if !bytes.Equal(sheet.BlockHash, checkpoint.GetHash()) {
+		t.Fatalf("snapshot binds %x, want checkpoint %x", sheet.BlockHash, checkpoint.GetHash())
+	}
+
+	// mature balance queries work (young chain: conservative zero)
+	mature, err := restarted.GetMatureBalanceByAddress(ngtypes.NewAddress(miner))
+	if err != nil {
+		t.Fatalf("mature balance after restart: %v", err)
+	}
+	if mature == nil {
+		t.Fatal("mature balance must never be nil")
+	}
+}
+
 func TestSwitchToBranchRejectsDetached(t *testing.T) {
 	chain := newTestChain(t)
 	miner, _ := secp256k1.GeneratePrivateKey()

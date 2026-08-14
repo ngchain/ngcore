@@ -71,9 +71,7 @@ func (chain *Chain) ApplySnapshot(blocks []*ngtypes.FullBlock, sheet *ngtypes.Sh
 		}
 
 		// the fetched sheet IS the tip's snapshot: keep it servable
-		chain.State.SnapshotManager.PutSnapshot(tip.GetHeight(), tip.GetHash(), sheet)
-
-		return nil
+		return chain.State.PutSnapshotTxn(txn, sheet)
 	})
 	if err != nil {
 		return err

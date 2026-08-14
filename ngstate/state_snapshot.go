@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"math/big"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // var snapshot *atomic.Value
@@ -50,7 +52,7 @@ func (sm *SnapshotManager) PutSnapshot(height uint64, hash []byte, sheet *ngtype
 // for external use with security ensure
 func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Sheet {
 	sm.RLock()
-	defer sm.RLocker()
+	defer sm.RUnlock()
 
 	hexHash, exists := sm.heightToHash[height]
 	if !exists {
@@ -68,7 +70,7 @@ func (sm *SnapshotManager) GetSnapshot(height uint64, hash []byte) *ngtypes.Shee
 // for internal use only
 func (sm *SnapshotManager) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
 	sm.RLock()
-	defer sm.RLocker()
+	defer sm.RUnlock()
 
 	hexHash, exists := sm.heightToHash[height]
 	if !exists {
@@ -82,7 +84,7 @@ func (sm *SnapshotManager) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
 // for internal use only
 func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 	sm.RLock()
-	defer sm.RLocker()
+	defer sm.RUnlock()
 
 	return sm.hashToSnapshot[hex.EncodeToString(hash)]
 }
@@ -123,8 +125,89 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 	}
 
 	sheet := ngtypes.NewSheet(state.Network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, accounts)
-	state.SnapshotManager.PutSnapshot(latestBlock.GetHeight(), latestBlock.GetHash(), sheet)
+
+	return state.PutSnapshotTxn(txn, sheet)
+}
+
+// PutSnapshotTxn caches the sheet in memory AND persists it in the
+// snapshot bucket (pruned by the retention window), so mature-balance
+// lookups survive restarts
+func (state *State) PutSnapshotTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
+	state.SnapshotManager.PutSnapshot(sheet.Height, sheet.BlockHash, sheet)
+
+	snapshotBucket := txn.Bucket(storage.SnapshotBucketName)
+
+	raw, err := rlp.EncodeToBytes(sheet)
+	if err != nil {
+		return err
+	}
+	if err := snapshotBucket.Put(utils.PackUint64LE(sheet.Height), raw); err != nil {
+		return err
+	}
+
+	// prune persisted snapshots below the retention window
+	if sheet.Height > snapshotRetention*ngtypes.BlockCheckRound {
+		floor := sheet.Height - snapshotRetention*ngtypes.BlockCheckRound
+		c := snapshotBucket.Cursor()
+		for k, _ := c.First(); k != nil && binary.LittleEndian.Uint64(k) < floor; k, _ = c.Next() {
+			if err := c.Delete(); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
+}
+
+// GetSnapshotByHeight resolves the state sheet at the height: the
+// in-mem cache first, then the persisted bucket (exact height, else the
+// nearest OLDER one as a conservative floor); height 0 is always the
+// genesis sheet
+func (state *State) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
+	if height == 0 {
+		return ngtypes.GetGenesisSheet(state.Network)
+	}
+
+	if sheet := state.SnapshotManager.GetSnapshotByHeight(height); sheet != nil {
+		return sheet
+	}
+
+	var sheet *ngtypes.Sheet
+	_ = state.View(func(txn *bbolt.Tx) error {
+		snapshotBucket := txn.Bucket(storage.SnapshotBucketName)
+
+		raw := snapshotBucket.Get(utils.PackUint64LE(height))
+		if raw == nil {
+			// nearest older snapshot: better a conservative floor than
+			// an error (pre-persistence dbs, retention gaps)
+			c := snapshotBucket.Cursor()
+			var candidate []byte
+			for k, v := c.First(); k != nil && binary.LittleEndian.Uint64(k) <= height; k, v = c.Next() {
+				candidate = v
+			}
+			raw = candidate
+		}
+		if raw == nil {
+			return nil
+		}
+
+		var s ngtypes.Sheet
+		if err := rlp.DecodeBytes(raw, &s); err != nil {
+			log.Errorf("broken persisted snapshot@%d: %v", height, err)
+			return nil
+		}
+		sheet = &s
+
+		return nil
+	})
+
+	if sheet == nil {
+		return ngtypes.GetGenesisSheet(state.Network)
+	}
+
+	state.SnapshotManager.PutSnapshot(sheet.Height, sheet.BlockHash, sheet)
+
+	return sheet
 }
 
 func (state *State) GetSnapshot(height uint64, hash []byte) *ngtypes.Sheet {
