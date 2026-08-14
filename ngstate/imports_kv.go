@@ -103,6 +103,84 @@ func initKVImports(vm *VM) error {
 		return err
 	}
 
+	// prefix iteration over the executing account's context: keys are
+	// canonically sorted, so index-based access is deterministic.
+	// Reserved ("_"-prefixed) keys stay invisible
+	matchingKeys := func(prefix []byte) []string {
+		ctx := vmContext(vm)
+		keys := make([]string, 0)
+		for _, k := range ctx.Keys {
+			if isReservedKey(k) {
+				continue
+			}
+			if len(k) >= len(prefix) && k[:len(prefix)] == string(prefix) {
+				keys = append(keys, k)
+			}
+		}
+		return keys
+	}
+
+	err = vm.linker.DefineAdvancedFunc("kv", "count", func(ins *wasman.Instance) interface{} {
+		return func(prefixPtr, prefixLen uint32) uint32 {
+			prefix, err := readMem(ins, prefixPtr, prefixLen)
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			return uint32(len(matchingKeys(prefix)))
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = vm.linker.DefineAdvancedFunc("kv", "key_size_at", func(ins *wasman.Instance) interface{} {
+		return func(prefixPtr, prefixLen, index uint32) uint32 {
+			prefix, err := readMem(ins, prefixPtr, prefixLen)
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			keys := matchingKeys(prefix)
+			if index >= uint32(len(keys)) {
+				return 0
+			}
+
+			return uint32(len(keys[index]))
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = vm.linker.DefineAdvancedFunc("kv", "key_at", func(ins *wasman.Instance) interface{} {
+		return func(prefixPtr, prefixLen, index, outPtr uint32) uint32 {
+			prefix, err := readMem(ins, prefixPtr, prefixLen)
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			keys := matchingKeys(prefix)
+			if index >= uint32(len(keys)) {
+				return 0
+			}
+
+			l, err := cp(ins, outPtr, []byte(keys[index]))
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			return l
+		}
+	})
+	if err != nil {
+		return err
+	}
+
 	err = vm.linker.DefineAdvancedFunc("kv", "del", func(ins *wasman.Instance) interface{} {
 		return func(keyPtr, keyLen uint32) uint32 {
 			key, err := readMem(ins, keyPtr, keyLen)

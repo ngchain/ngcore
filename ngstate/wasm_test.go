@@ -774,6 +774,77 @@ func TestVMTxContext(t *testing.T) {
 	}
 }
 
+// kvScanWat writes entries under two prefixes, then sums the VALUES of
+// every "b:"-prefixed entry by iterating keys — proving deterministic
+// prefix enumeration
+const kvScanWat = `
+(module
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (import "kv" "get" (func $get (param i32 i32 i32) (result i32)))
+  (import "kv" "count" (func $count (param i32 i32) (result i32)))
+  (import "kv" "key_at" (func $key_at (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  ;; data: keys "a:x"=1 "b:p"=5 "b:q"=7 ; scratch: key buf 64, val buf 96, sum key "sum" at 16
+  (data (i32.const 0) "a:xb:pb:qb")
+  (data (i32.const 16) "sum")
+  (func $put (param $kptr i32) (param $v i64)
+    (i64.store (i32.const 96) (local.get $v))
+    (drop (call $set (local.get $kptr) (i32.const 3) (i32.const 96) (i32.const 8))))
+  (func (export "main")
+    (local $i i32) (local $n i32) (local $sum i64)
+    (call $put (i32.const 0) (i64.const 1))
+    (call $put (i32.const 3) (i64.const 5))
+    (call $put (i32.const 6) (i64.const 7))
+    ;; iterate prefix "b:" (bytes at 9..10 would be "b" only; reuse 3..5 "b:")
+    (local.set $n (call $count (i32.const 3) (i32.const 2)))
+    (block $done
+      (loop $next
+        (br_if $done (i32.ge_u (local.get $i) (local.get $n)))
+        (drop (call $key_at (i32.const 3) (i32.const 2) (local.get $i) (i32.const 64)))
+        (i64.store (i32.const 96) (i64.const 0))
+        (drop (call $get (i32.const 64) (i32.const 3) (i32.const 96)))
+        (local.set $sum (i64.add (local.get $sum) (i64.load (i32.const 96))))
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $next)))
+    (i64.store (i32.const 96) (local.get $sum))
+    (drop (call $set (i32.const 16) (i32.const 3) (i32.const 96) (i32.const 8)))))
+`
+
+// TestVMKVScan: contracts can enumerate their kv by prefix
+func TestVMKVScan(t *testing.T) {
+	db := newTestDB(t)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(kvScanWat), nil)
+		acc.SetLock(true)
+		putAccount(t, txn, acc, 0)
+
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+		if err != nil {
+			return err
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			return err
+		}
+
+		reloaded, err := getAccountByNum(txn, 500)
+		if err != nil {
+			return err
+		}
+
+		// sum of the "b:" entries = 5 + 7; the "a:" entry is excluded
+		got := reloaded.Context.Get("sum")
+		if len(got) != 8 || binary.LittleEndian.Uint64(got) != 12 {
+			t.Fatalf("sum = %x, want LE(12)", got)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestNamedContractDeps: contracts are addressable as deployer.name —
 // the name registers at lock time, imports resolve through the registry,
 // conflicts are refused, and destroy releases the name

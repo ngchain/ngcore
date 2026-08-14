@@ -88,6 +88,9 @@ kv:      get_size(kptr, klen) -> i32
          get(kptr, klen, vptr) -> i32
          set(kptr, klen, vptr, vlen) -> i32
          del(kptr, klen) -> i32
+         count(pptr, plen) -> i32     ; prefix enumeration over the
+         key_size_at(pptr, plen, i) -> i32   ; sorted, non-reserved keys
+         key_at(pptr, plen, i, out) -> i32
 env:     get_gas() -> i64            ; remaining toll of the call tree
 u128/u256: add/sub/mul/div_u/div_s/rem_u/rem_s(dst, a, b)
          and/or/xor(dst, a, b)   not(dst, a)
