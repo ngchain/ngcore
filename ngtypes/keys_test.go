@@ -1,9 +1,82 @@
 package ngtypes
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
+
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 )
+
+// TestBIP340Vector pins the scheme to the FINAL bip-340 standard via
+// its official test vector 0
+func TestBIP340Vector(t *testing.T) {
+	pubKeyBytes, _ := hex.DecodeString("F9308A019258C31049344F85F89D5229B531C845836F99B08601F113BCE036F9")
+	msg, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
+	sigBytes, _ := hex.DecodeString("E907831F80848D1069A5371B402410364BDF1C5F8307B0084C55F1CE2DCA8215" +
+		"25F66A4A85EA8B71E482A74F382D2CE5EBEEE8FDB2172F477DF4900D310536C0")
+
+	pub, err := schnorr.ParsePubKey(pubKeyBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sig, err := schnorr.ParseSignature(sigBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !sig.Verify(msg, pub) {
+		t.Fatal("the official bip-340 vector 0 must verify")
+	}
+}
+
+// TestCoSigning: the many-to-many primitive — several co-signers
+// combine into one key; the tx they sign together verifies as a plain
+// single signature whose sender is the shared address
+func TestCoSigning(t *testing.T) {
+	key1, _ := GenerateKey()
+	key2, _ := GenerateKey()
+	key3, _ := GenerateKey()
+
+	shared, err := NewAddressFromMultiKeys(key1, key2, key3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tx := testTx(NewAddress(key1))
+	if err := tx.Signature(key1, key2, key3); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Verify(); err != nil {
+		t.Fatalf("co-signed tx must verify: %v", err)
+	}
+
+	sender, err := tx.Sender()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sender.Equals(shared) {
+		t.Fatal("the sender must be the combined (shared) address")
+	}
+
+	// a subset of the co-signers cannot spend the shared address
+	tx2 := testTx(NewAddress(key1))
+	if err := tx2.Signature(key1, key2); err != nil {
+		t.Fatal(err)
+	}
+	if sender2, _ := tx2.Sender(); sender2.Equals(shared) {
+		t.Fatal("a subset must not derive the shared address")
+	}
+
+	// order does not matter: addition commutes
+	altAddr, err := NewAddressFromMultiKeys(key3, key1, key2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !altAddr.Equals(shared) {
+		t.Fatal("the combined address must be order-independent")
+	}
+}
 
 func testTx(participant Address) *FullTx {
 	return NewUnsignedTx(ZERONET, TransactTx, 1,

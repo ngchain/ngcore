@@ -1,102 +1,128 @@
 package ngtypes
 
 import (
-	"crypto/rand"
+	"math/big"
 
-	"github.com/cloudflare/circl/sign/mldsa/mldsa44"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/pkg/errors"
 )
 
-// The chain has exactly one native signature system: ML-DSA-44
-// (FIPS 204, module-lattice signatures, post-quantum)
+// The chain has exactly one native signature system: secp256k1 BIP-340
+// schnorr. Its scalar homomorphism is what powers the many-to-many
+// txs: any number of co-signers combine into ONE key whose address
+// receives and spends with a single 64-byte signature
 const (
-	// KeySeedSize is the wallet secret: the 32-byte ML-DSA keygen seed
+	// KeySeedSize is the wallet secret: the 32-byte scalar
 	KeySeedSize = 32
-	// PublicKeySize is the byte length of a member public key
-	PublicKeySize = mldsa44.PublicKeySize
-	// TxSignatureSize is the byte length of one member signature
-	TxSignatureSize = mldsa44.SignatureSize
+	// PublicKeySize is the byte length of a compressed public key
+	PublicKeySize = 33
+	// TxSignatureSize is the byte length of one bip-340 signature
+	TxSignatureSize = 64
 )
 
 var ErrKeyInvalid = errors.New("invalid private key")
 
-// PrivateKey is one keyset member's secret. The wallet format
-// (Serialize) is the bare 32-byte keygen seed, so key files stay tiny
-// even though the post-quantum keys themselves are large
+// PrivateKey is a signing key (possibly the combination of several
+// co-signers' keys). The wallet format (Serialize) is the bare
+// 32-byte scalar
 type PrivateKey struct {
-	seed [mldsa44.SeedSize]byte
-	pub  *mldsa44.PublicKey
-	priv *mldsa44.PrivateKey
+	secp *btcec.PrivateKey
 }
 
 // GenerateKey creates a fresh key
 func GenerateKey() (*PrivateKey, error) {
-	seed := make([]byte, KeySeedSize)
-	if _, err := rand.Read(seed); err != nil {
+	secp, err := btcec.NewPrivateKey()
+	if err != nil {
 		return nil, err
 	}
 
-	return NewKeyFromSeed(seed)
+	return &PrivateKey{secp: secp}, nil
 }
 
-// NewKeyFromSeed derives the key from a 32-byte secret seed
+// NewKeyFromSeed derives the key from the 32-byte secret scalar
 func NewKeyFromSeed(seed []byte) (*PrivateKey, error) {
 	if len(seed) != KeySeedSize {
 		return nil, errors.Wrapf(ErrKeyInvalid, "seed must be %d bytes, got %d", KeySeedSize, len(seed))
 	}
 
-	key := &PrivateKey{}
-	copy(key.seed[:], seed)
-	key.pub, key.priv = mldsa44.NewKeyFromSeed(&key.seed)
+	secp, _ := btcec.PrivKeyFromBytes(seed)
+	if secp.Key.IsZero() {
+		return nil, errors.Wrap(ErrKeyInvalid, "the scalar is zero")
+	}
 
-	return key, nil
+	return &PrivateKey{secp: secp}, nil
 }
 
-// ParsePrivateKey reads the wallet format: the bare 32-byte seed
+// ParsePrivateKey reads the wallet format: the bare 32-byte scalar
 func ParsePrivateKey(raw []byte) (*PrivateKey, error) {
 	return NewKeyFromSeed(raw)
 }
 
-// Serialize returns the wallet format: the bare 32-byte seed
+// Serialize returns the wallet format: the bare 32-byte scalar
 func (key *PrivateKey) Serialize() []byte {
-	out := make([]byte, KeySeedSize)
-	copy(out, key.seed[:])
-
-	return out
+	return key.secp.Serialize()
 }
 
-// PublicBytes returns the packed public key (PublicKeySize bytes)
+// PublicBytes returns the compressed public key (PublicKeySize bytes)
 func (key *PrivateKey) PublicBytes() []byte {
-	raw, err := key.pub.MarshalBinary()
-	if err != nil {
-		panic(err) // packing a valid key cannot fail
-	}
-
-	return raw
+	return key.secp.PubKey().SerializeCompressed()
 }
 
-// SignHash signs a 32-byte digest
+// SignHash signs a 32-byte digest with a bip-340 schnorr signature
 func (key *PrivateKey) SignHash(hash []byte) ([]byte, error) {
-	sig := make([]byte, mldsa44.SignatureSize)
-	// deterministic signing: re-signing the same tx yields the
-	// identical signature (and so the identical tx hash)
-	if err := mldsa44.SignTo(key.priv, hash, nil, false, sig); err != nil {
+	sig, err := schnorr.Sign(key.secp, hash)
+	if err != nil {
 		return nil, err
 	}
 
-	return sig, nil
+	return sig.Serialize(), nil
 }
 
-// VerifyHashSig checks one member signature over a 32-byte digest
+// VerifyHashSig checks one signature over a 32-byte digest against a
+// compressed public key (bip-340: the x-only form of the key verifies)
 func VerifyHashSig(pubKey, hash, sig []byte) bool {
-	if len(pubKey) != mldsa44.PublicKeySize {
+	pub, err := btcec.ParsePubKey(pubKey)
+	if err != nil {
 		return false
 	}
 
-	pub := new(mldsa44.PublicKey)
-	if err := pub.UnmarshalBinary(pubKey); err != nil {
+	parsed, err := schnorr.ParseSignature(sig)
+	if err != nil {
 		return false
 	}
 
-	return mldsa44.Verify(pub, hash, nil, sig)
+	return parsed.Verify(hash, pub)
+}
+
+// CombinePrivateKeys folds any number of co-signers' keys into the
+// single key by scalar addition: its public key equals the sum of the
+// members' public keys, so the combined address spends with one plain
+// signature — the many-to-many primitive
+func CombinePrivateKeys(privKeys ...*PrivateKey) (*PrivateKey, error) {
+	if len(privKeys) == 0 {
+		return nil, errors.Wrap(ErrKeyInvalid, "no private key entered")
+	}
+
+	d := new(big.Int)
+	for i := range privKeys {
+		d.Add(d, new(big.Int).SetBytes(privKeys[i].Serialize()))
+	}
+	d.Mod(d, btcec.S256().N)
+	if d.Sign() == 0 {
+		return nil, errors.Wrap(ErrKeyInvalid, "the combined scalar is zero")
+	}
+
+	return NewKeyFromSeed(d.FillBytes(make([]byte, KeySeedSize)))
+}
+
+// NewAddressFromMultiKeys returns the address of the combined key: the
+// all-must-sign shared wallet of the given co-signers
+func NewAddressFromMultiKeys(privKeys ...*PrivateKey) (Address, error) {
+	key, err := CombinePrivateKeys(privKeys...)
+	if err != nil {
+		return Address{}, err
+	}
+
+	return NewAddress(key), nil
 }

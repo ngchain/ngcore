@@ -14,10 +14,11 @@ var ErrAddressLenInvalid = errors.New("address length is invalid")
 // preimage, so any future layout change cannot collide with this one
 const addressVersion = 0x01
 
-// Address is the keccak-256 hash of the owner's public key. The key
-// itself only appears on chain inside a spending tx's signature,
-// which keeps unspent funds shielded and the 1.3 KB post-quantum key
-// usable as a compact 32-byte address
+// Address is the keccak-256 hash of the owner's public key — which
+// may be the COMBINATION of several co-signers' keys (schnorr scalar
+// addition), making shared wallets indistinguishable from plain ones.
+// The key itself only appears on chain inside a spending tx's
+// signature, keeping unspent funds shielded until spend time
 type Address [AddressSize]byte
 
 // AddressOfPubKey computes keccak256(version || pubkey)

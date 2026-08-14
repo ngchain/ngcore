@@ -354,18 +354,26 @@ func (x *FullTx) CheckDeactivate() error {
 }
 
 // Signature signs the tx, embedding the public key and its signature
-// as the flat envelope pubkey || sig
-func (x *FullTx) Signature(privateKey *PrivateKey) error {
+// as the flat envelope pubkey || sig. Multiple keys are co-signers:
+// they combine by scalar addition into ONE key, so a shared wallet of
+// any size signs with a single plain signature and the consensus
+// layer cannot even tell — many signers, many recipients, one tx
+func (x *FullTx) Signature(privateKeys ...*PrivateKey) error {
+	key, err := CombinePrivateKeys(privateKeys...)
+	if err != nil {
+		return err
+	}
+
 	x.Sign = nil
 	hash := x.GetUnsignedHash()
 
-	sig, err := privateKey.SignHash(hash)
+	sig, err := key.SignHash(hash)
 	if err != nil {
 		return err
 	}
 
 	envelope := make([]byte, 0, PublicKeySize+TxSignatureSize)
-	envelope = append(envelope, privateKey.PublicBytes()...)
+	envelope = append(envelope, key.PublicBytes()...)
 	envelope = append(envelope, sig...)
 
 	x.Sign = envelope

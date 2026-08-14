@@ -66,8 +66,7 @@ const (
 	PrivSize = 32
 	// AddressSize is the byte length of an Address: the keccak-256
 	// hash of the owner's public key (see AddressOfPubKey). Hashing
-	// keeps public keys off chain until spend time and makes the 1.3 KB
-	// post-quantum keys usable as compact addresses
+	// keeps public keys off chain until spend time
 	AddressSize = 32
 	// SignatureSize is the size used by signature and is 64 bytes(R 32 + S 32)
 	SignatureSize = 64
