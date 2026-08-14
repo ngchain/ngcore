@@ -177,6 +177,14 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx) (err er
 		return err
 	}
 
+	// persist the convener BEFORE any contract runs: a contract on the
+	// convener's own account would otherwise be overwritten by this
+	// stale pre-vm copy
+	err = setAccount(txn, tx.Convener, convener)
+	if err != nil {
+		return err
+	}
+
 	for i := range tx.Participants {
 		participantBalance := getBalance(txn, tx.Participants[i])
 
@@ -193,11 +201,6 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx) (err er
 
 			state.runContract(txn, num, tx, VMEntryOnTx)
 		}
-	}
-
-	err = setAccount(txn, tx.Convener, convener)
-	if err != nil {
-		return err
 	}
 
 	return nil

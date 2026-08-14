@@ -417,6 +417,96 @@ func TestRestartPersistence(t *testing.T) {
 	waitTip(t, peer, newTip.GetHash(), 45*time.Second)
 }
 
+// TestContractLifecycle drives a wat contract through its whole
+// on-chain life across two nodes: deploy (edit tx) -> activate (lock
+// tx) -> trigger (transact tx runs the vm) — and both nodes must agree
+// on the contract's kv state written by the vm
+func TestContractLifecycle(t *testing.T) {
+	const contractWat = `
+(module
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "keyval")
+  (func (export "main")
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
+`
+
+	nodeA := newNode(t)
+	nodeB := newNode(t)
+	connect(t, nodeA, nodeB)
+
+	key, _ := secp256k1.GeneratePrivateKey()
+	addr := ngtypes.NewAddress(key)
+
+	submit := func(txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
+		tip := nodeA.chain.GetLatestBlock().(*ngtypes.FullBlock)
+		b := mineOnTxs(t, tip, key, txs...)
+		if err := nodeA.pow.MinedNewBlock(b); err != nil {
+			t.Fatalf("submit block@%d: %v", b.GetHeight(), err)
+		}
+		waitTip(t, nodeB, b.GetHash(), 10*time.Second)
+		return b
+	}
+
+	// fund + register account 800
+	submit()
+	extra := make([]byte, 8)
+	binary.LittleEndian.PutUint64(extra, 800)
+	regTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.RegisterTx, 2, 1,
+		[]ngtypes.Address{addr}, []*big.Int{big.NewInt(0)}, ngtypes.RegisterFee, extra, nil)
+	if err := regTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	submit(regTx)
+
+	// deploy: an edit tx patches the empty contract to the wat text
+	rawExtra, err := ngtypes.NewEditExtra(nil, []ngtypes.Hunk{
+		{Pos: 0, Ins: []byte(contractWat)},
+	}).Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 3, 800,
+		nil, nil, big.NewInt(1), rawExtra, nil)
+	if err := editTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	submit(editTx)
+
+	// activate: lock compiles the text and enables the vm
+	lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 4, 800,
+		nil, nil, big.NewInt(1), nil, nil)
+	if err := lockTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	submit(lockTx)
+
+	// trigger: a transact tx to the contract account runs `main`
+	transTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 5, 800,
+		[]ngtypes.Address{addr}, []*big.Int{big.NewInt(1)}, big.NewInt(1), nil, nil)
+	if err := transTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	submit(transTx)
+
+	// both nodes hold the identical contract state written by the vm
+	for name, node := range map[string]*testNode{"A": nodeA, "B": nodeB} {
+		acc, err := node.chain.State.GetAccountByNum(800)
+		if err != nil {
+			t.Fatalf("node%s: %v", name, err)
+		}
+		if string(acc.Contract) != contractWat {
+			t.Fatalf("node%s: contract text mismatch", name)
+		}
+		if !acc.IsLocked() {
+			t.Fatalf("node%s: contract should be locked", name)
+		}
+		if got := string(acc.Context.Get("key")); got != "val" {
+			t.Fatalf("node%s: contract kv = %q, want \"val\"", name, got)
+		}
+	}
+}
+
 // TestSnapshotSync: a fresh node in snapshot mode fast-syncs to the
 // serving node's checkpoint by fetching the chain segment plus the
 // checkpoint state sheet, applied atomically (no tx replay)
