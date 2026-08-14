@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/c0mm4nd/rlp"
 	"github.com/ngchain/secp256k1"
 	"go.etcd.io/bbolt"
 
@@ -324,7 +323,7 @@ func TestEditFlow(t *testing.T) {
 		t.Fatalf("small edit produced a big patch: %d bytes", patchSize)
 	}
 
-	rawExtra, err := rlp.EncodeToBytes(&ngtypes.EditExtra{Hunks: hunks})
+	rawExtra, err := ngtypes.NewEditExtra([]byte(transferWat), hunks).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,9 +365,9 @@ func TestEditFlow(t *testing.T) {
 		}
 
 		// a mismatching patch (stale base) must be rejected
-		staleExtra, err := rlp.EncodeToBytes(&ngtypes.EditExtra{Hunks: []ngtypes.Hunk{
+		staleExtra, err := (&ngtypes.EditExtra{Hunks: []ngtypes.Hunk{
 			{Pos: 0, Del: []byte("XXX"), Ins: []byte("YYY")},
-		}})
+		}}).Encode()
 		if err != nil {
 			return err
 		}

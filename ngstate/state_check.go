@@ -262,13 +262,12 @@ func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
 		return ErrTxrBalanceInsufficient
 	}
 
-	var editExtra ngtypes.EditExtra
-	err = rlp.DecodeBytes(editTx.Extra, &editExtra)
+	editExtra, err := ngtypes.DecodeEditExtra(editTx.Extra)
 	if err != nil {
 		return err
 	}
 
-	if _, err := ngtypes.ApplyEdits(convener.Contract, editExtra.Hunks); err != nil {
+	if _, err := editExtra.Apply(convener.Contract); err != nil {
 		return err
 	}
 

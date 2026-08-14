@@ -21,11 +21,21 @@ persistent storage is the account's `Context` (an on-chain sorted k-v).
 | execute | `TransactTx` | when a locked contract account is a participant, its `main` export runs |
 | upgrade | `UnlockTx` → `EditTx` → `LockTx` | disable the vm, patch the text, re-activate |
 
-An `EditTx` carries `EditExtra{Hunks}`: each hunk replaces `Del` with
-`Ins` at a byte offset of the ORIGINAL text; hunks are sorted, must not
-overlap, and `Del` must match the on-chain bytes (a stale patch fails
-whole). A small source change therefore costs a patch proportional to
-the change, not to the contract size.
+An `EditTx` carries an encoded `EditExtra` patch: each hunk replaces
+bytes at an offset of the ORIGINAL text; hunks are sorted, must not
+overlap, and a stale patch fails whole. A small source change therefore
+costs a patch proportional to the change, not to the contract size.
+
+The wire encoding minimizes the tx further:
+
+- **shape** — when the removed content outweighs one hash, the patch
+  pins the original text with its sha3-256 (32 bytes flat) and drops
+  the `Del` bytes entirely (hunks carry just `DelLen`); tiny patches
+  keep the cheaper content shape. `NewEditExtra` picks automatically.
+- **compression** — `Encode` deflates the payload when that shrinks it
+  (large deploys of repetitive wat text compress well; tiny patches
+  stay raw). `DecodeEditExtra` caps the decompressed size at
+  `TxMaxExtraSize` against zip bombs.
 
 Tooling: the `genContractUpdate` RPC (and the
 `ngcore cli contract-update --num N --file new.wat` subcommand) diffs

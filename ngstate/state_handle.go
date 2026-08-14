@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/c0mm4nd/rlp"
 	"go.etcd.io/bbolt"
 	"github.com/pkg/errors"
 
@@ -233,13 +232,12 @@ func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
-	var editExtra ngtypes.EditExtra
-	err = rlp.DecodeBytes(tx.Extra, &editExtra)
+	editExtra, err := ngtypes.DecodeEditExtra(tx.Extra)
 	if err != nil {
 		return err
 	}
 
-	convener.Contract, err = ngtypes.ApplyEdits(convener.Contract, editExtra.Hunks)
+	convener.Contract, err = editExtra.Apply(convener.Contract)
 	if err != nil {
 		return err
 	}

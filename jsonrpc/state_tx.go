@@ -309,12 +309,18 @@ func (s *Server) genEditFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
+	account, err := s.pow.State.GetAccountByNum(params.Convener)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
 	hunks := make([]ngtypes.Hunk, len(params.Hunks))
 	for i, h := range params.Hunks {
 		hunks[i] = ngtypes.Hunk{Pos: h.Pos, Del: []byte(h.Del), Ins: []byte(h.Ins)}
 	}
 
-	return s.buildEditTx(msg, params.Convener, params.Fee, hunks)
+	return s.buildEditTx(msg, params.Convener, params.Fee, account.Contract, hunks)
 }
 
 type genContractUpdateParams struct {
@@ -345,13 +351,13 @@ func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.J
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildEditTx(msg, params.Convener, params.Fee, hunks)
+	return s.buildEditTx(msg, params.Convener, params.Fee, account.Contract, hunks)
 }
 
-func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, convener uint64, feeNG float64, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
+func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, convener uint64, feeNG float64, baseText []byte, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
 	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
 
-	rawExtra, err := rlp.EncodeToBytes(&ngtypes.EditExtra{Hunks: hunks})
+	rawExtra, err := ngtypes.NewEditExtra(baseText, hunks).Encode()
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
