@@ -68,7 +68,7 @@ func (ht *HeaderTrie) TrieRoot() []byte {
 		mtc[i] = (*ht)[i]
 	}
 
-	trie, err := merkletree.NewTreeWithHashStrategy(mtc, sha3.New256)
+	trie, err := merkletree.NewTreeWithHashStrategy(mtc, sha3.NewLegacyKeccak256)
 	if err != nil {
 		log.Error(err)
 	}

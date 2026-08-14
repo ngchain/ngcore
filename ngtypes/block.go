@@ -12,7 +12,6 @@ import (
 	"github.com/ngchain/ngcore/utils"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
 )
 
 var log = logging.Logger("types")
@@ -302,9 +301,7 @@ func (x *FullBlock) GetHash() []byte {
 		panic(err)
 	}
 
-	hash := sha3.Sum256(raw)
-
-	return hash[:]
+	return utils.KeccakSum256(raw)
 }
 
 func (x *FullBlock) Equals(other *FullBlock) (bool, error) {

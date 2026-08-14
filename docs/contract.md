@@ -29,7 +29,7 @@ costs a patch proportional to the change, not to the contract size.
 The wire encoding minimizes the tx further:
 
 - **shape** — when the removed content outweighs one hash, the patch
-  pins the original text with its sha3-256 (32 bytes flat) and drops
+  pins the original text with its keccak-256 (32 bytes flat) and drops
   the `Del` bytes entirely (hunks carry just `DelLen`); tiny patches
   keep the cheaper content shape. `NewEditExtra` picks automatically.
 - **compression** — `Encode` deflates the payload when that shrinks it

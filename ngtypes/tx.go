@@ -9,7 +9,8 @@ import (
 	"github.com/cbergoon/merkletree"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 type TxType uint8
@@ -198,9 +199,7 @@ func (x *FullTx) GetUnsignedHash() []byte {
 	}
 
 	x.Sign = sign
-	hash := sha3.Sum256(raw)
-
-	return hash[:]
+	return utils.KeccakSum256(raw)
 }
 
 // CalculateHash mainly for calculating the tire root of txs and sign tx.
@@ -210,9 +209,7 @@ func (x *FullTx) CalculateHash() ([]byte, error) {
 		return nil, err
 	}
 
-	hash := sha3.Sum256(raw)
-
-	return hash[:], nil
+	return utils.KeccakSum256(raw), nil
 }
 
 // Equals mainly for calculating the tire root of txs.

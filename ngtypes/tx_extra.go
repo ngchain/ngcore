@@ -9,7 +9,8 @@ import (
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 // Hunk is one replacement in the contract text at Pos (a byte offset in
@@ -62,9 +63,7 @@ func NewEditExtra(baseText []byte, hunks []Hunk) *EditExtra {
 	for i, h := range hunks {
 		hashed[i] = Hunk{Pos: h.Pos, DelLen: uint64(len(h.Del)), Ins: h.Ins}
 	}
-	baseHash := sha3.Sum256(baseText)
-
-	return &EditExtra{BaseHash: baseHash[:], Hunks: hashed}
+	return &EditExtra{BaseHash: utils.KeccakSum256(baseText), Hunks: hashed}
 }
 
 // Apply applies the patch onto text, returning the new text.
@@ -79,8 +78,7 @@ func (x *EditExtra) Apply(text []byte) ([]byte, error) {
 		if len(x.BaseHash) != HashSize {
 			return nil, ErrEditExtraInvalid
 		}
-		baseHash := sha3.Sum256(text)
-		if !bytes.Equal(baseHash[:], x.BaseHash) {
+		if !bytes.Equal(utils.KeccakSum256(text), x.BaseHash) {
 			return nil, ErrBaseMismatch
 		}
 	}

@@ -6,7 +6,8 @@ import (
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/cbergoon/merkletree"
-	"golang.org/x/crypto/sha3"
+
+	"github.com/ngchain/ngcore/utils"
 )
 
 // BlockHeader is the fix-sized header of the block, which is able to
@@ -48,9 +49,7 @@ func (x *BlockHeader) CalculateHash() ([]byte, error) {
 		return nil, err
 	}
 
-	hash := sha3.Sum256(raw)
-
-	return hash[:], nil
+	return utils.KeccakSum256(raw), nil
 }
 
 func (x *BlockHeader) GetHash() []byte {
