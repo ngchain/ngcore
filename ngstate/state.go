@@ -6,6 +6,7 @@ import (
 	"github.com/c0mm4nd/rlp"
 	"go.etcd.io/bbolt"
 	logging "github.com/ngchain/zap-log"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
@@ -165,6 +166,15 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 		b, err := ngblocks.GetBlockByHeight(blockBucket, h)
 		if err != nil {
 			return err
+		}
+
+		// the replayed chain may contain blocks which never passed the
+		// canonical import path (a reorged-in side branch), so the full
+		// tx-level checks (incl. the generate reward amount) run here
+		if !b.IsGenesis() {
+			if err := CheckBlockTxs(txn, b); err != nil {
+				return errors.Wrapf(err, "invalid txs in replayed block@%d", h)
+			}
 		}
 
 		if err := state.Upgrade(txn, b); err != nil {

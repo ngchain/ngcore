@@ -2,6 +2,7 @@ package blockchain_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -39,6 +40,14 @@ func newTestChain(t *testing.T) *blockchain.Chain {
 func mineBlock(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.PrivateKey) *ngtypes.FullBlock {
 	t.Helper()
 
+	return mineBlockReward(t, parent, miner, ngtypes.GetBlockReward(parent.GetHeight()+1))
+}
+
+// mineBlockReward is mineBlock with a custom generate reward, so tests
+// can craft header-valid blocks carrying invalid txs
+func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.PrivateKey, reward *big.Int) *ngtypes.FullBlock {
+	t.Helper()
+
 	height := parent.GetHeight() + 1
 	blockTime := ngtypes.GetGenesisTimestamp(ngtypes.ZERONET) + height*16
 
@@ -47,7 +56,7 @@ func mineBlock(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.Private
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height, 0,
 		[]ngtypes.Address{ngtypes.NewAddress(miner)},
-		[]*big.Int{ngtypes.GetBlockReward(height)},
+		[]*big.Int{reward},
 		big.NewInt(0), nil, nil)
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
@@ -193,6 +202,138 @@ func TestReorgToHeavierBranch(t *testing.T) {
 	wantB := new(big.Int).Add(ngtypes.GetBlockReward(2), ngtypes.GetBlockReward(3))
 	if got := balanceOf(t, chain, minerB); got.Cmp(wantB) != 0 {
 		t.Fatalf("minerB balance = %s, want %s", got, wantB)
+	}
+}
+
+// TestReorgRejectsInvalidBranchTxs proves the reorg is atomic AND that
+// the state replay re-validates branch txs: a heavier branch carrying an
+// over-reward generate tx must be rejected wholesale
+func TestReorgRejectsInvalidBranchTxs(t *testing.T) {
+	chain := newTestChain(t)
+	minerA, _ := secp256k1.GeneratePrivateKey()
+	minerB, _ := secp256k1.GeneratePrivateKey()
+
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	b1 := mineBlock(t, genesis, minerA)
+	a2 := mineBlock(t, b1, minerA)
+	if err := chain.ApplyBlock(b1); err != nil {
+		t.Fatal(err)
+	}
+	if err := chain.ApplyBlock(a2); err != nil {
+		t.Fatal(err)
+	}
+
+	// competing branch: b2' pays itself DOUBLE the legal reward
+	doubled := new(big.Int).Mul(ngtypes.GetBlockReward(2), big.NewInt(2))
+	b2 := mineBlockReward(t, b1, minerB, doubled)
+	b3 := mineBlock(t, b2, minerB)
+
+	if err := chain.ApplyBlock(b2); err != nil {
+		t.Fatalf("header-valid side block should be stored: %v", err)
+	}
+
+	// the heavier branch triggers the reorg, which must fail on replay
+	if err := chain.ApplyBlock(b3); err == nil {
+		t.Fatal("reorg onto a branch with an over-reward tx must fail")
+	}
+
+	// everything rolled back
+	if !bytes.Equal(chain.GetLatestBlockHash(), a2.GetHash()) {
+		t.Fatal("tip must stay a2 after the failed reorg")
+	}
+	if got := balanceOf(t, chain, minerB); got.Sign() != 0 {
+		t.Fatalf("minerB balance = %s, want 0 after rollback", got)
+	}
+	wantA := new(big.Int).Add(ngtypes.GetBlockReward(1), ngtypes.GetBlockReward(2))
+	if got := balanceOf(t, chain, minerA); got.Cmp(wantA) != 0 {
+		t.Fatalf("minerA balance = %s, want %s after rollback", got, wantA)
+	}
+}
+
+// TestReorgRespectsFinality: a gossip-driven reorg must not cross the
+// last built-upon checkpoint, however heavy the branch is
+func TestReorgRespectsFinality(t *testing.T) {
+	chain := newTestChain(t)
+	minerA, _ := secp256k1.GeneratePrivateKey()
+	minerB, _ := secp256k1.GeneratePrivateKey()
+
+	// canonical chain to height BlockCheckRound+1: finality line sits at
+	// the checkpoint (height 10)
+	blocks := []*ngtypes.FullBlock{ngtypes.GetGenesisBlock(ngtypes.ZERONET)}
+	for h := 0; h < int(ngtypes.BlockCheckRound)+1; h++ {
+		b := mineBlock(t, blocks[len(blocks)-1], minerA)
+		if err := chain.ApplyBlock(b); err != nil {
+			t.Fatalf("apply block@%d: %v", b.GetHeight(), err)
+		}
+		blocks = append(blocks, b)
+	}
+	tip := blocks[len(blocks)-1]
+
+	// a heavier branch forking BELOW the finality line (fork point 9)
+	side := blocks[9] // height 9
+	c10 := mineBlock(t, side, minerB)
+	c11 := mineBlock(t, c10, minerB)
+	c12 := mineBlock(t, c11, minerB)
+
+	if err := chain.ApplyBlock(c10); err != nil {
+		t.Fatal(err)
+	}
+	if err := chain.ApplyBlock(c11); err != nil {
+		t.Fatal(err)
+	}
+
+	err := chain.ApplyBlock(c12)
+	if err == nil {
+		t.Fatal("reorg below the finality line must be rejected")
+	}
+	if !errors.Is(err, blockchain.ErrReorgBeyondFinality) {
+		t.Fatalf("got %v, want ErrReorgBeyondFinality", err)
+	}
+
+	if !bytes.Equal(chain.GetLatestBlockHash(), tip.GetHash()) {
+		t.Fatal("tip must stay unchanged")
+	}
+}
+
+// TestTipChangedHook: the hook fires on every tip movement (extend and
+// reorg) but not on stored-only side blocks
+func TestTipChangedHook(t *testing.T) {
+	chain := newTestChain(t)
+	minerA, _ := secp256k1.GeneratePrivateKey()
+	minerB, _ := secp256k1.GeneratePrivateKey()
+
+	fired := 0
+	chain.OnTipChanged = func() { fired++ }
+
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	b1 := mineBlock(t, genesis, minerA)
+	a2 := mineBlock(t, b1, minerA)
+	if err := chain.ApplyBlock(b1); err != nil {
+		t.Fatal(err)
+	}
+	if err := chain.ApplyBlock(a2); err != nil {
+		t.Fatal(err)
+	}
+	if fired != 2 {
+		t.Fatalf("hook fired %d times after 2 extends, want 2", fired)
+	}
+
+	// equal-work side block: no tip movement, no hook
+	b2 := mineBlock(t, b1, minerB)
+	if err := chain.ApplyBlock(b2); err != nil {
+		t.Fatal(err)
+	}
+	if fired != 2 {
+		t.Fatalf("hook fired on a side block: %d", fired)
+	}
+
+	// reorg: one more fire
+	b3 := mineBlock(t, b2, minerB)
+	if err := chain.ApplyBlock(b3); err != nil {
+		t.Fatal(err)
+	}
+	if fired != 3 {
+		t.Fatalf("hook fired %d times after the reorg, want 3", fired)
 	}
 }
 

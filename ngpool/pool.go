@@ -53,5 +53,8 @@ func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Full
 
 // Reset cleans all txs inside the pool.
 func (pool *TxPool) Reset() {
+	pool.Lock()
+	defer pool.Unlock()
+
 	pool.txMap = make(map[uint64]*ngtypes.FullTx)
 }

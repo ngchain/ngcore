@@ -17,7 +17,23 @@ var (
 	// ErrReorgBelowOrigin occurs when a fork does not attach to any block
 	// this node stores (competing chain diverges below the origin block)
 	ErrReorgBelowOrigin = errors.New("fork point is below the origin block")
+
+	// ErrReorgBeyondFinality occurs when a gossip-driven reorg tries to
+	// rewrite blocks below the rolling finality line. Deep switches must
+	// go through the converging path, which ranks remote checkpoints
+	ErrReorgBeyondFinality = errors.New("fork point is below the finality line")
 )
+
+// finalityHeight returns the height below which the canonical chain is
+// FINAL for gossip-driven reorgs: the last checkpoint strictly below the
+// tip. A checkpoint becomes immutable once a block is built on its round
+func finalityHeight(tipHeight uint64) uint64 {
+	if tipHeight == 0 {
+		return 0
+	}
+
+	return (tipHeight - 1) / ngtypes.BlockCheckRound * ngtypes.BlockCheckRound
+}
 
 // workOf returns the pow work one block contributes to its chain:
 // its declared (and checked) difficulty
@@ -149,7 +165,7 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 		return ngblocks.ErrBranchEmpty
 	}
 
-	return chain.Update(func(txn *bbolt.Tx) error {
+	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
 		prev, err := ngblocks.GetBlockByHash(blockBucket, branch[0].GetPrevHash())
@@ -166,4 +182,11 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 
 		return chain.switchToBranchTxn(txn, branch)
 	})
+	if err != nil {
+		return err
+	}
+
+	chain.notifyTipChanged()
+
+	return nil
 }

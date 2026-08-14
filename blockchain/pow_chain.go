@@ -18,7 +18,8 @@ import (
 //     node reorgs onto it atomically (chain index + full state replay
 //     in one db txn — a failure rolls everything back)
 func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
-	return chain.Update(func(txn *bbolt.Tx) error {
+	tipMoved := false
+	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.TxBucketName)
 
@@ -41,6 +42,7 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 				return err
 			}
 
+			tipMoved = true
 			return chain.State.Upgrade(txn, block)
 		}
 
@@ -84,11 +86,28 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 			return err
 		}
 
-		log.Warnf("reorg: switching to the heavier branch of %d block(s), fork point@%d, new tip@%d %x",
-			len(branch), branch[0].GetHeight()-1, block.GetHeight(), block.GetHash())
+		forkPoint := branch[0].GetHeight() - 1
+		if forkPoint < finalityHeight(tip.GetHeight()) {
+			return errors.Wrapf(ErrReorgBeyondFinality,
+				"fork point@%d is below the finality line@%d",
+				forkPoint, finalityHeight(tip.GetHeight()))
+		}
 
+		log.Warnf("reorg: switching to the heavier branch of %d block(s), fork point@%d, new tip@%d %x",
+			len(branch), forkPoint, block.GetHeight(), block.GetHash())
+
+		tipMoved = true
 		return chain.switchToBranchTxn(txn, branch)
 	})
+	if err != nil {
+		return err
+	}
+
+	if tipMoved {
+		chain.notifyTipChanged()
+	}
+
+	return nil
 }
 
 // ForceApplyBlocks simply checks the block and then calls chain.ForcePutNewBlock

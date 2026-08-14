@@ -61,6 +61,9 @@ func InitPoWConsensus(db *bbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool
 		cancel: cancel,
 	}
 
+	// any tip movement (import or reorg) deprecates the height-locked txs
+	chain.OnTipChanged = pool.Reset
+
 	// init sync before miner to prevent bootstrap sync from mining job update
 	pow.SyncMod = newSyncModule(pow, localNode)
 	if !pow.DisableConnectingBootstraps {
