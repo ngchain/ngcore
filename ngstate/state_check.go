@@ -211,6 +211,9 @@ func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 	if convener.IsLocked() {
 		return ErrAccountLocked
 	}
+	if refs := getRefCount(convener); refs > 0 {
+		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
+	}
 
 	return nil
 }
@@ -291,10 +294,24 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 		return ErrAccountLocked
 	}
 
-	// locking activates the vm, so the contract text must compile
+	// locking activates the vm, so the contract text must compile, and
+	// every declared module dependency must be an active contract
 	if len(convener.Contract) != 0 {
-		if _, err := CompileContract(convener.Contract); err != nil {
+		deps, err := extractContractDeps(convener.Contract)
+		if err != nil {
 			return err
+		}
+		for _, num := range deps {
+			if num == uint64(lockTx.Convener) {
+				return ErrDepSelf
+			}
+			depAcc, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+			if err != nil {
+				return errors.Wrapf(err, "unknown dependency contract %d", num)
+			}
+			if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
+				return errors.Wrapf(ErrDepNotActive, "contract %d", num)
+			}
 		}
 	}
 
@@ -323,6 +340,11 @@ func checkUnlock(txn *bbolt.Tx, unlockTx *ngtypes.FullTx) error {
 
 	if !convener.IsLocked() {
 		return ErrAccountNotLocked
+	}
+
+	// a depended-on module cannot deactivate
+	if refs := getRefCount(convener); refs > 0 {
+		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
 	}
 
 	// check balance

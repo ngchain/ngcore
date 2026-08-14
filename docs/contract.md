@@ -99,6 +99,29 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_extra_size() -> i32     get_extra(ptr) -> i32
 ```
 
+## Module dependencies
+
+Contracts compose like code modules: a contract imports another LOCKED
+contract's exports through the `contract/<num>` namespace —
+
+```wat
+(import "contract/500" "double" (func $double (param i64) (result i64)))
+```
+
+- dependencies are declared STATICALLY by the wat import section, so
+  the chain extracts them at lock time — no runtime analysis needed
+- a dependency must be locked (active) before its dependents can lock;
+  this ordering makes the dependency graph a DAG by construction
+- every dependee carries a reference count: while referenced it can be
+  neither unlocked nor destroyed, so linked code never changes under a
+  dependent. Unlocking the dependent releases its references
+- execution uses delegate semantics: dependency code runs with the
+  CALLER's host modules, so its kv/coin effects act on the calling
+  account's state and burn the caller's gas — a dependency contributes
+  code, not its own state
+- the ledger lives in the reserved context keys `_deps` (dependent's
+  list) and `_refs` (dependee's counter), invisible to contracts
+
 Exports a contract may provide:
 
 - `main` — required to react to incoming transact txs

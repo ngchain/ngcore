@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"errors"
 	"math/big"
 	"path/filepath"
 	"strings"
@@ -378,6 +379,124 @@ func TestEditFlow(t *testing.T) {
 		if err := checkEdit(txn, staleTx); err != ErrAccountLocked {
 			// locked now; unlock first to test the mismatch path
 			t.Fatalf("stale edit on locked account: got %v", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// dexWat is a pure code library: it exports an algorithm and touches no
+// state of its own
+const dexWat = `
+(module
+  (func (export "double") (param i64) (result i64)
+    (i64.mul (local.get 0) (i64.const 2))))
+`
+
+// leverageWat composes the dex module: it imports dex's algorithm and
+// stores the computed result into its OWN kv state (delegate semantics)
+const leverageWat = `
+(module
+  (import "contract/500" "double" (func $double (param i64) (result i64)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "num")
+  (func (export "main")
+    (i64.store8 (i32.const 8) (call $double (i64.const 21)))
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 8) (i32.const 1)))))
+`
+
+// TestContractModuleDeps covers the code-module dependency system:
+// leverage(600) imports dex(500), the reference pins dex until leverage
+// releases it, and the linked execution runs dex's code on leverage's
+// state
+func TestContractModuleDeps(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	privDex, _ := secp256k1.GeneratePrivateKey()
+	privLev, _ := secp256k1.GeneratePrivateKey()
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		dex := ngtypes.NewAccount(500, ngtypes.NewAddress(privDex), []byte(dexWat), nil)
+		putAccount(t, txn, dex, 100)
+		lev := ngtypes.NewAccount(600, ngtypes.NewAddress(privLev), []byte(leverageWat), nil)
+		putAccount(t, txn, lev, 100)
+
+		lockTx := func(convener uint64, priv *secp256k1.PrivateKey) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
+				nil, nil, big.NewInt(1), nil, nil)
+			if err := tx.Signature(priv); err != nil {
+				t.Fatal(err)
+			}
+			return tx
+		}
+		unlockTx := func(convener uint64, priv *secp256k1.PrivateKey) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1, ngtypes.AccountNum(convener),
+				nil, nil, big.NewInt(1), nil, nil)
+			if err := tx.Signature(priv); err != nil {
+				t.Fatal(err)
+			}
+			return tx
+		}
+
+		// locking leverage before its dependency is active must fail
+		if err := state.handleLock(txn, lockTx(600, privLev)); err == nil {
+			t.Fatal("locking with an inactive dependency must fail")
+		}
+
+		// dex first, then leverage: the reference gets pinned
+		if err := state.handleLock(txn, lockTx(500, privDex)); err != nil {
+			t.Fatalf("lock dex: %v", err)
+		}
+		if err := state.handleLock(txn, lockTx(600, privLev)); err != nil {
+			t.Fatalf("lock leverage: %v", err)
+		}
+
+		dexAcc, _ := getAccountByNum(txn, 500)
+		if getRefCount(dexAcc) != 1 {
+			t.Fatalf("dex refcount = %d, want 1", getRefCount(dexAcc))
+		}
+
+		// the depended-on module can neither unlock nor be destroyed
+		if err := state.handleUnlock(txn, unlockTx(500, privDex)); !errors.Is(err, ErrAccountRefdBy) {
+			t.Fatalf("unlock dex while referenced: got %v, want ErrAccountRefdBy", err)
+		}
+
+		// linked execution: leverage's main calls dex's double and
+		// writes 42 into leverage's own kv
+		levAcc, _ := getAccountByNum(txn, 600)
+		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil))
+		if err != nil {
+			t.Fatalf("NewVM with deps: %v", err)
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			t.Fatalf("linked run: %v", err)
+		}
+
+		levAcc, _ = getAccountByNum(txn, 600)
+		if got := levAcc.Context.Get("num"); len(got) != 1 || got[0] != 42 {
+			t.Fatalf("leverage kv num = %v, want [42]", got)
+		}
+		// delegate semantics: dex's own state stays untouched
+		dexAcc, _ = getAccountByNum(txn, 500)
+		if got := dexAcc.Context.Get("num"); len(got) != 0 {
+			t.Fatal("dex state must stay untouched")
+		}
+
+		// release: unlock leverage, then dex frees up
+		if err := state.handleUnlock(txn, unlockTx(600, privLev)); err != nil {
+			t.Fatalf("unlock leverage: %v", err)
+		}
+		dexAcc, _ = getAccountByNum(txn, 500)
+		if getRefCount(dexAcc) != 0 {
+			t.Fatalf("dex refcount = %d after release, want 0", getRefCount(dexAcc))
+		}
+		if err := state.handleUnlock(txn, unlockTx(500, privDex)); err != nil {
+			t.Fatalf("unlock dex after release: %v", err)
 		}
 
 		return nil

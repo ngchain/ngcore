@@ -42,6 +42,7 @@ type VM struct {
 
 	journal *vmJournal
 
+	cfg    config.ModuleConfig
 	linker *wasman.Linker
 	module *wasman.Module
 
@@ -60,8 +61,10 @@ func CompileContract(contract []byte) ([]byte, error) {
 	return bin, nil
 }
 
-// NewVM compiles the account's contract text and binds the built-in host
-// modules. The tx is the calling tx which triggers this execution
+// NewVM compiles the account's contract text, binds the built-in host
+// modules and links the declared contract dependencies (DAG order, one
+// shared gas budget). The tx is the calling tx which triggers this
+// execution
 func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, error) {
 	bin, err := CompileContract(account.Contract)
 	if err != nil {
@@ -69,12 +72,16 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, er
 	}
 
 	callDepth := vmCallDepth
-	module, err := wasman.NewModule(config.ModuleConfig{
+	cfg := config.ModuleConfig{
 		DisableFloatPoint: true, // floats are not deterministic across platforms
 		Recover:           true, // a contract panic must never kill the node
 		CallDepthLimit:    &callDepth,
-		TollStation:       tollstation.NewSimpleTollStation(vmMaxToll),
-	}, bytes.NewReader(bin))
+		// ONE toll station across the whole link set: dependency code
+		// burns the caller's gas
+		TollStation: tollstation.NewSimpleTollStation(vmMaxToll),
+	}
+
+	module, err := wasman.NewModule(cfg, bytes.NewReader(bin))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load the compiled contract")
 	}
@@ -84,6 +91,7 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, er
 		self:    account,
 		txn:     txn,
 		journal: newVMJournal(account),
+		cfg:     cfg,
 		linker:  wasman.NewLinker(config.LinkerConfig{}),
 		module:  module,
 		logger:  logging.Logger("vm" + strconv.FormatUint(account.Num, 10)),
@@ -94,7 +102,70 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Account, tx *ngtypes.FullTx) (*VM, er
 		return nil, err
 	}
 
+	// the host modules are in place: link the contract dependencies
+	if err := vm.loadContractDeps(module, 0); err != nil {
+		return nil, err
+	}
+
 	return vm, nil
+}
+
+// loadContractDeps recursively links the contract modules imported
+// through the contract/<num> namespace. Dependencies instantiate before
+// their dependents (wasman links against instantiated modules only), so
+// the whole set loads in dependency order.
+//
+// NOTE the delegate semantics: dependency code runs with THIS vm's host
+// modules, so its kv/coin effects act on the CALLING account's state —
+// a dependency contributes code, not its own state
+func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
+	deps, err := parseContractDeps(module)
+	if err != nil {
+		return err
+	}
+	if len(deps) > 0 && depth >= maxDepChainDepth {
+		return errors.Wrapf(ErrDepLimit, "dependency chain deeper than %d", maxDepChainDepth)
+	}
+
+	for _, num := range deps {
+		name := ContractDepPrefix + strconv.FormatUint(num, 10)
+		if _, linked := vm.linker.Modules[name]; linked {
+			continue
+		}
+		if num == vm.self.Num {
+			return ErrDepSelf
+		}
+
+		depAcc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(num))
+		if err != nil {
+			return errors.Wrapf(err, "unknown dependency contract %d", num)
+		}
+		if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
+			return errors.Wrapf(ErrDepNotActive, "contract %d", num)
+		}
+
+		depBin, err := CompileContract(depAcc.Contract)
+		if err != nil {
+			return errors.Wrapf(err, "dependency contract %d does not compile", num)
+		}
+		depModule, err := wasman.NewModule(vm.cfg, bytes.NewReader(depBin))
+		if err != nil {
+			return errors.Wrapf(err, "failed to load dependency contract %d", num)
+		}
+
+		// resolve the dependency's own imports first (DAG order)
+		if err := vm.loadContractDeps(depModule, depth+1); err != nil {
+			return err
+		}
+
+		if _, err := vm.linker.Instantiate(depModule); err != nil {
+			return errors.Wrapf(err, "failed to instantiate dependency contract %d", num)
+		}
+
+		vm.linker.Define(name, depModule)
+	}
+
+	return nil
 }
 
 // Run instantiates the module and calls the entry export.

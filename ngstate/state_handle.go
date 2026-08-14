@@ -125,6 +125,9 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 	if convener.IsLocked() {
 		return ErrAccountLocked
 	}
+	if refs := getRefCount(convener); refs > 0 {
+		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
+	}
 
 	totalExpense := new(big.Int).Set(tx.Fee)
 
@@ -293,7 +296,35 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
+	// module dependencies: every imported contract must be active, and
+	// each dependee gets a reference pinned until this contract unlocks
+	deps, err := extractContractDeps(convener.Contract)
+	if err != nil {
+		return err
+	}
+	for _, num := range deps {
+		if num == uint64(tx.Convener) {
+			return ErrDepSelf
+		}
+
+		depAcc, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+		if err != nil {
+			return errors.Wrapf(err, "unknown dependency contract %d", num)
+		}
+		if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
+			return errors.Wrapf(ErrDepNotActive, "contract %d", num)
+		}
+
+		setRefCount(depAcc, getRefCount(depAcc)+1)
+		if err := setAccount(txn, ngtypes.AccountNum(num), depAcc); err != nil {
+			return err
+		}
+	}
+
 	convener.SetLock(true)
+	if err := setContractDeps(convener, deps); err != nil {
+		return err
+	}
 
 	err = setAccount(txn, tx.Convener, convener)
 	if err != nil {
@@ -322,6 +353,12 @@ func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return ErrAccountNotLocked
 	}
 
+	// a depended-on module cannot deactivate: its dependents would lose
+	// the code they link against
+	if refs := getRefCount(convener); refs > 0 {
+		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
+	}
+
 	convenerBalance := getBalance(txn, convener.Owner)
 	if convenerBalance.Cmp(tx.Fee) < 0 {
 		return ErrTxrBalanceInsufficient
@@ -332,7 +369,28 @@ func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
+	// release the references this contract held on its dependencies
+	deps, err := getContractDeps(convener)
+	if err != nil {
+		return err
+	}
+	for _, num := range deps {
+		depAcc, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+		if err != nil {
+			return err
+		}
+		if refs := getRefCount(depAcc); refs > 0 {
+			setRefCount(depAcc, refs-1)
+			if err := setAccount(txn, ngtypes.AccountNum(num), depAcc); err != nil {
+				return err
+			}
+		}
+	}
+
 	convener.SetLock(false)
+	if err := setContractDeps(convener, nil); err != nil {
+		return err
+	}
 
 	return setAccount(txn, tx.Convener, convener)
 }
