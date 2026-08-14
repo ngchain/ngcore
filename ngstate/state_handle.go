@@ -33,12 +33,12 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 			if err := state.handleCommit(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.LockTx:
-			if err := state.handleLock(txn, tx, blockTime); err != nil {
+		case ngtypes.ActivateTx:
+			if err := state.handleActivate(txn, tx, blockTime); err != nil {
 				return err
 			}
-		case ngtypes.UnlockTx:
-			if err := state.handleUnlock(txn, tx); err != nil {
+		case ngtypes.DeactivateTx:
+			if err := state.handleDeactivate(txn, tx); err != nil {
 				return err
 			}
 		default:
@@ -101,8 +101,8 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 		return err
 	}
 
-	if slot.IsLocked() {
-		return ErrAccountLocked
+	if slot.IsActive() {
+		return ErrAccountActive
 	}
 	if refs := getRefCount(slot); refs > 0 {
 		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
@@ -156,8 +156,8 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		slot = ngtypes.NewAccount(sender, nil, nil)
 	}
 
-	if slot.IsLocked() {
-		return ErrAccountLocked
+	if slot.IsActive() {
+		return ErrAccountActive
 	}
 
 	expense := new(big.Int).Set(tx.Fee)
@@ -182,10 +182,10 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 	return setAccount(txn, slot)
 }
 
-// handleLock freezes the sender's contract: the body becomes immutable
+// handleActivate freezes the sender's contract: the body becomes immutable
 // and the vm gets active. The optional `init` export runs once here
-func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
-	if err := tx.CheckLock(); err != nil {
+func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
+	if err := tx.CheckActivate(); err != nil {
 		return err
 	}
 
@@ -199,8 +199,8 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint
 		return err
 	}
 
-	if slot.IsLocked() {
-		return ErrAccountLocked
+	if slot.IsActive() {
+		return ErrAccountActive
 	}
 
 	// locking activates the vm, so the contract text must compile
@@ -211,7 +211,7 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint
 	}
 
 	// module dependencies: every imported contract must be active, and
-	// each dependee gets a reference pinned until this contract unlocks
+	// each dependee gets a reference pinned until this contract deactivates
 	deps, err := extractContractDeps(slot.Contract)
 	if err != nil {
 		return err
@@ -225,7 +225,7 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint
 		if err != nil {
 			return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
 		}
-		if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
+		if !depAcc.IsActive() || len(depAcc.Contract) == 0 {
 			return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
 		}
 
@@ -235,7 +235,7 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint
 		}
 	}
 
-	slot.SetLock(true)
+	slot.SetActive(true)
 	if err := setContractDeps(slot, deps); err != nil {
 		return err
 	}
@@ -245,15 +245,15 @@ func (state *State) handleLock(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint
 		return err
 	}
 
-	state.runContract(txn, sender, tx, VMEntryOnLock, blockTime)
+	state.runContract(txn, sender, tx, VMEntryOnActivate, blockTime)
 
 	return nil
 }
 
-// handleUnlock disables the vm of the sender's contract and makes the
+// handleDeactivate disables the vm of the sender's contract and makes the
 // body editable again
-func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.CheckUnlock(); err != nil {
+func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
+	if err := tx.CheckDeactivate(); err != nil {
 		return err
 	}
 
@@ -267,8 +267,8 @@ func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return err
 	}
 
-	if !slot.IsLocked() {
-		return ErrAccountNotLocked
+	if !slot.IsActive() {
+		return ErrAccountNotActive
 	}
 
 	// a depended-on module cannot deactivate: its dependents would lose
@@ -295,7 +295,7 @@ func (state *State) handleUnlock(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		}
 	}
 
-	slot.SetLock(false)
+	slot.SetActive(false)
 	if err := setContractDeps(slot, nil); err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 		return // no contract slot on this address
 	}
 
-	if !account.IsLocked() || len(account.Contract) == 0 {
+	if !account.IsActive() || len(account.Contract) == 0 {
 		return
 	}
 

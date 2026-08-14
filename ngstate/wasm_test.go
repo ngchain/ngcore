@@ -119,7 +119,7 @@ func TestVMLog(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(logWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
@@ -139,7 +139,7 @@ func TestVMKVSet(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
@@ -160,7 +160,7 @@ func TestVMKVSet(t *testing.T) {
 		if got := string(reloaded.Context.Get("key")); got != "val" {
 			t.Fatalf("kv.set not applied, got %q", got)
 		}
-		if !reloaded.IsLocked() {
+		if !reloaded.IsActive() {
 			t.Fatal("the lock flag got lost by the contract flush")
 		}
 
@@ -176,7 +176,7 @@ func TestVMTransfer(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		contractAcc := ngtypes.NewAccount(testAddr(0xaa), []byte(transferWatTo(testAddr(0xbb))), nil)
-		contractAcc.SetLock(true)
+		contractAcc.SetActive(true)
 		putAccount(t, txn, contractAcc, 100)
 
 		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil), 1)
@@ -207,7 +207,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(burnWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 100)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
@@ -235,7 +235,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 	}
 }
 
-func TestLockUnlockFlow(t *testing.T) {
+func TestActivateDeactivateFlow(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -250,19 +250,19 @@ func TestLockUnlockFlow(t *testing.T) {
 		putAccount(t, txn, acc, 100)
 
 		// lock the account: the vm becomes active, editing gets frozen
-		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, nil, nil, big.NewInt(1), nil, nil)
-		if err := lockTx.Signature(priv); err != nil {
+		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleLock(txn, lockTx, 1); err != nil {
-			t.Fatalf("handleLock: %v", err)
+		if err := state.handleActivate(txn, activateTx, 1); err != nil {
+			t.Fatalf("handleActivate: %v", err)
 		}
 
 		locked, err := getAccount(txn, addr)
 		if err != nil {
 			return err
 		}
-		if !locked.IsLocked() {
+		if !locked.IsActive() {
 			t.Fatal("account should be locked")
 		}
 		if got := getBalance(txn, addr); got.Int64() != 99 {
@@ -270,7 +270,7 @@ func TestLockUnlockFlow(t *testing.T) {
 		}
 
 		// double lock must fail
-		if err := state.handleLock(txn, lockTx, 1); err == nil {
+		if err := state.handleActivate(txn, activateTx, 1); err == nil {
 			t.Fatal("locking a locked account should fail")
 		}
 
@@ -279,29 +279,29 @@ func TestLockUnlockFlow(t *testing.T) {
 		if err := commitTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrAccountLocked) {
-			t.Fatalf("edit on locked account: got %v, want ErrAccountLocked", err)
+		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrAccountActive) {
+			t.Fatalf("edit on locked account: got %v, want ErrAccountActive", err)
 		}
 
 		// unlock reverts everything
-		unlockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1, nil, nil, big.NewInt(1), nil, nil)
-		if err := unlockTx.Signature(priv); err != nil {
+		deactivateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		if err := deactivateTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleUnlock(txn, unlockTx); err != nil {
-			t.Fatalf("handleUnlock: %v", err)
+		if err := state.handleDeactivate(txn, deactivateTx); err != nil {
+			t.Fatalf("handleDeactivate: %v", err)
 		}
 
 		unlocked, err := getAccount(txn, addr)
 		if err != nil {
 			return err
 		}
-		if unlocked.IsLocked() {
+		if unlocked.IsActive() {
 			t.Fatal("account should be unlocked")
 		}
 
 		// double unlock must fail
-		if err := state.handleUnlock(txn, unlockTx); err == nil {
+		if err := state.handleDeactivate(txn, deactivateTx); err == nil {
 			t.Fatal("unlocking an unlocked account should fail")
 		}
 
@@ -400,12 +400,12 @@ func TestCommitFlow(t *testing.T) {
 		}
 
 		// the patched text must still compile and lock
-		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, nil, nil, big.NewInt(1), nil, nil)
-		if err := lockTx.Signature(priv); err != nil {
+		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleLock(txn, lockTx, 1); err != nil {
-			t.Fatalf("handleLock after edit: %v", err)
+		if err := state.handleActivate(txn, activateTx, 1); err != nil {
+			t.Fatalf("handleActivate after edit: %v", err)
 		}
 
 		// a mismatching patch on the locked slot is refused as locked
@@ -419,7 +419,7 @@ func TestCommitFlow(t *testing.T) {
 		if err := staleTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := checkCommit(txn, staleTx); !errors.Is(err, ErrAccountLocked) {
+		if err := checkCommit(txn, staleTx); !errors.Is(err, ErrAccountActive) {
 			t.Fatalf("stale edit on locked account: got %v", err)
 		}
 
@@ -473,16 +473,16 @@ func TestContractModuleDeps(t *testing.T) {
 		lev := ngtypes.NewAccount(levAddr, []byte(leverageWatFor(dexAddr)), nil)
 		putAccount(t, txn, lev, 100)
 
-		lockTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1,
+		activateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
 			return tx
 		}
-		unlockTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.UnlockTx, 1,
+		deactivateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, 1,
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
@@ -491,15 +491,15 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 
 		// locking leverage before its dependency is active must fail
-		if err := state.handleLock(txn, lockTx(privLev), 1); err == nil {
+		if err := state.handleActivate(txn, activateTx(privLev), 1); err == nil {
 			t.Fatal("locking with an inactive dependency must fail")
 		}
 
 		// dex first, then leverage: the reference gets pinned
-		if err := state.handleLock(txn, lockTx(privDex), 1); err != nil {
+		if err := state.handleActivate(txn, activateTx(privDex), 1); err != nil {
 			t.Fatalf("lock dex: %v", err)
 		}
-		if err := state.handleLock(txn, lockTx(privLev), 1); err != nil {
+		if err := state.handleActivate(txn, activateTx(privLev), 1); err != nil {
 			t.Fatalf("lock leverage: %v", err)
 		}
 
@@ -509,7 +509,7 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 
 		// the depended-on module can neither unlock nor be destroyed
-		if err := state.handleUnlock(txn, unlockTx(privDex)); !errors.Is(err, ErrAccountRefdBy) {
+		if err := state.handleDeactivate(txn, deactivateTx(privDex)); !errors.Is(err, ErrAccountRefdBy) {
 			t.Fatalf("unlock dex while referenced: got %v, want ErrAccountRefdBy", err)
 		}
 
@@ -535,14 +535,14 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 
 		// release: unlock leverage, then dex frees up
-		if err := state.handleUnlock(txn, unlockTx(privLev)); err != nil {
+		if err := state.handleDeactivate(txn, deactivateTx(privLev)); err != nil {
 			t.Fatalf("unlock leverage: %v", err)
 		}
 		dexAcc, _ = getAccount(txn, dexAddr)
 		if getRefCount(dexAcc) != 0 {
 			t.Fatalf("dex refcount = %d after release, want 0", getRefCount(dexAcc))
 		}
-		if err := state.handleUnlock(txn, unlockTx(privDex)); err != nil {
+		if err := state.handleDeactivate(txn, deactivateTx(privDex)); err != nil {
 			t.Fatalf("unlock dex after release: %v", err)
 		}
 
@@ -626,12 +626,12 @@ func TestServiceToken(t *testing.T) {
 		putAccount(t, txn, user, 100)
 
 		lock := func(priv *ngtypes.PrivateKey) error {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1,
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
-			return state.handleLock(txn, tx, 1)
+			return state.handleActivate(txn, tx, 1)
 		}
 
 		if err := lock(privToken); err != nil {
@@ -712,7 +712,7 @@ func TestVMU256(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(u256Wat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
@@ -779,7 +779,7 @@ func TestVMTxContext(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		owner := testAddr(0xaa)
 		acc := ngtypes.NewAccount(owner, []byte(txCtxWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 0)
 
 		// the tx pays 77 to the contract's address (msg.value) in two legs
@@ -870,7 +870,7 @@ func TestVMKVScan(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvScanWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
@@ -966,11 +966,11 @@ func TestServiceBigValues(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		vault := ngtypes.NewAccount(vaultAddr, []byte(bigVaultWat), nil)
-		vault.SetLock(true)
+		vault.SetActive(true)
 		putAccount(t, txn, vault, 0)
 
 		caller := ngtypes.NewAccount(callerAddr, []byte(bigCallerWatFor(vaultAddr)), nil)
-		caller.SetLock(true)
+		caller.SetActive(true)
 		putAccount(t, txn, caller, 0)
 
 		vm, err := NewVM(txn, caller, fakeTransactTx(nil, nil), 1)
@@ -1027,7 +1027,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(emitAddr, []byte(emitWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 0)
 
 		tx := fakeTransactTx(nil, nil)
@@ -1060,7 +1060,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 
 		// a failing contract records the failure and drops its events
 		bad := ngtypes.NewAccount(badAddr, []byte(burnWat), nil)
-		bad.SetLock(true)
+		bad.SetActive(true)
 		putAccount(t, txn, bad, 0)
 
 		badTx := fakeTransactTx([]ngtypes.Address{badAddr}, []*big.Int{big.NewInt(0)})
@@ -1093,7 +1093,7 @@ func TestGasPricingTiers(t *testing.T) {
 		var gas uint64
 		err := db.Update(func(txn *bbolt.Tx) error {
 			acc := ngtypes.NewAccount(testAddr(0xaa), []byte(wat), nil)
-			acc.SetLock(true)
+			acc.SetActive(true)
 			putAccount(t, txn, acc, 100)
 
 			vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
@@ -1141,7 +1141,7 @@ func TestVMDryRun(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(testAddr(0xaa), []byte(kvWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 0)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
@@ -1188,7 +1188,7 @@ func TestDestroyRules(t *testing.T) {
 
 	err = db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewAccount(addr, []byte(logWat), nil)
-		acc.SetLock(true)
+		acc.SetActive(true)
 		putAccount(t, txn, acc, 100)
 
 		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, nil, nil, big.NewInt(1), nil, nil)
@@ -1202,7 +1202,7 @@ func TestDestroyRules(t *testing.T) {
 		}
 
 		// unlocked: destroy goes through and the slot is gone
-		acc.SetLock(false)
+		acc.SetActive(false)
 		if err := setAccount(txn, acc); err != nil {
 			return err
 		}
@@ -1220,7 +1220,7 @@ func TestDestroyRules(t *testing.T) {
 	}
 }
 
-func TestLockRejectsBrokenContract(t *testing.T) {
+func TestActivateRejectsBrokenContract(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -1235,23 +1235,23 @@ func TestLockRejectsBrokenContract(t *testing.T) {
 		acc := ngtypes.NewAccount(addr, []byte(`(module (func (export "main")`), nil)
 		putAccount(t, txn, acc, 100)
 
-		lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, nil, nil, big.NewInt(1), nil, nil)
-		if err := lockTx.Signature(priv); err != nil {
+		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
 
-		if err := checkLock(txn, lockTx); err == nil {
-			t.Fatal("checkLock should reject a non-compiling contract")
+		if err := checkActivate(txn, activateTx); err == nil {
+			t.Fatal("checkActivate should reject a non-compiling contract")
 		}
-		if err := state.handleLock(txn, lockTx, 1); err == nil {
-			t.Fatal("handleLock should reject a non-compiling contract")
+		if err := state.handleActivate(txn, activateTx, 1); err == nil {
+			t.Fatal("handleActivate should reject a non-compiling contract")
 		}
 
 		reloaded, err := getAccount(txn, addr)
 		if err != nil {
 			return err
 		}
-		if reloaded.IsLocked() {
+		if reloaded.IsActive() {
 			t.Fatal("account must stay unlocked after a failed lock")
 		}
 

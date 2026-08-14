@@ -342,37 +342,37 @@ func (s *Server) buildCommitTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, base
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type genLockParams struct {
+type genActivateParams struct {
 	Fee float64 `json:"fee"`
 }
 
-// genLockFunc composes an unsigned lock tx (the sender locks its own
+// genActivateFunc composes an unsigned activate tx (the sender locks its own
 // contract slot)
-func (s *Server) genLockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genLockParams
+func (s *Server) genActivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genActivateParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildSimpleTx(msg, ngtypes.LockTx, params.Fee, nil)
+	return s.buildSimpleTx(msg, ngtypes.ActivateTx, params.Fee, nil)
 }
 
-type genUnlockParams struct {
+type genDeactivateParams struct {
 	Fee float64 `json:"fee"`
 }
 
-// genUnlockFunc composes an unsigned unlock tx
-func (s *Server) genUnlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genUnlockParams
+// genDeactivateFunc composes an unsigned unactivate tx
+func (s *Server) genDeactivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genDeactivateParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildSimpleTx(msg, ngtypes.UnlockTx, params.Fee, nil)
+	return s.buildSimpleTx(msg, ngtypes.DeactivateTx, params.Fee, nil)
 }
 
 // buildSimpleTx composes an unsigned sender-only tx of the given type

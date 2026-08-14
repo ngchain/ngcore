@@ -5,8 +5,9 @@ import "github.com/pkg/errors"
 var (
 	ErrSnapshotNofFound = errors.New("cannot find the snapshot")
 
-	// ErrAccountLocked occurs when appending/deleting/locking a locked account
-	ErrAccountLocked = errors.New("account is locked")
-	// ErrAccountNotLocked occurs when unlocking an account which is not locked
-	ErrAccountNotLocked = errors.New("account is not locked")
+	// ErrAccountActive occurs when committing to / destroying / activating
+	// an already-active account
+	ErrAccountActive = errors.New("account is active")
+	// ErrAccountNotActive occurs when deactivating an inactive account
+	ErrAccountNotActive = errors.New("account is not active")
 )

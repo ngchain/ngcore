@@ -21,8 +21,8 @@ import (
 // The import section of the wat text declares the dependencies
 // STATICALLY, so the chain extracts them at lock time and maintains a
 // reference count on every dependee: a depended-on contract can be
-// neither unlocked nor destroyed until all dependents released it.
-// Lock ordering (a dependee must be locked before its dependents) makes
+// neither deactivated nor destroyed until all dependents released it.
+// Activation ordering (a dependee activates before its dependents) makes
 // the dependency graph a DAG by construction.
 
 // ContractDepPrefix is the wat import namespace for LIBRARY modules:
@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	ErrDepNotActive     = errors.New("dependency contract is not locked")
+	ErrDepNotActive     = errors.New("dependency contract is not active")
 	ErrDepSelf          = errors.New("contract cannot depend on itself")
 	ErrDepLimit         = errors.New("too many contract dependencies")
 	ErrAccountRefdBy    = errors.New("account is depended on by other contracts")
@@ -192,7 +192,7 @@ func setContractDeps(acc *ngtypes.Account, deps []ngtypes.Address) error {
 	return nil
 }
 
-// getRefCount reads how many locked contracts depend on the account
+// getRefCount reads how many active contracts depend on the account
 func getRefCount(acc *ngtypes.Account) uint64 {
 	raw := acc.Context.Get(contextKeyRefs)
 	if len(raw) != 8 {

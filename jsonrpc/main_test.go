@@ -413,7 +413,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	}
 
 	// activate: the sender locks its own slot
-	signAndSend(genResult("genLock", map[string]any{"fee": 0.05}))
+	signAndSend(genResult("genActivate", map[string]any{"fee": 0.05}))
 	mineViaRPC(t, node, key)
 
 	// dry-run by address: nothing lands on chain, but the simulated

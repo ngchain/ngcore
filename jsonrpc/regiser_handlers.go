@@ -35,8 +35,8 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("genDestroy", s.genDestroyFunc)
 	s.RegisterJsonRpcHandleFunc("genTransaction", s.genTransactionFunc)
 	s.RegisterJsonRpcHandleFunc("genCommit", s.genCommitFunc)
-	s.RegisterJsonRpcHandleFunc("genLock", s.genLockFunc)
-	s.RegisterJsonRpcHandleFunc("genUnlock", s.genUnlockFunc)
+	s.RegisterJsonRpcHandleFunc("genActivate", s.genActivateFunc)
+	s.RegisterJsonRpcHandleFunc("genDeactivate", s.genDeactivateFunc)
 	s.RegisterJsonRpcHandleFunc("callContract", s.callContractFunc)
 	s.RegisterJsonRpcHandleFunc("getReceipt", s.getReceiptFunc)
 	s.RegisterJsonRpcHandleFunc("genContractUpdate", s.genContractUpdateFunc)
@@ -61,7 +61,7 @@ func (s *Server) requireSynced(f func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 	// the sync state must be sampled per request: at registration time it
 	// would freeze whatever the node happened to be doing at startup
 	return func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-		if s.pow.SyncMod.IsLocked() {
+		if s.pow.SyncMod.IsActive() {
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, consensus.ErrChainOnSyncing))
 		}
 

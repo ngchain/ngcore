@@ -27,31 +27,31 @@ func NewAccount(owner Address, contract []byte, context *AccountContext) *Accoun
 	}
 }
 
-// ContextKeyLock is the reserved context key marking the account as locked.
-// Keys with the "_" prefix are reserved for the system and cannot be
-// touched by contracts through the kv host module.
-const ContextKeyLock = "_locked"
+// ContextKeyActive is the reserved context key marking the account as
+// active. Keys with the "_" prefix are reserved for the system and
+// cannot be touched by contracts through the kv host module.
+const ContextKeyActive = "_active"
 
-// IsLocked shows whether the account is locked: its contract is active
-// (runnable by the vm) and its Contract field is immutable
-func (x *Account) IsLocked() bool {
+// IsActive shows whether the contract is active: runnable by the vm,
+// with the Contract field immutable
+func (x *Account) IsActive() bool {
 	if x.Context == nil {
 		return false
 	}
 
-	return len(x.Context.Get(ContextKeyLock)) != 0
+	return len(x.Context.Get(ContextKeyActive)) != 0
 }
 
-// SetLock updates the lock flag of the account
-func (x *Account) SetLock(locked bool) {
+// SetActive updates the active flag of the account
+func (x *Account) SetActive(active bool) {
 	if x.Context == nil {
 		x.Context = NewAccountContext()
 	}
 
-	if locked {
-		x.Context.Set(ContextKeyLock, []byte{1})
+	if active {
+		x.Context.Set(ContextKeyActive, []byte{1})
 	} else {
-		x.Context.Del(ContextKeyLock)
+		x.Context.Del(ContextKeyActive)
 	}
 }
 

@@ -18,7 +18,7 @@ The block has several steps to be mature
 
 	(sheetHash)--> BareBlock --(+txs&mtree)--> Unsealing --(+nonce)--> SealedBlock
 
-The sheetHash is the sheet before applying block txs.
+The sheetHash is the sheet before applying bactivate txs.
 
 ## Tx
 

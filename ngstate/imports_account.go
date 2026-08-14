@@ -112,7 +112,7 @@ func initAccountImports(vm *VM) error {
 		return err
 	}
 
-	err = vm.linker.DefineAdvancedFunc("account", "is_locked", func(ins *wasman.Instance) interface{} {
+	err = vm.linker.DefineAdvancedFunc("account", "is_active", func(ins *wasman.Instance) interface{} {
 		return func(addrPtr uint32) uint32 {
 			addr, err := readAddr(ins, addrPtr)
 			if err != nil {
@@ -125,7 +125,7 @@ func initAccountImports(vm *VM) error {
 				return 0
 			}
 
-			if acc.IsLocked() {
+			if acc.IsActive() {
 				return 1
 			}
 

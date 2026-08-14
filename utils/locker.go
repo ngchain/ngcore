@@ -26,6 +26,6 @@ func (l *Locker) Unlock() {
 	}
 }
 
-func (l *Locker) IsLocked() bool {
+func (l *Locker) IsActive() bool {
 	return l.status.Load()
 }

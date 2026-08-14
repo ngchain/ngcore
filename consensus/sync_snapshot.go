@@ -43,7 +43,7 @@ func (mod *syncModule) fetchRemoteRange(record *RemoteRecord, from, to uint64) (
 // plus multi-txn state rebuild. Blocks after the checkpoint arrive
 // through the normal sync afterwards
 func (mod *syncModule) doSnapshotSync(record *RemoteRecord) error {
-	if mod.Locker.IsLocked() {
+	if mod.Locker.IsActive() {
 		return nil
 	}
 
@@ -82,7 +82,7 @@ func (mod *syncModule) doSnapshotSync(record *RemoteRecord) error {
 // trimmed) to the remote checkpoint, and applied atomically together
 // with the checkpoint's state sheet
 func (mod *syncModule) doSnapshotConverging(record *RemoteRecord) error {
-	if mod.Locker.IsLocked() {
+	if mod.Locker.IsActive() {
 		return nil
 	}
 

@@ -11,7 +11,7 @@ import (
 
 // convert local origin to remote checkpoint.
 func (mod *syncModule) switchToRemoteCheckpoint(record *RemoteRecord) error {
-	if mod.Locker.IsLocked() {
+	if mod.Locker.IsActive() {
 		return nil
 	}
 

@@ -12,7 +12,7 @@ import (
 //	account: get_host() u64
 //	         get_owner_size() u32           get_owner(num u64, ptr) u32
 //	         get_contract_size(num u64) u32 get_contract(num u64, ptr) u32
-//	         is_locked(num u64) u32
+//	         is_active(num u64) u32
 //	coin:    get_balance_size(num u64) u32  get_balance(num u64, ptr) u32
 //	         transfer(to u64, value u64) u32
 //	kv:      get_size(kptr, klen) u32       get(kptr, klen, vptr) u32

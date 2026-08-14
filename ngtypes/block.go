@@ -25,7 +25,7 @@ var (
 	ErrBlockNoHeader          = errors.New("block header is nil")
 	ErrBlockDiffInvalid       = errors.New("invalid block diff")
 	ErrBlockPrevHashInvalid   = errors.New("invalid block prev hash")
-	ErrBlockTxTrieHashInvalid = errors.New("invalid block tx trie hash")
+	ErrBlockTxTrieHashInvalid = errors.New("invalid bactivate tx trie hash")
 	ErrBlockTimestampInvalid  = errors.New("invalid block timestamp")
 
 	ErrBlockNotSealed = errors.New("the block is not sealed")

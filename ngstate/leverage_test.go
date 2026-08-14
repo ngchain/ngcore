@@ -223,12 +223,12 @@ func TestLeverageShowcase(t *testing.T) {
 		putAccount(t, txn, leverage, 100)
 
 		lock := func(priv *ngtypes.PrivateKey, who string) {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1,
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
 				nil, nil, big.NewInt(1), nil, nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
-			if err := state.handleLock(txn, tx, 1); err != nil {
+			if err := state.handleActivate(txn, tx, 1); err != nil {
 				t.Fatalf("lock %s: %v", who, err)
 			}
 		}

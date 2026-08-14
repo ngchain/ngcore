@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	// VMEntryOnTx is the contract export called when a locked contract
+	// VMEntryOnTx is the contract export called when an active contract
 	// account receives a transact tx
 	VMEntryOnTx = "main"
-	// VMEntryOnLock is the optional contract export called once when the
-	// account gets locked (contract deployment finished)
-	VMEntryOnLock = "init"
+	// VMEntryOnActivate is the optional contract export called once when the
+	// account gets activated (contract deployment finished)
+	VMEntryOnActivate = "init"
 
 	// vmMaxToll bounds the wasm instruction count per contract call, so a
 	// malicious contract cannot stall the chain. Every node uses the same
@@ -185,7 +185,7 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		if err != nil {
 			return errors.Wrapf(err, "unknown dependency contract %s", addr)
 		}
-		if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
+		if !depAcc.IsActive() || len(depAcc.Contract) == 0 {
 			return errors.Wrapf(ErrDepNotActive, "contract %s", addr)
 		}
 

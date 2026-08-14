@@ -522,12 +522,12 @@ func TestContractLifecycle(t *testing.T) {
 	submit(commitTx)
 
 	// activate: lock compiles the text and enables the vm
-	lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 4,
+	activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 4,
 		nil, nil, big.NewInt(1), nil, nil)
-	if err := lockTx.Signature(key); err != nil {
+	if err := activateTx.Signature(key); err != nil {
 		t.Fatal(err)
 	}
-	submit(lockTx)
+	submit(activateTx)
 
 	// trigger: a transact tx to the contract account runs `main`
 	transTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 5,
@@ -546,7 +546,7 @@ func TestContractLifecycle(t *testing.T) {
 		if string(acc.Contract) != contractWat {
 			t.Fatalf("node%s: contract text mismatch", name)
 		}
-		if !acc.IsLocked() {
+		if !acc.IsActive() {
 			t.Fatalf("node%s: contract should be locked", name)
 		}
 		if got := string(acc.Context.Get("key")); got != "val" {

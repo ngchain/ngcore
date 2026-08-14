@@ -38,7 +38,7 @@ func (mod *syncModule) MustConverge(slice []*RemoteRecord) []*RemoteRecord {
 // force local chain be same as the remote record
 // converge is a danger operation so all msg are warn level.
 func (mod *syncModule) doConverging(record *RemoteRecord) error {
-	if mod.Locker.IsLocked() {
+	if mod.Locker.IsActive() {
 		return nil
 	}
 

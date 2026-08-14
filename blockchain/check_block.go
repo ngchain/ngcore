@@ -54,7 +54,7 @@ func (chain *Chain) checkBlockTxn(txn *bbolt.Tx, block *ngtypes.FullBlock) error
 	}
 
 	if err := ngstate.CheckBlockTxs(txn, block); err != nil {
-		return errors.Wrap(err, "block txs are invalid")
+		return errors.Wrap(err, "bactivate txs are invalid")
 	}
 
 	return nil

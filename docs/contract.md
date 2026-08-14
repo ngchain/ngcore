@@ -17,9 +17,9 @@ persistent storage is the account's `Context` (an on-chain sorted k-v).
 | step | tx type | effect |
 |---|---|---|
 | deploy / edit | `CommitTx` | apply a patch (hunks) onto the contract text atomically (only while unlocked) |
-| activate | `LockTx` | compile-check + freeze the text, run the optional `init` export once, enable the vm |
-| execute | `TransactTx` | when a locked contract account is a participant, its `main` export runs |
-| upgrade | `UnlockTx` → `CommitTx` → `LockTx` | disable the vm, patch the text, re-activate |
+| activate | `ActivateTx` | compile-check + freeze the text, run the optional `init` export once, enable the vm |
+| execute | `TransactTx` | when an active contract account is a participant, its `main` export runs |
+| upgrade | `DeactivateTx` → `CommitTx` → `ActivateTx` | disable the vm, patch the text, re-activate |
 
 An `CommitTx` carries an encoded `CommitExtra` patch: each hunk replaces
 bytes at an offset of the ORIGINAL text; hunks are sorted, must not
@@ -45,7 +45,7 @@ accepts explicit hunks; `getContract` reads the current text. Sign and
 broadcast with the existing `signTx` / `sendTx` methods.
 
 The lock flag is stored in the account context under the reserved key
-`_locked`. Keys prefixed with `_` are system-reserved and invisible to
+`_active`. Keys prefixed with `_` are system-reserved and invisible to
 contracts through the kv host module.
 
 ## Determinism & safety
@@ -87,7 +87,7 @@ account: get_size() -> i32          ; address length (32)
          get_caller(ptr) -> i32     ; msg.sender address (zero addr at top)
          get_contract_size(addr_ptr) -> i32
          get_contract(addr_ptr, ptr) -> i32
-         is_locked(addr_ptr) -> i32
+         is_active(addr_ptr) -> i32
 coin:    get_balance_size(addr_ptr) -> i32
          get_balance(addr_ptr, ptr) -> i32   ; big-endian bytes
          transfer(to_ptr, value: i64) -> i32
@@ -150,7 +150,7 @@ Shared rules:
   this ordering makes the dependency graph a DAG by construction
 - every dependee carries a reference count: while referenced it can be
   neither unlocked nor destroyed, so linked code never changes under a
-  dependent. Unlocking the dependent releases its references
+  dependent. Deactivating the dependent releases its references
 - the ledger lives in the reserved context keys `_deps` (dependent's
   list) and `_refs` (dependee's counter), invisible to contracts
 - the whole call tree shares ONE gas budget
@@ -174,7 +174,7 @@ them with buf_get and returns results the same way.
 Exports a contract may provide:
 
 - `main` — required to react to incoming transact txs
-- `init` — optional, runs once on `LockTx`
+- `init` — optional, runs once on `ActivateTx`
 
 Example — a complete on-chain contract:
 

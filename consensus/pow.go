@@ -216,7 +216,7 @@ var ErrChainOnSyncing = errors.New("chain is syncing")
 // MinedNewBlock means the local (from rpc) mined new block and need to add it into the chain.
 // called by submitBlock and submitWork
 func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
-	if pow.SyncMod.Locker.IsLocked() {
+	if pow.SyncMod.Locker.IsActive() {
 		return fmt.Errorf("cannot import mined block: %w", ErrChainOnSyncing)
 	}
 
@@ -242,7 +242,7 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
 func (pow *PoWork) ImportBlock(b ngtypes.Block) error {
 	block := b.(*ngtypes.FullBlock)
 
-	if pow.SyncMod.Locker.IsLocked() {
+	if pow.SyncMod.Locker.IsActive() {
 		return errors.Wrap(ErrChainOnSyncing, "cannot import external block")
 	}
 

@@ -71,13 +71,13 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 			return err
 		}
 
-	case ngtypes.LockTx: // lock
-		if err := checkLock(txn, tx); err != nil {
+	case ngtypes.ActivateTx: // lock
+		if err := checkActivate(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.UnlockTx: // unlock
-		if err := checkUnlock(txn, tx); err != nil {
+	case ngtypes.DeactivateTx: // unlock
+		if err := checkDeactivate(txn, tx); err != nil {
 			return err
 		}
 
@@ -109,7 +109,7 @@ func senderWithBalance(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngt
 }
 
 // checkDestroy checks destroy tx: the sender clears its own slot,
-// which must exist, be unlocked and unreferenced
+// which must exist, be inactive and unreferenced
 func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 	if err := destroyTx.CheckDestroy(); err != nil {
 		return err
@@ -125,8 +125,8 @@ func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	if slot.IsLocked() {
-		return ErrAccountLocked
+	if slot.IsActive() {
+		return ErrAccountActive
 	}
 	if refs := getRefCount(slot); refs > 0 {
 		return errors.Wrapf(ErrAccountRefdBy, "%d dependent contract(s)", refs)
@@ -164,9 +164,9 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 
 	slot, err := getAccount(txn, sender)
 	if err == nil {
-		// a locked contract is immutable
-		if slot.IsLocked() {
-			return ErrAccountLocked
+		// an active contract is immutable
+		if slot.IsActive() {
+			return ErrAccountActive
 		}
 		baseText = slot.Contract
 	} else {
@@ -190,13 +190,13 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 	return nil
 }
 
-// checkLock checks lock tx
-func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
-	if err := lockTx.CheckLock(); err != nil {
+// checkActivate checks activate tx
+func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
+	if err := activateTx.CheckActivate(); err != nil {
 		return err
 	}
 
-	sender, err := senderWithBalance(txn, lockTx, lockTx.TotalExpenditure())
+	sender, err := senderWithBalance(txn, activateTx, activateTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
@@ -206,8 +206,8 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	if slot.IsLocked() {
-		return ErrAccountLocked
+	if slot.IsActive() {
+		return ErrAccountActive
 	}
 
 	// locking activates the vm, so the contract text must compile, and
@@ -225,7 +225,7 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 			if err != nil {
 				return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
 			}
-			if !depAcc.IsLocked() || len(depAcc.Contract) == 0 {
+			if !depAcc.IsActive() || len(depAcc.Contract) == 0 {
 				return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
 			}
 		}
@@ -234,13 +234,13 @@ func checkLock(txn *bbolt.Tx, lockTx *ngtypes.FullTx) error {
 	return nil
 }
 
-// checkUnlock checks unlock tx
-func checkUnlock(txn *bbolt.Tx, unlockTx *ngtypes.FullTx) error {
-	if err := unlockTx.CheckUnlock(); err != nil {
+// checkDeactivate checks unactivate tx
+func checkDeactivate(txn *bbolt.Tx, deactivateTx *ngtypes.FullTx) error {
+	if err := deactivateTx.CheckDeactivate(); err != nil {
 		return err
 	}
 
-	sender, err := senderWithBalance(txn, unlockTx, unlockTx.TotalExpenditure())
+	sender, err := senderWithBalance(txn, deactivateTx, deactivateTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
@@ -250,8 +250,8 @@ func checkUnlock(txn *bbolt.Tx, unlockTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	if !slot.IsLocked() {
-		return ErrAccountNotLocked
+	if !slot.IsActive() {
+		return ErrAccountNotActive
 	}
 
 	// a depended-on module cannot deactivate

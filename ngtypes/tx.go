@@ -28,8 +28,8 @@ const (
 	// the namespace purchase, burning DeployFee on top of the tx fee
 	CommitTx
 
-	LockTx   // freeze the contract: no more commits, and the vm gets active
-	UnlockTx // disable the vm, and enable committing again
+	ActivateTx   // freeze the contract: no more commits, and the vm gets active
+	DeactivateTx // disable the vm, and enable committing again
 )
 
 // FullTx is the basic implement of Tx (transaction, or operation)
@@ -319,8 +319,8 @@ func (x *FullTx) CheckCommit() error {
 	return x.Verify()
 }
 
-// CheckLock does a self check for lock tx
-func (x *FullTx) CheckLock() error {
+// CheckActivate does a self check for activate tx
+func (x *FullTx) CheckActivate() error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -336,8 +336,8 @@ func (x *FullTx) CheckLock() error {
 	return x.Verify()
 }
 
-// CheckUnlock does a self check for unlock tx
-func (x *FullTx) CheckUnlock() error {
+// CheckDeactivate does a self check for unactivate tx
+func (x *FullTx) CheckDeactivate() error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
