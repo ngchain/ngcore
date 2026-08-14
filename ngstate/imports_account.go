@@ -9,7 +9,20 @@ import (
 func initAccountImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("account", "get_host", func(ins *wasman.Instance) interface{} {
 		return func() uint64 {
-			return vm.self.Num // host means the account which is hosting the contract
+			// host is the account whose code is executing right now: for
+			// a service call this is the CALLEE
+			return vm.currentAccount()
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = vm.linker.DefineAdvancedFunc("account", "get_caller", func(ins *wasman.Instance) interface{} {
+		return func() uint64 {
+			// msg.sender: the contract which invoked the current frame,
+			// 0 for the outermost frame
+			return vm.callerAccount()
 		}
 	})
 	if err != nil {

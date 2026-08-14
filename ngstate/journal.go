@@ -4,18 +4,20 @@ import (
 	"math/big"
 
 	"go.etcd.io/bbolt"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// vmJournal buffers every state change a contract makes during one call.
-// Reads go through the overlay first (read-your-writes), and nothing hits
-// the db until flush, so a failed call leaves the chain state untouched
+// vmJournal buffers every state change one contract execution makes —
+// across ALL touched accounts (service calls write to the callee's
+// state). Reads go through the overlay first (read-your-writes), and
+// nothing hits the db until flush, so a failed call leaves the chain
+// state untouched
 type vmJournal struct {
-	self *ngtypes.Account
-
-	// context is a deep copy of self.Context which the kv module mutates
-	context *ngtypes.AccountContext
+	// accounts are the loaded working copies, keyed by account num;
+	// their Context fields are private clones the kv module mutates
+	accounts map[uint64]*ngtypes.Account
 
 	// balances holds the pending absolute balance per address
 	balances map[ngtypes.Address]*big.Int
@@ -26,11 +28,42 @@ func bigIntFromUint64(v uint64) *big.Int {
 }
 
 func newVMJournal(self *ngtypes.Account) *vmJournal {
+	selfCopy := *self
+	selfCopy.Context = self.Context.Clone()
+
 	return &vmJournal{
-		self:     self,
-		context:  self.Context.Clone(),
+		accounts: map[uint64]*ngtypes.Account{self.Num: &selfCopy},
 		balances: make(map[ngtypes.Address]*big.Int),
 	}
+}
+
+// accountOf returns the journal's working copy of the account, loading
+// and cloning it on first touch
+func (j *vmJournal) accountOf(txn *bbolt.Tx, num uint64) (*ngtypes.Account, error) {
+	if acc, ok := j.accounts[num]; ok {
+		return acc, nil
+	}
+
+	loaded, err := getAccountByNum(txn, ngtypes.AccountNum(num))
+	if err != nil {
+		return nil, err
+	}
+
+	copied := *loaded
+	copied.Context = loaded.Context.Clone()
+	j.accounts[num] = &copied
+
+	return &copied, nil
+}
+
+// contextOf returns the journaled context of the account
+func (j *vmJournal) contextOf(txn *bbolt.Tx, num uint64) (*ngtypes.AccountContext, error) {
+	acc, err := j.accountOf(txn, num)
+	if err != nil {
+		return nil, err
+	}
+
+	return acc.Context, nil
 }
 
 // balanceOf reads the pending balance, falling back to the db state
@@ -67,7 +100,11 @@ func (j *vmJournal) flush(txn *bbolt.Tx) error {
 		}
 	}
 
-	j.self.Context = j.context
+	for num, acc := range j.accounts {
+		if err := setAccount(txn, ngtypes.AccountNum(num), acc); err != nil {
+			return errors.Wrapf(err, "failed to flush account %d", num)
+		}
+	}
 
-	return setAccount(txn, ngtypes.AccountNum(j.self.Num), j.self)
+	return nil
 }

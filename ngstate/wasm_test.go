@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"encoding/binary"
 	"errors"
 	"math/big"
 	"path/filepath"
@@ -497,6 +498,134 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 		if err := state.handleUnlock(txn, unlockTx(500, privDex)); err != nil {
 			t.Fatalf("unlock dex after release: %v", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// tokenWat is a shared-ledger service (erc20-style): balances live in
+// the TOKEN's own kv, keyed by the 8-byte LE account num. transfer
+// debits the CALLER (account.get_caller = msg.sender)
+const tokenWat = `
+(module
+  (import "account" "get_caller" (func $caller (result i64)))
+  (import "kv" "get" (func $get (param i32 i32 i32) (result i32)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  ;; layout: 0..8 from-key, 8..16 to-key, 16..24 from-bal, 24..32 to-bal
+  (func (export "transfer") (param $to i64) (param $amount i64) (result i32)
+    (i64.store (i32.const 0) (call $caller))
+    (i64.store (i32.const 8) (local.get $to))
+    (i64.store (i32.const 16) (i64.const 0))
+    (i64.store (i32.const 24) (i64.const 0))
+    (drop (call $get (i32.const 0) (i32.const 8) (i32.const 16)))
+    (drop (call $get (i32.const 8) (i32.const 8) (i32.const 24)))
+    (if (i64.lt_u (i64.load (i32.const 16)) (local.get $amount))
+      (then (return (i32.const 0))))
+    (i64.store (i32.const 16) (i64.sub (i64.load (i32.const 16)) (local.get $amount)))
+    (i64.store (i32.const 24) (i64.add (i64.load (i32.const 24)) (local.get $amount)))
+    (drop (call $set (i32.const 0) (i32.const 8) (i32.const 16) (i32.const 8)))
+    (drop (call $set (i32.const 8) (i32.const 8) (i32.const 24) (i32.const 8)))
+    (i32.const 1))
+  (func (export "mint_to") (param $to i64) (param $amount i64)
+    (i64.store (i32.const 8) (local.get $to))
+    (i64.store (i32.const 24) (i64.const 0))
+    (drop (call $get (i32.const 8) (i32.const 8) (i32.const 24)))
+    (i64.store (i32.const 24) (i64.add (i64.load (i32.const 24)) (local.get $amount)))
+    (drop (call $set (i32.const 8) (i32.const 8) (i32.const 24) (i32.const 8)))))
+`
+
+// tokenUserWat consumes the token service: mints itself 100 units and
+// sends 30 to account 1 — all bookkeeping happens inside the token
+const tokenUserWat = `
+(module
+  (import "service/700" "mint_to" (func $mint (param i64 i64)))
+  (import "service/700" "transfer" (func $transfer (param i64 i64) (result i32)))
+  (func (export "main")
+    (call $mint (i64.const 600) (i64.const 100))
+    (drop (call $transfer (i64.const 1) (i64.const 30)))))
+`
+
+// TestServiceToken covers own-state (service) semantics: the token's
+// ledger lives in the token account's kv and is shared by all callers,
+// with get_caller authorizing the debit
+func TestServiceToken(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	privToken, _ := secp256k1.GeneratePrivateKey()
+	privUser, _ := secp256k1.GeneratePrivateKey()
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		token := ngtypes.NewAccount(700, ngtypes.NewAddress(privToken), []byte(tokenWat), nil)
+		putAccount(t, txn, token, 100)
+		user := ngtypes.NewAccount(600, ngtypes.NewAddress(privUser), []byte(tokenUserWat), nil)
+		putAccount(t, txn, user, 100)
+
+		lock := func(convener uint64, priv *secp256k1.PrivateKey) error {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 1, ngtypes.AccountNum(convener),
+				nil, nil, big.NewInt(1), nil, nil)
+			if err := tx.Signature(priv); err != nil {
+				t.Fatal(err)
+			}
+			return state.handleLock(txn, tx)
+		}
+
+		if err := lock(700, privToken); err != nil {
+			t.Fatalf("lock token: %v", err)
+		}
+		if err := lock(600, privUser); err != nil {
+			t.Fatalf("lock token user: %v", err)
+		}
+
+		// the service dependency pins the token like a library dep does
+		tokenAcc, _ := getAccountByNum(txn, 700)
+		if getRefCount(tokenAcc) != 1 {
+			t.Fatalf("token refcount = %d, want 1", getRefCount(tokenAcc))
+		}
+
+		// run the consumer: the ledger updates happen in the TOKEN's kv
+		userAcc, _ := getAccountByNum(txn, 600)
+		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil))
+		if err != nil {
+			t.Fatalf("NewVM with service dep: %v", err)
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			t.Fatalf("service run: %v", err)
+		}
+
+		tokenAcc, _ = getAccountByNum(txn, 700)
+		key := func(num uint64) string {
+			raw := make([]byte, 8)
+			binary.LittleEndian.PutUint64(raw, num)
+			return string(raw)
+		}
+		balOf := func(num uint64) uint64 {
+			raw := tokenAcc.Context.Get(key(num))
+			if len(raw) != 8 {
+				t.Fatalf("token ledger entry for %d missing: %v", num, raw)
+			}
+			return binary.LittleEndian.Uint64(raw)
+		}
+
+		if got := balOf(600); got != 70 {
+			t.Fatalf("token bal[600] = %d, want 70", got)
+		}
+		if got := balOf(1); got != 30 {
+			t.Fatalf("token bal[1] = %d, want 30", got)
+		}
+
+		// the consumer's own kv stays empty (reserved keys aside): the
+		// ledger lived in the callee
+		userAcc, _ = getAccountByNum(txn, 600)
+		for _, k := range userAcc.Context.Keys {
+			if !strings.HasPrefix(k, "_") {
+				t.Fatalf("user context leaked a ledger key: %q", k)
+			}
 		}
 
 		return nil

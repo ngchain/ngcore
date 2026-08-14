@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/c0mm4nd/wasman"
+
+	"github.com/ngchain/ngcore/ngtypes"
 )
 
 // isReservedKey guards the "_"-prefixed context keys (e.g. the lock flag)
@@ -12,9 +14,21 @@ func isReservedKey(key string) bool {
 	return strings.HasPrefix(key, "_")
 }
 
+// vmContext resolves the journaled context of the account executing
+// right now (the top call frame): a service callee gets ITS OWN storage
+func vmContext(vm *VM) *ngtypes.AccountContext {
+	ctx, err := vm.journal.contextOf(vm.txn, vm.currentAccount())
+	if err != nil {
+		vm.logger.Error(err)
+		panic(err) // unreachable for loaded frames; abort the call
+	}
+
+	return ctx
+}
+
 // initKVImports binds the kv module: the contract's persistent key-value
-// storage, backed by its own account Context. All writes go through the
-// journal and get discarded when the call fails
+// storage, backed by the EXECUTING account's Context. All writes go
+// through the journal and get discarded when the call fails
 func initKVImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("kv", "get_size", func(ins *wasman.Instance) interface{} {
 		return func(keyPtr, keyLen uint32) uint32 {
@@ -28,7 +42,7 @@ func initKVImports(vm *VM) error {
 				return 0
 			}
 
-			return uint32(len(vm.journal.context.Get(string(key))))
+			return uint32(len(vmContext(vm).Get(string(key))))
 		}
 	})
 	if err != nil {
@@ -47,7 +61,7 @@ func initKVImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, valPtr, vm.journal.context.Get(string(key)))
+			l, err := cp(ins, valPtr, vmContext(vm).Get(string(key)))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -80,7 +94,7 @@ func initKVImports(vm *VM) error {
 
 			value := make([]byte, len(val))
 			copy(value, val)
-			vm.journal.context.Set(string(key), value)
+			vmContext(vm).Set(string(key), value)
 
 			return 1
 		}
@@ -101,7 +115,7 @@ func initKVImports(vm *VM) error {
 				return 0
 			}
 
-			vm.journal.context.Del(string(key))
+			vmContext(vm).Del(string(key))
 
 			return 1
 		}

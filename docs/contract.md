@@ -101,12 +101,19 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
 
 ## Module dependencies
 
-Contracts compose like code modules: a contract imports another LOCKED
-contract's exports through the `contract/<num>` namespace —
+Contracts compose like code modules with TWO dependency semantics,
+picked per import by its namespace:
 
 ```wat
+;; library: code runs on the CALLER's state (math, curves, algorithms)
 (import "contract/500" "double" (func $double (param i64) (result i64)))
+
+;; service: code runs on the DEPENDENCY's own state (tokens, pools,
+;; any shared ledger)
+(import "service/700" "transfer" (func $transfer (param i64 i64) (result i32)))
 ```
+
+Shared rules:
 
 - dependencies are declared STATICALLY by the wat import section, so
   the chain extracts them at lock time — no runtime analysis needed
@@ -115,12 +122,22 @@ contract's exports through the `contract/<num>` namespace —
 - every dependee carries a reference count: while referenced it can be
   neither unlocked nor destroyed, so linked code never changes under a
   dependent. Unlocking the dependent releases its references
-- execution uses delegate semantics: dependency code runs with the
-  CALLER's host modules, so its kv/coin effects act on the calling
-  account's state and burn the caller's gas — a dependency contributes
-  code, not its own state
 - the ledger lives in the reserved context keys `_deps` (dependent's
   list) and `_refs` (dependee's counter), invisible to contracts
+- the whole call tree shares ONE gas budget
+
+Library semantics (`contract/N`): the dependency's code links directly
+and runs with the caller's host modules — its kv/coin effects act on
+the calling account. A library contributes code, not state.
+
+Service semantics (`service/N`): each call switches the execution frame
+to the dependency's account — its kv/coin effects act on ITS OWN state,
+which is exactly how a token keeps one ledger shared by all callers.
+`account.get_caller` returns the invoking contract's num (msg.sender)
+for authorization; `account.get_host` returns the executing account.
+Within one transaction execution, a contract that is still executing
+cannot be re-entered (calls after it returned are fine); service
+exports use scalar (i32/i64) params and returns.
 
 Exports a contract may provide:
 

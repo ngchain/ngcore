@@ -44,17 +44,25 @@ func initCoinImports(vm *VM) error {
 		return err
 	}
 
-	// transfer moves value from the host account to the `to` account,
-	// through the journal: nothing is final until the whole call succeeds
+	// transfer moves value from the EXECUTING account to the `to`
+	// account, through the journal: nothing is final until the whole
+	// call succeeds. Within a service call the callee spends its own
+	// funds, never the caller's
 	err = vm.linker.DefineAdvancedFunc("coin", "transfer", func(ins *wasman.Instance) interface{} {
 		return func(to, value uint64) uint32 {
+			fromAcc, err := vm.journal.accountOf(vm.txn, vm.currentAccount())
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
 			toAcc, err := getAccountByNum(vm.txn, ngtypes.AccountNum(to))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
 			}
 
-			err = vm.journal.transfer(vm.txn, vm.self.Owner, toAcc.Owner, bigIntFromUint64(value))
+			err = vm.journal.transfer(vm.txn, fromAcc.Owner, toAcc.Owner, bigIntFromUint64(value))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

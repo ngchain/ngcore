@@ -25,8 +25,14 @@ import (
 // Lock ordering (a dependee must be locked before its dependents) makes
 // the dependency graph a DAG by construction.
 
-// ContractDepPrefix is the wat import namespace for contract modules
+// ContractDepPrefix is the wat import namespace for LIBRARY modules:
+// the dependency contributes code running on the caller's state
 const ContractDepPrefix = "contract/"
+
+// ServiceDepPrefix is the wat import namespace for SERVICE modules:
+// calls run on the dependency's own state (tokens, pools, any shared
+// ledger), with account.get_caller exposing the invoking contract
+const ServiceDepPrefix = "service/"
 
 const (
 	// maxDepsPerContract bounds the direct imports of one contract
@@ -66,28 +72,48 @@ func extractContractDeps(contractText []byte) ([]uint64, error) {
 		return nil, err
 	}
 
-	return parseContractDeps(module)
+	deps, err := parseContractDeps(module)
+	if err != nil {
+		return nil, err
+	}
+
+	return depNums(deps), nil
+}
+
+// contractDep is one declared dependency: a library (code on the
+// caller's state) or a service (code on its own state)
+type contractDep struct {
+	Num     uint64
+	Service bool
 }
 
 // parseContractDeps extracts the declared contract dependencies from a
 // compiled module's import section
-func parseContractDeps(module *wasman.Module) ([]uint64, error) {
-	seen := make(map[uint64]bool)
-	deps := make([]uint64, 0)
+func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
+	seen := make(map[string]bool)
+	deps := make([]contractDep, 0)
 
 	for _, imp := range module.ImportSection {
-		if !strings.HasPrefix(imp.Module, ContractDepPrefix) {
+		var numStr string
+		var service bool
+		switch {
+		case strings.HasPrefix(imp.Module, ContractDepPrefix):
+			numStr = imp.Module[len(ContractDepPrefix):]
+		case strings.HasPrefix(imp.Module, ServiceDepPrefix):
+			numStr = imp.Module[len(ServiceDepPrefix):]
+			service = true
+		default:
 			continue
 		}
 
-		num, err := strconv.ParseUint(imp.Module[len(ContractDepPrefix):], 10, 64)
+		num, err := strconv.ParseUint(numStr, 10, 64)
 		if err != nil {
 			return nil, errors.Wrapf(ErrDepInvalidImport, "bad import namespace %q", imp.Module)
 		}
 
-		if !seen[num] {
-			seen[num] = true
-			deps = append(deps, num)
+		if !seen[imp.Module] {
+			seen[imp.Module] = true
+			deps = append(deps, contractDep{Num: num, Service: service})
 		}
 	}
 
@@ -96,6 +122,20 @@ func parseContractDeps(module *wasman.Module) ([]uint64, error) {
 	}
 
 	return deps, nil
+}
+
+// depNums flattens the dependency set into the unique account nums the
+// reference ledger tracks
+func depNums(deps []contractDep) []uint64 {
+	seen := make(map[uint64]bool)
+	nums := make([]uint64, 0, len(deps))
+	for _, dep := range deps {
+		if !seen[dep.Num] {
+			seen[dep.Num] = true
+			nums = append(nums, dep.Num)
+		}
+	}
+	return nums
 }
 
 // getContractDeps reads the recorded dependency list of the account
