@@ -8,7 +8,8 @@ import (
 // registerHTTPHandler will register jsonrpc functions onto the Server.
 func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("ping", func(message *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-		return jsonrpc2.NewJsonRpcSuccess(message.ID, []byte("pong"))
+		// the result must be valid json, or marshaling the response fails
+		return jsonrpc2.NewJsonRpcSuccess(message.ID, []byte(`"pong"`))
 	})
 
 	// p2p
@@ -62,11 +63,13 @@ func registerHTTPHandler(s *Server) {
 }
 
 func (s *Server) requireSynced(f func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage) func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	if s.pow.SyncMod.IsLocked() {
-		return func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	// the sync state must be sampled per request: at registration time it
+	// would freeze whatever the node happened to be doing at startup
+	return func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+		if s.pow.SyncMod.IsLocked() {
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, consensus.ErrChainOnSyncing))
 		}
-	}
 
-	return f
+		return f(msg)
+	}
 }
