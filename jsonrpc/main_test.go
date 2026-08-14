@@ -384,12 +384,10 @@ func TestRPCContractLifecycle(t *testing.T) {
 		return rawHex
 	}
 
-	// fund the deployer: two block rewards cover the deploy fee + change
-	mineViaRPC(t, node, key)
+	// fund the deployer
 	mineViaRPC(t, node, key)
 
-	// deploy: the FIRST edit opens the address's contract slot (the
-	// namespace purchase — DeployFee burned on top of the tx fee)
+	// deploy: the first commit opens the address's contract slot
 	signAndSend(genResult("genCommit", map[string]any{
 		"address": addr.BS58(),
 		"fee":     0.05,
