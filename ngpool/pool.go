@@ -14,14 +14,22 @@ import (
 
 var log = logging.Logger("ngpool")
 
+// DefaultPoolSize bounds how many conveners can queue a tx at once
+const DefaultPoolSize = 4096
+
 // TxPool is a little mem db which stores **signed** tx.
-// RULE: One Account can only send one Tx, all Txs will be accepted
-// Every time the state updated, the old pool will be deprecated.
+// RULE: One Account can only send one Tx (a higher fee replaces),
+// txs are height-locked to the next block, and every tip movement
+// deprecates the whole pool.
 type TxPool struct {
 	sync.Mutex
 
 	db    *bbolt.DB
-	txMap map[uint64]*ngtypes.FullTx // priority first
+	txMap map[uint64]*ngtypes.FullTx // convener num -> queued tx
+
+	// MaxSize caps the pool; when full, a new tx must outbid the
+	// cheapest queued one
+	MaxSize int
 
 	chain     *blockchain.Chain
 	localNode *ngp2p.LocalNode
@@ -33,6 +41,8 @@ func Init(db *bbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *Tx
 		db:    db,
 		txMap: make(map[uint64]*ngtypes.FullTx),
 
+		MaxSize: DefaultPoolSize,
+
 		chain:     chain,
 		localNode: localNode,
 	}
@@ -42,6 +52,9 @@ func Init(db *bbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *Tx
 
 // IsInPool checks one tx is in pool or not.
 func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.FullTx) {
+	pool.Lock()
+	defer pool.Unlock()
+
 	for _, txInQueue := range pool.txMap {
 		if bytes.Equal(txInQueue.GetHash(), txHash) {
 			return true, txInQueue

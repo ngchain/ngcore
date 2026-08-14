@@ -6,6 +6,7 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -225,6 +226,118 @@ func TestForkResolutionViaBroadcast(t *testing.T) {
 		wantB := new(big.Int).Add(ngtypes.GetBlockReward(2), ngtypes.GetBlockReward(3))
 		if got := balanceOf(t, node, minerB); got.Cmp(wantB) != 0 {
 			t.Fatalf("node%s: minerB balance = %s, want %s", name, got, wantB)
+		}
+	}
+}
+
+// mineOnTxs is mineOn with extra (non-generate) txs packed in
+func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *secp256k1.PrivateKey, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
+	t.Helper()
+
+	height := parent.GetHeight() + 1
+	blockTime := ngtypes.GetGenesisTimestamp(ngtypes.ZERONET) + height*16
+
+	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
+		ngtypes.GetNextDiff(height, blockTime, parent))
+
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height, 0,
+		[]ngtypes.Address{ngtypes.NewAddress(miner)},
+		[]*big.Int{ngtypes.GetBlockReward(height)},
+		big.NewInt(0), nil, nil)
+	if err := genTx.Signature(miner); err != nil {
+		t.Fatal(err)
+	}
+	if err := block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, txs...)); err != nil {
+		t.Fatal(err)
+	}
+
+	for n := uint64(0); n < 1_000_000; n++ {
+		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
+			t.Fatal(err)
+		}
+		if block.CheckError() == nil {
+			return block
+		}
+	}
+
+	t.Fatal("failed to seal a ZERONET block")
+	return nil
+}
+
+// TestTxPropagation covers the full tx lifecycle across the network:
+// a tx submitted on one node reaches the other's pool over pubsub, gets
+// mined there, and the resulting block settles the state on both sides
+func TestTxPropagation(t *testing.T) {
+	nodeA := newNode(t)
+	nodeB := newNode(t)
+	connect(t, nodeA, nodeB)
+
+	key, _ := secp256k1.GeneratePrivateKey()
+
+	// fund the key and register account 700 for it (via node A)
+	b1 := mineAndSubmit(t, nodeA, key)
+	waitTip(t, nodeB, b1.GetHash(), 10*time.Second)
+
+	extra := make([]byte, 8)
+	binary.LittleEndian.PutUint64(extra, 700)
+	regTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.RegisterTx, 2, 1,
+		[]ngtypes.Address{ngtypes.NewAddress(key)},
+		[]*big.Int{big.NewInt(0)},
+		ngtypes.RegisterFee, extra, nil)
+	if err := regTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	b2 := mineOnTxs(t, b1, key, regTx)
+	if err := nodeA.pow.MinedNewBlock(b2); err != nil {
+		t.Fatalf("submit register block: %v", err)
+	}
+	waitTip(t, nodeB, b2.GetHash(), 10*time.Second)
+
+	// submit a transact tx on A: it must reach B's pool over the network
+	var dest ngtypes.Address
+	dest[0] = 0xee
+	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 3, 700,
+		[]ngtypes.Address{dest}, []*big.Int{big.NewInt(10)}, big.NewInt(1), nil, nil)
+	if err := tx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	if err := nodeA.pow.Pool.PutNewTxFromLocal(tx); err != nil {
+		t.Fatalf("submit tx on nodeA: %v", err)
+	}
+
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		if exists, _ := nodeB.pow.Pool.IsInPool(tx.GetHash()); exists {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("tx never reached nodeB's pool")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// B mines the pool pack; the block settles the tx on both nodes
+	pack := nodeB.pow.Pool.GetPack(3)
+	if len(pack) != 1 {
+		t.Fatalf("nodeB pack size = %d, want 1", len(pack))
+	}
+	b3 := mineOnTxs(t, b2, key, pack...)
+	if err := nodeB.pow.MinedNewBlock(b3); err != nil {
+		t.Fatalf("mine tx block on nodeB: %v", err)
+	}
+	waitTip(t, nodeA, b3.GetHash(), 10*time.Second)
+
+	for name, node := range map[string]*testNode{"A": nodeA, "B": nodeB} {
+		got, err := node.chain.State.GetTotalBalanceByAddress(dest)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Int64() != 10 {
+			t.Fatalf("node%s: dest balance = %s, want 10", name, got)
+		}
+		// the mined block moved the tip: both pools must be empty now
+		if len(node.pow.Pool.GetPack(3)) != 0 {
+			t.Fatalf("node%s: pool must reset on the tip change", name)
 		}
 	}
 }
