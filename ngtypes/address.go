@@ -29,6 +29,9 @@ func NewAddressFromMultiKeys(privKeys ...*secp256k1.PrivateKey) (Address, error)
 	}
 
 	pubKeys := make([]secp256k1.PublicKey, len(privKeys))
+	for i := range privKeys {
+		pubKeys[i] = *privKeys[i].PubKey()
+	}
 	pub := schnorr.CombinePublicKeys(pubKeys...)
 
 	copy(addr[:], utils.PublicKey2Bytes(pub))
@@ -84,7 +87,7 @@ func (a Address) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON recovers the Address from the base58 string json value
-func (a Address) UnmarshalJSON(b []byte) error {
+func (a *Address) UnmarshalJSON(b []byte) error {
 	var bs58Addr string
 	err := utils.JSON.Unmarshal(b, &bs58Addr)
 	if err != nil {
