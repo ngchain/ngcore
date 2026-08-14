@@ -57,21 +57,3 @@ func TestAddressLength(t *testing.T) {
 		t.Fatal("a 35-byte legacy string must be rejected")
 	}
 }
-
-// TestNewAddressFromMultiKeys: a single-key multi-address must equal
-// the plain address of that key (the pubkey list used to stay empty)
-func TestNewAddressFromMultiKeys(t *testing.T) {
-	key, err := GenerateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	multi, err := NewAddressFromMultiKeys(key)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !multi.Equals(NewAddress(key)) {
-		t.Fatalf("single-key multi address %s != plain address %s", multi, NewAddress(key))
-	}
-}

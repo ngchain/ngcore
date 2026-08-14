@@ -83,22 +83,25 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	privateKeys := make([]*ngtypes.PrivateKey, len(params.PrivateKeys))
-	for i := range params.PrivateKeys {
-		d, err := base58.FastBase58Decoding(params.PrivateKeys[i])
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-
-		privateKeys[i], err = ngtypes.ParsePrivateKey(d)
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
+	if len(params.PrivateKeys) != 1 {
+		err := errors.New("signTx expects exactly one private key")
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = tx.Signature(privateKeys...)
+	d, err := base58.FastBase58Decoding(params.PrivateKeys[0])
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	privateKey, err := ngtypes.ParsePrivateKey(d)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = tx.Signature(privateKey)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

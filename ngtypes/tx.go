@@ -94,19 +94,11 @@ func (x *FullTx) IsSigned() bool {
 	return len(x.Sign) != 0
 }
 
-// TxKeySet is the signature envelope carried in FullTx.Sign: the whole
-// keyset descriptor (which must hash to the owner address) plus exactly
-// threshold member signatures. Public keys are only revealed here, at
-// spend time — never by the address itself
-type TxKeySet struct {
-	Threshold uint64
-	PubKeys   [][]byte
-	Sigs      [][]byte // parallel to PubKeys; empty slot = did not sign
-}
-
-// Verify checks the tx signature envelope against the owner address:
-// the embedded keyset must hash to the address, and exactly threshold
-// member signatures must all be valid over the unsigned tx hash
+// Verify checks the tx signature — a flat envelope of the owner's
+// public key followed by its signature — against the owner address:
+// the key must hash to the address and the signature must cover the
+// unsigned tx hash. The public key is only revealed here, at spend
+// time, never by the address itself
 func (x *FullTx) Verify(owner Address) error {
 	if x.Height == 0 {
 		return nil // ignore all tx error on genesis block
@@ -120,43 +112,19 @@ func (x *FullTx) Verify(owner Address) error {
 		return ErrTxExtraExcess
 	}
 
-	var keyset TxKeySet
-	if err := rlp.DecodeBytes(x.Sign, &keyset); err != nil {
-		return errors.Wrap(ErrTxSignInvalid, err.Error())
+	if len(x.Sign) != PublicKeySize+TxSignatureSize {
+		return errors.Wrapf(ErrTxSignInvalid, "signature envelope is %d bytes", len(x.Sign))
 	}
 
-	if len(keyset.Sigs) != len(keyset.PubKeys) {
-		return errors.Wrap(ErrTxSignInvalid, "keyset arrays misaligned")
-	}
-	if keyset.Threshold > MaxKeysetKeys {
-		return errors.Wrapf(ErrTxSignInvalid, "threshold %d", keyset.Threshold)
+	pubKey := x.Sign[:PublicKeySize]
+	sig := x.Sign[PublicKeySize:]
+
+	if !AddressOfPubKey(pubKey).Equals(owner) {
+		return errors.Wrap(ErrTxSignInvalid, "public key does not hash to the owner address")
 	}
 
-	addr, err := KeysetAddress(int(keyset.Threshold), keyset.PubKeys)
-	if err != nil {
-		return errors.Wrap(ErrTxSignInvalid, err.Error())
-	}
-	if !addr.Equals(owner) {
-		return errors.Wrap(ErrTxSignInvalid, "keyset does not hash to the owner address")
-	}
-
-	hash := x.GetUnsignedHash()
-	signed := 0
-	for i := range keyset.Sigs {
-		if len(keyset.Sigs[i]) == 0 {
-			continue
-		}
-		if !VerifyHashSig(keyset.PubKeys[i], hash, keyset.Sigs[i]) {
-			return errors.Wrapf(ErrTxSignInvalid, "member %d signature invalid", i)
-		}
-		signed++
-	}
-
-	// EXACTLY threshold signatures: with surplus valid signatures a
-	// third party could strip one and mint a second valid encoding of
-	// the same tx (signature malleability)
-	if signed != int(keyset.Threshold) {
-		return errors.Wrapf(ErrTxSignInvalid, "%d signatures, threshold is %d", signed, keyset.Threshold)
+	if !VerifyHashSig(pubKey, x.GetUnsignedHash(), sig) {
+		return ErrTxSignInvalid
 	}
 
 	return nil
@@ -444,64 +412,22 @@ func (x *FullTx) CheckUnlock(owner Address) error {
 	return x.Verify(owner)
 }
 
-// Signature signs with the all-must-sign keyset of the given keys
-// (N-of-N), matching NewAddress / NewAddressFromMultiKeys
-func (x *FullTx) Signature(privateKeys ...*PrivateKey) error {
-	members := make([][]byte, len(privateKeys))
-	for i := range privateKeys {
-		members[i] = privateKeys[i].PublicBytes()
-	}
-
-	return x.SignMultisig(len(privateKeys), members, privateKeys...)
-}
-
-// SignMultisig signs a threshold-of-N keyset: members lists the WHOLE
-// keyset's public keys (as committed by the address), signers the
-// exactly-threshold subset whose keys are at hand
-func (x *FullTx) SignMultisig(threshold int, members [][]byte, signers ...*PrivateKey) error {
-	if len(signers) != threshold {
-		return errors.Wrapf(ErrTxSignInvalid, "need exactly %d signers, got %d", threshold, len(signers))
-	}
-
-	keyset := TxKeySet{
-		Threshold: uint64(threshold),
-		PubKeys:   make([][]byte, len(members)),
-		Sigs:      make([][]byte, len(members)),
-	}
-	for i := range members {
-		keyset.PubKeys[i] = members[i]
-		keyset.Sigs[i] = []byte{}
-	}
-
+// Signature signs the tx, embedding the public key and its signature
+// as the flat envelope pubkey || sig
+func (x *FullTx) Signature(privateKey *PrivateKey) error {
 	x.Sign = nil
 	hash := x.GetUnsignedHash()
 
-	for _, signer := range signers {
-		slot := -1
-		pub := signer.PublicBytes()
-		for i := range members {
-			if bytes.Equal(members[i], pub) && len(keyset.Sigs[i]) == 0 {
-				slot = i
-				break
-			}
-		}
-		if slot < 0 {
-			return errors.Wrap(ErrTxSignInvalid, "a signer is not an unsigned member of the keyset")
-		}
-
-		sig, err := signer.SignHash(hash)
-		if err != nil {
-			return err
-		}
-		keyset.Sigs[slot] = sig
-	}
-
-	raw, err := rlp.EncodeToBytes(&keyset)
+	sig, err := privateKey.SignHash(hash)
 	if err != nil {
 		return err
 	}
 
-	x.Sign = raw
+	envelope := make([]byte, 0, PublicKeySize+TxSignatureSize)
+	envelope = append(envelope, privateKey.PublicBytes()...)
+	envelope = append(envelope, sig...)
+
+	x.Sign = envelope
 	return nil
 }
 

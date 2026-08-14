@@ -10,75 +10,31 @@ import (
 // ErrAddressLenInvalid means the raw bytes are not exactly AddressSize long
 var ErrAddressLenInvalid = errors.New("address length is invalid")
 
-// ErrKeysetInvalid means a keyset descriptor is malformed
-var ErrKeysetInvalid = errors.New("invalid keyset")
-
-// MaxKeysetKeys bounds how many member keys one address may commit to
-const MaxKeysetKeys = 16
-
-// addressVersion tags the descriptor preimage, so future address
-// layouts can never collide with the current one
+// addressVersion is a domain-separation byte for the address
+// preimage, so any future layout change cannot collide with this one
 const addressVersion = 0x01
 
-// Address is the keccak-256 hash of a keyset descriptor: it commits to
-// a signing threshold and the member public keys without revealing
-// them. Public keys only appear on chain inside a spending tx's
-// signature, which keeps unspent funds shielded and post-quantum keys
-// (1.3 KB public keys) usable as compact addresses
+// Address is the keccak-256 hash of the owner's public key. The key
+// itself only appears on chain inside a spending tx's signature,
+// which keeps unspent funds shielded and the 1.3 KB post-quantum key
+// usable as a compact 32-byte address
 type Address [AddressSize]byte
 
-// KeysetAddress computes the address committing to threshold-of-keys:
-//
-//	keccak256(version || threshold || N × pubkey)
-//
-// member keys are fixed-size (PublicKeySize), so the preimage is
-// unambiguous without per-key length prefixes
-func KeysetAddress(threshold int, pubKeys [][]byte) (Address, error) {
+// AddressOfPubKey computes keccak256(version || pubkey)
+func AddressOfPubKey(pubKey []byte) Address {
 	addr := Address{}
 
-	if len(pubKeys) == 0 || len(pubKeys) > MaxKeysetKeys {
-		return addr, errors.Wrapf(ErrKeysetInvalid, "%d member keys", len(pubKeys))
-	}
-	if threshold < 1 || threshold > len(pubKeys) {
-		return addr, errors.Wrapf(ErrKeysetInvalid, "threshold %d of %d keys", threshold, len(pubKeys))
-	}
-
-	preimage := []byte{addressVersion, byte(threshold)}
-	for i := range pubKeys {
-		if len(pubKeys[i]) != PublicKeySize {
-			return addr, errors.Wrapf(ErrKeysetInvalid, "member %d key size %d", i, len(pubKeys[i]))
-		}
-		preimage = append(preimage, pubKeys[i]...)
-	}
+	preimage := make([]byte, 0, 1+len(pubKey))
+	preimage = append(preimage, addressVersion)
+	preimage = append(preimage, pubKey...)
 
 	copy(addr[:], utils.KeccakSum256(preimage))
-	return addr, nil
-}
-
-// NewAddress returns the 1-of-1 address of a single key
-func NewAddress(key *PrivateKey) Address {
-	addr, err := KeysetAddress(1, [][]byte{key.PublicBytes()})
-	if err != nil {
-		panic(err) // a single well-formed key cannot fail
-	}
-
 	return addr
 }
 
-// NewMultisigAddress commits to native threshold-of-N multisig over
-// the given keys
-func NewMultisigAddress(threshold int, privKeys ...*PrivateKey) (Address, error) {
-	pubKeys := make([][]byte, len(privKeys))
-	for i := range privKeys {
-		pubKeys[i] = privKeys[i].PublicBytes()
-	}
-
-	return KeysetAddress(threshold, pubKeys)
-}
-
-// NewAddressFromMultiKeys is the all-must-sign form: N-of-N multisig
-func NewAddressFromMultiKeys(privKeys ...*PrivateKey) (Address, error) {
-	return NewMultisigAddress(len(privKeys), privKeys...)
+// NewAddress returns the address of a key
+func NewAddress(key *PrivateKey) Address {
+	return AddressOfPubKey(key.PublicBytes())
 }
 
 // mustAddressFromBS58 is NewAddressFromBS58 for hardcoded constants:
