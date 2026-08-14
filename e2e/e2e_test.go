@@ -472,7 +472,7 @@ func TestPeerReconnect(t *testing.T) {
 }
 
 // TestContractLifecycle drives a wat contract through its whole
-// on-chain life across two nodes: deploy (edit tx) -> activate (lock
+// on-chain life across two nodes: deploy (commit tx) -> activate (lock
 // tx) -> trigger (transact tx runs the vm) — and both nodes must agree
 // on the contract's kv state written by the vm
 func TestContractLifecycle(t *testing.T) {
@@ -508,18 +508,18 @@ func TestContractLifecycle(t *testing.T) {
 
 	// deploy: the FIRST edit opens the address's slot (namespace
 	// purchase, DeployFee burned on top of the tx fee)
-	rawExtra, err := ngtypes.NewEditExtra(nil, []ngtypes.Hunk{
+	rawExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{
 		{Pos: 0, Ins: []byte(contractWat)},
 	}).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
-	editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 3,
+	commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 3,
 		nil, nil, big.NewInt(1), rawExtra, nil)
-	if err := editTx.Signature(key); err != nil {
+	if err := commitTx.Signature(key); err != nil {
 		t.Fatal(err)
 	}
-	submit(editTx)
+	submit(commitTx)
 
 	// activate: lock compiles the text and enables the vm
 	lockTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.LockTx, 4,

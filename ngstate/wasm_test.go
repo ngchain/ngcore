@@ -275,11 +275,11 @@ func TestLockUnlockFlow(t *testing.T) {
 		}
 
 		// editing a locked account must fail
-		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), nil, nil)
-		if err := editTx.Signature(priv); err != nil {
+		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), nil, nil)
+		if err := commitTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleEdit(txn, editTx); !errors.Is(err, ErrAccountLocked) {
+		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrAccountLocked) {
 			t.Fatalf("edit on locked account: got %v, want ErrAccountLocked", err)
 		}
 
@@ -312,10 +312,10 @@ func TestLockUnlockFlow(t *testing.T) {
 	}
 }
 
-// TestEditFlow upgrades a contract with a minimal diff patch, and
+// TestCommitFlow upgrades a contract with a minimal diff patch, and
 // covers the namespace purchase: the FIRST edit must carry the
 // one-time deploy fee on top of the tx fee
-func TestEditFlow(t *testing.T) {
+func TestCommitFlow(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -336,11 +336,11 @@ func TestEditFlow(t *testing.T) {
 		t.Fatalf("small edit produced a big patch: %d bytes", patchSize)
 	}
 
-	deployExtra, err := ngtypes.NewEditExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: []byte(baseWat)}}).Encode()
+	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: []byte(baseWat)}}).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
-	patchExtra, err := ngtypes.NewEditExtra([]byte(baseWat), hunks).Encode()
+	patchExtra, err := ngtypes.NewCommitExtra([]byte(baseWat), hunks).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -348,7 +348,7 @@ func TestEditFlow(t *testing.T) {
 	funded := new(big.Int).Add(ngtypes.DeployFee, big.NewInt(100))
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), deployExtra, nil)
+		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), deployExtra, nil)
 		if err := deployTx.Signature(priv); err != nil {
 			return err
 		}
@@ -358,7 +358,7 @@ func TestEditFlow(t *testing.T) {
 		if err := setBalance(txn, addr, ngtypes.DeployFee); err != nil {
 			return err
 		}
-		if err := checkEdit(txn, deployTx); err == nil {
+		if err := checkCommit(txn, deployTx); err == nil {
 			t.Fatal("deploy without covering the deploy fee must fail")
 		}
 
@@ -366,26 +366,26 @@ func TestEditFlow(t *testing.T) {
 		if err := setBalance(txn, addr, funded); err != nil {
 			return err
 		}
-		if err := checkEdit(txn, deployTx); err != nil {
-			t.Fatalf("checkEdit deploy: %v", err)
+		if err := checkCommit(txn, deployTx); err != nil {
+			t.Fatalf("checkCommit deploy: %v", err)
 		}
-		if err := state.handleEdit(txn, deployTx); err != nil {
-			t.Fatalf("handleEdit deploy: %v", err)
+		if err := state.handleCommit(txn, deployTx); err != nil {
+			t.Fatalf("handleCommit deploy: %v", err)
 		}
 		if got := getBalance(txn, addr); got.Cmp(big.NewInt(99)) != 0 {
 			t.Fatalf("deploy fee not burned, balance = %s", got)
 		}
 
 		// the second edit patches the existing slot: only the tx fee
-		editTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), patchExtra, nil)
-		if err := editTx.Signature(priv); err != nil {
+		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), patchExtra, nil)
+		if err := commitTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := checkEdit(txn, editTx); err != nil {
-			t.Fatalf("checkEdit patch: %v", err)
+		if err := checkCommit(txn, commitTx); err != nil {
+			t.Fatalf("checkCommit patch: %v", err)
 		}
-		if err := state.handleEdit(txn, editTx); err != nil {
-			t.Fatalf("handleEdit patch: %v", err)
+		if err := state.handleCommit(txn, commitTx); err != nil {
+			t.Fatalf("handleCommit patch: %v", err)
 		}
 
 		reloaded, err := getAccount(txn, addr)
@@ -409,17 +409,17 @@ func TestEditFlow(t *testing.T) {
 		}
 
 		// a mismatching patch on the locked slot is refused as locked
-		staleExtra, err := (&ngtypes.EditExtra{Hunks: []ngtypes.Hunk{
+		staleExtra, err := (&ngtypes.CommitExtra{Hunks: []ngtypes.Hunk{
 			{Pos: 0, Del: []byte("XXX"), Ins: []byte("YYY")},
 		}}).Encode()
 		if err != nil {
 			return err
 		}
-		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.EditTx, 1, nil, nil, big.NewInt(1), staleExtra, nil)
+		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, nil, nil, big.NewInt(1), staleExtra, nil)
 		if err := staleTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := checkEdit(txn, staleTx); !errors.Is(err, ErrAccountLocked) {
+		if err := checkCommit(txn, staleTx); !errors.Is(err, ErrAccountLocked) {
 			t.Fatalf("stale edit on locked account: got %v", err)
 		}
 

@@ -390,7 +390,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 
 	// deploy: the FIRST edit opens the address's contract slot (the
 	// namespace purchase — DeployFee burned on top of the tx fee)
-	signAndSend(genResult("genEdit", map[string]any{
+	signAndSend(genResult("genCommit", map[string]any{
 		"address": addr.BS58(),
 		"fee":     0.05,
 		"hunks":   []map[string]any{{"pos": 0, "del": "", "ins": contractWat}},
@@ -409,7 +409,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	var text string
 	decodeInto(t, node.mustCall(t, "getContract", map[string]any{"address": addr.BS58()}), &text)
 	if text != contractWat {
-		t.Fatal("getContract mismatch after the edit tx")
+		t.Fatal("getContract mismatch after the commit tx")
 	}
 
 	// activate: the sender locks its own slot

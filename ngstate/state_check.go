@@ -66,8 +66,8 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 			return err
 		}
 
-	case ngtypes.EditTx: // edit
-		if err := checkEdit(txn, tx); err != nil {
+	case ngtypes.CommitTx: // edit
+		if err := checkCommit(txn, tx); err != nil {
 			return err
 		}
 
@@ -146,21 +146,21 @@ func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 	return err
 }
 
-// checkEdit checks edit tx: a dry-run of the whole patch application.
+// checkCommit checks commit tx: a dry-run of the whole patch application.
 // The first edit on an address opens its contract slot and must carry
 // the one-time DeployFee on top
-func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
-	if err := editTx.CheckEdit(); err != nil {
+func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
+	if err := commitTx.CheckCommit(); err != nil {
 		return err
 	}
 
-	sender, err := editTx.Sender()
+	sender, err := commitTx.Sender()
 	if err != nil {
 		return err
 	}
 
 	baseText := []byte(nil)
-	expense := new(big.Int).Set(editTx.Fee)
+	expense := new(big.Int).Set(commitTx.Fee)
 
 	slot, err := getAccount(txn, sender)
 	if err == nil {
@@ -178,7 +178,7 @@ func checkEdit(txn *bbolt.Tx, editTx *ngtypes.FullTx) error {
 		return ErrTxrBalanceInsufficient
 	}
 
-	editExtra, err := ngtypes.DecodeEditExtra(editTx.Extra)
+	editExtra, err := ngtypes.DecodeCommitExtra(commitTx.Extra)
 	if err != nil {
 		return err
 	}

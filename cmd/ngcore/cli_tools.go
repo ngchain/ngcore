@@ -44,7 +44,7 @@ func getCliToolsCommand() *cli.Command {
 		Subcommands: []*cli.Command{
 			{
 				Name:        "contract-update",
-				Description: "diff a local contract text (wat) against the on-chain one and compose an unsigned edit tx carrying the minimal patch",
+				Description: "diff a local contract text (wat) against the on-chain one and compose an unsigned commit tx carrying the minimal patch",
 				Flags: []cli.Flag{
 					&cli.Uint64Flag{
 						Name:     "num",

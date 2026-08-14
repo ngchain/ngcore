@@ -29,8 +29,8 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 			if err := state.handleTransaction(txn, tx, blockTime); err != nil {
 				return err
 			}
-		case ngtypes.EditTx: // edit tx
-			if err := state.handleEdit(txn, tx); err != nil {
+		case ngtypes.CommitTx: // commit tx
+			if err := state.handleCommit(txn, tx); err != nil {
 				return err
 			}
 		case ngtypes.LockTx:
@@ -137,11 +137,11 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 	return nil
 }
 
-// handleEdit applies a whole patch (EditExtra hunks) onto the sender's
+// handleCommit applies a whole patch (CommitExtra hunks) onto the sender's
 // contract slot atomically. The first edit OPENS the slot — that is
 // the namespace purchase, charged at DeployFee on top of the tx fee
-func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.CheckEdit(); err != nil {
+func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
+	if err := tx.CheckCommit(); err != nil {
 		return err
 	}
 
@@ -169,7 +169,7 @@ func (state *State) handleEdit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
-	editExtra, err := ngtypes.DecodeEditExtra(tx.Extra)
+	editExtra, err := ngtypes.DecodeCommitExtra(tx.Extra)
 	if err != nil {
 		return err
 	}

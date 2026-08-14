@@ -233,22 +233,22 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type editHunk struct {
+type commitHunk struct {
 	Pos uint64 `json:"pos"`
 	Del string `json:"del"`
 	Ins string `json:"ins"`
 }
 
-type genEditParams struct {
-	Address string     `json:"address"` // the deployer's own address (its slot text is the base)
-	Fee     float64    `json:"fee"`
-	Hunks   []editHunk `json:"hunks"`
+type genCommitParams struct {
+	Address string       `json:"address"` // the deployer's own address (its slot text is the base)
+	Fee     float64      `json:"fee"`
+	Hunks   []commitHunk `json:"hunks"`
 }
 
-// genEditFunc composes an unsigned edit tx from explicit hunks
+// genCommitFunc composes an unsigned commit tx from explicit hunks
 // (del/ins are the plain contract text pieces)
-func (s *Server) genEditFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genEditParams
+func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params genCommitParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
 		log.Error(err)
@@ -262,7 +262,7 @@ func (s *Server) genEditFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 		hunks[i] = ngtypes.Hunk{Pos: h.Pos, Del: []byte(h.Del), Ins: []byte(h.Ins)}
 	}
 
-	return s.buildEditTx(msg, params.Fee, baseText, hunks)
+	return s.buildCommitTx(msg, params.Fee, baseText, hunks)
 }
 
 type genContractUpdateParams struct {
@@ -272,7 +272,7 @@ type genContractUpdateParams struct {
 }
 
 // genContractUpdateFunc diffs the on-chain contract text against
-// newContract and composes an unsigned edit tx carrying the minimal patch
+// newContract and composes an unsigned commit tx carrying the minimal patch
 func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genContractUpdateParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -289,7 +289,7 @@ func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.J
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildEditTx(msg, params.Fee, baseText, hunks)
+	return s.buildCommitTx(msg, params.Fee, baseText, hunks)
 }
 
 // slotText loads the current contract text of the address; empty when
@@ -308,10 +308,10 @@ func (s *Server) slotText(address string) []byte {
 	return account.Contract
 }
 
-func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, baseText []byte, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
+func (s *Server) buildCommitTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, baseText []byte, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
 	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
 
-	rawExtra, err := ngtypes.NewEditExtra(baseText, hunks).Encode()
+	rawExtra, err := ngtypes.NewCommitExtra(baseText, hunks).Encode()
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -319,7 +319,7 @@ func (s *Server) buildEditTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, baseTe
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
-		ngtypes.EditTx,
+		ngtypes.CommitTx,
 		s.pow.Chain.GetLatestBlockHeight()+1,
 		nil,
 		nil,

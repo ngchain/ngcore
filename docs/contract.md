@@ -16,12 +16,12 @@ persistent storage is the account's `Context` (an on-chain sorted k-v).
 
 | step | tx type | effect |
 |---|---|---|
-| deploy / edit | `EditTx` | apply a patch (hunks) onto the contract text atomically (only while unlocked) |
+| deploy / edit | `CommitTx` | apply a patch (hunks) onto the contract text atomically (only while unlocked) |
 | activate | `LockTx` | compile-check + freeze the text, run the optional `init` export once, enable the vm |
 | execute | `TransactTx` | when a locked contract account is a participant, its `main` export runs |
-| upgrade | `UnlockTx` → `EditTx` → `LockTx` | disable the vm, patch the text, re-activate |
+| upgrade | `UnlockTx` → `CommitTx` → `LockTx` | disable the vm, patch the text, re-activate |
 
-An `EditTx` carries an encoded `EditExtra` patch: each hunk replaces
+An `CommitTx` carries an encoded `CommitExtra` patch: each hunk replaces
 bytes at an offset of the ORIGINAL text; hunks are sorted, must not
 overlap, and a stale patch fails whole. A small source change therefore
 costs a patch proportional to the change, not to the contract size.
@@ -31,16 +31,16 @@ The wire encoding minimizes the tx further:
 - **shape** — when the removed content outweighs one hash, the patch
   pins the original text with its keccak-256 (32 bytes flat) and drops
   the `Del` bytes entirely (hunks carry just `DelLen`); tiny patches
-  keep the cheaper content shape. `NewEditExtra` picks automatically.
+  keep the cheaper content shape. `NewCommitExtra` picks automatically.
 - **compression** — `Encode` deflates the payload when that shrinks it
   (large deploys of repetitive wat text compress well; tiny patches
-  stay raw). `DecodeEditExtra` caps the decompressed size at
+  stay raw). `DecodeCommitExtra` caps the decompressed size at
   `TxMaxExtraSize` against zip bombs.
 
 Tooling: the `genContractUpdate` RPC (and the
 `ngcore cli contract-update --file new.wat` subcommand) diffs
 the on-chain text against the new text server-side (line LCS + byte
-shrinking) and returns the unsigned minimal-patch EditTx; `genEdit`
+shrinking) and returns the unsigned minimal-patch CommitTx; `genEdit`
 accepts explicit hunks; `getContract` reads the current text. Sign and
 broadcast with the existing `signTx` / `sendTx` methods.
 

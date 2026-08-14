@@ -16,7 +16,7 @@ import (
 // Hunk is one replacement in the contract text at Pos (a byte offset in
 // the ORIGINAL text).
 //
-// It comes in two shapes depending on the enclosing EditExtra:
+// It comes in two shapes depending on the enclosing CommitExtra:
 //   - content shape (no BaseHash): Del carries the removed bytes and is
 //     verified against the on-chain text; DelLen must be 0
 //   - hashed shape (with BaseHash): only DelLen is carried — the whole
@@ -29,46 +29,46 @@ type Hunk struct {
 	Ins    []byte
 }
 
-// EditExtra is the payload of an Edit Tx: a whole patch applied
+// CommitExtra is the payload of an Edit Tx: a whole patch applied
 // atomically. Hunks use original-text coordinates, must be sorted
 // ascending and must not overlap
-type EditExtra struct {
+type CommitExtra struct {
 	BaseHash []byte // optional sha3-256 of the original text
 	Hunks    []Hunk
 }
 
 var (
-	ErrHunkNone         = errors.New("edit contains no effective hunk")
-	ErrHunkOutOfBound   = errors.New("hunk is out of the text bound")
-	ErrHunkOverlap      = errors.New("hunks overlap or are not sorted")
-	ErrHunkMismatch     = errors.New("hunk Del does not match the original text")
-	ErrHunkShapeInvalid = errors.New("hunk shape does not match the patch mode")
-	ErrBaseMismatch     = errors.New("patch base hash does not match the original text")
-	ErrEditExtraInvalid = errors.New("malformed edit extra payload")
+	ErrHunkNone           = errors.New("edit contains no effective hunk")
+	ErrHunkOutOfBound     = errors.New("hunk is out of the text bound")
+	ErrHunkOverlap        = errors.New("hunks overlap or are not sorted")
+	ErrHunkMismatch       = errors.New("hunk Del does not match the original text")
+	ErrHunkShapeInvalid   = errors.New("hunk shape does not match the patch mode")
+	ErrBaseMismatch       = errors.New("patch base hash does not match the original text")
+	ErrCommitExtraInvalid = errors.New("malformed edit extra payload")
 )
 
-// NewEditExtra wraps the hunks into the smaller patch shape: when the
+// NewCommitExtra wraps the hunks into the smaller patch shape: when the
 // removed content outweighs one hash, the Del bytes are dropped and the
 // original text is pinned by its sha3-256 instead
-func NewEditExtra(baseText []byte, hunks []Hunk) *EditExtra {
+func NewCommitExtra(baseText []byte, hunks []Hunk) *CommitExtra {
 	totalDel := 0
 	for _, h := range hunks {
 		totalDel += len(h.Del)
 	}
 	if totalDel <= HashSize {
-		return &EditExtra{Hunks: hunks}
+		return &CommitExtra{Hunks: hunks}
 	}
 
 	hashed := make([]Hunk, len(hunks))
 	for i, h := range hunks {
 		hashed[i] = Hunk{Pos: h.Pos, DelLen: uint64(len(h.Del)), Ins: h.Ins}
 	}
-	return &EditExtra{BaseHash: utils.KeccakSum256(baseText), Hunks: hashed}
+	return &CommitExtra{BaseHash: utils.KeccakSum256(baseText), Hunks: hashed}
 }
 
 // Apply applies the patch onto text, returning the new text.
 // The input text is never mutated; any invalid hunk fails the whole patch
-func (x *EditExtra) Apply(text []byte) ([]byte, error) {
+func (x *CommitExtra) Apply(text []byte) ([]byte, error) {
 	if len(x.Hunks) == 0 {
 		return nil, ErrHunkNone
 	}
@@ -76,7 +76,7 @@ func (x *EditExtra) Apply(text []byte) ([]byte, error) {
 	pinned := len(x.BaseHash) != 0
 	if pinned {
 		if len(x.BaseHash) != HashSize {
-			return nil, ErrEditExtraInvalid
+			return nil, ErrCommitExtraInvalid
 		}
 		if !bytes.Equal(utils.KeccakSum256(text), x.BaseHash) {
 			return nil, ErrBaseMismatch
@@ -121,14 +121,14 @@ func (x *EditExtra) Apply(text []byte) ([]byte, error) {
 
 // wire encoding of the edit extra: 1 flag byte + payload
 const (
-	editExtraRaw     byte = 0x00 // rlp(EditExtra)
-	editExtraDeflate byte = 0x01 // flate(rlp(EditExtra))
+	commitExtraRaw     byte = 0x00 // rlp(CommitExtra)
+	commitExtraDeflate byte = 0x01 // flate(rlp(CommitExtra))
 )
 
 // Encode serializes the patch for the tx Extra field, compressing the
 // payload when that actually shrinks it (large deploys compress well,
 // tiny patches stay raw)
-func (x *EditExtra) Encode() ([]byte, error) {
+func (x *CommitExtra) Encode() ([]byte, error) {
 	raw, err := rlp.EncodeToBytes(x)
 	if err != nil {
 		return nil, err
@@ -147,40 +147,40 @@ func (x *EditExtra) Encode() ([]byte, error) {
 	}
 
 	if buf.Len() < len(raw) {
-		return append([]byte{editExtraDeflate}, buf.Bytes()...), nil
+		return append([]byte{commitExtraDeflate}, buf.Bytes()...), nil
 	}
 
-	return append([]byte{editExtraRaw}, raw...), nil
+	return append([]byte{commitExtraRaw}, raw...), nil
 }
 
-// DecodeEditExtra parses a tx Extra payload produced by Encode. The
+// DecodeCommitExtra parses a tx Extra payload produced by Encode. The
 // decompressed size is capped by TxMaxExtraSize against zip bombs
-func DecodeEditExtra(data []byte) (*EditExtra, error) {
+func DecodeCommitExtra(data []byte) (*CommitExtra, error) {
 	if len(data) < 2 {
-		return nil, ErrEditExtraInvalid
+		return nil, ErrCommitExtraInvalid
 	}
 
 	var raw []byte
 	switch data[0] {
-	case editExtraRaw:
+	case commitExtraRaw:
 		raw = data[1:]
-	case editExtraDeflate:
+	case commitExtraDeflate:
 		r := flate.NewReader(bytes.NewReader(data[1:]))
 		decompressed, err := io.ReadAll(io.LimitReader(r, TxMaxExtraSize+1))
 		if err != nil {
-			return nil, errors.Wrap(ErrEditExtraInvalid, err.Error())
+			return nil, errors.Wrap(ErrCommitExtraInvalid, err.Error())
 		}
 		if len(decompressed) > TxMaxExtraSize {
 			return nil, ErrTxExtraExcess
 		}
 		raw = decompressed
 	default:
-		return nil, ErrEditExtraInvalid
+		return nil, ErrCommitExtraInvalid
 	}
 
-	var x EditExtra
+	var x CommitExtra
 	if err := rlp.DecodeBytes(raw, &x); err != nil {
-		return nil, errors.Wrap(ErrEditExtraInvalid, err.Error())
+		return nil, errors.Wrap(ErrCommitExtraInvalid, err.Error())
 	}
 
 	return &x, nil
@@ -190,7 +190,7 @@ func DecodeEditExtra(data []byte) (*EditExtra, error) {
 // newText. It is a plain LCS diff with per-hunk byte shrinking, so
 // applying the patch always rebuilds newText exactly; identical texts
 // yield no hunks. The returned hunks are in the content shape (Del
-// carried); NewEditExtra picks the cheaper wire shape
+// carried); NewCommitExtra picks the cheaper wire shape
 func DiffHunks(oldText, newText []byte) []Hunk {
 	oldLines := splitLines(oldText)
 	newLines := splitLines(newText)

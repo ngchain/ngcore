@@ -22,10 +22,14 @@ const (
 
 	TransactTx
 
-	EditTx // apply a patch (a set of hunks) onto the contract text
+	// CommitTx commits a change set (diff hunks) onto the sender's
+	// contract slot, like a git commit onto the sender's namespace. The
+	// FIRST commit (against the empty base) creates the slot — that is
+	// the namespace purchase, burning DeployFee on top of the tx fee
+	CommitTx
 
-	LockTx   // freeze the contract: no more editing, and the vm gets active
-	UnlockTx // disable the vm, and enable editing again
+	LockTx   // freeze the contract: no more commits, and the vm gets active
+	UnlockTx // disable the vm, and enable committing again
 )
 
 // FullTx is the basic implement of Tx (transaction, or operation)
@@ -297,9 +301,9 @@ func (x *FullTx) CheckTransaction() error {
 	return x.Verify()
 }
 
-// CheckEdit does a self check for edit tx: the sender patches its own
+// CheckCommit does a self check for commit tx: the sender patches its own
 // contract slot
-func (x *FullTx) CheckEdit() error {
+func (x *FullTx) CheckCommit() error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
