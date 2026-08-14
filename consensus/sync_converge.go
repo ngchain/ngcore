@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -41,21 +43,10 @@ func (mod *syncModule) doConverging(record *RemoteRecord) error {
 		return fmt.Errorf("failed to get blocks for converging: %w", err)
 	}
 
-	// localSamepoint, _ := mod.pow.Chain.GetBlockByHeight(chain[1].Height)
-	// log.Warnf("have got the diffpoint: block@%d: local: %x remote %x", chain[1].Height, chain[1].Hash(), localSamepoint.Hash())
-
-	err = mod.pow.Chain.ForceApplyBlocks(chain)
-	if err != nil {
-		return err
-	}
-
-	// RULE: there are 3 choices
-	// 1. regenerate the state(time-consuming)
-	// 2. download the state from remote(maybe unreliable)
-	// 3. flash back(require remove destroy and assign tx)
-	// Currently choose the No.1
-	log.Warnf("regenerateing local state")
-	err = mod.pow.State.RebuildFromBlockStore()
+	// SwitchToBranch validates the branch, rewrites the canonical chain
+	// and replays the state all in ONE db txn: a failure (including
+	// invalid remote blocks) leaves the local chain untouched
+	err = mod.pow.Chain.SwitchToBranch(chain)
 	if err != nil {
 		return err
 	}
@@ -76,7 +67,7 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 	// when the chainLen (the len of returned chain) is not equal to defaults.MaxBlocks, means it has reach the latest height
 	for {
 		if ptr <= localOriginHeight {
-			panic("converging failed: completely different chains!")
+			return nil, errors.New("converging failed: completely different chains")
 		}
 
 		blockHashes := make([][]byte, 0, defaults.MaxBlocks)

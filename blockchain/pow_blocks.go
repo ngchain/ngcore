@@ -21,7 +21,10 @@ func (chain *Chain) getLatestBlock() *ngtypes.FullBlock {
 
 	block, err := chain.getBlockByHeight(height)
 	if err != nil {
-		panic(err)
+		// the latest tags always point at a stored block; failing here
+		// means the db itself is broken beyond in-process recovery
+		log.Errorf("broken chain db: cannot load the latest block@%d: %v", height, err)
+		return ngtypes.GetGenesisBlock(chain.Network)
 	}
 
 	return block
@@ -176,34 +179,3 @@ func (chain *Chain) GetOriginBlock() *ngtypes.FullBlock {
 	return origin
 }
 
-// ForceApplyBlocks simply checks the block and then calls chain.ForcePutNewBlock
-// but **do not** upgrade the state.
-// so, after this, dev should do a regeneration or import the latest sheet.
-func (chain *Chain) ForceApplyBlocks(blocks []*ngtypes.FullBlock) error {
-	if err := chain.Update(func(txn *bbolt.Tx) error {
-		blockBucket := txn.Bucket(storage.BlockBucketName)
-		txBucket := txn.Bucket(storage.TxBucketName)
-
-		for i := 0; i < len(blocks); i++ {
-			block := blocks[i]
-			// if err := chain.CheckBlock(block); err != nil {
-			//	return err
-			// }
-			// Todo: enhance error check here(based on blocks rather than db)
-			if err := block.CheckError(); err != nil {
-				return err
-			}
-
-			err := chain.ForcePutNewBlock(blockBucket, txBucket, block)
-			if err != nil {
-				return errors.Wrap(err, "failed to force putting new block")
-			}
-		}
-
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
-}

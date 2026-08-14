@@ -19,7 +19,7 @@ func GetGenesisBlock(network Network) *FullBlock {
 			make([]byte, HashSize),
 			txTrie.TrieRoot(),
 			headerTrie.TrieRoot(),
-			minimumBigDifficulty.Bytes(), // this is a number, dont put any padding on
+			MinimumDiffOf(network).Bytes(), // this is a number, dont put any padding on
 			GetGenesisBlockNonce(network),
 			txs,
 			[]*BlockHeader{},

@@ -7,6 +7,17 @@ import (
 
 var big2 = big.NewInt(2)
 
+// MinimumDiffOf returns the minimum pow difficulty of the network.
+// ZERONET is the local regression network, where any nonce should work,
+// so its blocks stay instantly minable
+func MinimumDiffOf(network Network) *big.Int {
+	if network == ZERONET {
+		return big.NewInt(1)
+	}
+
+	return minimumBigDifficulty
+}
+
 // GetNextDiff is a helper to get next pow block Diff field.
 func GetNextDiff(blockHeight uint64, blockTime uint64, tailBlock *FullBlock) *big.Int {
 	diff := new(big.Int).SetBytes(tailBlock.BlockHeader.Difficulty)
@@ -38,8 +49,9 @@ func GetNextDiff(blockHeight uint64, blockTime uint64, tailBlock *FullBlock) *bi
 	delta.Exp(big2, big.NewInt(int64(blockHeight)/100_000-2), nil)
 	diff.Add(diff, delta)
 
-	if diff.Cmp(minimumBigDifficulty) < 0 {
-		diff = minimumBigDifficulty
+	minimum := MinimumDiffOf(tailBlock.BlockHeader.Network)
+	if diff.Cmp(minimum) < 0 {
+		diff = minimum
 	}
 
 	log.Debugf("New Block Diff: %d", diff)

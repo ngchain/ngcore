@@ -130,56 +130,44 @@ func (state *State) RebuildFromSheet(sheet *ngtypes.Sheet) error {
 
 // RebuildFromBlockStore works for doing converge and remove all
 func (state *State) RebuildFromBlockStore() error {
+	return state.Update(state.RebuildFromBlockStoreTxn)
+}
 
-	var latestHeight uint64
-	err := state.Update(func(txn *bbolt.Tx) error {
-		err := txn.DeleteBucket(storage.Addr2NumBucketName)
-		if err != nil {
+// RebuildFromBlockStoreTxn resets the state and replays the whole
+// canonical chain INSIDE the given write txn, so a reorg can swap the
+// chain and the state atomically: any failure aborts both
+func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
+	for _, name := range [][]byte{
+		storage.Addr2NumBucketName,
+		storage.Addr2BalBucketName,
+		storage.Num2AccBucketName,
+	} {
+		if err := txn.DeleteBucket(name); err != nil {
 			return err
 		}
-		err = txn.DeleteBucket(storage.Addr2BalBucketName)
-		if err != nil {
+		if _, err := txn.CreateBucket(name); err != nil {
 			return err
 		}
-		err = txn.DeleteBucket(storage.Num2AccBucketName)
-		if err != nil {
-			return err
-		}
+	}
 
-		err = initFromSheet(txn, ngtypes.GetGenesisSheet(state.Network))
-		if err != nil {
-			return err
-		}
+	err := initFromSheet(txn, ngtypes.GetGenesisSheet(state.Network))
+	if err != nil {
+		return err
+	}
 
-		blockBucket := txn.Bucket(storage.BlockBucketName)
-		latestHeight, err = ngblocks.GetLatestHeight(blockBucket)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
+	blockBucket := txn.Bucket(storage.BlockBucketName)
+	latestHeight, err := ngblocks.GetLatestHeight(blockBucket)
 	if err != nil {
 		return err
 	}
 
 	for h := uint64(0); h <= latestHeight; h++ {
-		err = state.Update(func(txn *bbolt.Tx) error {
-			blockBucket := txn.Bucket(storage.BlockBucketName)
-			b, err := ngblocks.GetBlockByHeight(blockBucket, h)
-			if err != nil {
-				return err
-			}
-
-			err = state.Upgrade(txn, b)
-			if err != nil {
-				return err
-			}
-
-			return nil
-		})
+		b, err := ngblocks.GetBlockByHeight(blockBucket, h)
 		if err != nil {
+			return err
+		}
+
+		if err := state.Upgrade(txn, b); err != nil {
 			return err
 		}
 	}

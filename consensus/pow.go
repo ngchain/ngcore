@@ -10,12 +10,10 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/blockchain"
-	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngp2p"
 	"github.com/ngchain/ngcore/ngpool"
 	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
-	"github.com/ngchain/ngcore/storage"
 )
 
 var log = logging.Logger("pow")
@@ -174,29 +172,8 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
 		return fmt.Errorf("cannot import mined block: %w", ErrChainOnSyncing)
 	}
 
-	// check block first
-	err := pow.db.Update(func(txn *bbolt.Tx) error {
-		blockBucket := txn.Bucket(storage.BlockBucketName)
-		txBucket := txn.Bucket(storage.TxBucketName)
-
-		// check block first
-		if err := pow.Chain.CheckBlock(block); err != nil {
-			return err
-		}
-
-		// block is valid
-		err := ngblocks.PutNewBlock(blockBucket, txBucket, block)
-		if err != nil {
-			return err
-		}
-
-		err = pow.State.Upgrade(txn, block) // handle Block Txs inside
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
+	// ApplyBlock checks and imports the block (with fork choice) atomically
+	err := pow.Chain.ApplyBlock(block)
 	if err != nil {
 		return err
 	}

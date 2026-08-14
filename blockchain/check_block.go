@@ -16,6 +16,15 @@ import (
 // CheckBlock checks block before putting into chain.
 func (chain *Chain) CheckBlock(b ngtypes.Block) error {
 	block := b.(*ngtypes.FullBlock)
+
+	return chain.View(func(txn *bbolt.Tx) error {
+		return chain.checkBlockTxn(txn, block)
+	})
+}
+
+// checkBlockTxn is the in-txn body of CheckBlock, so block import can
+// check and apply within one write txn
+func (chain *Chain) checkBlockTxn(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 	if block.IsGenesis() {
 		return nil
 	}
@@ -25,29 +34,26 @@ func (chain *Chain) CheckBlock(b ngtypes.Block) error {
 		return err
 	}
 
-	err := chain.View(func(txn *bbolt.Tx) error {
-		blockBucket := txn.Bucket(storage.BlockBucketName)
+	blockBucket := txn.Bucket(storage.BlockBucketName)
 
-		originHash, err := ngblocks.GetOriginHash(blockBucket)
-		if err != nil {
-			panic(err)
-		}
-
-		if !bytes.Equal(block.GetPrevHash(), originHash) {
-			prevBlock, err := chain.getBlockByHash(block.GetPrevHash())
-			if err != nil {
-				return errors.Wrapf(err, "failed to get the prev block@%d %x",
-					block.GetHeight()-1, block.GetPrevHash())
-			}
-
-			if err := checkBlockTarget(block, prevBlock); err != nil {
-				return errors.Wrapf(err, "failed on checking block target")
-			}
-		}
-
-		return ngstate.CheckBlockTxs(txn, block)
-	})
+	originHash, err := ngblocks.GetOriginHash(blockBucket)
 	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(block.GetPrevHash(), originHash) {
+		prevBlock, err := ngblocks.GetBlockByHash(blockBucket, block.GetPrevHash())
+		if err != nil {
+			return errors.Wrapf(err, "failed to get the prev block@%d %x",
+				block.GetHeight()-1, block.GetPrevHash())
+		}
+
+		if err := checkBlockTarget(block, prevBlock); err != nil {
+			return errors.Wrapf(err, "failed on checking block target")
+		}
+	}
+
+	if err := ngstate.CheckBlockTxs(txn, block); err != nil {
 		return errors.Wrap(err, "block txs are invalid")
 	}
 
