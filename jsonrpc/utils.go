@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -27,26 +28,25 @@ func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	privKeys := make([]*ngtypes.PrivateKey, len(params.PrivateKeys))
-	for i := range params.PrivateKeys {
-		bPriv, err := base58.FastBase58Decoding(params.PrivateKeys[i])
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-
-		privKeys[i], err = ngtypes.ParsePrivateKey(bPriv)
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
+	if len(params.PrivateKeys) != 1 {
+		err := errors.New("expects exactly one private key")
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	addr, err := ngtypes.NewAddressFromMultiKeys(privKeys...)
+	bPriv, err := base58.FastBase58Decoding(params.PrivateKeys[0])
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
+
+	privKey, err := ngtypes.ParsePrivateKey(bPriv)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	addr := ngtypes.NewAddress(privKey)
 
 	result := getAddressReply{
 		Address: addr,

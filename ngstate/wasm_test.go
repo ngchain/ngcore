@@ -122,7 +122,7 @@ func TestVMLog(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -142,7 +142,7 @@ func TestVMKVSet(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ func TestVMTransfer(t *testing.T) {
 		contractAcc.SetActive(true)
 		putContract(t, txn, contractAcc, 100)
 
-		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, contractAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 100)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -516,7 +516,7 @@ func TestContractModuleDeps(t *testing.T) {
 		// linked execution: leverage's main calls dex's double and
 		// writes 42 into leverage's own kv
 		levAcc, _ := getContract(txn, levAddr)
-		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, levAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with deps: %v", err)
 		}
@@ -649,7 +649,7 @@ func TestServiceToken(t *testing.T) {
 
 		// run the consumer: the ledger updates happen in the TOKEN's kv
 		userAcc, _ := getContract(txn, userAddr)
-		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, userAcc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			t.Fatalf("NewVM with service dep: %v", err)
 		}
@@ -715,7 +715,7 @@ func TestVMU256(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -788,7 +788,7 @@ func TestVMTxContext(t *testing.T) {
 			[]*big.Int{big.NewInt(70), big.NewInt(5), big.NewInt(7)},
 		)
 
-		vm, err := NewVM(txn, acc, tx, nil, 1755264000) // block timestamp
+		vm, err := NewVM(txn, acc, tx, 1755264000) // block timestamp
 		if err != nil {
 			return err
 		}
@@ -873,7 +873,7 @@ func TestVMKVScan(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -973,7 +973,7 @@ func TestServiceBigValues(t *testing.T) {
 		caller.SetActive(true)
 		putContract(t, txn, caller, 0)
 
-		vm, err := NewVM(txn, caller, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, caller, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -1031,7 +1031,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		putContract(t, txn, acc, 0)
 
 		tx := fakeTransactTx(nil, nil)
-		state.runContract(txn, emitAddr, tx, nil, VMEntryOnTx, 1)
+		state.runContract(txn, emitAddr, tx, VMEntryOnTx, 1)
 
 		runs, err := GetTxRuns(txn, tx.GetHash())
 		if err != nil {
@@ -1064,7 +1064,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		putContract(t, txn, bad, 0)
 
 		badTx := fakeTransactTx([]ngtypes.Address{badAddr}, []*big.Int{big.NewInt(0)})
-		state.runContract(txn, badAddr, badTx, nil, VMEntryOnTx, 1)
+		state.runContract(txn, badAddr, badTx, VMEntryOnTx, 1)
 
 		badRuns, err := GetTxRuns(txn, badTx.GetHash())
 		if err != nil {
@@ -1096,7 +1096,7 @@ func TestGasPricingTiers(t *testing.T) {
 			acc.SetActive(true)
 			putContract(t, txn, acc, 100)
 
-			vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), nil, 1)
+			vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 			if err != nil {
 				return err
 			}
@@ -1144,7 +1144,7 @@ func TestVMDryRun(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
-		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), nil, 1)
+		vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
 		if err != nil {
 			return err
 		}
@@ -1288,28 +1288,18 @@ func TestCallSelector(t *testing.T) {
 
 	addr := testAddr(0xaa)
 
-	callWith := func(calldata []byte) *ngtypes.Contract {
+	callWith := func(extra []byte) *ngtypes.Contract {
 		var reloaded *ngtypes.Contract
 		err := db.Update(func(txn *bbolt.Tx) error {
 			acc := ngtypes.NewContract(addr, []byte(multiEntryWat), nil)
 			acc.SetActive(true)
 			putContract(t, txn, acc, 0)
 
-			// pack + unpack through the real per-participant container,
-			// so the transact path's calldata slicing is covered too
-			extra, err := ngtypes.EncodeTransactExtras([][]byte{calldata})
-			if err != nil {
-				return err
-			}
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
 				[]ngtypes.Address{addr}, []*big.Int{big.NewInt(0)}, big.NewInt(0), extra, nil)
+			state.runContract(txn, addr, tx, VMEntryOnTx, 1)
 
-			calldatas, err := ngtypes.DecodeTransactExtras(tx.Extra, 1)
-			if err != nil {
-				return err
-			}
-			state.runContract(txn, addr, tx, calldatas[0], VMEntryOnTx, 1)
-
+			var err error
 			reloaded, err = getContract(txn, addr)
 			return err
 		})
@@ -1337,14 +1327,14 @@ func TestCallSelector(t *testing.T) {
 		t.Fatalf("args = %q, want ab", got)
 	}
 
-	// unknown selector: fallback to main, which sees the WHOLE calldata
+	// unknown selector: fallback to main, which sees the WHOLE extra
 	raw := append(ngtypes.CallSelector("nope"), []byte("zz")...)
 	acc = callWith(raw)
 	if got := string(acc.Context.Get("hit")); got != "main" {
 		t.Fatalf("hit = %q, want main (fallback)", got)
 	}
 	if got := string(acc.Context.Get("args")); got != string(raw) {
-		t.Fatalf("fallback args = %x, want the whole calldata %x", got, raw)
+		t.Fatalf("fallback args = %x, want the whole extra %x", got, raw)
 	}
 
 	// empty extra: plain main, no args
@@ -1354,74 +1344,5 @@ func TestCallSelector(t *testing.T) {
 	}
 	if got := acc.Context.Get("args"); len(got) != 0 {
 		t.Fatalf("args = %x, want empty", got)
-	}
-}
-
-// TestPerParticipantCalldata: ONE tx pays two contracts and calls a
-// DIFFERENT entry with DIFFERENT args on each
-func TestPerParticipantCalldata(t *testing.T) {
-	db := newTestDB(t)
-	state := &State{Network: ngtypes.ZERONET}
-
-	addrA := testAddr(0xaa)
-	addrB := testAddr(0xbb)
-
-	err := db.Update(func(txn *bbolt.Tx) error {
-		for _, addr := range []ngtypes.Address{addrA, addrB} {
-			acc := ngtypes.NewContract(addr, []byte(multiEntryWat), nil)
-			acc.SetActive(true)
-			putContract(t, txn, acc, 0)
-		}
-
-		extra, err := ngtypes.EncodeTransactExtras([][]byte{
-			ngtypes.EncodeCallData("ping", []byte("forA")),
-			ngtypes.EncodeCallData("main", []byte("forB")),
-		})
-		if err != nil {
-			return err
-		}
-
-		tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
-			[]ngtypes.Address{addrA, addrB},
-			[]*big.Int{big.NewInt(0), big.NewInt(0)},
-			big.NewInt(0), extra, nil)
-
-		if err := tx.CheckTransaction(); err == nil {
-			// unsigned, but the extras alignment must already hold
-			t.Log("alignment check passed structurally")
-		}
-
-		calldatas, err := ngtypes.DecodeTransactExtras(tx.Extra, 2)
-		if err != nil {
-			return err
-		}
-		state.runContract(txn, addrA, tx, calldatas[0], VMEntryOnTx, 1)
-		state.runContract(txn, addrB, tx, calldatas[1], VMEntryOnTx, 1)
-
-		accA, _ := getContract(txn, addrA)
-		if got := string(accA.Context.Get("hit")); got != "ping" {
-			t.Fatalf("A hit = %q, want ping", got)
-		}
-		if got := string(accA.Context.Get("args")); got != "forA" {
-			t.Fatalf("A args = %q, want forA", got)
-		}
-
-		accB, _ := getContract(txn, addrB)
-		if got := string(accB.Context.Get("hit")); got != "main" {
-			t.Fatalf("B hit = %q, want main", got)
-		}
-		if got := string(accB.Context.Get("args")); got != "forB" {
-			t.Fatalf("B args = %q, want forB", got)
-		}
-
-		// misaligned extras are rejected structurally
-		if _, err := ngtypes.DecodeTransactExtras(tx.Extra, 3); err == nil {
-			t.Fatal("misaligned extras must be rejected")
-		}
-
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
 }

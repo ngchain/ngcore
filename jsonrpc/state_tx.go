@@ -82,22 +82,25 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	privateKeys := make([]*ngtypes.PrivateKey, len(params.PrivateKeys))
-	for i := range params.PrivateKeys {
-		d, err := base58.FastBase58Decoding(params.PrivateKeys[i])
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-
-		privateKeys[i], err = ngtypes.ParsePrivateKey(d)
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
+	if len(params.PrivateKeys) != 1 {
+		err := errors.New("signTx expects exactly one private key")
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = tx.Signature(privateKeys...)
+	d, err := base58.FastBase58Decoding(params.PrivateKeys[0])
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	privateKey, err := ngtypes.ParsePrivateKey(d)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = tx.Signature(privateKey)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -122,9 +125,8 @@ type genTransactionParams struct {
 	Participants []string  `json:"participants"` // bs58 addresses
 	Values       []float64 `json:"values"`
 	Fee          float64   `json:"fee"`
-	// per-participant calldata (both optional, aligned when present)
-	Entries []string `json:"entries"` // entry names (eth-style selector)
-	Extras  []string `json:"extras"`  // hex args
+	Entry        string    `json:"entry"` // optional contract entry (eth-style selector)
+	Extra        string    `json:"extra"` // hex args
 }
 
 // all genTx should reply protobuf encoded bytes.
@@ -153,36 +155,12 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 
 	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
 
-	if (len(params.Entries) != 0 && len(params.Entries) != len(participants)) ||
-		(len(params.Extras) != 0 && len(params.Extras) != len(participants)) {
-		err := errors.New("entries/extras must align with participants")
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	calldatas := make([][]byte, len(participants))
-	for i := range participants {
-		entry := ""
-		if len(params.Entries) != 0 {
-			entry = params.Entries[i]
-		}
-		var args []byte
-		if len(params.Extras) != 0 {
-			var err error
-			args, err = hex.DecodeString(params.Extras[i])
-			if err != nil {
-				log.Error(err)
-				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-			}
-		}
-		calldatas[i] = ngtypes.EncodeCallData(entry, args)
-	}
-
-	extra, err := ngtypes.EncodeTransactExtras(calldatas)
+	args, err := hex.DecodeString(params.Extra)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
+	extra := ngtypes.EncodeCallData(params.Entry, args)
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
