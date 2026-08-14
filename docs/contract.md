@@ -54,8 +54,11 @@ contracts through the kv host module.
 - `DisableFloatPoint: true` — no platform-dependent float results
 - `Recover: true` — a contract panic can never kill the node
 - `CallDepthLimit: 512`
-- gas: `SimpleTollStation` with a fixed budget of 2^24 instructions per
-  call; overflowing aborts the call
+- gas: `SimpleTollStation` with a fixed budget of 2^24 toll per call;
+  every instruction costs 1, and host operations charge tiered extras
+  (kv.set 1000 + 10/byte, kv.del 500, kv reads 100, coin.transfer 2000,
+  log.emit 500 + 5/byte, each service call 2000) so state writes cost
+  orders of magnitude more than arithmetic; overflowing aborts the call
 - all host functions bounds-check every pointer/length against the
   instance's linear memory
 

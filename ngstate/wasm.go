@@ -36,6 +36,20 @@ const (
 	vmBufMaxLen = 4096
 )
 
+// host operations charge extra toll on top of the flat per-instruction
+// price: state writes are orders of magnitude more expensive than
+// arithmetic and must be priced accordingly
+const (
+	gasKVSetBase    = 1000
+	gasKVSetPerByte = 10
+	gasKVDel        = 500
+	gasKVRead       = 100
+	gasCoinTransfer = 2000
+	gasEventBase    = 500
+	gasEventPerByte = 5
+	gasServiceCall  = 2000
+)
+
 // VM is the sandbox env for exec a contract, based on wasman.
 // A fresh VM is built for every single contract call: nothing inside it
 // survives across txs, which keeps the execution deterministic
@@ -208,6 +222,14 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 	}
 
 	return nil
+}
+
+// charge burns extra toll for a host operation; exceeding the budget
+// panics, which Recover turns into a deterministic aborted call
+func (vm *VM) charge(cost uint64) {
+	if err := vm.cfg.TollStation.AddToll(cost); err != nil {
+		panic(errors.Wrap(err, "gas budget exceeded by a host operation"))
+	}
 }
 
 // Events returns what the (successful) run emitted

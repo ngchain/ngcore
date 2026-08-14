@@ -76,6 +76,8 @@ func initLogImports(vm *VM) error {
 	// non-consensus data); attributed to the EXECUTING account
 	err = vm.linker.DefineAdvancedFunc("log", "emit", func(ins *wasman.Instance) interface{} {
 		return func(topicPtr, topicLen, dataPtr, dataLen uint32) uint32 {
+			vm.charge(gasEventBase + gasEventPerByte*uint64(topicLen+dataLen))
+
 			if len(vm.events) >= maxEventsPerRun ||
 				topicLen > maxEventTopicLen || dataLen > maxEventDataLen {
 				return 0

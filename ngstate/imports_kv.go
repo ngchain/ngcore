@@ -32,6 +32,8 @@ func vmContext(vm *VM) *ngtypes.AccountContext {
 func initKVImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("kv", "get_size", func(ins *wasman.Instance) interface{} {
 		return func(keyPtr, keyLen uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			key, err := readMem(ins, keyPtr, keyLen)
 			if err != nil {
 				vm.logger.Error(err)
@@ -51,6 +53,8 @@ func initKVImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("kv", "get", func(ins *wasman.Instance) interface{} {
 		return func(keyPtr, keyLen, valPtr uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			key, err := readMem(ins, keyPtr, keyLen)
 			if err != nil {
 				vm.logger.Error(err)
@@ -76,6 +80,8 @@ func initKVImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("kv", "set", func(ins *wasman.Instance) interface{} {
 		return func(keyPtr, keyLen, valPtr, valLen uint32) uint32 {
+			vm.charge(gasKVSetBase + gasKVSetPerByte*uint64(keyLen+valLen))
+
 			key, err := readMem(ins, keyPtr, keyLen)
 			if err != nil {
 				vm.logger.Error(err)
@@ -122,6 +128,8 @@ func initKVImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("kv", "count", func(ins *wasman.Instance) interface{} {
 		return func(prefixPtr, prefixLen uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			prefix, err := readMem(ins, prefixPtr, prefixLen)
 			if err != nil {
 				vm.logger.Error(err)
@@ -137,6 +145,8 @@ func initKVImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("kv", "key_size_at", func(ins *wasman.Instance) interface{} {
 		return func(prefixPtr, prefixLen, index uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			prefix, err := readMem(ins, prefixPtr, prefixLen)
 			if err != nil {
 				vm.logger.Error(err)
@@ -157,6 +167,8 @@ func initKVImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("kv", "key_at", func(ins *wasman.Instance) interface{} {
 		return func(prefixPtr, prefixLen, index, outPtr uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			prefix, err := readMem(ins, prefixPtr, prefixLen)
 			if err != nil {
 				vm.logger.Error(err)
@@ -183,6 +195,8 @@ func initKVImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("kv", "del", func(ins *wasman.Instance) interface{} {
 		return func(keyPtr, keyLen uint32) uint32 {
+			vm.charge(gasKVDel)
+
 			key, err := readMem(ins, keyPtr, keyLen)
 			if err != nil {
 				vm.logger.Error(err)

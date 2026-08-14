@@ -137,6 +137,8 @@ func (vm *VM) makeServiceWrapper(num uint64, ins *wasman.Instance, exportName st
 			panic(errors.Wrapf(ErrServiceReentry, "contract %d", num))
 		}
 
+		vm.charge(gasServiceCall)
+
 		raw := make([]uint64, len(args))
 		for i, a := range args {
 			raw[i] = toRaw(a)

@@ -50,6 +50,8 @@ func initCoinImports(vm *VM) error {
 	// funds, never the caller's
 	err = vm.linker.DefineAdvancedFunc("coin", "transfer", func(ins *wasman.Instance) interface{} {
 		return func(to, value uint64) uint32 {
+			vm.charge(gasCoinTransfer)
+
 			fromAcc, err := vm.journal.accountOf(vm.txn, vm.currentAccount())
 			if err != nil {
 				vm.logger.Error(err)

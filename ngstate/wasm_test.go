@@ -1024,6 +1024,56 @@ func TestReceiptsAndEvents(t *testing.T) {
 	}
 }
 
+// TestGasPricingTiers: storage writes must cost far more than pure
+// computation, and the priced budget still aborts deterministically
+func TestGasPricingTiers(t *testing.T) {
+	db := newTestDB(t)
+
+	run := func(wat string) uint64 {
+		var gas uint64
+		err := db.Update(func(txn *bbolt.Tx) error {
+			acc := ngtypes.NewAccount(500, testAddr(0xaa), []byte(wat), nil)
+			acc.SetLock(true)
+			putAccount(t, txn, acc, 100)
+
+			vm, err := NewVM(txn, acc, fakeTransactTx(nil, nil), 1)
+			if err != nil {
+				return err
+			}
+			gas, err = vm.DryRun(VMEntryOnTx)
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return gas
+	}
+
+	// pure computation baseline
+	pureWat := `
+(module
+  (func (export "main")
+    (local $i i32)
+    (local.set $i (i32.const 100))
+    (block $out (loop $l
+      (br_if $out (i32.eqz (local.get $i)))
+      (local.set $i (i32.sub (local.get $i) (i32.const 1)))
+      (br $l)))))
+`
+	pure := run(pureWat)
+	write := run(kvWat) // one kv.set of a 3-byte key + 3-byte value
+
+	// the tier must dominate: a single 6-byte write outweighs a
+	// hundred-iteration compute loop
+	wantMin := uint64(gasKVSetBase + gasKVSetPerByte*6)
+	if write < wantMin {
+		t.Fatalf("kv.set gas %d, want at least the tier %d", write, wantMin)
+	}
+	if write <= pure {
+		t.Fatalf("one kv.set (%d) must cost more than the pure loop (%d)", write, pure)
+	}
+}
+
 // TestVMDryRun: a dry run executes fully (gas burned, result visible)
 // but never touches the chain state
 func TestVMDryRun(t *testing.T) {
