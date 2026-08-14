@@ -26,7 +26,7 @@ var (
 const (
 	// MinimumDifficulty is the minimum of pow minimumDifficulty because my laptop has 200 h/s, I believe you can either
 	minimumDifficulty = 200 << 4 // Target = MaxTarget / diff
-	TargetTime        = 16 * time.Second
+	TargetTime        = 1 * time.Second // aggressive fast-block design
 	BlockCheckRound   = 10 // do converge if fall behind one round
 
 	MatureRound  = 10                            // not mandatory required, can be modified by different daemons

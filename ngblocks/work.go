@@ -1,6 +1,8 @@
 package ngblocks
 
 import (
+	"bytes"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/c0mm4nd/rlp"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // blockWorkPrefix prefixes the key storing the cumulative pow work of the
@@ -34,6 +37,14 @@ func GetBlockWork(blockBucket *bbolt.Bucket, hash []byte) (*big.Int, error) {
 	return new(big.Int).SetBytes(raw), nil
 }
 
+// sideBlockPrefix indexes the stored side blocks (hash -> height) so
+// pruning never has to scan the canonical blocks
+var sideBlockPrefix = []byte("side:")
+
+func sideBlockKey(hash []byte) []byte {
+	return append(sideBlockPrefix, hash...)
+}
+
 // PutSideBlock stores a block by its hash ONLY: the canonical height
 // index, the tx index and the latest tags are left untouched. The block
 // becomes reachable for a later reorg without being part of the main chain
@@ -47,5 +58,41 @@ func PutSideBlock(blockBucket *bbolt.Bucket, block *ngtypes.FullBlock) error {
 		return err
 	}
 
-	return blockBucket.Put(block.GetHash(), raw)
+	if err := blockBucket.Put(block.GetHash(), raw); err != nil {
+		return err
+	}
+
+	return blockBucket.Put(sideBlockKey(block.GetHash()), utils.PackUint64LE(block.GetHeight()))
+}
+
+// PruneSideBlocks garbage-collects the side blocks (and their work
+// entries) below the given height: below the finality line they can
+// never win a reorg anymore
+func PruneSideBlocks(blockBucket *bbolt.Bucket, belowHeight uint64) (pruned int, err error) {
+	c := blockBucket.Cursor()
+
+	victims := make([][]byte, 0)
+
+	for k, v := c.Seek(sideBlockPrefix); k != nil && bytes.HasPrefix(k, sideBlockPrefix); k, v = c.Next() {
+		if binary.LittleEndian.Uint64(v) < belowHeight {
+			hash := make([]byte, len(k)-len(sideBlockPrefix))
+			copy(hash, k[len(sideBlockPrefix):])
+			victims = append(victims, hash)
+		}
+	}
+
+	for _, hash := range victims {
+		if err := blockBucket.Delete(hash); err != nil {
+			return pruned, err
+		}
+		if err := blockBucket.Delete(blockWorkKey(hash)); err != nil {
+			return pruned, err
+		}
+		if err := blockBucket.Delete(sideBlockKey(hash)); err != nil {
+			return pruned, err
+		}
+		pruned++
+	}
+
+	return pruned, nil
 }

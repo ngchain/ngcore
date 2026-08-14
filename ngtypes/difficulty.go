@@ -28,22 +28,17 @@ func GetNextDiff(blockHeight uint64, blockTime uint64, tailBlock *FullBlock) *bi
 	if tailBlock.GetTimestamp() < GetGenesisTimestamp(tailBlock.BlockHeader.Network) {
 		panic("network havent start yet")
 	}
-	elapsed := tailBlock.GetTimestamp() - GetGenesisTimestamp(tailBlock.BlockHeader.Network)
-	diffTime := int64(elapsed) - int64(tailBlock.GetHeight())*int64(TargetTime/time.Second)
-	delta := new(big.Int)
-	if diffTime < int64(TargetTime/time.Second)*(-2) {
-		delta.Div(diff, big.NewInt(10))
-	}
 
-	if diffTime > int64(TargetTime/time.Second)*(+2) {
-		delta.Div(diff, big.NewInt(10))
+	// ethereum-homestead style: diff += diff/2048 * max(1 - d/target, -99),
+	// with the gap normalized by the TARGET TIME so the same formula
+	// holds for 1-second blocks (d == target keeps the diff stable)
+	target := int64(TargetTime / time.Second)
+	if target < 1 {
+		target = 1
 	}
-
-	// reload the diff
-	diff = new(big.Int).SetBytes(tailBlock.BlockHeader.Difficulty)
-	d := int64(blockTime) - int64(tailBlock.GetTimestamp()) - int64(TargetTime/time.Second)
-	delta.Div(diff, big.NewInt(2048))
-	delta.Mul(delta, big.NewInt(max(1-(d)/10, -99)))
+	d := int64(blockTime) - int64(tailBlock.GetTimestamp())
+	delta := new(big.Int).Div(diff, big.NewInt(2048))
+	delta.Mul(delta, big.NewInt(max(1-d/target, -99)))
 	diff.Add(diff, delta)
 
 	delta.Exp(big2, big.NewInt(int64(blockHeight)/100_000-2), nil)

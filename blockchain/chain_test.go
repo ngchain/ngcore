@@ -337,6 +337,55 @@ func TestTipChangedHook(t *testing.T) {
 	}
 }
 
+// TestSideBlockPruning: side blocks below the finality line get
+// reclaimed at checkpoints, while canonical blocks stay
+func TestSideBlockPruning(t *testing.T) {
+	chain := newTestChain(t)
+	minerA, _ := secp256k1.GeneratePrivateKey()
+	minerB, _ := secp256k1.GeneratePrivateKey()
+
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	b1 := mineBlock(t, genesis, minerA)
+	if err := chain.ApplyBlock(b1); err != nil {
+		t.Fatal(err)
+	}
+
+	// a competing side block at height 2
+	side := mineBlock(t, b1, minerB)
+	parent := mineBlock(t, b1, minerA)
+	if err := chain.ApplyBlock(parent); err != nil {
+		t.Fatal(err)
+	}
+	if err := chain.ApplyBlock(side); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := chain.GetBlockByHash(side.GetHash()); err != nil {
+		t.Fatal("side block should be stored")
+	}
+
+	// mine past the SECOND checkpoint: the finality line moves to 10 and
+	// the old side block becomes unreachable garbage
+	for parent.GetHeight() < 2*uint64(ngtypes.BlockCheckRound) {
+		parent = mineBlock(t, parent, minerA)
+		if err := chain.ApplyBlock(parent); err != nil {
+			t.Fatalf("apply block@%d: %v", parent.GetHeight(), err)
+		}
+	}
+
+	if _, err := chain.GetBlockByHash(side.GetHash()); err == nil {
+		t.Fatal("finalized side block should be pruned")
+	}
+
+	// the canonical block at the same height is untouched
+	canon2, err := chain.GetBlockByHeight(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if canon2.GetHeight() != 2 {
+		t.Fatal("canonical chain must stay intact")
+	}
+}
+
 // TestSnapshotPersistence: checkpoint sheets must survive a state
 // "restart" (fresh in-mem cache over the same db) so mature-balance
 // lookups keep working

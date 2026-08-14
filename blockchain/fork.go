@@ -159,9 +159,17 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 		return err
 	}
 
-	// the switch may land on a checkpoint tip: keep it servable
-	if branch[len(branch)-1].IsHead() {
-		return chain.State.GenerateSnapshotTxn(txn)
+	// the switch may land on a checkpoint tip: keep it servable and
+	// reclaim the side blocks below the new finality line
+	newTip := branch[len(branch)-1]
+	if newTip.IsHead() {
+		if err := chain.State.GenerateSnapshotTxn(txn); err != nil {
+			return err
+		}
+
+		if _, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(newTip.GetHeight())); err != nil {
+			return err
+		}
 	}
 
 	return nil

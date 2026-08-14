@@ -47,9 +47,20 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 				return err
 			}
 
-			// checkpoint tips get a servable state snapshot
+			// checkpoint tips get a servable state snapshot, and the
+			// side blocks below the new finality line get reclaimed
 			if block.IsHead() {
-				return chain.State.GenerateSnapshotTxn(txn)
+				if err := chain.State.GenerateSnapshotTxn(txn); err != nil {
+					return err
+				}
+
+				pruned, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(block.GetHeight()))
+				if err != nil {
+					return err
+				}
+				if pruned > 0 {
+					log.Warnf("pruned %d finalized side block(s)", pruned)
+				}
 			}
 
 			return nil

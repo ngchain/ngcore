@@ -49,7 +49,8 @@ func SwitchToBranch(blockBucket, txBucket *bbolt.Bucket, branch []*ngtypes.FullB
 		return err
 	}
 
-	// unlink the txs of every canonical block being replaced or truncated
+	// unlink the txs of every canonical block being replaced or truncated,
+	// and mark them as side blocks so the pruner can reclaim them later
 	for h := branch[0].GetHeight(); h <= oldHeight; h++ {
 		old, err := GetBlockByHeight(blockBucket, h)
 		if err != nil {
@@ -59,14 +60,21 @@ func SwitchToBranch(blockBucket, txBucket *bbolt.Bucket, branch []*ngtypes.FullB
 		if err := delTxs(txBucket, old.Txs...); err != nil {
 			return err
 		}
+
+		if err := blockBucket.Put(sideBlockKey(old.GetHash()), utils.PackUint64LE(old.GetHeight())); err != nil {
+			return err
+		}
 	}
 
-	// connect the branch
+	// connect the branch; promoted blocks are canonical, not side ones
 	for _, block := range branch {
 		if err := putBlock(blockBucket, block.GetHash(), block); err != nil {
 			return err
 		}
 		if err := putTxs(txBucket, block); err != nil {
+			return err
+		}
+		if err := blockBucket.Delete(sideBlockKey(block.GetHash())); err != nil {
 			return err
 		}
 	}

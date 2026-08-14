@@ -8,7 +8,7 @@ import (
 
 // main loop of sync module.
 func (mod *syncModule) loop(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(3 * time.Second) // fast blocks need a fast repair loop
 	defer ticker.Stop()
 
 	for {
