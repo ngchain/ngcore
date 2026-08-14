@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"go.etcd.io/bbolt"
 	"github.com/ngchain/secp256k1"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
+	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/blockchain"
 	"github.com/ngchain/ngcore/ngblocks"
@@ -85,13 +85,25 @@ func InitPoWConsensus(db *bbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool
 	return pow
 }
 
+// templateBlockTime picks the mining timestamp: wall clock, but always
+// strictly after the parent so back-to-back templates within the same
+// second (the 1s block target makes this common) stay monotonic
+func templateBlockTime(parent *ngtypes.FullBlock) uint64 {
+	blockTime := uint64(time.Now().Unix())
+	if blockTime <= parent.BlockHeader.Timestamp {
+		blockTime = parent.BlockHeader.Timestamp + 1
+	}
+
+	return blockTime
+}
+
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
 func (pow *PoWork) GetBlockTemplate(privateKey *secp256k1.PrivateKey) ngtypes.Block {
 	currentBlock := pow.Chain.GetLatestBlock()
 
 	currentBlockHash := currentBlock.GetHash()
 
-	blockTime := uint64(time.Now().Unix())
+	blockTime := templateBlockTime(currentBlock.(*ngtypes.FullBlock))
 
 	blockHeight := currentBlock.GetHeight() + 1
 	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock.(*ngtypes.FullBlock))
@@ -122,7 +134,7 @@ func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, 
 
 	currentBlockHash := currentBlock.GetHash()
 
-	blockTime := uint64(time.Now().Unix())
+	blockTime := templateBlockTime(currentBlock.(*ngtypes.FullBlock))
 
 	blockHeight := currentBlock.GetHeight() + 1
 	newDiff := ngtypes.GetNextDiff(blockHeight, blockTime, currentBlock.(*ngtypes.FullBlock))
