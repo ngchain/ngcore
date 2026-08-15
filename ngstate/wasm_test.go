@@ -14,6 +14,7 @@ import (
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // The on-chain contracts are plain wat text — human-readable and
@@ -1623,5 +1624,106 @@ func TestSourceSizeCap(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// cryptoWat verifies a signature passed through calldata:
+// args = pk_len(1B LE) ‖ pubkey ‖ hash(32) ‖ sig, scheme fixed secp.
+// It stores the verify result and the recovered address's first byte
+const cryptoWat = `
+(module
+  (import "tx" "get_extra" (func $args (param i32) (result i32)))
+  (import "tx" "get_extra_size" (func $alen (result i32)))
+  (import "crypto" "verify" (func $verify (param i32 i32 i32 i32 i32 i32) (result i32)))
+  (import "crypto" "addr_of" (func $addr_of (param i32 i32 i32 i32) (result i32)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "okad")
+  (func (export "main")
+    (local $pklen i32) (local $siglen i32)
+    ;; load args at 1024
+    (drop (call $args (i32.const 1024)))
+    (local.set $pklen (i32.load8_u (i32.const 1024)))
+    ;; sig len = total - 1 - pklen - 32
+    (local.set $siglen (i32.sub (i32.sub (i32.sub (call $alen) (i32.const 1)) (local.get $pklen)) (i32.const 32)))
+    ;; verify(scheme=1, pk@1025, pklen, hash@1025+pklen, sig@1025+pklen+32, siglen)
+    (i32.store8 (i32.const 512)
+      (call $verify (i32.const 1)
+        (i32.const 1025) (local.get $pklen)
+        (i32.add (i32.const 1025) (local.get $pklen))
+        (i32.add (i32.add (i32.const 1025) (local.get $pklen)) (i32.const 32))
+        (local.get $siglen)))
+    (drop (call $set (i32.const 0) (i32.const 2) (i32.const 512) (i32.const 1)))
+    ;; addr_of(scheme=1, pk@1025, pklen, out@576)
+    (drop (call $addr_of (i32.const 1) (i32.const 1025) (local.get $pklen) (i32.const 576)))
+    (drop (call $set (i32.const 2) (i32.const 2) (i32.const 576) (i32.const 32)))))
+`
+
+// TestCryptoHostFuncs: contracts verify real signatures and derive
+// addresses from revealed keys — the primitive contract-level multisig
+// builds on
+func TestCryptoHostFuncs(t *testing.T) {
+	db := newTestDB(t)
+
+	signer, _ := ngtypes.GenerateSchemeKey(ngtypes.SchemeSecp256k1)
+	digest := utils.KeccakSum256([]byte("proposal: pay alice 5 NG"))
+	sig, err := signer.SignHash(digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub := signer.PublicBytes()
+
+	buildArgs := func(sig []byte) []byte {
+		args := []byte{byte(len(pub))}
+		args = append(args, pub...)
+		args = append(args, digest...)
+		return append(args, sig...)
+	}
+
+	contractAddr := testAddr(0xcf)
+
+	run := func(args []byte) *ngtypes.Contract {
+		var reloaded *ngtypes.Contract
+		err := db.Update(func(txn *bbolt.Tx) error {
+			acc := ngtypes.NewContract(contractAddr, []byte(cryptoWat), nil)
+			acc.SetActive(true)
+			putContract(t, txn, acc, 0)
+
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+				contractAddr, nil, nil, ngtypes.EncodeCallData("main", args), nil)
+
+			vm, err := NewVM(txn, acc, tx, 1)
+			if err != nil {
+				return err
+			}
+			_ = vm // route through runContract for the full path
+			state := &State{Network: ngtypes.ZERONET}
+			state.runContract(txn, contractAddr, tx, VMEntryOnTx, 1, nil)
+
+			reloaded, err = getContract(txn, contractAddr)
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return reloaded
+	}
+
+	// a valid signature verifies and the derived address matches
+	acc := run(buildArgs(sig))
+	if got := acc.Context.Get("ok"); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("verify result = %v, want [1]", got)
+	}
+	want := ngtypes.NewAddress(signer)
+	if got := acc.Context.Get("ad"); string(got) != string(want[:]) {
+		t.Fatalf("derived address = %x, want %x", got, want[:])
+	}
+
+	// a corrupted signature fails verification
+	bad := append([]byte{}, sig...)
+	bad[10] ^= 1
+	acc = run(buildArgs(bad))
+	if got := acc.Context.Get("ok"); len(got) != 1 || got[0] != 0 {
+		t.Fatalf("corrupted verify result = %v, want [0]", got)
 	}
 }
