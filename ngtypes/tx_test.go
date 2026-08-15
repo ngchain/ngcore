@@ -52,7 +52,7 @@ func TestTransaction_Signature(t *testing.T) {
 
 	_ = o.Signature(priv1)
 
-	if err := o.Verify(); err != nil {
+	if err := o.Verify(nil); err != nil {
 		t.Errorf("signed tx must verify: %v", err)
 	}
 
@@ -68,7 +68,7 @@ func TestTransaction_Signature(t *testing.T) {
 func TestGetGenesisGenerate(t *testing.T) {
 	for _, net := range ngtypes.AvailableNetworks {
 		gg := ngtypes.GetGenesisGenerateTx(net)
-		if err := gg.Verify(); err != nil {
+		if err := gg.Verify(nil); err != nil {
 			t.Log(err)
 			t.Fail()
 		}

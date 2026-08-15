@@ -120,6 +120,7 @@ func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) err
 	for _, name := range [][]byte{
 		storage.Addr2BalBucketName,
 		storage.ContractBucketName,
+		storage.KeyRegistryBucketName,
 	} {
 		if err := txn.DeleteBucket(name); err != nil {
 			return err
@@ -144,6 +145,7 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 	for _, name := range [][]byte{
 		storage.Addr2BalBucketName,
 		storage.ContractBucketName,
+		storage.KeyRegistryBucketName,
 		storage.ReceiptBucketName, // receipts regenerate with the replay
 	} {
 		if err := txn.DeleteBucket(name); err != nil {

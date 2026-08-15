@@ -50,7 +50,11 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 }
 
 func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.Verify(); err != nil {
+	if err := tx.Verify(keyResolver(txn)); err != nil {
+		return err
+	}
+
+	if err := registerPubKey(txn, tx); err != nil {
 		return err
 	}
 
@@ -67,7 +71,11 @@ func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error
 // chargeFrom verifies the tx, derives its From address and burns the
 // expenditure from the From address's balance
 func chargeFrom(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
-	if err := tx.Verify(); err != nil {
+	if err := tx.Verify(keyResolver(txn)); err != nil {
+		return ngtypes.Address{}, err
+	}
+
+	if err := registerPubKey(txn, tx); err != nil {
 		return ngtypes.Address{}, err
 	}
 
@@ -131,7 +139,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 // handleCommit applies a whole patch (CommitExtra hunks) onto the
 // sender's contract slot atomically; the first commit OPENS the slot
 func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.CheckCommit(); err != nil {
+	if err := tx.CheckCommit(keyResolver(txn)); err != nil {
 		return err
 	}
 
@@ -169,7 +177,7 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 // handleActivate freezes the From address's contract: the body becomes immutable
 // and the vm gets active. The optional `init` export runs once here
 func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
-	if err := tx.CheckActivate(); err != nil {
+	if err := tx.CheckActivate(keyResolver(txn)); err != nil {
 		return err
 	}
 
@@ -237,7 +245,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 // handleDeactivate disables the vm of the From address's contract and makes the
 // body editable again
 func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.CheckDeactivate(); err != nil {
+	if err := tx.CheckDeactivate(keyResolver(txn)); err != nil {
 		return err
 	}
 

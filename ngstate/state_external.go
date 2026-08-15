@@ -76,3 +76,15 @@ func (state *State) GetContract(address ngtypes.Address) (*ngtypes.Contract, err
 
 	return account, nil
 }
+
+// PubKeyRegistered reports whether the address's public key is already
+// on chain, so wallets can switch to the compact envelope
+func (state *State) PubKeyRegistered(addr ngtypes.Address) bool {
+	registered := false
+	_ = state.View(func(txn *bbolt.Tx) error {
+		registered = txn.Bucket(storage.KeyRegistryBucketName).Get(addr[:]) != nil
+		return nil
+	})
+
+	return registered
+}

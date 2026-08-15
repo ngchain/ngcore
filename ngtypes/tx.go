@@ -90,22 +90,122 @@ func (x *FullTx) IsSigned() bool {
 	return len(x.Sign) != 0
 }
 
-// From derives the From address from the public key embedded in
-// the signature envelope: whoever holds the key IS the address. The
-// state layer enforces every spending rule against this derived From address
+// The signature envelope has two forms, told apart by a leading form
+// tag; both carry the scheme byte so sizes parse unambiguously:
+//
+//	full:    0x01 ‖ scheme ‖ pubkey ‖ sig — reveals (and registers) the key
+//	compact: 0x02 ‖ scheme ‖ From(32) ‖ sig — omits the key; valid only
+//	         once a PRIOR block registered the address's key on chain
+//
+// A PubKeyResolver looks a registered key (scheme ‖ pubkey) up by
+// address; nil means no registry is available and only full envelopes
+// verify.
+type PubKeyResolver func(Address) []byte
+
+const (
+	envelopeFull    byte = 0x01
+	envelopeCompact byte = 0x02
+)
+
+// IsCompactEnvelope reports whether the tx uses the compact form
+func (x *FullTx) IsCompactEnvelope() bool {
+	return len(x.Sign) > 0 && x.Sign[0] == envelopeCompact
+}
+
+// EnvelopeScheme returns the signature scheme the envelope declares
+func (x *FullTx) EnvelopeScheme() SigScheme {
+	if len(x.Sign) < 2 {
+		return 0
+	}
+
+	return SigScheme(x.Sign[1])
+}
+
+// envelope splits Sign into the scheme, public key (resolving the
+// compact form through the registry) and the signature
+func (x *FullTx) envelope(lookup PubKeyResolver) (scheme SigScheme, pubKey, sig []byte, err error) {
+	if len(x.Sign) < 2 {
+		return 0, nil, nil, ErrTxUnsigned
+	}
+
+	scheme = SigScheme(x.Sign[1])
+	pkLen, sigLen := PubKeySize(scheme), SigSize(scheme)
+	if pkLen == 0 {
+		return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "unknown scheme %#02x", byte(scheme))
+	}
+
+	body := x.Sign[2:]
+	switch x.Sign[0] {
+	case envelopeFull:
+		if len(body) != pkLen+sigLen {
+			return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "full envelope is %d bytes", len(x.Sign))
+		}
+		return scheme, body[:pkLen], body[pkLen:], nil
+
+	case envelopeCompact:
+		if len(body) != AddressSize+sigLen {
+			return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "compact envelope is %d bytes", len(x.Sign))
+		}
+		if lookup == nil {
+			return 0, nil, nil, errors.Wrap(ErrTxSignInvalid, "compact envelope without a key registry")
+		}
+
+		from := Address{}
+		copy(from[:], body[:AddressSize])
+
+		entry := lookup(from)
+		if len(entry) != 1+pkLen || SigScheme(entry[0]) != scheme {
+			return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "no registered %#02x key for %s", byte(scheme), from)
+		}
+		pubKey = entry[1:]
+		if !AddressOfPubKey(scheme, pubKey).Equals(from) {
+			return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "registry mismatch for %s", from)
+		}
+
+		return scheme, pubKey, body[AddressSize:], nil
+
+	default:
+		return 0, nil, nil, ErrTxUnsigned
+	}
+}
+
+// From derives the From address: from the embedded public key on a
+// full envelope, or the explicit address on a compact one. Whoever
+// holds the key IS the address; the state layer enforces every
+// spending rule against this derived From address
 func (x *FullTx) From() (Address, error) {
-	if len(x.Sign) != PublicKeySize+TxSignatureSize {
+	if len(x.Sign) < 2 {
 		return Address{}, ErrTxUnsigned
 	}
 
-	return AddressOfPubKey(x.Sign[:PublicKeySize]), nil
+	scheme := SigScheme(x.Sign[1])
+	pkLen, sigLen := PubKeySize(scheme), SigSize(scheme)
+	body := x.Sign[2:]
+
+	switch x.Sign[0] {
+	case envelopeFull:
+		if pkLen == 0 || len(body) != pkLen+sigLen {
+			return Address{}, ErrTxUnsigned
+		}
+		return AddressOfPubKey(scheme, body[:pkLen]), nil
+
+	case envelopeCompact:
+		if pkLen == 0 || len(body) != AddressSize+sigLen {
+			return Address{}, ErrTxUnsigned
+		}
+		from := Address{}
+		copy(from[:], body[:AddressSize])
+		return from, nil
+
+	default:
+		return Address{}, ErrTxUnsigned
+	}
 }
 
-// Verify checks the tx signature — a flat envelope of the From address's
-// public key followed by its signature over the unsigned tx hash. The
-// public key is only revealed here, at spend time, never by the
-// address itself
-func (x *FullTx) Verify() error {
+// Verify checks the tx signature envelope over the unsigned tx hash.
+// lookup resolves compact envelopes against the on-chain key registry
+// (nil accepts full envelopes only)
+func (x *FullTx) Verify(lookup PubKeyResolver) error {
 	if x.Height == 0 {
 		return nil // ignore all tx error on genesis block
 	}
@@ -118,11 +218,12 @@ func (x *FullTx) Verify() error {
 		return ErrTxExtraExcess
 	}
 
-	if len(x.Sign) != PublicKeySize+TxSignatureSize {
-		return errors.Wrapf(ErrTxSignInvalid, "signature envelope is %d bytes", len(x.Sign))
+	scheme, pubKey, sig, err := x.envelope(lookup)
+	if err != nil {
+		return err
 	}
 
-	if !VerifyHashSig(x.Sign[:PublicKeySize], x.GetUnsignedHash(), x.Sign[PublicKeySize:]) {
+	if !VerifyHashSig(scheme, pubKey, x.GetUnsignedHash(), sig) {
 		return ErrTxSignInvalid
 	}
 
@@ -145,7 +246,7 @@ func (x *FullTx) ID() string {
 }
 
 // GetHash mainly for calculating the tire root of txs and sign tx.
-// The returned hash is sha3_256(tx_with_sign)
+// The returned hash is the hash of the whole signed tx
 func (x *FullTx) GetHash() []byte {
 	hash, err := x.CalculateHash()
 	if err != nil {
@@ -218,7 +319,7 @@ func (x *FullTx) Equals(other merkletree.Content) (bool, error) {
 }
 
 // CheckGenerate does a self check for generate tx
-func (x *FullTx) CheckGenerate(blockHeight uint64) error {
+func (x *FullTx) CheckGenerate(blockHeight uint64, lookup PubKeyResolver) error {
 	if x == nil {
 		return ErrBlockNoHeader
 	}
@@ -231,7 +332,7 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 		return errors.Wrap(ErrTxFeeInvalid, "generate's fee should be ZERO")
 	}
 
-	if err := x.Verify(); err != nil {
+	if err := x.Verify(lookup); err != nil {
 		return err
 	}
 
@@ -251,7 +352,7 @@ func (x *FullTx) CheckGenerate(blockHeight uint64) error {
 
 // CheckDestroy does a self check for destroy tx: the From address clears its
 // own contract slot
-func (x *FullTx) CheckDestroy() error {
+func (x *FullTx) CheckDestroy(lookup PubKeyResolver) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -260,7 +361,7 @@ func (x *FullTx) CheckDestroy() error {
 		return err
 	}
 
-	return x.Verify()
+	return x.Verify(lookup)
 }
 
 // checkNoTransfer refuses a To address or value on tx types which
@@ -278,7 +379,7 @@ func (x *FullTx) checkNoTransfer(verb string) error {
 }
 
 // CheckTransaction does a self check for normal transaction tx
-func (x *FullTx) CheckTransaction() error {
+func (x *FullTx) CheckTransaction(lookup PubKeyResolver) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -287,12 +388,12 @@ func (x *FullTx) CheckTransaction() error {
 		return errors.Wrap(ErrTxValueInvalid, "transact value cannot be negative")
 	}
 
-	return x.Verify()
+	return x.Verify(lookup)
 }
 
 // CheckCommit does a self check for commit tx: the From address patches its own
 // contract slot
-func (x *FullTx) CheckCommit() error {
+func (x *FullTx) CheckCommit(lookup PubKeyResolver) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -301,11 +402,11 @@ func (x *FullTx) CheckCommit() error {
 		return err
 	}
 
-	return x.Verify()
+	return x.Verify(lookup)
 }
 
 // CheckActivate does a self check for activate tx
-func (x *FullTx) CheckActivate() error {
+func (x *FullTx) CheckActivate(lookup PubKeyResolver) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -314,11 +415,11 @@ func (x *FullTx) CheckActivate() error {
 		return err
 	}
 
-	return x.Verify()
+	return x.Verify(lookup)
 }
 
 // CheckDeactivate does a self check for unactivate tx
-func (x *FullTx) CheckDeactivate() error {
+func (x *FullTx) CheckDeactivate(lookup PubKeyResolver) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
@@ -327,11 +428,11 @@ func (x *FullTx) CheckDeactivate() error {
 		return err
 	}
 
-	return x.Verify()
+	return x.Verify(lookup)
 }
 
-// Signature signs the tx, embedding the public key and its signature
-// as the flat envelope pubkey || sig
+// Signature signs the tx with the FULL envelope, which also registers
+// the key on chain when the tx lands
 func (x *FullTx) Signature(privateKey *PrivateKey) error {
 	x.Sign = nil
 	hash := x.GetUnsignedHash()
@@ -341,8 +442,32 @@ func (x *FullTx) Signature(privateKey *PrivateKey) error {
 		return err
 	}
 
-	envelope := make([]byte, 0, PublicKeySize+TxSignatureSize)
-	envelope = append(envelope, privateKey.PublicBytes()...)
+	pub := privateKey.PublicBytes()
+	envelope := make([]byte, 0, 2+len(pub)+len(sig))
+	envelope = append(envelope, envelopeFull, byte(privateKey.Scheme))
+	envelope = append(envelope, pub...)
+	envelope = append(envelope, sig...)
+
+	x.Sign = envelope
+	return nil
+}
+
+// SignatureCompact signs the tx with the COMPACT envelope, saving the
+// public key bytes; it only validates once the address's key is
+// registered on chain by an earlier full-envelope tx
+func (x *FullTx) SignatureCompact(privateKey *PrivateKey) error {
+	x.Sign = nil
+	hash := x.GetUnsignedHash()
+
+	sig, err := privateKey.SignHash(hash)
+	if err != nil {
+		return err
+	}
+
+	from := AddressOfPubKey(privateKey.Scheme, privateKey.PublicBytes())
+	envelope := make([]byte, 0, 2+AddressSize+len(sig))
+	envelope = append(envelope, envelopeCompact, byte(privateKey.Scheme))
+	envelope = append(envelope, from[:]...)
 	envelope = append(envelope, sig...)
 
 	x.Sign = envelope

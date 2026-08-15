@@ -679,14 +679,27 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	}
 
 	// relay pushes a signed tx through A's pool, waits for the gossip
-	// to reach B, lets B mine it and both nodes converge
+	// to reach B, lets B mine it and both nodes converge. The first tx
+	// carries the full envelope (registering the key); every later one
+	// uses the compact form, saving the public key bytes
+	keyOnChain := false
 	relay := func(build func(height uint64) *ngtypes.FullTx) *ngtypes.FullTx {
 		t.Helper()
 
 		next := nodeA.chain.GetLatestBlockHeight() + 1
 		tx := build(next)
-		if err := tx.Signature(deployer); err != nil {
-			t.Fatal(err)
+		if keyOnChain {
+			if err := tx.SignatureCompact(deployer); err != nil {
+				t.Fatal(err)
+			}
+			if len(tx.Sign) != 2+ngtypes.AddressSize+ngtypes.SigSize(deployer.Scheme) {
+				t.Fatalf("compact envelope size = %d", len(tx.Sign))
+			}
+		} else {
+			if err := tx.Signature(deployer); err != nil {
+				t.Fatal(err)
+			}
+			keyOnChain = true
 		}
 		if err := nodeA.pow.Pool.PutNewTxFromLocal(tx); err != nil {
 			t.Fatalf("submit %d tx: %v", tx.Type, err)

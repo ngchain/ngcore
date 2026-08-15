@@ -51,7 +51,7 @@ var checkCommand = &cli.Command{
 			fmt.Printf("checking %s\n", network)
 
 			gtx := ngtypes.GetGenesisGenerateTx(network)
-			if err := gtx.CheckGenerate(0); err != nil {
+			if err := gtx.CheckGenerate(0, nil); err != nil {
 				fmt.Printf("current genesis generate tx sign %x is invalid, err: %s, resignaturing... \n", gtx.Sign, err)
 
 				err = gtx.Signature(localKey)

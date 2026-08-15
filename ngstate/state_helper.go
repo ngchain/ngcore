@@ -74,3 +74,39 @@ func setBalance(txn *bbolt.Tx, addr ngtypes.Address, balance *big.Int) error {
 
 	return nil
 }
+
+// keyResolver builds the compact-envelope resolver over the on-chain
+// key registry of this txn
+func keyResolver(txn *bbolt.Tx) ngtypes.PubKeyResolver {
+	bucket := txn.Bucket(storage.KeyRegistryBucketName)
+
+	return func(addr ngtypes.Address) []byte {
+		return bucket.Get(addr[:])
+	}
+}
+
+// registerPubKey records the address -> (scheme ‖ public key) binding
+// a verified full-envelope tx revealed, enabling compact envelopes
+// afterwards
+func registerPubKey(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
+	if tx.IsCompactEnvelope() {
+		return nil
+	}
+
+	scheme := tx.EnvelopeScheme()
+	pkLen := ngtypes.PubKeySize(scheme)
+	if pkLen == 0 || len(tx.Sign) != 2+pkLen+ngtypes.SigSize(scheme) {
+		return nil
+	}
+
+	pubKey := tx.Sign[2 : 2+pkLen]
+	addr := ngtypes.AddressOfPubKey(scheme, pubKey)
+
+	bucket := txn.Bucket(storage.KeyRegistryBucketName)
+	if bucket.Get(addr[:]) != nil {
+		return nil // already registered
+	}
+
+	entry := append([]byte{byte(scheme)}, pubKey...)
+	return bucket.Put(addr[:], entry)
+}

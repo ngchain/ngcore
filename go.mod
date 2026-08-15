@@ -7,6 +7,7 @@ require (
 	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956
 	github.com/c0mm4nd/wasman v1.4.0
 	github.com/cbergoon/merkletree v0.2.0
+	github.com/cloudflare/circl v1.6.5
 	github.com/google/uuid v1.6.0
 	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-libp2p v0.49.0

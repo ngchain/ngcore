@@ -16,6 +16,11 @@ var (
 	ContractBucketName = []byte("addr:contract")
 	Addr2BalBucketName = []byte("addr:bal")
 
+	// KeyRegistryBucketName maps an address to its revealed public
+	// key: written by the first full-envelope tx of the address, it
+	// lets every later tx use the compact (key-less) envelope
+	KeyRegistryBucketName = []byte("addr:key")
+
 	// SnapshotBucketName persists the checkpoint state sheets, so the
 	// mature-balance lookups survive restarts
 	SnapshotBucketName = []byte("snapshot")
@@ -38,6 +43,7 @@ func InitDB(db *bbolt.DB) {
 		for _, name := range [][]byte{
 			BlockBucketName, TxBucketName,
 			ContractBucketName, Addr2BalBucketName,
+			KeyRegistryBucketName,
 			SnapshotBucketName, ReceiptBucketName,
 		} {
 			if _, err := txn.CreateBucketIfNotExists(name); err != nil {

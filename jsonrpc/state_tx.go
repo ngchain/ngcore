@@ -100,7 +100,13 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	err = tx.Signature(privateKey)
+	// once the chain knows this key, the compact envelope saves the
+	// public key bytes automatically
+	if s.pow.State.PubKeyRegistered(ngtypes.NewAddress(privateKey)) {
+		err = tx.SignatureCompact(privateKey)
+	} else {
+		err = tx.Signature(privateKey)
+	}
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

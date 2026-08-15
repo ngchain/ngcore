@@ -1337,3 +1337,82 @@ func TestCallSelector(t *testing.T) {
 		t.Fatalf("args = %x, want empty", got)
 	}
 }
+
+// TestCompactEnvelope: after an address's first full-envelope tx
+// registers its key, later txs may drop the 897-byte public key; an
+// unregistered address's compact tx is refused
+func TestCompactEnvelope(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	priv, _ := ngtypes.GenerateKey()
+	addr := ngtypes.NewAddress(priv)
+	var dest ngtypes.Address
+	dest[0] = 0xd1
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+			return err
+		}
+
+		// a compact tx before ANY full tx must be refused: no key on chain
+		early := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+			dest, big.NewInt(1), nil, nil, nil)
+		if err := early.SignatureCompact(priv); err != nil {
+			return err
+		}
+		if len(early.Sign) != 2+ngtypes.AddressSize+ngtypes.SigSize(priv.Scheme) {
+			t.Fatalf("compact envelope size = %d", len(early.Sign))
+		}
+		if err := checkTransaction(txn, early); err == nil {
+			t.Fatal("compact envelope without a registered key must fail")
+		}
+
+		// the first FULL tx registers the key
+		full := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+			dest, big.NewInt(1), nil, nil, nil)
+		if err := full.Signature(priv); err != nil {
+			return err
+		}
+		if len(full.Sign) != 2+ngtypes.PubKeySize(priv.Scheme)+ngtypes.SigSize(priv.Scheme) {
+			t.Fatalf("full envelope size = %d", len(full.Sign))
+		}
+		if err := state.handleTransaction(txn, full, 1); err != nil {
+			t.Fatalf("full tx: %v", err)
+		}
+
+		// now the compact form spends fine
+		compact := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+			dest, big.NewInt(2), nil, nil, nil)
+		if err := compact.SignatureCompact(priv); err != nil {
+			return err
+		}
+		if err := checkTransaction(txn, compact); err != nil {
+			t.Fatalf("checkTransaction compact: %v", err)
+		}
+		if err := state.handleTransaction(txn, compact, 1); err != nil {
+			t.Fatalf("compact tx: %v", err)
+		}
+		if got := getBalance(txn, dest); got.Int64() != 3 {
+			t.Fatalf("dest balance = %d, want 3", got.Int64())
+		}
+
+		// a compact envelope claiming a FOREIGN registered address must
+		// fail: the signature does not verify under that key
+		other, _ := ngtypes.GenerateKey()
+		forged := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+			dest, big.NewInt(1), nil, nil, nil)
+		if err := forged.SignatureCompact(other); err != nil {
+			return err
+		}
+		copy(forged.Sign[:ngtypes.AddressSize], addr[:]) // pose as addr
+		if err := checkTransaction(txn, forged); err == nil {
+			t.Fatal("a forged compact envelope must fail")
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

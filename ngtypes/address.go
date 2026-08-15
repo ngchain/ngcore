@@ -20,12 +20,14 @@ const addressVersion = 0x01
 // usable as a compact 32-byte address
 type Address [AddressSize]byte
 
-// AddressOfPubKey computes keccak256(version || pubkey)
-func AddressOfPubKey(pubKey []byte) Address {
+// AddressOfPubKey computes keccak256(version || scheme || pubkey):
+// the scheme byte binds into the address, so keys of different
+// schemes can never alias
+func AddressOfPubKey(scheme SigScheme, pubKey []byte) Address {
 	addr := Address{}
 
-	preimage := make([]byte, 0, 1+len(pubKey))
-	preimage = append(preimage, addressVersion)
+	preimage := make([]byte, 0, 2+len(pubKey))
+	preimage = append(preimage, addressVersion, byte(scheme))
 	preimage = append(preimage, pubKey...)
 
 	copy(addr[:], utils.KeccakSum256(preimage))
@@ -34,7 +36,7 @@ func AddressOfPubKey(pubKey []byte) Address {
 
 // NewAddress returns the address of a key
 func NewAddress(key *PrivateKey) Address {
-	return AddressOfPubKey(key.PublicBytes())
+	return AddressOfPubKey(key.Scheme, key.PublicBytes())
 }
 
 // mustAddressFromBS58 is NewAddressFromBS58 for hardcoded constants:

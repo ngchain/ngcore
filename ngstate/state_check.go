@@ -26,7 +26,7 @@ func CheckBlockTxs(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 		}
 
 		if tx.Type == ngtypes.GenerateTx {
-			if err := checkGenerate(tx, block.GetHeight()); err != nil {
+			if err := checkGenerate(txn, tx, block.GetHeight()); err != nil {
 				return err
 			}
 			continue
@@ -89,8 +89,8 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 }
 
 // checkGenerate checks the generate tx
-func checkGenerate(generateTx *ngtypes.FullTx, blockHeight uint64) error {
-	return generateTx.CheckGenerate(blockHeight)
+func checkGenerate(txn *bbolt.Tx, generateTx *ngtypes.FullTx, blockHeight uint64) error {
+	return generateTx.CheckGenerate(blockHeight, keyResolver(txn))
 }
 
 // fromWithBalance derives the From address and checks it can afford the
@@ -111,7 +111,7 @@ func fromWithBalance(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtyp
 // checkDestroy checks destroy tx: the From address clears its own slot,
 // which must exist, be inactive and unreferenced
 func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
-	if err := destroyTx.CheckDestroy(); err != nil {
+	if err := destroyTx.CheckDestroy(keyResolver(txn)); err != nil {
 		return err
 	}
 
@@ -137,7 +137,7 @@ func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
 
 // checkTransaction checks normal transaction tx
 func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
-	if err := transactionTx.CheckTransaction(); err != nil {
+	if err := transactionTx.CheckTransaction(keyResolver(txn)); err != nil {
 		return err
 	}
 
@@ -149,7 +149,7 @@ func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 // checkCommit checks commit tx: a dry-run of the whole patch
 // application; the first commit on an address opens its contract slot
 func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
-	if err := commitTx.CheckCommit(); err != nil {
+	if err := commitTx.CheckCommit(keyResolver(txn)); err != nil {
 		return err
 	}
 
@@ -183,7 +183,7 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 
 // checkActivate checks activate tx
 func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
-	if err := activateTx.CheckActivate(); err != nil {
+	if err := activateTx.CheckActivate(keyResolver(txn)); err != nil {
 		return err
 	}
 
@@ -227,7 +227,7 @@ func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
 
 // checkDeactivate checks unactivate tx
 func checkDeactivate(txn *bbolt.Tx, deactivateTx *ngtypes.FullTx) error {
-	if err := deactivateTx.CheckDeactivate(); err != nil {
+	if err := deactivateTx.CheckDeactivate(keyResolver(txn)); err != nil {
 		return err
 	}
 
