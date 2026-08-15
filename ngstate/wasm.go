@@ -230,6 +230,47 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 	return nil
 }
 
+// CheckSelectorCollisions refuses a contract whose callable exports
+// (zero-arg funcs, init excluded) collide on their 4-byte eth-style
+// selectors: sorted-order tie-breaking would silently shadow one of
+// them, so activation surfaces the clash as a hard error instead
+func CheckSelectorCollisions(source []byte) error {
+	if len(source) == 0 {
+		return nil
+	}
+
+	bin, err := CompileContract(source)
+	if err != nil {
+		return err
+	}
+
+	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewReader(bin))
+	if err != nil {
+		return err
+	}
+
+	seen := make(map[[4]byte]string)
+	for name := range module.ExportSection {
+		if name == VMEntryOnActivate {
+			continue
+		}
+		sig, ok := exportFuncSig(module, name)
+		if !ok || len(sig.InputTypes) != 0 {
+			continue
+		}
+
+		var sel [4]byte
+		copy(sel[:], ngtypes.CallSelector(name))
+		if other, clash := seen[sel]; clash {
+			return errors.Wrapf(ErrSelectorCollision,
+				"exports %q and %q share selector %x", other, name, sel)
+		}
+		seen[sel] = name
+	}
+
+	return nil
+}
+
 // charge burns extra toll for a host operation; exceeding the budget
 // panics, which Recover turns into a deterministic aborted call
 func (vm *VM) charge(cost uint64) {

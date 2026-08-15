@@ -37,6 +37,13 @@ const (
 
 	MatureRound  = 10                            // not mandatory required, can be modified by different daemons
 	MatureHeight = MatureRound * BlockCheckRound // just for calculating the immature balance
+
+	// MaxBlockTxCount caps how many txs one block may carry — a
+	// CONSENSUS rule, not miner etiquette: oversized blocks are invalid
+	MaxBlockTxCount = 512
+	// MaxBlockBytes caps a block's total serialized size (8 MiB), the
+	// hard blowup guard whatever the envelope sizes are
+	MaxBlockBytes = 1 << 23
 )
 
 // PoW variables

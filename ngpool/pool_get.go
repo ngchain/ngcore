@@ -7,8 +7,9 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// MaxTxsPerPack bounds how many txs one block template packs
-const MaxTxsPerPack = 512
+// MaxTxsPerPack bounds how many txs one block template packs — the
+// consensus cap, so a template never exceeds a valid block
+const MaxTxsPerPack = ngtypes.MaxBlockTxCount
 
 // GetPack returns a TxTrie of the txs packable at the height. The fee
 // order (highest first, ties broken by the tx hash) decides WHICH txs

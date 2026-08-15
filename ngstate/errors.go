@@ -10,4 +10,7 @@ var (
 	ErrContractActive = errors.New("contract is active")
 	// ErrContractNotActive occurs when deactivating an inactive contract
 	ErrContractNotActive = errors.New("contract is not active")
+	// ErrSelectorCollision occurs when two callable exports share the
+	// same 4-byte call selector
+	ErrSelectorCollision = errors.New("contract exports collide on a call selector")
 )

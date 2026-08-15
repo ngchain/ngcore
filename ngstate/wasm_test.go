@@ -1458,3 +1458,64 @@ func TestCompactEnvelope(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestSelectorCollisionRefused: two callable exports sharing a 4-byte
+// selector make activation fail loudly instead of silently shadowing
+func TestSelectorCollisionRefused(t *testing.T) {
+	// brute-force a colliding pair of export names
+	var nameA, nameB string
+	seen := make(map[[4]byte]string)
+	for i := 0; ; i++ {
+		name := fmt.Sprintf("m%d", i)
+		var sel [4]byte
+		copy(sel[:], ngtypes.CallSelector(name))
+		if other, ok := seen[sel]; ok {
+			nameA, nameB = other, name
+			break
+		}
+		seen[sel] = name
+	}
+
+	collidingWat := fmt.Sprintf(`
+(module
+  (func (export "%s"))
+  (func (export "%s")))
+`, nameA, nameB)
+
+	if err := CheckSelectorCollisions([]byte(collidingWat)); !errors.Is(err, ErrSelectorCollision) {
+		t.Fatalf("got %v, want ErrSelectorCollision (%q vs %q)", err, nameA, nameB)
+	}
+
+	// distinct selectors pass
+	if err := CheckSelectorCollisions([]byte(kvWat)); err != nil {
+		t.Fatalf("clean contract refused: %v", err)
+	}
+
+	// and the activation path refuses the colliding contract end to end
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+	priv, _ := ngtypes.GenerateKey()
+	addr := ngtypes.NewAddress(priv)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		putContract(t, txn, ngtypes.NewContract(addr, []byte(collidingWat), nil), 100)
+
+		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
+			ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
+		if err := activateTx.Signature(priv); err != nil {
+			return err
+		}
+
+		if err := checkActivate(txn, activateTx); !errors.Is(err, ErrSelectorCollision) {
+			t.Fatalf("checkActivate: got %v, want ErrSelectorCollision", err)
+		}
+		if err := state.handleActivate(txn, activateTx, 1); !errors.Is(err, ErrSelectorCollision) {
+			t.Fatalf("handleActivate: got %v, want ErrSelectorCollision", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

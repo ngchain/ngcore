@@ -225,3 +225,66 @@ func TestWitnessSeparation(t *testing.T) {
 		t.Fatalf("got %v, want ErrBlockWitnessRootInvalid", err)
 	}
 }
+
+// TestBlockCapacity: the tx-count and byte-size caps are CONSENSUS
+// rules — an overstuffed block fails CheckError outright
+func TestBlockCapacity(t *testing.T) {
+	key, _ := ngtypes.GenerateKey()
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	height := uint64(1)
+	blockTime := ngtypes.GetGenesisTimestamp(ngtypes.ZERONET) + 16
+
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
+		ngtypes.NewAddress(key), ngtypes.GetBlockReward(height), big.NewInt(0), nil, nil)
+	if err := genTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+
+	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, genesis.GetHash(),
+		ngtypes.GetNextDiff(height, blockTime, genesis))
+	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
+		t.Fatal(err)
+	}
+	sealed := false
+	for n := uint64(0); n < 1_000_000; n++ {
+		nonce := make([]byte, ngtypes.NonceSize)
+		binary.LittleEndian.PutUint64(nonce, n)
+		if err := block.ToSealed(nonce); err != nil {
+			t.Fatal(err)
+		}
+		if block.CheckError() == nil {
+			sealed = true
+			break
+		}
+	}
+	if !sealed {
+		t.Fatal("failed to seal")
+	}
+
+	// stuff the body past the tx-count cap: the capacity check fires
+	// before anything else
+	overstuffed := make([]*ngtypes.FullTx, 0, ngtypes.MaxBlockTxCount+1)
+	for i := 0; i <= ngtypes.MaxBlockTxCount; i++ {
+		overstuffed = append(overstuffed, genTx)
+	}
+	block.Txs = overstuffed
+	if err := block.CheckError(); !errors.Is(err, ngtypes.ErrBlockTxsExcess) {
+		t.Fatalf("got %v, want ErrBlockTxsExcess", err)
+	}
+
+	// a few megabyte-extra txs blow the byte cap
+	bigExtra := make([]byte, 1<<20)
+	big1 := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
+		ngtypes.NewAddress(key), big.NewInt(0), big.NewInt(0), bigExtra, nil)
+	if err := big1.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	fat := make([]*ngtypes.FullTx, 0, 9)
+	for i := 0; i < 9; i++ {
+		fat = append(fat, big1)
+	}
+	block.Txs = fat
+	if err := block.CheckError(); !errors.Is(err, ngtypes.ErrBlockBytesExcess) {
+		t.Fatalf("got %v, want ErrBlockBytesExcess", err)
+	}
+}

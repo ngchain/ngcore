@@ -29,7 +29,11 @@ var (
 	// ErrBlockWitnessRootInvalid rejects a header whose witness
 	// commitment does not match the carried signature envelopes
 	ErrBlockWitnessRootInvalid = errors.New("invalid block witness root")
-	ErrBlockTimestampInvalid   = errors.New("invalid block timestamp")
+	// ErrBlockTxsExcess rejects a block carrying more txs than consensus allows
+	ErrBlockTxsExcess = errors.New("block carries too many txs")
+	// ErrBlockBytesExcess rejects a block bigger than consensus allows
+	ErrBlockBytesExcess      = errors.New("block is too large")
+	ErrBlockTimestampInvalid = errors.New("invalid block timestamp")
 
 	ErrBlockNotSealed = errors.New("the block is not sealed")
 )
@@ -261,6 +265,16 @@ func (x *FullBlock) GetActualDiff() *big.Int {
 
 // CheckError will check the errors in block inner fields.
 func (x *FullBlock) CheckError() error {
+	// capacity: consensus bounds, checked before anything expensive
+	if len(x.Txs) > MaxBlockTxCount {
+		return errors.Wrapf(ErrBlockTxsExcess, "%d txs exceed the cap %d", len(x.Txs), MaxBlockTxCount)
+	}
+	if raw, err := rlp.EncodeToBytes(x); err != nil {
+		return err
+	} else if len(raw) > MaxBlockBytes {
+		return errors.Wrapf(ErrBlockBytesExcess, "%d bytes exceed the cap %d", len(raw), MaxBlockBytes)
+	}
+
 	// if x.Network != Network {
 	//	return fmt.Errorf("block's network id is incorrect")
 	// }
