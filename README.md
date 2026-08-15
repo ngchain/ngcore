@@ -1,108 +1,89 @@
 <h1> <img src="./resources/ng_16x16.png" >core</h1>
 
-## What is ngchain?
+ngcore is the Go implementation of **ngchain**: a proof-of-work chain
+built around two nouns and six verbs, designed by subtraction.
 
-The ngchain is a radically updating **brand-new blockchain network**, which is not a fork of ethereum or any other
-chain.
+## The whole model in one paragraph
 
-The ngchain's **goal** is to build **a blockchain engine** which acts more **auditable, scalable, security-oriented**
-and supports more network tasks with vm.
+An **Address** (32-byte keccak hash of a public key) is the identity,
+the balance holder and the namespace — nothing is registered, any key
+spends directly. A **Contract** is the code slot an address may open
+under its own namespace: plain WebAssembly text (wat), changed by
+committing diff hunks like a git repository, frozen and executed while
+active. That's the entire ontology.
 
-The ngchain uses modern models - Vault(Block), Account, Multi-type Tx, and the traditional Block model to build the
-blockchain ecosystem. And ngchain strictly follow the idea of blockchain, locking items with hash to keep engine work
-safely. Not only blockchain, but Vault(Block) will also link up to be a chain for account security and powerful
-functions like fast ignition, free account state and so on. So It's safe and robust like bitcoin and ethereum but more
-scalable and powerful on the node's operational capacity and p2p network's speed and performance.
+## Six tx verbs
+
+| Verb | Effect |
+|---|---|
+| `Generate` | the mining reward |
+| `Transact` | pay an address; runs its active contract (eth-style 4-byte selector routes the entry, `main` is the fallback) |
+| `Commit` | apply diff hunks onto the own contract source; the first commit opens the slot |
+| `Activate` | freeze the source, turn the vm on (runs `init` once) |
+| `Deactivate` | turn the vm off, reopen the source |
+| `Destroy` | remove the own slot entirely |
+
+Every tx is `{Network, Type, Height, To, Value, Fee, Extra, Sign}` —
+the sender is derived from the signature envelope, fees are burned.
+
+## Signatures: a menu, not a monoculture
+
+Keys derive from a 32-byte seed under a per-key scheme:
+
+| Scheme | Envelope | Role |
+|---|---|---|
+| secp256k1 (default) | **67 B** (key recovery, eth parity) | classical efficiency |
+| FN-DSA-512 | 700 B compact | the small post-quantum option |
+| ML-DSA-44 | 2.5 KB compact | the finalized FIPS 204 pick |
+| SLH-DSA-128s | 7.9 KB | hash-based, assumption-minimal, SNARK-friendliest |
+
+Post-quantum keys reveal their public key once (auto-registered on
+chain); later spends carry only `From ‖ sig`. Quantum migration is a
+per-key wallet choice, not a hard fork.
+
+**Witness separation**: txids hash the unsigned tx; a header-level
+witness root commits the signature envelopes. Settled history can
+later drop or replace its signatures (pruning, LaBRADOR-style
+aggregate proofs) without touching a single txid.
+
+## Contracts
+
+On-chain source is human-readable wat, compiled deterministically at
+activation. Contracts compose two ways: `contract/<deployer address>`
+imports run library code on the caller's state; `service/<deployer
+address>` calls run on the dependency's own state (tokens, pools) with
+re-entry guarded and dependees reference-pinned. Execution is
+journaled (all-or-nothing), gas-tiered (state writes cost orders of
+magnitude more than arithmetic), and receipts with events stay local
+— never consensus data. See [docs/contract.md](docs/contract.md).
+
+## Consensus
+
+- CPU PoW (AstroBWT), 1s target blocks, cumulative-work fork choice
+- atomic reorgs: chain switch + full state replay in ONE db txn
+- rolling finality every 10 blocks; orphan pool; side-block pruning
+- consensus caps: 512 txs / 8 MiB per block; witness root enforced
+- keccak-256 for every chain hash; genesis carries no premine
+
+## Quick start
+
+```bash
+go build -o ngcore ./cmd/ngcore
+
+# a throwaway local chain
+./ngcore --zeronet --in-mem
+
+# wallet (keys stay local; only signed txs travel)
+./ngcore cli key --new --scheme secp256k1
+./ngcore cli status
+./ngcore cli balance
+./ngcore cli send --to <bs58> --value 1.5 --fee 0.0001
+./ngcore cli commit --file contract.wat --fee 0.0001   # first commit deploys
+./ngcore cli activate --fee 0.0001
+./ngcore cli call --contract <bs58> --entry balance_of
+```
 
 ## Status
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/ngchain/ngcore)](
-https://goreportcard.com/report/github.com/ngchain/ngcore)
-![CI](https://github.com/ngchain/ngcore/workflows/CI/badge.svg)
-![GitHub](https://img.shields.io/github/license/ngchain/ngcore)
-![GitHub last commit](https://img.shields.io/github/last-commit/ngchain/ngcore)
-
-## Features
-
-- **Fast ignition**
-- Less, or **no storage cost**(mem only)
-- With **humanizing** account model, users can send tx with **memorable short number**
-- **High security** with Sheet and Vault(Block) model
-- Powerful and scalable types of tx
-- Support **Multi-Tx**, sending coins to different places in the same time
-- Powerful **WASM** VM support based on account state(contract).
-- **Libp2p(ipfs)** powered p2p networking
-- Available **anonymous** address for saving balance
-- Using the **schnorr signature**, allowing Multi-Sig when sending and receiving
-- ...
-
-## Requirements
-
-go version >= 1.17
-
-**NOTICE**: go build on Windows you should use `-buildmode=exe` flag (go version >= 1.15)
-
-## Build
-
-### Go
-
-```bash
-# go will automatically sync the dependencies
-# GCC is required because of high performance db & vm
-go build ./cmd/ngcore
-```
-
-## Usage
-
-```bash
-# dircetly run the binary
-export GOLOG_FILE=ngcore.log # disable stderr output and write to the ngcore.log file
-export GOLOG_LOG_LEVEL=debug # print more logs
-./ngcore
-
-# ngwallet is a rpc client in dart for ngin's daemon, see https://github.com/ngchain/ngwallet-dart
-./ngwallet register 10086
-./ngwallet transact 10010 1.5 # send 1.5 NG to account 10010
-./ngwallet transact QfUnsE4CNgnpVS4oC4WEYH8u7WWAs8AwMrFBknWWqGSYwBXU 1.5 # send 1.5 NG to address QfUn...
-```
-
-If you wanna start mining(proof of work), try `--mining <Thread Num>` flag
-
-```bash
-./ngcore --mining 0 # zero means using all available cores
-```
-
-You can view more flags and options with `--help` flag
-
-```bash
-./ngcore --help
-```
-
-Or you can choose to run in a docker
-
-```bash
-git clone https://github.com/ngchain/ngcore && cd ngcore
-sudo docker build . -t ngcore
-
-# Run as a bootstrap node
-sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --bootstrap true
-
-# Run as a mining node, 0 means using all cpu cores, --in-mem will disable writing into disk and make the miner lighter
-sudo docker run -p 52520:52520 -p 52521:52521 -v .:/workspace -v ~/.ngkeys:~/.ngkeys ngcore --mining 0 --in-mem
-```
-
-## Run a ngchain forknet
-
-It's so easy to run an independent PoW chain on ngCore codebase.
-
-1. Modify the `GenesisAddressBase58` in `./ngtypes/defaults.go` and `protocolVersion` in `./ngp2p/defaults/defaults.go`
-
-2. Generate a new signature for genesis generate tx, and genesis block's nonce (with `ngcore gentools` toolset)
-
-3. Run more than 2 bootstrap node with `--bootstrap` flag (without mining)
-
-4. Write the bootstrap node to bootstrapNodes in `./ngp2p/bootstrap_nodes.go`
-
-5. Run a mining node with `--mining 0` flag
-
-6. Enjoy your fascinating PoW chain
+Experimental. Consensus formats change freely between versions and
+dev chains restart; MAINNET parameters are intentionally undefined.
