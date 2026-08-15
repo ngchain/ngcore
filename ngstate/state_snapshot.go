@@ -124,7 +124,15 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 		})
 	}
 
-	sheet := ngtypes.NewSheet(state.Network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, contracts)
+	keys := make([]*ngtypes.RegisteredKey, 0)
+	c = txn.Bucket(storage.KeyRegistryBucketName).Cursor()
+	for addr, entry := c.First(); addr != nil; addr, entry = c.Next() {
+		row := &ngtypes.RegisteredKey{Entry: append([]byte{}, entry...)}
+		copy(row.Address[:], addr)
+		keys = append(keys, row)
+	}
+
+	sheet := ngtypes.NewSheet(state.Network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, contracts, keys)
 
 	return state.PutSnapshotTxn(txn, sheet)
 }

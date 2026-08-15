@@ -11,6 +11,7 @@ import (
 
 	"go.etcd.io/bbolt"
 
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
@@ -1343,7 +1344,14 @@ func TestCallSelector(t *testing.T) {
 // unregistered address's compact tx is refused
 func TestCompactEnvelope(t *testing.T) {
 	db := newTestDB(t)
-	state := &State{Network: ngtypes.ZERONET}
+	ngblocks.Init(db, ngtypes.ZERONET) // the snapshot needs a tip block
+	state := &State{
+		Network: ngtypes.ZERONET,
+		SnapshotManager: &SnapshotManager{
+			heightToHash:   make(map[uint64]string),
+			hashToSnapshot: make(map[string]*ngtypes.Sheet),
+		},
+	}
 
 	// registry-backed compact envelopes exist for the NON-recovery
 	// schemes; secp needs none (its 67-byte envelope is minimal already)
@@ -1397,6 +1405,38 @@ func TestCompactEnvelope(t *testing.T) {
 		}
 		if got := getBalance(txn, dest); got.Int64() != 3 {
 			t.Fatalf("dest balance = %d, want 3", got.Int64())
+		}
+
+		// the registry must survive the snapshot round trip: a
+		// snapshot-synced node sees the same keys a replaying node does
+		if err := state.GenerateSnapshotTxn(txn); err != nil {
+			t.Fatalf("snapshot: %v", err)
+		}
+		// the manager directly: State.GetSnapshotByHeight(0) shortcuts
+		// to the (empty) genesis sheet
+		sheet := state.SnapshotManager.GetSnapshotByHeight(0)
+		if sheet == nil {
+			t.Fatal("no snapshot generated")
+		}
+		found := false
+		for _, k := range sheet.Keys {
+			if k.Address.Equals(addr) {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("the sheet must carry the registered key")
+		}
+		if err := state.RebuildFromSheetTxn(txn, sheet); err != nil {
+			t.Fatalf("rebuild from sheet: %v", err)
+		}
+		afterSync := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+			dest, big.NewInt(1), nil, nil, nil)
+		if err := afterSync.SignatureCompact(priv); err != nil {
+			return err
+		}
+		if err := checkTransaction(txn, afterSync); err != nil {
+			t.Fatalf("compact tx after snapshot sync: %v", err)
 		}
 
 		// a compact envelope claiming a FOREIGN registered address must

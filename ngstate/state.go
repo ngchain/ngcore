@@ -103,6 +103,13 @@ func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 		}
 	}
 
+	keyBucket := txn.Bucket(storage.KeyRegistryBucketName)
+	for _, key := range sheet.Keys {
+		if err := keyBucket.Put(key.Address[:], key.Entry); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
