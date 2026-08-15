@@ -2,6 +2,7 @@ package ngpool
 
 import (
 	"bytes"
+	"github.com/c0mm4nd/rlp"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -44,6 +45,7 @@ var (
 	ErrTxInvalidHeight = errors.New("invalid tx height")
 	ErrPoolFull        = errors.New("tx pool is full")
 	ErrTxFeeTooLow     = errors.New("tx fee does not beat the current pool entry")
+	ErrTxFeeBelowFloor = errors.New("tx fee is below the relay fee floor")
 )
 
 // PutTx puts txs from network(p2p) or RPC into txpool, should check error before putting.
@@ -60,6 +62,20 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	// the relay fee floor scales with the tx's wire size, so heavy
+	// envelopes pay for the bytes they burden the network with
+	if pool.MinFeePerByte != nil && pool.MinFeePerByte.Sign() > 0 {
+		raw, err := rlp.EncodeToBytes(tx)
+		if err != nil {
+			return err
+		}
+		floor := new(big.Int).Mul(pool.MinFeePerByte, big.NewInt(int64(len(raw))))
+		if tx.Fee.Cmp(floor) < 0 {
+			return errors.Wrapf(ErrTxFeeBelowFloor, "fee %s < floor %s for %d bytes",
+				tx.Fee, floor, len(raw))
+		}
 	}
 
 	// txs are height-locked to the NEXT block: anything else can never

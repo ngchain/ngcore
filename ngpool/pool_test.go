@@ -75,6 +75,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	state := ngstate.InitStateFromGenesis(db, ngtypes.ZERONET)
 	chain := blockchain.Init(db, ngtypes.ZERONET, store, state)
 	pool := ngpool.Init(db, chain, nil)
+	pool.MinFeePerByte = nil // raw-unit fees in these tests; the floor has its own test
 	chain.OnTipChanged = pool.Reset
 
 	keyA, _ := ngtypes.GenerateKey()
@@ -233,5 +234,24 @@ func TestPoolResetOnTipChange(t *testing.T) {
 
 	if len(env.pool.GetPack(next)) != 0 {
 		t.Fatal("tip change must deprecate the pool")
+	}
+}
+
+// TestRelayFeeFloor: the pool prices admission per wire byte; a tx
+// below the floor never relays, one at the floor does
+func TestRelayFeeFloor(t *testing.T) {
+	env := newTestEnv(t)
+	env.pool.MinFeePerByte = big.NewInt(1000)
+	next := env.chain.GetLatestBlockHeight() + 1
+
+	cheap := transactTx(t, next, env.keyA, 1)
+	if err := env.pool.PutTx(cheap); !errors.Is(err, ngpool.ErrTxFeeBelowFloor) {
+		t.Fatalf("got %v, want ErrTxFeeBelowFloor", err)
+	}
+
+	// pay comfortably above the floor (fee = 1000 * 10KB covers any envelope)
+	rich := transactTx(t, next, env.keyA, 10_000_000)
+	if err := env.pool.PutTx(rich); err != nil {
+		t.Fatalf("floor-clearing tx refused: %v", err)
 	}
 }

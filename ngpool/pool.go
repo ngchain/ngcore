@@ -2,6 +2,7 @@ package ngpool
 
 import (
 	"bytes"
+	"math/big"
 	"sync"
 
 	logging "github.com/ngchain/zap-log"
@@ -31,6 +32,11 @@ type TxPool struct {
 	// cheapest queued one
 	MaxSize int
 
+	// MinFeePerByte is the relay-policy fee floor: a tx must pay at
+	// least MinFeePerByte * len(rlp(tx)) to enter this node's pool.
+	// Local policy, not consensus — zero disables the floor
+	MinFeePerByte *big.Int
+
 	chain     *blockchain.Chain
 	localNode *ngp2p.LocalNode
 }
@@ -41,7 +47,8 @@ func Init(db *bbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *Tx
 		db:    db,
 		txMap: make(map[ngtypes.Address]*ngtypes.FullTx),
 
-		MaxSize: DefaultPoolSize,
+		MaxSize:       DefaultPoolSize,
+		MinFeePerByte: DefaultMinFeePerByte,
 
 		chain:     chain,
 		localNode: localNode,
@@ -71,3 +78,8 @@ func (pool *TxPool) Reset() {
 
 	pool.txMap = make(map[ngtypes.Address]*ngtypes.FullTx)
 }
+
+// DefaultMinFeePerByte prices relay at 10 gigapico (1e10) per byte: a
+// ~200-byte secp transfer costs ~0.000002 NG, a 7.9 KB hash-based
+// envelope ~0.00008 NG — spam-hostile, human-negligible
+var DefaultMinFeePerByte = big.NewInt(10_000_000_000)

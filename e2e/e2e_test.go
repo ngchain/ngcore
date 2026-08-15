@@ -82,6 +82,7 @@ func bootNode(t *testing.T, dir string, snapshotMode bool) *testNode {
 	local.GoServe()
 
 	pool := ngpool.Init(db, chain, local)
+	pool.MinFeePerByte = nil // tests deal in raw units; the floor has unit coverage
 
 	pow := consensus.InitPoWConsensus(db, chain, pool, state, local, consensus.PoWorkConfig{
 		Network:                     ngtypes.ZERONET,
