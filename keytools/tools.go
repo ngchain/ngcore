@@ -61,7 +61,16 @@ func NewLocalKey() *ngtypes.PrivateKey {
 
 // CreateLocalKey will create a keyfile named *filename* and encrypted with *password* in aes-256-gcm.
 func CreateLocalKey(filename, password string) *ngtypes.PrivateKey {
-	key := NewLocalKey()
+	return CreateLocalKeyWithScheme(filename, password, ngtypes.SchemeDefault)
+}
+
+// CreateLocalKeyWithScheme creates a keyfile under the chosen
+// signature scheme (see ngtypes.SigScheme)
+func CreateLocalKeyWithScheme(filename, password string, scheme ngtypes.SigScheme) *ngtypes.PrivateKey {
+	key, err := ngtypes.GenerateSchemeKey(scheme)
+	if err != nil {
+		panic(err)
+	}
 
 	if filename == "" {
 		path := GetDefaultFolder()

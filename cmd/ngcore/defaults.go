@@ -22,12 +22,12 @@ var (
 )
 
 func init() {
-	if Tag == "" && Commit == "" {
-		panic("invalid version: tag:" + Tag + " commit: " + Commit)
-	}
-	if Tag != "" {
+	switch {
+	case Tag != "":
 		Version = Tag
-	} else {
+	case Commit != "":
 		Version = "v0.0.0-" + Commit
+	default:
+		Version = "v0.0.0-dev" // a plain go build, no ldflags injected
 	}
 }
