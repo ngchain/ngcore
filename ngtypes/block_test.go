@@ -143,7 +143,10 @@ func TestBlockRawPoW(t *testing.T) {
 // whose witness bytes were swapped is rejected even though every txid
 // (and so the tx trie root) stays identical
 func TestWitnessSeparation(t *testing.T) {
-	key, _ := ngtypes.GenerateKey()
+	// a non-recovery scheme: its full/compact envelopes differ and its
+	// hedged signing yields fresh bytes per signature, which is what
+	// this test needs to vary the witness while txids stay put
+	key, _ := ngtypes.GenerateSchemeKey(ngtypes.SchemeFNDSA512)
 
 	tx := ngtypes.NewUnsignedTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
 		ngtypes.NewAddress(key), big.NewInt(1), big.NewInt(0), nil)

@@ -36,8 +36,20 @@ func TestTxSignatureRoundTrip(t *testing.T) {
 		t.Fatal("the From address must not equal a foreign address")
 	}
 
+	// tampering: recovery schemes still "verify" (the signature is
+	// well-formed) but the derived sender walks away to a random
+	// address — exactly eth's semantics; the state layer then rejects
+	// the unfunded stranger
 	tx.Extra = []byte("tampered")
-	if err := tx.Verify(nil); err == nil {
+	if HasRecovery(key.Scheme) {
+		tampered, err := tx.From()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tampered.Equals(from) {
+			t.Fatal("tampering must change the recovered sender")
+		}
+	} else if err := tx.Verify(nil); err == nil {
 		t.Fatal("a tampered tx must not verify")
 	}
 }
@@ -79,7 +91,7 @@ func TestKeySerializeRoundTrip(t *testing.T) {
 // TestAllSchemes: every scheme on the menu signs, verifies, round
 // trips its wallet seed, and derives scheme-bound addresses
 func TestAllSchemes(t *testing.T) {
-	schemes := []SigScheme{SchemeFNDSA512, SchemeMLDSA44, SchemeSLHDSA128}
+	schemes := []SigScheme{SchemeSecp256k1, SchemeFNDSA512, SchemeMLDSA44, SchemeSLHDSA128}
 
 	for _, scheme := range schemes {
 		key, err := GenerateSchemeKey(scheme)
@@ -102,6 +114,9 @@ func TestAllSchemes(t *testing.T) {
 			t.Fatalf("scheme %#02x sign: %v", byte(scheme), err)
 		}
 		wantLen := 2 + PubKeySize(scheme) + SigSize(scheme)
+		if HasRecovery(scheme) {
+			wantLen = 2 + SigSize(scheme)
+		}
 		if len(tx.Sign) != wantLen {
 			t.Fatalf("scheme %#02x envelope = %d bytes, want %d", byte(scheme), len(tx.Sign), wantLen)
 		}
@@ -113,7 +128,11 @@ func TestAllSchemes(t *testing.T) {
 		}
 
 		tx.Extra = []byte("tampered")
-		if err := tx.Verify(nil); err == nil {
+		if HasRecovery(scheme) {
+			if tampered, _ := tx.From(); tampered.Equals(NewAddress(key)) {
+				t.Fatalf("scheme %#02x: tampering must change the recovered sender", byte(scheme))
+			}
+		} else if err := tx.Verify(nil); err == nil {
 			t.Fatalf("scheme %#02x: tampered tx must not verify", byte(scheme))
 		}
 	}

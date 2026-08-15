@@ -692,8 +692,12 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 			if err := tx.SignatureCompact(deployer); err != nil {
 				t.Fatal(err)
 			}
-			if len(tx.Sign) != 2+ngtypes.AddressSize+ngtypes.SigSize(deployer.Scheme) {
-				t.Fatalf("compact envelope size = %d", len(tx.Sign))
+			wantLen := 2 + ngtypes.AddressSize + ngtypes.SigSize(deployer.Scheme)
+			if ngtypes.HasRecovery(deployer.Scheme) {
+				wantLen = 2 + ngtypes.SigSize(deployer.Scheme)
+			}
+			if len(tx.Sign) != wantLen {
+				t.Fatalf("compact envelope size = %d, want %d", len(tx.Sign), wantLen)
 			}
 		} else {
 			if err := tx.Signature(deployer); err != nil {

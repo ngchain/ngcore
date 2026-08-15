@@ -90,21 +90,25 @@ func (x *FullTx) IsSigned() bool {
 	return len(x.Sign) != 0
 }
 
-// The signature envelope has two forms, told apart by a leading form
-// tag; both carry the scheme byte so sizes parse unambiguously:
+// The signature envelope has three forms, told apart by a leading
+// form tag; all carry the scheme byte so sizes parse unambiguously:
 //
 //	full:    0x01 ‖ scheme ‖ pubkey ‖ sig — reveals (and registers) the key
 //	compact: 0x02 ‖ scheme ‖ From(32) ‖ sig — omits the key; valid only
 //	         once a PRIOR block registered the address's key on chain
+//	recover: 0x03 ‖ scheme ‖ sig — for schemes with public key
+//	         RECOVERY (secp256k1): the key AND the sender fall out of
+//	         the signature itself, eth-style; 67 bytes all included
 //
 // A PubKeyResolver looks a registered key (scheme ‖ pubkey) up by
-// address; nil means no registry is available and only full envelopes
-// verify.
+// address; nil means no registry is available and only full/recover
+// envelopes verify.
 type PubKeyResolver func(Address) []byte
 
 const (
 	envelopeFull    byte = 0x01
 	envelopeCompact byte = 0x02
+	envelopeRecover byte = 0x03
 )
 
 // IsCompactEnvelope reports whether the tx uses the compact form
@@ -141,6 +145,16 @@ func (x *FullTx) envelope(lookup PubKeyResolver) (scheme SigScheme, pubKey, sig 
 			return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "full envelope is %d bytes", len(x.Sign))
 		}
 		return scheme, body[:pkLen], body[pkLen:], nil
+
+	case envelopeRecover:
+		if !HasRecovery(scheme) || len(body) != sigLen {
+			return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "recover envelope is %d bytes", len(x.Sign))
+		}
+		pubKey = RecoverPubKey(scheme, x.GetUnsignedHash(), body)
+		if pubKey == nil {
+			return 0, nil, nil, errors.Wrap(ErrTxSignInvalid, "public key recovery failed")
+		}
+		return scheme, pubKey, body, nil
 
 	case envelopeCompact:
 		if len(body) != AddressSize+sigLen {
@@ -196,6 +210,16 @@ func (x *FullTx) From() (Address, error) {
 		from := Address{}
 		copy(from[:], body[:AddressSize])
 		return from, nil
+
+	case envelopeRecover:
+		if !HasRecovery(scheme) || len(body) != sigLen {
+			return Address{}, ErrTxUnsigned
+		}
+		pubKey := RecoverPubKey(scheme, x.GetUnsignedHash(), body)
+		if pubKey == nil {
+			return Address{}, ErrTxUnsigned
+		}
+		return AddressOfPubKey(scheme, pubKey), nil
 
 	default:
 		return Address{}, ErrTxUnsigned
@@ -419,8 +443,9 @@ func (x *FullTx) CheckDeactivate(lookup PubKeyResolver) error {
 	return x.Verify(lookup)
 }
 
-// Signature signs the tx with the FULL envelope, which also registers
-// the key on chain when the tx lands
+// Signature signs the tx with the smallest self-contained envelope:
+// the 67-byte recover form for schemes with key recovery, the FULL
+// form (which also registers the key on chain) otherwise
 func (x *FullTx) Signature(privateKey *PrivateKey) error {
 	x.Sign = nil
 	hash := x.GetUnsignedHash()
@@ -428,6 +453,14 @@ func (x *FullTx) Signature(privateKey *PrivateKey) error {
 	sig, err := privateKey.SignHash(hash)
 	if err != nil {
 		return err
+	}
+
+	if HasRecovery(privateKey.Scheme) {
+		envelope := make([]byte, 0, 2+len(sig))
+		envelope = append(envelope, envelopeRecover, byte(privateKey.Scheme))
+		envelope = append(envelope, sig...)
+		x.Sign = envelope
+		return nil
 	}
 
 	pub := privateKey.PublicBytes()
@@ -442,8 +475,13 @@ func (x *FullTx) Signature(privateKey *PrivateKey) error {
 
 // SignatureCompact signs the tx with the COMPACT envelope, saving the
 // public key bytes; it only validates once the address's key is
-// registered on chain by an earlier full-envelope tx
+// registered on chain by an earlier full-envelope tx. Recovery
+// schemes just use their (even smaller) recover envelope
 func (x *FullTx) SignatureCompact(privateKey *PrivateKey) error {
+	if HasRecovery(privateKey.Scheme) {
+		return x.Signature(privateKey)
+	}
+
 	x.Sign = nil
 	hash := x.GetUnsignedHash()
 

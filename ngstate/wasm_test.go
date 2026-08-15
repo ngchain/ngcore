@@ -1345,7 +1345,9 @@ func TestCompactEnvelope(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
-	priv, _ := ngtypes.GenerateKey()
+	// registry-backed compact envelopes exist for the NON-recovery
+	// schemes; secp needs none (its 67-byte envelope is minimal already)
+	priv, _ := ngtypes.GenerateSchemeKey(ngtypes.SchemeFNDSA512)
 	addr := ngtypes.NewAddress(priv)
 	var dest ngtypes.Address
 	dest[0] = 0xd1

@@ -6,6 +6,8 @@ github.com/benbjohnson/clock v1.3.5 h1:VvXlSJBzZpA/zum6Sj74hxwYI2DIxRWuNIoXAzHZz
 github.com/benbjohnson/clock v1.3.5/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
+github.com/btcsuite/btcd/btcec/v2 v2.5.0 h1:KioMXOWa76b86sTZZOmbzv/ldaQCmB8KFAyn5PbB8E8=
+github.com/btcsuite/btcd/btcec/v2 v2.5.0/go.mod h1:+K/MYXcLBtHEQjRbjHuJChuybk4LCgjdjgRwil+e+Kk=
 github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88 h1:FKMI5llQYoenX/JtfKayZwDoE64KTsH6SGrx48Fq0ZY=
 github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88/go.mod h1:1uXjZQveTnArkEcE4uVJBEb8MtQwH2l1SSkckTI9R18=
 github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956 h1:SmdoahoEJuQOgi0OkfUBT1WORylSuVmyCTxeJTZOH/k=

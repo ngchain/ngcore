@@ -1,8 +1,11 @@
 package ngtypes
 
 import (
+	"bytes"
 	"crypto/rand"
 
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/cloudflare/circl/sign/mldsa/mldsa44"
 	"github.com/cloudflare/circl/sign/slhdsa"
 	"github.com/pkg/errors"
@@ -10,37 +13,44 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// The chain accepts a small menu of post-quantum signature schemes,
-// selectable per key. All of them derive from a 32-byte wallet seed
-// and sign the 32-byte tx digest; they differ in the size/assumption
-// trade-off:
+// The chain accepts a small menu of signature schemes, selectable per
+// key. All of them derive from a 32-byte wallet seed and sign the
+// 32-byte tx digest:
 //
-//	SLH-DSA-128s (default) — hash-based, FIPS 205: 32 B key +
-//	             7856 B sig. The assumption-minimal, SNARK-friendly
-//	             family ethereum's lean consensus committed to
-//	             (leanXMSS there; the stateless variant here, since
-//	             wallet keys cannot carry one-time-index state)
-//	FN-DSA-512   — the compact one: 897 B key + 666 B sig,
-//	             NTRU lattices, FIPS 206 draft
+//	secp256k1    (default) — ethereum's classical scheme: ECDSA with
+//	             public key RECOVERY, so the whole envelope is a
+//	             67-byte signature and nothing else. Not quantum-
+//	             resistant; the menu below is the migration path
+//	SLH-DSA-128s — hash-based, FIPS 205: 32 B key + 7856 B sig; the
+//	             assumption-minimal, SNARK-friendliest witness (the
+//	             family ethereum's lean consensus committed to)
+//	FN-DSA-512   — the compact post-quantum one: 897 B key + 666 B
+//	             sig, NTRU lattices, FIPS 206 draft
 //	ML-DSA-44    — the finalized one: 1312 B key + 2420 B sig,
 //	             module lattices, FIPS 204
 //
 // A future aggregation layer can compress any mix of them: witness
 // data is committed separately from the tx ids, so signatures can be
-// replaced by aggregate proofs without touching history commitments —
-// hash-based witnesses compress especially well under STARKs, which
-// is exactly why ethereum picked the family.
+// replaced by aggregate proofs without touching history commitments.
 type SigScheme byte
 
 const (
-	SchemeFNDSA512  SigScheme = 0x01
-	SchemeMLDSA44   SigScheme = 0x02
-	SchemeSLHDSA128 SigScheme = 0x03
+	SchemeSecp256k1 SigScheme = 0x01
+	SchemeFNDSA512  SigScheme = 0x02
+	SchemeMLDSA44   SigScheme = 0x03
+	SchemeSLHDSA128 SigScheme = 0x04
 
-	// SchemeDefault is what GenerateKey hands out: the hash-based
-	// scheme, matching ethereum's post-quantum direction
-	SchemeDefault = SchemeSLHDSA128
+	// SchemeDefault is what GenerateKey hands out: the classical
+	// scheme, exactly like ethereum today — quantum migration is a
+	// wallet choice away, not a hard fork away
+	SchemeDefault = SchemeSecp256k1
 )
+
+// HasRecovery reports whether the scheme supports public key recovery
+// from the signature, letting the envelope omit key AND address
+func HasRecovery(scheme SigScheme) bool {
+	return scheme == SchemeSecp256k1
+}
 
 // KeySeedSize is the wallet secret: a 32-byte seed the whole key pair
 // regenerates from, whatever the scheme
@@ -61,6 +71,8 @@ var txDomain = []byte("ngcore")
 // (0 for an unknown scheme)
 func PubKeySize(scheme SigScheme) int {
 	switch scheme {
+	case SchemeSecp256k1:
+		return 33
 	case SchemeFNDSA512:
 		return fndsa.VerifyingKeySize(9)
 	case SchemeMLDSA44:
@@ -76,6 +88,8 @@ func PubKeySize(scheme SigScheme) int {
 // unknown scheme)
 func SigSize(scheme SigScheme) int {
 	switch scheme {
+	case SchemeSecp256k1:
+		return 65 // compact recoverable: v ‖ r ‖ s
 	case SchemeFNDSA512:
 		return fndsa.SignatureSize(9)
 	case SchemeMLDSA44:
@@ -93,6 +107,8 @@ type PrivateKey struct {
 	Scheme SigScheme
 
 	seed [KeySeedSize]byte
+
+	secp *btcec.PrivateKey
 
 	fndsaSK []byte
 	fndsaPK []byte
@@ -136,6 +152,14 @@ func NewKeyFromSeed(scheme SigScheme, seed []byte) (*PrivateKey, error) {
 	copy(key.seed[:], seed)
 
 	switch scheme {
+	case SchemeSecp256k1:
+		var scalar [32]byte
+		drbg.Read(scalar[:])
+		key.secp, _ = btcec.PrivKeyFromBytes(scalar[:])
+		if key.secp.Key.IsZero() {
+			return nil, errors.Wrap(ErrKeyInvalid, "the secp scalar is zero")
+		}
+
 	case SchemeFNDSA512:
 		sk, pk, err := fndsa.KeyGen(9, drbg)
 		if err != nil {
@@ -183,6 +207,9 @@ func (key *PrivateKey) Serialize() []byte {
 // PublicBytes returns the scheme-specific public key encoding
 func (key *PrivateKey) PublicBytes() []byte {
 	switch key.Scheme {
+	case SchemeSecp256k1:
+		return key.secp.PubKey().SerializeCompressed()
+
 	case SchemeFNDSA512:
 		out := make([]byte, len(key.fndsaPK))
 		copy(out, key.fndsaPK)
@@ -210,6 +237,9 @@ func (key *PrivateKey) PublicBytes() []byte {
 // SignHash signs a 32-byte digest under the key's scheme
 func (key *PrivateKey) SignHash(hash []byte) ([]byte, error) {
 	switch key.Scheme {
+	case SchemeSecp256k1:
+		return ecdsa.SignCompact(key.secp, hash, true), nil
+
 	case SchemeFNDSA512:
 		return fndsa.Sign(nil, key.fndsaSK, fndsa.DomainContext(txDomain), 0, hash)
 
@@ -236,6 +266,13 @@ func VerifyHashSig(scheme SigScheme, pubKey, hash, sig []byte) bool {
 	}
 
 	switch scheme {
+	case SchemeSecp256k1:
+		recovered, compressed, err := ecdsa.RecoverCompact(sig, hash)
+		if err != nil || !compressed {
+			return false
+		}
+		return bytes.Equal(recovered.SerializeCompressed(), pubKey)
+
 	case SchemeFNDSA512:
 		return fndsa.Verify(pubKey, fndsa.DomainContext(txDomain), 0, hash, sig)
 
@@ -256,4 +293,20 @@ func VerifyHashSig(scheme SigScheme, pubKey, hash, sig []byte) bool {
 	default:
 		return false
 	}
+}
+
+// RecoverPubKey recovers the signer's public key from a recoverable
+// signature over the digest; nil when the scheme has no recovery or
+// the signature is invalid
+func RecoverPubKey(scheme SigScheme, hash, sig []byte) []byte {
+	if scheme != SchemeSecp256k1 || len(sig) != SigSize(scheme) {
+		return nil
+	}
+
+	recovered, compressed, err := ecdsa.RecoverCompact(sig, hash)
+	if err != nil || !compressed {
+		return nil
+	}
+
+	return recovered.SerializeCompressed()
 }
