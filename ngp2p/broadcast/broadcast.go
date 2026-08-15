@@ -57,6 +57,17 @@ func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan 
 		panic(err)
 	}
 
+	// validate-before-relay: junk must not borrow the network's
+	// bandwidth. Everything STATELESS gets checked here (decode, pow,
+	// caps, witness root, signature envelopes); stateful checks stay
+	// with the pool and the chain
+	if err := b.PubSub.RegisterTopicValidator(b.blockTopic, b.validateBlockMsg); err != nil {
+		panic(err)
+	}
+	if err := b.PubSub.RegisterTopicValidator(b.txTopic, b.validateTxMsg); err != nil {
+		panic(err)
+	}
+
 	b.topics[b.blockTopic], err = b.PubSub.Join(b.blockTopic)
 	if err != nil {
 		panic(err)
