@@ -25,8 +25,11 @@ var (
 	ErrBlockNoHeader          = errors.New("block header is nil")
 	ErrBlockDiffInvalid       = errors.New("invalid block diff")
 	ErrBlockPrevHashInvalid   = errors.New("invalid block prev hash")
-	ErrBlockTxTrieHashInvalid = errors.New("invalid bactivate tx trie hash")
-	ErrBlockTimestampInvalid  = errors.New("invalid block timestamp")
+	ErrBlockTxTrieHashInvalid = errors.New("invalid block tx trie hash")
+	// ErrBlockWitnessRootInvalid rejects a header whose witness
+	// commitment does not match the carried signature envelopes
+	ErrBlockWitnessRootInvalid = errors.New("invalid block witness root")
+	ErrBlockTimestampInvalid   = errors.New("invalid block timestamp")
 
 	ErrBlockNotSealed = errors.New("the block is not sealed")
 )
@@ -35,13 +38,12 @@ var (
 // provides the safety assurance by the hashes in the header
 type FullBlock struct {
 	*BlockHeader
-	Txs  []*FullTx
-	Subs []*BlockHeader
+	Txs []*FullTx
 }
 
 // NewBlock creates a new Block
-func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, txTrieHash, subTrieHash, difficulty,
-	nonce []byte, txs []*FullTx, subs []*BlockHeader) *FullBlock {
+func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, txTrieHash, witnessRoot, difficulty,
+	nonce []byte, txs []*FullTx) *FullBlock {
 	return &FullBlock{
 		BlockHeader: &BlockHeader{
 			Network:       network,
@@ -49,26 +51,38 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 			Timestamp:     timestamp,
 			PrevBlockHash: prevBlockHash,
 			TxTrieHash:    txTrieHash,
-			SubTrieHash:   subTrieHash,
+			WitnessRoot:   witnessRoot,
 			Difficulty:    difficulty,
 			Nonce:         nonce,
 		},
-		Txs:  txs,
-		Subs: subs,
+		Txs: txs,
 	}
 }
 
 // NewBlockFromHeader creates a new Block
-func NewBlockFromHeader(blockHeader *BlockHeader, txs []*FullTx, subs []*BlockHeader) *FullBlock {
+func NewBlockFromHeader(blockHeader *BlockHeader, txs []*FullTx) *FullBlock {
 	return &FullBlock{
 		BlockHeader: blockHeader,
 		Txs:         txs,
-		Subs:        subs,
 	}
 }
 
+// CalcWitnessRoot commits the txs' signature envelopes in block
+// order: keccak over the per-tx keccak of the witness bytes. The
+// header carries it so witness data is immutable in the live chain,
+// yet REPLACEABLE for settled history (pruning, aggregate proofs)
+// without touching any txid
+func CalcWitnessRoot(txs []*FullTx) []byte {
+	buf := make([]byte, 0, len(txs)*HashSize)
+	for _, tx := range txs {
+		buf = append(buf, utils.KeccakSum256(tx.Sign)...)
+	}
+
+	return utils.KeccakSum256(buf)
+}
+
 // NewBlockFromPoWRaw will apply the raw pow of header and txs to the block.
-func NewBlockFromPoWRaw(raw []byte, txs []*FullTx, subs []*BlockHeader) (*FullBlock, error) {
+func NewBlockFromPoWRaw(raw []byte, txs []*FullTx) (*FullBlock, error) {
 	// lenRaw := NetSize +  // 1
 	//   HeightSize+        // 8
 	//   TimestampSize +    // +
@@ -92,7 +106,6 @@ func NewBlockFromPoWRaw(raw []byte, txs []*FullTx, subs []*BlockHeader) (*FullBl
 		bytes.TrimLeft(utils.ReverseBytes(raw[113:145]), string(byte(0))), // remove left padding
 		raw[145:153],
 		txs,
-		subs,
 	)
 
 	if err := newBlock.verifyNonce(); err != nil {
@@ -115,7 +128,6 @@ func NewBareBlock(network Network, height uint64, blockTime uint64, prevBlockHas
 		diff.Bytes(),
 		make([]byte, NonceSize),
 		make([]*FullTx, 0),
-		[]*BlockHeader{},
 	)
 }
 
@@ -163,7 +175,7 @@ func (x *FullBlock) GetPoWRawHeader(nonce []byte) []byte {
 	binary.LittleEndian.PutUint64(raw[9:17], x.BlockHeader.Timestamp)
 	copy(raw[17:49], x.BlockHeader.PrevBlockHash)
 	copy(raw[49:81], x.BlockHeader.TxTrieHash)
-	copy(raw[81:113], x.BlockHeader.SubTrieHash)
+	copy(raw[81:113], x.BlockHeader.WitnessRoot)
 	copy(raw[113:145], utils.ReverseBytes(x.BlockHeader.Difficulty)) // uint256
 
 	if nonce == nil {
@@ -199,6 +211,7 @@ func (x *FullBlock) ToUnsealing(txsWithGen []*FullTx) error {
 
 	txTrie := NewTxTrie(txsWithGen)
 	x.BlockHeader.TxTrieHash = txTrie.TrieRoot()
+	x.BlockHeader.WitnessRoot = CalcWitnessRoot(txsWithGen)
 	x.Txs = txsWithGen
 
 	return nil
@@ -284,6 +297,14 @@ func (x *FullBlock) CheckError() error {
 			txTrie.TrieRoot(),
 			x.BlockHeader.TxTrieHash,
 		)
+	}
+
+	// the witness commitment pins the signature envelopes: without it,
+	// the same txids with different signature bytes would yield two
+	// different valid blocks under one header
+	if !bytes.Equal(CalcWitnessRoot(x.Txs), x.BlockHeader.WitnessRoot) {
+		return errors.Wrapf(ErrBlockWitnessRootInvalid,
+			"block@%d's witness root does not match its txs", x.BlockHeader.Height)
 	}
 
 	err := x.verifyNonce()

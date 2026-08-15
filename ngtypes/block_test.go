@@ -2,6 +2,9 @@ package ngtypes_test
 
 import (
 	"bytes"
+	"encoding/binary"
+	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/c0mm4nd/rlp"
@@ -122,7 +125,7 @@ func TestBlockRawPoW(t *testing.T) {
 		block := ngtypes.GetGenesisBlock(net)
 		raw := block.GetPoWRawHeader(nil)
 		txs := block.Txs
-		block2, err := ngtypes.NewBlockFromPoWRaw(raw, txs, nil)
+		block2, err := ngtypes.NewBlockFromPoWRaw(raw, txs)
 		if err != nil {
 			panic(err)
 		}
@@ -132,5 +135,90 @@ func TestBlockRawPoW(t *testing.T) {
 			log.Errorf("block2 %#v", block2)
 			t.Fail()
 		}
+	}
+}
+
+// TestWitnessSeparation pins the segwit-style split: the txid ignores
+// the signature envelope, the witness root commits it, and a block
+// whose witness bytes were swapped is rejected even though every txid
+// (and so the tx trie root) stays identical
+func TestWitnessSeparation(t *testing.T) {
+	key, _ := ngtypes.GenerateKey()
+
+	tx := ngtypes.NewUnsignedTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+		ngtypes.NewAddress(key), big.NewInt(1), big.NewInt(0), nil)
+	unsignedID := tx.GetHash()
+
+	if err := tx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(tx.GetHash(), unsignedID) {
+		t.Fatal("the txid must not change when the tx gets signed")
+	}
+
+	// same tx, compact envelope: same txid, different witness root
+	compact := ngtypes.NewUnsignedTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
+		ngtypes.NewAddress(key), big.NewInt(1), big.NewInt(0), nil)
+	if err := compact.SignatureCompact(key); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(compact.GetHash(), tx.GetHash()) {
+		t.Fatal("envelope form must not affect the txid")
+	}
+	full := ngtypes.CalcWitnessRoot([]*ngtypes.FullTx{tx})
+	comp := ngtypes.CalcWitnessRoot([]*ngtypes.FullTx{compact})
+	if bytes.Equal(full, comp) {
+		t.Fatal("different witness bytes must yield different witness roots")
+	}
+
+	// a sealed block must reject swapped witness bytes: the tx trie
+	// root still matches, the witness root does not
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	height := uint64(1)
+	blockTime := ngtypes.GetGenesisTimestamp(ngtypes.ZERONET) + 16
+
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
+		ngtypes.NewAddress(key), ngtypes.GetBlockReward(height), big.NewInt(0), nil, nil)
+	if err := genTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+
+	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, genesis.GetHash(),
+		ngtypes.GetNextDiff(height, blockTime, genesis))
+	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
+		t.Fatal(err)
+	}
+
+	sealed := false
+	for n := uint64(0); n < 1_000_000; n++ {
+		nonce := make([]byte, ngtypes.NonceSize)
+		binary.LittleEndian.PutUint64(nonce, n)
+		if err := block.ToSealed(nonce); err != nil {
+			t.Fatal(err)
+		}
+		if block.CheckError() == nil {
+			sealed = true
+			break
+		}
+	}
+	if !sealed {
+		t.Fatal("failed to seal the test block")
+	}
+
+	// re-sign the SAME generate tx: txid identical, witness differs
+	resigned := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
+		ngtypes.NewAddress(key), ngtypes.GetBlockReward(height), big.NewInt(0), nil, nil)
+	if err := resigned.SignatureCompact(key); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(resigned.GetHash(), genTx.GetHash()) {
+		t.Fatal("re-signed tx must keep its txid")
+	}
+
+	block.Txs = []*ngtypes.FullTx{resigned}
+	if err := block.CheckError(); err == nil {
+		t.Fatal("swapped witness bytes must invalidate the block")
+	} else if !errors.Is(err, ngtypes.ErrBlockWitnessRootInvalid) {
+		t.Fatalf("got %v, want ErrBlockWitnessRootInvalid", err)
 	}
 }

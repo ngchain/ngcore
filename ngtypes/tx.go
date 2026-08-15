@@ -245,15 +245,12 @@ func (x *FullTx) ID() string {
 	return hex.EncodeToString(x.GetHash())
 }
 
-// GetHash mainly for calculating the tire root of txs and sign tx.
-// The returned hash is the hash of the whole signed tx
+// GetHash returns the txid: the hash of the tx WITHOUT its signature
+// envelope. Witness data is committed separately in the block header,
+// so pruning or aggregating signatures later never disturbs the txid
+// nor any history commitment built on it
 func (x *FullTx) GetHash() []byte {
-	hash, err := x.CalculateHash()
-	if err != nil {
-		panic(err)
-	}
-
-	return hash
+	return x.GetUnsignedHash()
 }
 
 // GetUnsignedHash mainly for signing and verifying.
@@ -270,14 +267,9 @@ func (x *FullTx) GetUnsignedHash() []byte {
 	return utils.KeccakSum256(raw)
 }
 
-// CalculateHash mainly for calculating the tire root of txs and sign tx.
+// CalculateHash feeds the merkle trie: the txid (unsigned hash)
 func (x *FullTx) CalculateHash() ([]byte, error) {
-	raw, err := rlp.EncodeToBytes(x)
-	if err != nil {
-		return nil, err
-	}
-
-	return utils.KeccakSum256(raw), nil
+	return x.GetUnsignedHash(), nil
 }
 
 // Equals mainly for calculating the tire root of txs.
@@ -304,10 +296,6 @@ func (x *FullTx) Equals(other merkletree.Content) (bool, error) {
 	}
 
 	if x.Fee.Cmp(tx.Fee) != 0 {
-		return false, nil
-	}
-
-	if !bytes.Equal(x.Sign, tx.Sign) {
 		return false, nil
 	}
 

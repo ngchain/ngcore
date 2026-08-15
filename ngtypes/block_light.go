@@ -4,5 +4,4 @@ package ngtypes
 type LightWeightBlock struct {
 	Header *BlockHeader
 	Txs    [][]byte // tx hashes
-	Subs   [][]byte // subblock hashes
 }

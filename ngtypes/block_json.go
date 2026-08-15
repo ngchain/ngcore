@@ -15,7 +15,7 @@ type jsonBlockHeader struct {
 	Timestamp     uint64 `json:"timestamp"`
 	PrevBlockHash string `json:"prevBlockHash"`
 	TxTrieHash    string `json:"txTrieHash"`
-	SubTrieHash   string `json:"subTrieHash"`
+	WitnessRoot   string `json:"subTrieHash"`
 	Difficulty    string `json:"difficulty"`
 	Nonce         string `json:"nonce"`
 }
@@ -27,7 +27,7 @@ func headerToJSON(h *BlockHeader) jsonBlockHeader {
 		Timestamp:     h.Timestamp,
 		PrevBlockHash: hex.EncodeToString(h.PrevBlockHash),
 		TxTrieHash:    hex.EncodeToString(h.TxTrieHash),
-		SubTrieHash:   hex.EncodeToString(h.SubTrieHash),
+		WitnessRoot:   hex.EncodeToString(h.WitnessRoot),
 		Difficulty:    new(big.Int).SetBytes(h.Difficulty).String(),
 		Nonce:         hex.EncodeToString(h.Nonce),
 	}
@@ -42,7 +42,7 @@ func headerFromJSON(j jsonBlockHeader) (*BlockHeader, error) {
 	if err != nil {
 		return nil, err
 	}
-	subTrie, err := hex.DecodeString(j.SubTrieHash)
+	subTrie, err := hex.DecodeString(j.WitnessRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func headerFromJSON(j jsonBlockHeader) (*BlockHeader, error) {
 		Timestamp:     j.Timestamp,
 		PrevBlockHash: prev,
 		TxTrieHash:    txTrie,
-		SubTrieHash:   subTrie,
+		WitnessRoot:   subTrie,
 		Difficulty:    diff.Bytes(),
 		Nonce:         nonce,
 	}, nil
@@ -75,14 +75,12 @@ type jsonBlock struct {
 
 	PrevBlockHash string `json:"prevBlockHash"`
 	TxTrieHash    string `json:"txTrieHash"`
-	SubTrieHash   string `json:"subTrieHash"`
+	WitnessRoot   string `json:"subTrieHash"`
 
 	Difficulty string `json:"difficulty"`
 	Nonce      string `json:"nonce"`
 
 	Txs []*FullTx `json:"txs"`
-
-	SubHeaders []jsonBlockHeader `json:"subHeaders,omitempty"`
 
 	// some helper fields
 	Hash    string `json:"hash,omitempty"`
@@ -98,11 +96,10 @@ func (x *FullBlock) MarshalJSON() ([]byte, error) {
 		Timestamp:     x.BlockHeader.Timestamp,
 		PrevBlockHash: hex.EncodeToString(x.BlockHeader.PrevBlockHash),
 		TxTrieHash:    hex.EncodeToString(x.BlockHeader.TxTrieHash),
-		SubTrieHash:   hex.EncodeToString(x.BlockHeader.SubTrieHash),
+		WitnessRoot:   hex.EncodeToString(x.BlockHeader.WitnessRoot),
 		Difficulty:    new(big.Int).SetBytes(x.BlockHeader.Difficulty).String(),
 		Nonce:         hex.EncodeToString(x.BlockHeader.Nonce),
 		Txs:           x.Txs,
-		SubHeaders:    subHeadersToJSON(x.Subs),
 
 		Hash:    hex.EncodeToString(x.GetHash()),
 		PoWHash: hex.EncodeToString(x.PowHash()),
@@ -129,7 +126,7 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	subTrieHash, err := hex.DecodeString(b.SubTrieHash)
+	subTrieHash, err := hex.DecodeString(b.WitnessRoot)
 	if err != nil {
 		return err
 	}
@@ -143,15 +140,6 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	subHeaders := make([]*BlockHeader, 0, len(b.SubHeaders))
-	for _, jh := range b.SubHeaders {
-		h, err := headerFromJSON(jh)
-		if err != nil {
-			return err
-		}
-		subHeaders = append(subHeaders, h)
-	}
-
 	*x = *NewBlock(
 		GetNetwork(b.Network),
 		b.Height,
@@ -162,7 +150,6 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 		difficulty,
 		nonce,
 		b.Txs,
-		subHeaders,
 	)
 
 	// err = x.verifyNonce()
@@ -171,17 +158,4 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 	// }
 
 	return nil
-}
-
-func subHeadersToJSON(headers []*BlockHeader) []jsonBlockHeader {
-	if len(headers) == 0 {
-		return nil
-	}
-
-	out := make([]jsonBlockHeader, len(headers))
-	for i, h := range headers {
-		out[i] = headerToJSON(h)
-	}
-
-	return out
 }

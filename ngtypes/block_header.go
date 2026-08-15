@@ -20,7 +20,7 @@ type BlockHeader struct {
 
 	PrevBlockHash []byte // 32
 	TxTrieHash    []byte // 32
-	SubTrieHash   []byte // 32
+	WitnessRoot   []byte // 32
 
 	Difficulty []byte // 32
 	Nonce      []byte `rlp:"tail"` // 8
@@ -85,7 +85,7 @@ func (x *BlockHeader) Equals(other merkletree.Content) (bool, error) {
 	if !bytes.Equal(x.TxTrieHash, header.TxTrieHash) {
 		return false, nil
 	}
-	if !bytes.Equal(x.SubTrieHash, header.SubTrieHash) {
+	if !bytes.Equal(x.WitnessRoot, header.WitnessRoot) {
 		return false, nil
 	}
 	if !bytes.Equal(x.Difficulty, header.Difficulty) {

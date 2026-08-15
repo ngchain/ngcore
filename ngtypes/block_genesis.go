@@ -10,7 +10,6 @@ func GetGenesisBlock(network Network) *FullBlock {
 
 	if genesisBlock == nil {
 		txTrie := NewTxTrie(txs)
-		headerTrie := NewHeaderTrie(nil)
 		genesisBlock = NewBlock(
 			network,
 			0,
@@ -18,11 +17,10 @@ func GetGenesisBlock(network Network) *FullBlock {
 
 			make([]byte, HashSize),
 			txTrie.TrieRoot(),
-			headerTrie.TrieRoot(),
+			CalcWitnessRoot(txs),
 			MinimumDiffOf(network).Bytes(), // this is a number, dont put any padding on
 			GetGenesisBlockNonce(network),
 			txs,
-			[]*BlockHeader{},
 		)
 		genesisBlock.GetHash()
 	}
