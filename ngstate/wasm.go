@@ -92,9 +92,20 @@ type VM struct {
 
 // CompileContract translates the on-chain contract text (wat) into its
 // binary encoding. The compilation is deterministic, so every node gets
-// the same bytes for the same on-chain text
-func CompileContract(contract []byte) ([]byte, error) {
-	bin, err := wat.Compile(contract)
+// the same bytes for the same on-chain text.
+//
+// The source is UNTRUSTED (a malicious commit chooses it) and reaches
+// here inside block validation, so a compiler panic on adversarial
+// input must degrade to an error — never crash the node
+func CompileContract(contract []byte) (bin []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			bin = nil
+			err = errors.Errorf("contract text does not compile: %v", r)
+		}
+	}()
+
+	bin, err = wat.Compile(contract)
 	if err != nil {
 		return nil, errors.Wrap(err, "contract text does not compile")
 	}
