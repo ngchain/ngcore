@@ -15,22 +15,31 @@ import (
 // and sign the 32-byte tx digest; they differ in the size/assumption
 // trade-off:
 //
-//	FN-DSA-512   (default) — the compact one: 897 B key + 666 B sig,
+//	SLH-DSA-128s (default) — hash-based, FIPS 205: 32 B key +
+//	             7856 B sig. The assumption-minimal, SNARK-friendly
+//	             family ethereum's lean consensus committed to
+//	             (leanXMSS there; the stateless variant here, since
+//	             wallet keys cannot carry one-time-index state)
+//	FN-DSA-512   — the compact one: 897 B key + 666 B sig,
 //	             NTRU lattices, FIPS 206 draft
 //	ML-DSA-44    — the finalized one: 1312 B key + 2420 B sig,
 //	             module lattices, FIPS 204
-//	SLH-DSA-128s — the assumption-minimal one: 32 B key + 7856 B sig,
-//	             hash-based, FIPS 205
 //
 // A future aggregation layer can compress any mix of them: witness
 // data is committed separately from the tx ids, so signatures can be
-// replaced by aggregate proofs without touching history commitments.
+// replaced by aggregate proofs without touching history commitments —
+// hash-based witnesses compress especially well under STARKs, which
+// is exactly why ethereum picked the family.
 type SigScheme byte
 
 const (
 	SchemeFNDSA512  SigScheme = 0x01
 	SchemeMLDSA44   SigScheme = 0x02
 	SchemeSLHDSA128 SigScheme = 0x03
+
+	// SchemeDefault is what GenerateKey hands out: the hash-based
+	// scheme, matching ethereum's post-quantum direction
+	SchemeDefault = SchemeSLHDSA128
 )
 
 // KeySeedSize is the wallet secret: a 32-byte seed the whole key pair
@@ -95,9 +104,9 @@ type PrivateKey struct {
 	slhPriv slhdsa.PrivateKey
 }
 
-// GenerateKey creates a fresh key under the default scheme (FN-DSA-512)
+// GenerateKey creates a fresh key under the default scheme
 func GenerateKey() (*PrivateKey, error) {
-	return GenerateSchemeKey(SchemeFNDSA512)
+	return GenerateSchemeKey(SchemeDefault)
 }
 
 // GenerateSchemeKey creates a fresh key under the given scheme
