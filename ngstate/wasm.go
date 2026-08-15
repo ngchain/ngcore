@@ -78,6 +78,10 @@ type VM struct {
 	// call (mirroring the journal semantics)
 	events []Event
 
+	// tollPreburn is the budget pre-charged by LimitToll (the block
+	// gas cap); subtracted when reporting this run's own consumption
+	tollPreburn uint64
+
 	// bufs are the cross-frame transfer slots: byte payloads (256-bit
 	// amounts, strings) crossing service boundaries go through them,
 	// since instances do not share linear memory
@@ -269,6 +273,30 @@ func CheckSelectorCollisions(source []byte) error {
 	}
 
 	return nil
+}
+
+// LimitToll shrinks this vm's toll budget below the per-call default,
+// implementing the block-level gas cap: the station simply starts
+// pre-charged by the difference
+func (vm *VM) LimitToll(budget uint64) {
+	if budget >= vmMaxToll {
+		return
+	}
+
+	// pre-burn the part of the default budget the block cannot afford
+	vm.tollPreburn = vmMaxToll - budget
+	_ = vm.cfg.TollStation.AddToll(vm.tollPreburn)
+}
+
+// GasUsed reports the toll THIS run consumed, the pre-burned block-cap
+// share excluded
+func (vm *VM) GasUsed() uint64 {
+	total := vm.cfg.TollStation.GetToll()
+	if total <= vm.tollPreburn {
+		return 0
+	}
+
+	return total - vm.tollPreburn
 }
 
 // charge burns extra toll for a host operation; exceeding the budget

@@ -228,7 +228,7 @@ func TestLeverageShowcase(t *testing.T) {
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
-			if err := state.handleActivate(txn, tx, 1); err != nil {
+			if err := state.handleActivate(txn, tx, 1, nil); err != nil {
 				t.Fatalf("lock %s: %v", who, err)
 			}
 		}

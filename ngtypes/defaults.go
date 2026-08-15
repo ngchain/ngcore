@@ -44,6 +44,16 @@ const (
 	// MaxBlockBytes caps a block's total serialized size (8 MiB), the
 	// hard blowup guard whatever the envelope sizes are
 	MaxBlockBytes = 1 << 23
+
+	// MaxBlockGas caps the TOTAL contract-execution toll one block may
+	// consume (8 full per-call budgets; hundreds of typical calls).
+	// Execution is deterministic, so every node draws the same line:
+	// runs past the budget are skipped, recorded as such in receipts
+	MaxBlockGas = 1 << 27
+
+	// MaxContractSourceSize caps a contract's source text: activation
+	// compiles it inside block validation, so its cost must be bounded
+	MaxContractSourceSize = 256 << 10
 )
 
 // PoW variables

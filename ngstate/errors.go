@@ -13,4 +13,7 @@ var (
 	// ErrSelectorCollision occurs when two callable exports share the
 	// same 4-byte call selector
 	ErrSelectorCollision = errors.New("contract exports collide on a call selector")
+	// ErrSourceTooLarge occurs when a commit would grow the contract
+	// source past the consensus cap
+	ErrSourceTooLarge = errors.New("contract source exceeds the size cap")
 )

@@ -9,9 +9,18 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
+// blockGas tracks the remaining contract-execution budget of ONE
+// block: deterministic across nodes, so every replica skips the same
+// runs once the block budget drains
+type blockGas struct {
+	remaining uint64
+}
+
 // HandleTxs will apply the tx into the state if tx is VALID.
 // blockTime is the enclosing block's timestamp, exposed to contracts
 func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.FullTx) (err error) {
+	gas := &blockGas{remaining: ngtypes.MaxBlockGas}
+
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		switch tx.Type {
@@ -26,7 +35,7 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 				return err
 			}
 		case ngtypes.TransactTx:
-			if err := state.handleTransaction(txn, tx, blockTime); err != nil {
+			if err := state.handleTransaction(txn, tx, blockTime, gas); err != nil {
 				return err
 			}
 		case ngtypes.CommitTx: // commit tx
@@ -34,7 +43,7 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 				return err
 			}
 		case ngtypes.ActivateTx:
-			if err := state.handleActivate(txn, tx, blockTime); err != nil {
+			if err := state.handleActivate(txn, tx, blockTime, gas); err != nil {
 				return err
 			}
 		case ngtypes.DeactivateTx:
@@ -119,7 +128,7 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 	return delContract(txn, from)
 }
 
-func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
+func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64, gas *blockGas) (err error) {
 	if _, err := chargeFrom(txn, tx, tx.TotalExpenditure()); err != nil {
 		return err
 	}
@@ -130,7 +139,7 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 	}
 
 	if contractExists(txn, tx.To) {
-		state.runContract(txn, tx.To, tx, VMEntryOnTx, blockTime)
+		state.runContract(txn, tx.To, tx, VMEntryOnTx, blockTime, gas)
 	}
 
 	return nil
@@ -170,13 +179,17 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 	if err != nil {
 		return err
 	}
+	if len(slot.Source) > ngtypes.MaxContractSourceSize {
+		return errors.Wrapf(ErrSourceTooLarge, "%d bytes exceed the cap %d",
+			len(slot.Source), ngtypes.MaxContractSourceSize)
+	}
 
 	return setContract(txn, slot)
 }
 
 // handleActivate freezes the From address's contract: the body becomes immutable
 // and the vm gets active. The optional `init` export runs once here
-func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64) (err error) {
+func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64, gas *blockGas) (err error) {
 	if err := tx.CheckActivate(keyResolver(txn)); err != nil {
 		return err
 	}
@@ -241,7 +254,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 
-	state.runContract(txn, from, tx, VMEntryOnActivate, blockTime)
+	state.runContract(txn, from, tx, VMEntryOnActivate, blockTime, gas)
 
 	return nil
 }
@@ -303,7 +316,7 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 // its slot is locked and has one. A contract failure is final for this
 // call (its journal is dropped) but NEVER fails the tx itself: every
 // node hits the same result, so consensus is kept
-func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, entry string, blockTime uint64) {
+func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, entry string, blockTime uint64, gas *blockGas) {
 	account, err := getContract(txn, addr)
 	if err != nil {
 		return // no contract slot on this address
@@ -314,6 +327,14 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 	}
 
 	run := ContractRun{Contract: addr.Bytes(), Entry: entry}
+
+	// the deterministic block budget: a drained block skips the run,
+	// visibly, so wallets learn to spread heavy calls across blocks
+	if gas != nil && gas.remaining == 0 {
+		run.Error = "block gas budget exhausted"
+		recordRun(txn, tx, run)
+		return
+	}
 
 	vm, err := NewVM(txn, account, tx, blockTime)
 	if err != nil {
@@ -327,8 +348,20 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 	entry = vm.EntryFor(entry)
 	run.Entry = entry
 
+	// clamp this run to whatever the block has left
+	if gas != nil && gas.remaining < vmMaxToll {
+		vm.LimitToll(gas.remaining)
+	}
+
 	err = vm.Run(entry)
-	run.GasUsed = vm.cfg.TollStation.GetToll()
+	run.GasUsed = vm.GasUsed()
+	if gas != nil {
+		if run.GasUsed >= gas.remaining {
+			gas.remaining = 0
+		} else {
+			gas.remaining -= run.GasUsed
+		}
+	}
 	if err != nil {
 		if IsExportMissing(err) && entry != VMEntryOnTx {
 			return // optional entry (e.g. init) is absent — no run to record

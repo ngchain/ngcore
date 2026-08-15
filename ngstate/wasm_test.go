@@ -255,7 +255,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleActivate(txn, activateTx, 1); err != nil {
+		if err := state.handleActivate(txn, activateTx, 1, nil); err != nil {
 			t.Fatalf("handleActivate: %v", err)
 		}
 
@@ -271,7 +271,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 		}
 
 		// double lock must fail
-		if err := state.handleActivate(txn, activateTx, 1); err == nil {
+		if err := state.handleActivate(txn, activateTx, 1, nil); err == nil {
 			t.Fatal("locking a locked account should fail")
 		}
 
@@ -399,7 +399,7 @@ func TestCommitFlow(t *testing.T) {
 		if err := activateTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleActivate(txn, activateTx, 1); err != nil {
+		if err := state.handleActivate(txn, activateTx, 1, nil); err != nil {
 			t.Fatalf("handleActivate after edit: %v", err)
 		}
 
@@ -486,15 +486,15 @@ func TestContractModuleDeps(t *testing.T) {
 		}
 
 		// locking leverage before its dependency is active must fail
-		if err := state.handleActivate(txn, activateTx(privLev), 1); err == nil {
+		if err := state.handleActivate(txn, activateTx(privLev), 1, nil); err == nil {
 			t.Fatal("locking with an inactive dependency must fail")
 		}
 
 		// dex first, then leverage: the reference gets pinned
-		if err := state.handleActivate(txn, activateTx(privDex), 1); err != nil {
+		if err := state.handleActivate(txn, activateTx(privDex), 1, nil); err != nil {
 			t.Fatalf("lock dex: %v", err)
 		}
-		if err := state.handleActivate(txn, activateTx(privLev), 1); err != nil {
+		if err := state.handleActivate(txn, activateTx(privLev), 1, nil); err != nil {
 			t.Fatalf("lock leverage: %v", err)
 		}
 
@@ -626,7 +626,7 @@ func TestServiceToken(t *testing.T) {
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
-			return state.handleActivate(txn, tx, 1)
+			return state.handleActivate(txn, tx, 1, nil)
 		}
 
 		if err := lock(privToken); err != nil {
@@ -1023,7 +1023,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		putContract(t, txn, acc, 0)
 
 		tx := fakeTransactTx(ngtypes.Address{}, nil)
-		state.runContract(txn, emitAddr, tx, VMEntryOnTx, 1)
+		state.runContract(txn, emitAddr, tx, VMEntryOnTx, 1, nil)
 
 		runs, err := GetTxRuns(txn, tx.GetHash())
 		if err != nil {
@@ -1056,7 +1056,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		putContract(t, txn, bad, 0)
 
 		badTx := fakeTransactTx(badAddr, big.NewInt(0))
-		state.runContract(txn, badAddr, badTx, VMEntryOnTx, 1)
+		state.runContract(txn, badAddr, badTx, VMEntryOnTx, 1, nil)
 
 		badRuns, err := GetTxRuns(txn, badTx.GetHash())
 		if err != nil {
@@ -1235,7 +1235,7 @@ func TestActivateRejectsBrokenContract(t *testing.T) {
 		if err := checkActivate(txn, activateTx); err == nil {
 			t.Fatal("checkActivate should reject a non-compiling contract")
 		}
-		if err := state.handleActivate(txn, activateTx, 1); err == nil {
+		if err := state.handleActivate(txn, activateTx, 1, nil); err == nil {
 			t.Fatal("handleActivate should reject a non-compiling contract")
 		}
 
@@ -1289,7 +1289,7 @@ func TestCallSelector(t *testing.T) {
 
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
 				addr, big.NewInt(0), big.NewInt(0), extra, nil)
-			state.runContract(txn, addr, tx, VMEntryOnTx, 1)
+			state.runContract(txn, addr, tx, VMEntryOnTx, 1, nil)
 
 			var err error
 			reloaded, err = getContract(txn, addr)
@@ -1387,7 +1387,7 @@ func TestCompactEnvelope(t *testing.T) {
 		if len(full.Sign) != 2+ngtypes.PubKeySize(priv.Scheme)+ngtypes.SigSize(priv.Scheme) {
 			t.Fatalf("full envelope size = %d", len(full.Sign))
 		}
-		if err := state.handleTransaction(txn, full, 1); err != nil {
+		if err := state.handleTransaction(txn, full, 1, nil); err != nil {
 			t.Fatalf("full tx: %v", err)
 		}
 
@@ -1400,7 +1400,7 @@ func TestCompactEnvelope(t *testing.T) {
 		if err := checkTransaction(txn, compact); err != nil {
 			t.Fatalf("checkTransaction compact: %v", err)
 		}
-		if err := state.handleTransaction(txn, compact, 1); err != nil {
+		if err := state.handleTransaction(txn, compact, 1, nil); err != nil {
 			t.Fatalf("compact tx: %v", err)
 		}
 		if got := getBalance(txn, dest); got.Int64() != 3 {
@@ -1509,8 +1509,114 @@ func TestSelectorCollisionRefused(t *testing.T) {
 		if err := checkActivate(txn, activateTx); !errors.Is(err, ErrSelectorCollision) {
 			t.Fatalf("checkActivate: got %v, want ErrSelectorCollision", err)
 		}
-		if err := state.handleActivate(txn, activateTx, 1); !errors.Is(err, ErrSelectorCollision) {
+		if err := state.handleActivate(txn, activateTx, 1, nil); !errors.Is(err, ErrSelectorCollision) {
 			t.Fatalf("handleActivate: got %v, want ErrSelectorCollision", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestBlockGasBudget: the deterministic block-level gas cap — a
+// drained budget clamps then skips runs, visibly in the receipts
+func TestBlockGasBudget(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	burner := testAddr(0xba)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewContract(burner, []byte(burnWat), nil)
+		acc.SetActive(true)
+		putContract(t, txn, acc, 0)
+
+		tx := fakeTransactTx(burner, nil)
+
+		// a budget of two full runs: the first two burn it dry, the
+		// third is skipped without executing
+		gas := &blockGas{remaining: 2 * vmMaxToll}
+		for i := 0; i < 3; i++ {
+			state.runContract(txn, burner, tx, VMEntryOnTx, 1, gas)
+		}
+		if gas.remaining != 0 {
+			t.Fatalf("budget remaining = %d, want 0", gas.remaining)
+		}
+
+		runs, err := GetTxRuns(txn, tx.GetHash())
+		if err != nil {
+			return err
+		}
+		if len(runs) != 3 {
+			t.Fatalf("runs = %d, want 3", len(runs))
+		}
+		// the burner spins until aborted: both funded runs consume the
+		// full per-call toll
+		if runs[0].GasUsed != vmMaxToll || runs[1].GasUsed != vmMaxToll {
+			t.Fatalf("funded runs used %d/%d, want %d each", runs[0].GasUsed, runs[1].GasUsed, int64(vmMaxToll))
+		}
+		if runs[2].GasUsed != 0 || runs[2].Error != "block gas budget exhausted" {
+			t.Fatalf("skipped run = %+v", runs[2])
+		}
+
+		// a clamped run: half a budget left means the run gets half
+		gas = &blockGas{remaining: vmMaxToll / 2}
+		clampTx := fakeTransactTx(burner, big.NewInt(1))
+		state.runContract(txn, burner, clampTx, VMEntryOnTx, 1, gas)
+		clampRuns, err := GetTxRuns(txn, clampTx.GetHash())
+		if err != nil {
+			return err
+		}
+		if len(clampRuns) != 1 || clampRuns[0].GasUsed != vmMaxToll/2 {
+			t.Fatalf("clamped run = %+v, want gasUsed %d", clampRuns, int64(vmMaxToll/2))
+		}
+		if gas.remaining != 0 {
+			t.Fatalf("clamped budget remaining = %d", gas.remaining)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestSourceSizeCap: a commit growing the source past the consensus
+// cap is refused in both the check and the handle paths
+func TestSourceSizeCap(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	priv, _ := ngtypes.GenerateKey()
+	addr := ngtypes.NewAddress(priv)
+
+	huge := make([]byte, ngtypes.MaxContractSourceSize+1)
+	for i := range huge {
+		huge[i] = ';' // wat comments: content is irrelevant, size is
+	}
+	extra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: huge}}).Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = db.Update(func(txn *bbolt.Tx) error {
+		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+			return err
+		}
+
+		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1,
+			ngtypes.Address{}, nil, big.NewInt(1), extra, nil)
+		if err := commitTx.Signature(priv); err != nil {
+			return err
+		}
+
+		if err := checkCommit(txn, commitTx); !errors.Is(err, ErrSourceTooLarge) {
+			t.Fatalf("checkCommit: got %v, want ErrSourceTooLarge", err)
+		}
+		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrSourceTooLarge) {
+			t.Fatalf("handleCommit: got %v, want ErrSourceTooLarge", err)
 		}
 
 		return nil

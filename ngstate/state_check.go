@@ -169,13 +169,18 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 		baseText = slot.Source
 	}
 
-	editExtra, err := ngtypes.DecodeCommitExtra(commitTx.Extra)
+	commitExtra, err := ngtypes.DecodeCommitExtra(commitTx.Extra)
 	if err != nil {
 		return err
 	}
 
-	if _, err := editExtra.Apply(baseText); err != nil {
+	newSource, err := commitExtra.Apply(baseText)
+	if err != nil {
 		return err
+	}
+	if len(newSource) > ngtypes.MaxContractSourceSize {
+		return errors.Wrapf(ErrSourceTooLarge, "%d bytes exceed the cap %d",
+			len(newSource), ngtypes.MaxContractSourceSize)
 	}
 
 	return nil
