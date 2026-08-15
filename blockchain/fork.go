@@ -8,6 +8,7 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngblocks"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
@@ -167,6 +168,9 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 			return err
 		}
 
+		if err := ngstate.PruneReceiptsTxn(txn, newTip.GetHeight()); err != nil {
+			return err
+		}
 		if _, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(newTip.GetHeight())); err != nil {
 			return err
 		}

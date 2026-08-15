@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 
+	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
 
@@ -35,15 +36,27 @@ const (
 	maxEventTopicLen = 64
 	maxEventDataLen  = 4096
 	maxRunErrorLen   = 512
+
+	// receiptRetention is how many recent blocks keep their receipts;
+	// older ones prune at checkpoint maintenance (receipts are local
+	// convenience data and regenerate on any replay anyway)
+	receiptRetention = 16 * ngtypes.BlockCheckRound
 )
 
+// txReceipt is the stored record: the settling height tags the runs so
+// pruning can age them out without cross-bucket lookups
+type txReceipt struct {
+	Height uint64
+	Runs   []ContractRun
+}
+
 // appendContractRun attaches a run record to the tx's receipt
-func appendContractRun(txn *bbolt.Tx, txHash []byte, run ContractRun) error {
+func appendContractRun(txn *bbolt.Tx, txHash []byte, height uint64, run ContractRun) error {
 	bucket := txn.Bucket(storage.ReceiptBucketName)
 
-	var runs []ContractRun
+	record := txReceipt{Height: height}
 	if raw := bucket.Get(txHash); raw != nil {
-		if err := rlp.DecodeBytes(raw, &runs); err != nil {
+		if err := rlp.DecodeBytes(raw, &record); err != nil {
 			return errors.Wrap(err, "broken receipt record")
 		}
 	}
@@ -51,14 +64,36 @@ func appendContractRun(txn *bbolt.Tx, txHash []byte, run ContractRun) error {
 	if len(run.Error) > maxRunErrorLen {
 		run.Error = run.Error[:maxRunErrorLen]
 	}
-	runs = append(runs, run)
+	record.Height = height
+	record.Runs = append(record.Runs, run)
 
-	raw, err := rlp.EncodeToBytes(runs)
+	raw, err := rlp.EncodeToBytes(&record)
 	if err != nil {
 		return err
 	}
 
 	return bucket.Put(txHash, raw)
+}
+
+// PruneReceiptsTxn ages out receipts settled deeper than the retention
+// window; called at checkpoint maintenance so the bucket stays bounded
+func PruneReceiptsTxn(txn *bbolt.Tx, tipHeight uint64) error {
+	if tipHeight <= receiptRetention {
+		return nil
+	}
+	floor := tipHeight - receiptRetention
+
+	c := txn.Bucket(storage.ReceiptBucketName).Cursor()
+	for k, raw := c.First(); k != nil; k, raw = c.Next() {
+		var record txReceipt
+		if err := rlp.DecodeBytes(raw, &record); err != nil || record.Height < floor {
+			if err := c.Delete(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // GetTxRuns loads the contract runs a tx triggered (nil when the tx ran
@@ -69,12 +104,12 @@ func GetTxRuns(txn *bbolt.Tx, txHash []byte) ([]ContractRun, error) {
 		return nil, nil
 	}
 
-	var runs []ContractRun
-	if err := rlp.DecodeBytes(raw, &runs); err != nil {
+	var record txReceipt
+	if err := rlp.DecodeBytes(raw, &record); err != nil {
 		return nil, errors.Wrap(err, "broken receipt record")
 	}
 
-	return runs, nil
+	return record.Runs, nil
 }
 
 // GetTxRuns is the State-level reader for rpc use

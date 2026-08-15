@@ -348,7 +348,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 // recordRun appends the run to the tx's local receipt; receipt failures
 // must never fail consensus, so they only log
 func recordRun(txn *bbolt.Tx, tx *ngtypes.FullTx, run ContractRun) {
-	if err := appendContractRun(txn, tx.GetHash(), run); err != nil {
+	if err := appendContractRun(txn, tx.GetHash(), tx.Height, run); err != nil {
 		log.Errorf("failed to record the receipt of tx %x: %v", tx.GetHash(), err)
 	}
 }

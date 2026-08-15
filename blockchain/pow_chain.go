@@ -7,6 +7,7 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngblocks"
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 )
@@ -54,6 +55,9 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 					return err
 				}
 
+				if err := ngstate.PruneReceiptsTxn(txn, block.GetHeight()); err != nil {
+					return err
+				}
 				pruned, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(block.GetHeight()))
 				if err != nil {
 					return err
