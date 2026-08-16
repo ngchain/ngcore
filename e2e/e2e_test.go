@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/c0mm4nd/wasman/wat"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"go.etcd.io/bbolt"
 
@@ -36,6 +37,16 @@ type testNode struct {
 }
 
 // newNode boots a full node on an ephemeral tcp port with its own db
+// mustWat compiles wat authoring text into the wasm binary the chain
+// stores — wat is a test-only convenience, the chain runs wasm
+func mustWat(source string) []byte {
+	bin, err := wat.Compile([]byte(source))
+	if err != nil {
+		panic("test wat does not compile: " + err.Error())
+	}
+	return bin
+}
+
 func newNode(t *testing.T) *testNode {
 	t.Helper()
 
@@ -510,7 +521,7 @@ func TestContractLifecycle(t *testing.T) {
 
 	// deploy: the FIRST commit opens the address's slot
 	rawExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{
-		{Pos: 0, Ins: []byte(contractWat)},
+		{Pos: 0, Ins: mustWat(contractWat)},
 	}).Encode()
 	if err != nil {
 		t.Fatal(err)
@@ -544,7 +555,7 @@ func TestContractLifecycle(t *testing.T) {
 		if err != nil {
 			t.Fatalf("node%s: %v", name, err)
 		}
-		if string(acc.Source) != contractWat {
+		if !bytes.Equal(acc.Source, mustWat(contractWat)) {
 			t.Fatalf("node%s: contract text mismatch", name)
 		}
 		if !acc.IsActive() {
@@ -757,7 +768,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 
 	// Commit (deploy): the first commit opens the namespace at plain
 	// tx-fee cost
-	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: []byte(srcV1)}}).Encode()
+	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: mustWat(srcV1)}}).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -770,13 +781,13 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		if err != nil {
 			t.Fatalf("node%s: deploy did not open the slot: %v", name, err)
 		}
-		if string(c.Source) != srcV1 || c.IsActive() {
+		if !bytes.Equal(c.Source, mustWat(srcV1)) || c.IsActive() {
 			t.Fatalf("node%s: unexpected slot state after deploy", name)
 		}
 	})
 
 	// Commit (patch): a minimal diff updates the source pre-activation
-	patchExtra, err := ngtypes.NewCommitExtra([]byte(srcV1), ngtypes.DiffHunks([]byte(srcV1), []byte(srcV2))).Encode()
+	patchExtra, err := ngtypes.NewCommitExtra(mustWat(srcV1), ngtypes.DiffHunks(mustWat(srcV1), mustWat(srcV2))).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -786,7 +797,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	})
 	bothNodes(func(name string, node *testNode) {
 		c, _ := node.chain.State.GetContract(addr)
-		if string(c.Source) != srcV2 {
+		if !bytes.Equal(c.Source, mustWat(srcV2)) {
 			t.Fatalf("node%s: patch commit did not apply", name)
 		}
 	})
@@ -855,7 +866,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	})
 
 	// Commit (after deactivation): the slot is editable again
-	patch3, err := ngtypes.NewCommitExtra([]byte(srcV2), ngtypes.DiffHunks([]byte(srcV2), []byte(srcV3))).Encode()
+	patch3, err := ngtypes.NewCommitExtra(mustWat(srcV2), ngtypes.DiffHunks(mustWat(srcV2), mustWat(srcV3))).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -865,7 +876,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	})
 	bothNodes(func(name string, node *testNode) {
 		c, _ := node.chain.State.GetContract(addr)
-		if string(c.Source) != srcV3 {
+		if !bytes.Equal(c.Source, mustWat(srcV3)) {
 			t.Fatalf("node%s: post-deactivation commit did not apply", name)
 		}
 	})

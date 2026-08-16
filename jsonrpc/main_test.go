@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/c0mm4nd/wasman/wat"
 	"github.com/mr-tron/base58"
 	"go.etcd.io/bbolt"
 
@@ -207,6 +208,14 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 	t.Fatal("failed to seal the rpc block template")
 }
 
+func mustWat(source string) []byte {
+	bin, err := wat.Compile([]byte(source))
+	if err != nil {
+		panic("test wat does not compile: " + err.Error())
+	}
+	return bin
+}
+
 func TestRPCPing(t *testing.T) {
 	node := newRPCNode(t)
 
@@ -387,11 +396,13 @@ func TestRPCContractLifecycle(t *testing.T) {
 	// fund the deployer
 	mineViaRPC(t, node, key)
 
-	// deploy: the first commit opens the address's contract slot
-	signAndSend(genResult("genCommit", map[string]any{
+	// deploy: the first commit opens the address's contract slot,
+	// carrying the compiled wasm module (client compiles locally)
+	contractWasm := hex.EncodeToString(mustWat(contractWat))
+	signAndSend(genResult("genContractUpdate", map[string]any{
 		"address": addr.BS58(),
 		"fee":     0.05,
-		"hunks":   []map[string]any{{"pos": 0, "del": "", "ins": contractWat}},
+		"wasm":    contractWasm,
 	}))
 	mineViaRPC(t, node, key)
 
@@ -404,9 +415,9 @@ func TestRPCContractLifecycle(t *testing.T) {
 		t.Fatalf("slot owner = %s, want %s", account.Owner, addr.BS58())
 	}
 
-	var text string
-	decodeInto(t, node.mustCall(t, "getContract", map[string]any{"address": addr.BS58()}), &text)
-	if text != contractWat {
+	var gotWasm string
+	decodeInto(t, node.mustCall(t, "getContract", map[string]any{"address": addr.BS58()}), &gotWasm)
+	if gotWasm != contractWasm {
 		t.Fatal("getContract mismatch after the commit tx")
 	}
 

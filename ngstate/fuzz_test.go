@@ -4,24 +4,19 @@ import (
 	"testing"
 )
 
-// FuzzCompileContract hammers the wat compiler — a self-written parser
-// on the CONSENSUS path (activation compiles attacker-chosen source
-// inside block validation). It must reject garbage with an error,
-// never panic or hang
-func FuzzCompileContract(f *testing.F) {
-	f.Add([]byte(kvWat))
-	f.Add([]byte(burnWat))
-	f.Add([]byte(logWat))
-	f.Add([]byte(u256Wat))
-	f.Add([]byte(kvScanWat))
-	f.Add([]byte(multiEntryWat))
-	f.Add([]byte(cryptoWat))
-	f.Add([]byte(usdtTokenWat))
-	f.Add([]byte(`(module`))
-	f.Add([]byte(`(module (func (export "a") unreachable))`))
-	f.Add([]byte{0x00, 0x61, 0x73, 0x6d})
+// FuzzLoadContractWasm hammers the wasm loader — the CONSENSUS-path
+// validator runs on attacker-chosen contract bytecode at activation.
+// It must reject malformed input with an error, never panic or hang
+func FuzzLoadContractWasm(f *testing.F) {
+	f.Add(mustWat(kvWat))
+	f.Add(mustWat(u256Wat))
+	f.Add(mustWat(multiEntryWat))
+	f.Add(mustWat(cryptoWat))
+	f.Add([]byte{0x00, 0x61, 0x73, 0x6d})       // bare magic
+	f.Add([]byte{0x00, 0x61, 0x73, 0x6d, 0xff}) // magic + garbage
+	f.Add([]byte("not wasm at all"))
 
 	f.Fuzz(func(t *testing.T, source []byte) {
-		_, _ = CompileContract(source) // must not panic
+		_, _ = LoadContractWasm(source) // must not panic
 	})
 }

@@ -213,13 +213,13 @@ func TestLeverageShowcase(t *testing.T) {
 			return raw
 		}())
 
-		usdt := ngtypes.NewContract(addrA, []byte(usdtTokenWat), seeded)
+		usdt := ngtypes.NewContract(addrA, mustWat(usdtTokenWat), seeded)
 		putContract(t, txn, usdt, 100)
-		dex := ngtypes.NewContract(addrB, []byte(dexWatFor(addrA)), nil)
+		dex := ngtypes.NewContract(addrB, mustWat(dexWatFor(addrA)), nil)
 		putContract(t, txn, dex, 1000) // the dex pool holds native NG
-		lending := ngtypes.NewContract(addrC, []byte(lendingWatFor(addrA)), nil)
+		lending := ngtypes.NewContract(addrC, mustWat(lendingWatFor(addrA)), nil)
 		putContract(t, txn, lending, 100)
-		leverage := ngtypes.NewContract(addrD, []byte(strategyWatFor(addrA, addrB, addrC)), nil)
+		leverage := ngtypes.NewContract(addrD, mustWat(strategyWatFor(addrA, addrB, addrC)), nil)
 		putContract(t, txn, leverage, 100)
 
 		lock := func(priv *ngtypes.PrivateKey, who string) {

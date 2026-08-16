@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -120,7 +121,7 @@ func TestVMLog(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(testAddr(0xaa), []byte(logWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(logWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -140,7 +141,7 @@ func TestVMKVSet(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(testAddr(0xaa), []byte(kvWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(kvWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -177,7 +178,7 @@ func TestVMTransfer(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		contractAcc := ngtypes.NewContract(testAddr(0xaa), []byte(transferWatTo(testAddr(0xbb))), nil)
+		contractAcc := ngtypes.NewContract(testAddr(0xaa), mustWat(transferWatTo(testAddr(0xbb))), nil)
 		contractAcc.SetActive(true)
 		putContract(t, txn, contractAcc, 100)
 
@@ -208,7 +209,7 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(testAddr(0xaa), []byte(burnWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(burnWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 100)
 
@@ -248,7 +249,7 @@ func TestActivateDeactivateFlow(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(addr, []byte(logWat), nil)
+		acc := ngtypes.NewContract(addr, mustWat(logWat), nil)
 		putContract(t, txn, acc, 100)
 
 		// lock the account: the vm becomes active, editing gets frozen
@@ -329,7 +330,7 @@ func TestCommitFlow(t *testing.T) {
 
 	baseWat := transferWatTo(testAddr(0xbb))
 	newWat := strings.Replace(baseWat, "i64.const 10", "i64.const 25", 1)
-	hunks := ngtypes.DiffHunks([]byte(baseWat), []byte(newWat))
+	hunks := ngtypes.DiffHunks(mustWat(baseWat), mustWat(newWat))
 	patchSize := 0
 	for _, h := range hunks {
 		patchSize += len(h.Del) + len(h.Ins)
@@ -338,11 +339,11 @@ func TestCommitFlow(t *testing.T) {
 		t.Fatalf("small edit produced a big patch: %d bytes", patchSize)
 	}
 
-	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: []byte(baseWat)}}).Encode()
+	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: mustWat(baseWat)}}).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
-	patchExtra, err := ngtypes.NewCommitExtra([]byte(baseWat), hunks).Encode()
+	patchExtra, err := ngtypes.NewCommitExtra(mustWat(baseWat), hunks).Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +389,7 @@ func TestCommitFlow(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if string(reloaded.Source) != newWat {
+		if !bytes.Equal(reloaded.Source, mustWat(newWat)) {
 			t.Fatalf("contract not patched:\n%s", reloaded.Source)
 		}
 		if got := getBalance(txn, addr); got.Cmp(big.NewInt(98)) != 0 {
@@ -464,9 +465,9 @@ func TestContractModuleDeps(t *testing.T) {
 	levAddr := ngtypes.NewAddress(privLev)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		dex := ngtypes.NewContract(dexAddr, []byte(dexWat), nil)
+		dex := ngtypes.NewContract(dexAddr, mustWat(dexWat), nil)
 		putContract(t, txn, dex, 100)
-		lev := ngtypes.NewContract(levAddr, []byte(leverageWatFor(dexAddr)), nil)
+		lev := ngtypes.NewContract(levAddr, mustWat(leverageWatFor(dexAddr)), nil)
 		putContract(t, txn, lev, 100)
 
 		activateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
@@ -616,9 +617,9 @@ func TestServiceToken(t *testing.T) {
 	dest := testAddr(0xcc)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		token := ngtypes.NewContract(tokenAddr, []byte(tokenWat), nil)
+		token := ngtypes.NewContract(tokenAddr, mustWat(tokenWat), nil)
 		putContract(t, txn, token, 100)
-		user := ngtypes.NewContract(userAddr, []byte(tokenUserWatFor(tokenAddr, userAddr, dest)), nil)
+		user := ngtypes.NewContract(userAddr, mustWat(tokenUserWatFor(tokenAddr, userAddr, dest)), nil)
 		putContract(t, txn, user, 100)
 
 		lock := func(priv *ngtypes.PrivateKey) error {
@@ -707,7 +708,7 @@ func TestVMU256(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(testAddr(0xaa), []byte(u256Wat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(u256Wat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -774,7 +775,7 @@ func TestVMTxContext(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		owner := testAddr(0xaa)
-		acc := ngtypes.NewContract(owner, []byte(txCtxWat), nil)
+		acc := ngtypes.NewContract(owner, mustWat(txCtxWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -862,7 +863,7 @@ func TestVMKVScan(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(testAddr(0xaa), []byte(kvScanWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(kvScanWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -958,11 +959,11 @@ func TestServiceBigValues(t *testing.T) {
 	callerAddr := testAddr(0xdd)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		vault := ngtypes.NewContract(vaultAddr, []byte(bigVaultWat), nil)
+		vault := ngtypes.NewContract(vaultAddr, mustWat(bigVaultWat), nil)
 		vault.SetActive(true)
 		putContract(t, txn, vault, 0)
 
-		caller := ngtypes.NewContract(callerAddr, []byte(bigCallerWatFor(vaultAddr)), nil)
+		caller := ngtypes.NewContract(callerAddr, mustWat(bigCallerWatFor(vaultAddr)), nil)
 		caller.SetActive(true)
 		putContract(t, txn, caller, 0)
 
@@ -1019,7 +1020,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 	badAddr := testAddr(0xbb)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(emitAddr, []byte(emitWat), nil)
+		acc := ngtypes.NewContract(emitAddr, mustWat(emitWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -1052,7 +1053,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		}
 
 		// a failing contract records the failure and drops its events
-		bad := ngtypes.NewContract(badAddr, []byte(burnWat), nil)
+		bad := ngtypes.NewContract(badAddr, mustWat(burnWat), nil)
 		bad.SetActive(true)
 		putContract(t, txn, bad, 0)
 
@@ -1085,7 +1086,7 @@ func TestGasPricingTiers(t *testing.T) {
 	run := func(wat string) uint64 {
 		var gas uint64
 		err := db.Update(func(txn *bbolt.Tx) error {
-			acc := ngtypes.NewContract(testAddr(0xaa), []byte(wat), nil)
+			acc := ngtypes.NewContract(testAddr(0xaa), mustWat(wat), nil)
 			acc.SetActive(true)
 			putContract(t, txn, acc, 100)
 
@@ -1133,7 +1134,7 @@ func TestVMDryRun(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(testAddr(0xaa), []byte(kvWat), nil)
+		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(kvWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -1180,7 +1181,7 @@ func TestDestroyRules(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(addr, []byte(logWat), nil)
+		acc := ngtypes.NewContract(addr, mustWat(logWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 100)
 
@@ -1224,8 +1225,8 @@ func TestActivateRejectsBrokenContract(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		// a half-edited contract text must not be lockable
-		acc := ngtypes.NewContract(addr, []byte(`(module (func (export "main")`), nil)
+		// malformed wasm bytecode must not be activatable
+		acc := ngtypes.NewContract(addr, []byte{0x00, 0x61, 0x73, 0x6d, 0xde, 0xad, 0xbe, 0xef}, nil) // magic + garbage
 		putContract(t, txn, acc, 100)
 
 		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
@@ -1284,7 +1285,7 @@ func TestCallSelector(t *testing.T) {
 	callWith := func(extra []byte) *ngtypes.Contract {
 		var reloaded *ngtypes.Contract
 		err := db.Update(func(txn *bbolt.Tx) error {
-			acc := ngtypes.NewContract(addr, []byte(multiEntryWat), nil)
+			acc := ngtypes.NewContract(addr, mustWat(multiEntryWat), nil)
 			acc.SetActive(true)
 			putContract(t, txn, acc, 0)
 
@@ -1483,12 +1484,12 @@ func TestSelectorCollisionRefused(t *testing.T) {
   (func (export "%s")))
 `, nameA, nameB)
 
-	if err := CheckSelectorCollisions([]byte(collidingWat)); !errors.Is(err, ErrSelectorCollision) {
+	if err := CheckSelectorCollisions(mustWat(collidingWat)); !errors.Is(err, ErrSelectorCollision) {
 		t.Fatalf("got %v, want ErrSelectorCollision (%q vs %q)", err, nameA, nameB)
 	}
 
 	// distinct selectors pass
-	if err := CheckSelectorCollisions([]byte(kvWat)); err != nil {
+	if err := CheckSelectorCollisions(mustWat(kvWat)); err != nil {
 		t.Fatalf("clean contract refused: %v", err)
 	}
 
@@ -1499,7 +1500,7 @@ func TestSelectorCollisionRefused(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		putContract(t, txn, ngtypes.NewContract(addr, []byte(collidingWat), nil), 100)
+		putContract(t, txn, ngtypes.NewContract(addr, mustWat(collidingWat), nil), 100)
 
 		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
 			ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
@@ -1530,7 +1531,7 @@ func TestBlockGasBudget(t *testing.T) {
 	burner := testAddr(0xba)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(burner, []byte(burnWat), nil)
+		acc := ngtypes.NewContract(burner, mustWat(burnWat), nil)
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0)
 
@@ -1685,7 +1686,7 @@ func TestCryptoHostFuncs(t *testing.T) {
 	run := func(args []byte) *ngtypes.Contract {
 		var reloaded *ngtypes.Contract
 		err := db.Update(func(txn *bbolt.Tx) error {
-			acc := ngtypes.NewContract(contractAddr, []byte(cryptoWat), nil)
+			acc := ngtypes.NewContract(contractAddr, mustWat(cryptoWat), nil)
 			acc.SetActive(true)
 			putContract(t, txn, acc, 0)
 

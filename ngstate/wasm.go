@@ -8,7 +8,6 @@ import (
 	"github.com/c0mm4nd/wasman/config"
 	"github.com/c0mm4nd/wasman/tollstation"
 	"github.com/c0mm4nd/wasman/wasm"
-	"github.com/c0mm4nd/wasman/wat"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
@@ -90,27 +89,36 @@ type VM struct {
 	logger *logging.ZapEventLogger
 }
 
-// CompileContract translates the on-chain contract text (wat) into its
-// binary encoding. The compilation is deterministic, so every node gets
-// the same bytes for the same on-chain text.
+// wasmMagic is the 4-byte preamble of every WebAssembly binary module
+var wasmMagic = []byte{0x00, 0x61, 0x73, 0x6d}
+
+// LoadContractWasm validates the on-chain contract bytecode: it must be
+// a well-formed WebAssembly binary the vm can load. Contracts are
+// authored in any language that targets wasm (Rust, AssemblyScript,
+// TinyGo, ...) and the compiled module is what lives on chain.
 //
 // The source is UNTRUSTED (a malicious commit chooses it) and reaches
-// here inside block validation, so a compiler panic on adversarial
-// input must degrade to an error — never crash the node
-func CompileContract(contract []byte) (bin []byte, err error) {
+// here inside block validation, so a loader panic on adversarial input
+// must degrade to an error — never crash the node
+func LoadContractWasm(source []byte) (bin []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			bin = nil
-			err = errors.Errorf("contract text does not compile: %v", r)
+			err = errors.Errorf("invalid wasm contract: %v", r)
 		}
 	}()
 
-	bin, err = wat.Compile(contract)
-	if err != nil {
-		return nil, errors.Wrap(err, "contract text does not compile")
+	if len(source) < 4 || !bytes.Equal(source[:4], wasmMagic) {
+		return nil, errors.New("contract is not a wasm binary (missing \\0asm magic)")
 	}
 
-	return bin, nil
+	// a full parse+validate: the module must load under the plainest
+	// config, so a malformed binary is rejected before execution
+	if _, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewReader(source)); err != nil {
+		return nil, errors.Wrap(err, "invalid wasm contract")
+	}
+
+	return source, nil
 }
 
 // NewVM compiles the address's contract text, binds the built-in host
@@ -118,7 +126,7 @@ func CompileContract(contract []byte) (bin []byte, err error) {
 // shared gas budget). The tx is the calling tx which triggers this
 // execution; blockTime is the enclosing block's timestamp
 func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTime uint64) (*VM, error) {
-	bin, err := CompileContract(account.Source)
+	bin, err := LoadContractWasm(account.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +229,7 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 
 		// library: the dependency's code links directly and runs on the
 		// caller's state
-		depBin, err := CompileContract(depAcc.Source)
+		depBin, err := LoadContractWasm(depAcc.Source)
 		if err != nil {
 			return errors.Wrapf(err, "dependency contract %s does not compile", addr)
 		}
@@ -254,7 +262,7 @@ func CheckSelectorCollisions(source []byte) error {
 		return nil
 	}
 
-	bin, err := CompileContract(source)
+	bin, err := LoadContractWasm(source)
 	if err != nil {
 		return err
 	}

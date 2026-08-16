@@ -235,8 +235,8 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 
 type commitHunk struct {
 	Pos uint64 `json:"pos"`
-	Del string `json:"del"`
-	Ins string `json:"ins"`
+	Del string `json:"del"` // hex
+	Ins string `json:"ins"` // hex
 }
 
 type genCommitParams struct {
@@ -246,7 +246,7 @@ type genCommitParams struct {
 }
 
 // genCommitFunc composes an unsigned commit tx from explicit hunks
-// (del/ins are the plain contract text pieces)
+// (del/ins are hex-encoded binary pieces of the wasm module)
 func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genCommitParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -259,20 +259,29 @@ func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 
 	hunks := make([]ngtypes.Hunk, len(params.Hunks))
 	for i, h := range params.Hunks {
-		hunks[i] = ngtypes.Hunk{Pos: h.Pos, Del: []byte(h.Del), Ins: []byte(h.Ins)}
+		del, err := hex.DecodeString(h.Del)
+		if err != nil {
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		ins, err := hex.DecodeString(h.Ins)
+		if err != nil {
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		hunks[i] = ngtypes.Hunk{Pos: h.Pos, Del: del, Ins: ins}
 	}
 
 	return s.buildCommitTx(msg, params.Fee, baseText, hunks)
 }
 
 type genContractUpdateParams struct {
-	Address     string  `json:"address"` // the deployer's own address
-	Fee         float64 `json:"fee"`
-	NewContract string  `json:"newContract"`
+	Address string  `json:"address"` // the deployer's own address
+	Fee     float64 `json:"fee"`
+	Wasm    string  `json:"wasm"` // hex of the compiled contract module
 }
 
-// genContractUpdateFunc diffs the on-chain contract text against
-// newContract and composes an unsigned commit tx carrying the minimal patch
+// genContractUpdateFunc diffs the on-chain contract binary against the
+// new compiled module and composes a commit tx carrying the minimal
+// patch (the first commit deploys)
 func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genContractUpdateParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -281,9 +290,15 @@ func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.J
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
+	newWasm, err := hex.DecodeString(params.Wasm)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
 	baseText := s.slotText(params.Address)
 
-	hunks := ngtypes.DiffHunks(baseText, []byte(params.NewContract))
+	hunks := ngtypes.DiffHunks(baseText, newWasm)
 	if len(hunks) == 0 {
 		err := errors.New("new contract is identical to the on-chain one")
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
@@ -408,7 +423,7 @@ type getContractParams struct {
 	Address string `json:"address"`
 }
 
-// getContractFunc returns the on-chain contract text of the address
+// getContractFunc returns the on-chain contract wasm (hex) of the address
 func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params getContractParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -429,7 +444,7 @@ func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(string(account.Source))
+	raw, err := utils.JSON.Marshal(hex.EncodeToString(account.Source))
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))

@@ -231,20 +231,20 @@ func getCliToolsCommand() *cli.Command {
 			},
 			{
 				Name:        "commit",
-				Description: "commit a local wat file onto the own contract slot: the node diffs it against the on-chain source (the first commit deploys)",
+				Description: "commit a compiled wasm module onto the own contract slot: the node diffs it against the on-chain binary and carries the minimal patch (the first commit deploys)",
 				Flags: []cli.Flag{
-					&cli.StringFlag{Name: "file", Required: true, Usage: "path to the contract text (.wat)"},
+					&cli.StringFlag{Name: "file", Required: true, Usage: "path to the compiled contract module (.wasm)"},
 					&cli.Float64Flag{Name: "fee", Usage: "tx fee in NG"},
 				},
 				Action: func(ctx *cli.Context) error {
-					source, err := os.ReadFile(ctx.String("file"))
+					module, err := os.ReadFile(ctx.String("file"))
 					if err != nil {
 						return err
 					}
 					return genThenSend(ctx, "genContractUpdate", map[string]any{
-						"address":     ownAddress(ctx).BS58(),
-						"fee":         ctx.Float64("fee"),
-						"newContract": string(source),
+						"address": ownAddress(ctx).BS58(),
+						"fee":     ctx.Float64("fee"),
+						"wasm":    hex.EncodeToString(module),
 					})
 				},
 			},

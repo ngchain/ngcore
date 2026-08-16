@@ -73,7 +73,7 @@ func extractContractDeps(contractText []byte) ([]ngtypes.Address, error) {
 		return nil, nil
 	}
 
-	bin, err := CompileContract(contractText)
+	bin, err := LoadContractWasm(contractText)
 	if err != nil {
 		return nil, err
 	}

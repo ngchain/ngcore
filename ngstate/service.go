@@ -53,7 +53,7 @@ func (vm *VM) onStack(addr ngtypes.Address) bool {
 // slice — this is how shared-ledger contracts (tokens, pools) work
 func (vm *VM) linkServiceDep(linkName string, depAcc *ngtypes.Contract, depth int) error {
 	addr := depAcc.Owner
-	depBin, err := CompileContract(depAcc.Source)
+	depBin, err := LoadContractWasm(depAcc.Source)
 	if err != nil {
 		return errors.Wrapf(err, "service contract %s does not compile", addr)
 	}
