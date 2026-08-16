@@ -233,20 +233,15 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-type commitHunk struct {
-	Pos uint64 `json:"pos"`
-	Del string `json:"del"` // hex
-	Ins string `json:"ins"` // hex
-}
-
 type genCommitParams struct {
-	Address string       `json:"address"` // the deployer's own address (its slot text is the base)
-	Fee     float64      `json:"fee"`
-	Hunks   []commitHunk `json:"hunks"`
+	Fee  float64 `json:"fee"`
+	Wasm string  `json:"wasm"` // hex of the compiled contract module
 }
 
-// genCommitFunc composes an unsigned commit tx from explicit hunks
-// (del/ins are hex-encoded binary pieces of the wasm module)
+// genCommitFunc composes an unsigned commit tx carrying the WHOLE
+// compiled module (compressed). The first commit on an address opens
+// its contract slot; later commits replace the code wholesale — a
+// snapshot, not a diff, since compiled wasm relayouts on any change
 func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genCommitParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
@@ -255,106 +250,13 @@ func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	baseText := s.slotText(params.Address)
-
-	hunks := make([]ngtypes.Hunk, len(params.Hunks))
-	for i, h := range params.Hunks {
-		del, err := hex.DecodeString(h.Del)
-		if err != nil {
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-		ins, err := hex.DecodeString(h.Ins)
-		if err != nil {
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-		hunks[i] = ngtypes.Hunk{Pos: h.Pos, Del: del, Ins: ins}
-	}
-
-	return s.buildCommitTx(msg, params.Fee, baseText, hunks)
-}
-
-type genContractUpdateParams struct {
-	Address string  `json:"address"` // the deployer's own address
-	Fee     float64 `json:"fee"`
-	Wasm    string  `json:"wasm"` // hex of the compiled contract module
-}
-
-// genContractUpdateFunc diffs the on-chain contract binary against the
-// new compiled module and composes a commit tx carrying the minimal
-// patch (the first commit deploys)
-func (s *Server) genContractUpdateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genContractUpdateParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	module, err := hex.DecodeString(params.Wasm)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	newWasm, err := hex.DecodeString(params.Wasm)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	baseText := s.slotText(params.Address)
-
-	hunks := ngtypes.DiffHunks(baseText, newWasm)
-	if len(hunks) == 0 {
-		err := errors.New("new contract is identical to the on-chain one")
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return s.buildCommitTx(msg, params.Fee, baseText, hunks)
-}
-
-// slotText loads the current contract text of the address; empty when
-// the slot never opened (the edit will then be the deploy)
-func (s *Server) slotText(address string) []byte {
-	addr, err := ngtypes.NewAddressFromBS58(address)
-	if err != nil {
-		return nil
-	}
-
-	account, err := s.pow.State.GetContract(addr)
-	if err != nil {
-		return nil
-	}
-
-	return account.Source
-}
-
-func (s *Server) buildCommitTx(msg *jsonrpc2.JsonRpcMessage, feeNG float64, baseText []byte, hunks []ngtypes.Hunk) *jsonrpc2.JsonRpcMessage {
-	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
-
-	rawExtra, err := ngtypes.NewCommitExtra(baseText, hunks).Encode()
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	tx := ngtypes.NewUnsignedTx(
-		s.pow.Network,
-		ngtypes.CommitTx,
-		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.Address{},
-		nil,
-		fee,
-		rawExtra,
-	)
-
-	rawTx, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return s.buildSimpleTx(msg, ngtypes.CommitTx, params.Fee, ngtypes.EncodeCommitCode(module))
 }
 
 type genActivateParams struct {

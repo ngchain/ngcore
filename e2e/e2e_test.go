@@ -520,12 +520,7 @@ func TestContractLifecycle(t *testing.T) {
 	submit()
 
 	// deploy: the FIRST commit opens the address's slot
-	rawExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{
-		{Pos: 0, Ins: mustWat(contractWat)},
-	}).Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	rawExtra := ngtypes.EncodeCommitCode(mustWat(contractWat))
 	commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 3,
 		ngtypes.Address{}, nil, big.NewInt(1), rawExtra, nil)
 	if err := commitTx.Signature(key); err != nil {
@@ -768,10 +763,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 
 	// Commit (deploy): the first commit opens the namespace at plain
 	// tx-fee cost
-	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: mustWat(srcV1)}}).Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	deployExtra := ngtypes.EncodeCommitCode(mustWat(srcV1))
 	relay(func(h uint64) *ngtypes.FullTx {
 		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
 			ngtypes.Address{}, nil, nil, deployExtra, nil)
@@ -787,10 +779,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	})
 
 	// Commit (patch): a minimal diff updates the source pre-activation
-	patchExtra, err := ngtypes.NewCommitExtra(mustWat(srcV1), ngtypes.DiffHunks(mustWat(srcV1), mustWat(srcV2))).Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	patchExtra := ngtypes.EncodeCommitCode(mustWat(srcV2))
 	relay(func(h uint64) *ngtypes.FullTx {
 		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
 			ngtypes.Address{}, nil, nil, patchExtra, nil)
@@ -866,10 +855,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	})
 
 	// Commit (after deactivation): the slot is editable again
-	patch3, err := ngtypes.NewCommitExtra(mustWat(srcV2), ngtypes.DiffHunks(mustWat(srcV2), mustWat(srcV3))).Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	patch3 := ngtypes.EncodeCommitCode(mustWat(srcV3))
 	relay(func(h uint64) *ngtypes.FullTx {
 		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
 			ngtypes.Address{}, nil, nil, patch3, nil)

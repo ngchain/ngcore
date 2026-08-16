@@ -330,23 +330,9 @@ func TestCommitFlow(t *testing.T) {
 
 	baseWat := transferWatTo(testAddr(0xbb))
 	newWat := strings.Replace(baseWat, "i64.const 10", "i64.const 25", 1)
-	hunks := ngtypes.DiffHunks(mustWat(baseWat), mustWat(newWat))
-	patchSize := 0
-	for _, h := range hunks {
-		patchSize += len(h.Del) + len(h.Ins)
-	}
-	if patchSize > 16 {
-		t.Fatalf("small edit produced a big patch: %d bytes", patchSize)
-	}
 
-	deployExtra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: mustWat(baseWat)}}).Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-	patchExtra, err := ngtypes.NewCommitExtra(mustWat(baseWat), hunks).Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	deployExtra := ngtypes.EncodeCommitCode(mustWat(baseWat))
+	patchExtra := ngtypes.EncodeCommitCode(mustWat(newWat))
 
 	err = db.Update(func(txn *bbolt.Tx) error {
 		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), deployExtra, nil)
@@ -373,7 +359,7 @@ func TestCommitFlow(t *testing.T) {
 			t.Fatalf("deploy fee not burned, balance = %s", got)
 		}
 
-		// the second commit patches the existing slot
+		// the second commit replaces the module wholesale
 		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), patchExtra, nil)
 		if err := commitTx.Signature(priv); err != nil {
 			return err
@@ -396,7 +382,7 @@ func TestCommitFlow(t *testing.T) {
 			t.Fatalf("edit fee not charged, balance = %s", got)
 		}
 
-		// the patched text must still compile and lock
+		// the new module must still compile and activate
 		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
 		if err := activateTx.Signature(priv); err != nil {
 			return err
@@ -405,19 +391,13 @@ func TestCommitFlow(t *testing.T) {
 			t.Fatalf("handleActivate after edit: %v", err)
 		}
 
-		// a mismatching patch on the locked slot is refused as locked
-		staleExtra, err := (&ngtypes.CommitExtra{Hunks: []ngtypes.Hunk{
-			{Pos: 0, Del: []byte("XXX"), Ins: []byte("YYY")},
-		}}).Encode()
-		if err != nil {
+		// committing to an ACTIVE slot is refused
+		activeCommit := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), deployExtra, nil)
+		if err := activeCommit.Signature(priv); err != nil {
 			return err
 		}
-		staleTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), staleExtra, nil)
-		if err := staleTx.Signature(priv); err != nil {
-			return err
-		}
-		if err := checkCommit(txn, staleTx); !errors.Is(err, ErrContractActive) {
-			t.Fatalf("stale edit on locked account: got %v", err)
+		if err := checkCommit(txn, activeCommit); !errors.Is(err, ErrContractActive) {
+			t.Fatalf("commit on active slot: got %v", err)
 		}
 
 		return nil
@@ -1598,12 +1578,9 @@ func TestSourceSizeCap(t *testing.T) {
 	for i := range huge {
 		huge[i] = ';' // wat comments: content is irrelevant, size is
 	}
-	extra, err := ngtypes.NewCommitExtra(nil, []ngtypes.Hunk{{Pos: 0, Ins: huge}}).Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	extra := ngtypes.EncodeCommitCode(huge)
 
-	err = db.Update(func(txn *bbolt.Tx) error {
+	err := db.Update(func(txn *bbolt.Tx) error {
 		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
 			return err
 		}

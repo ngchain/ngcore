@@ -57,20 +57,16 @@ func FuzzBlockDecode(f *testing.F) {
 	})
 }
 
-// FuzzCommitExtra: the patch decoder faces attacker bytes at commit
-// validation — deflate bombs and corrupt hunks must error out
-func FuzzCommitExtra(f *testing.F) {
-	if raw, err := NewCommitExtra(nil, []Hunk{{Pos: 0, Ins: []byte("(module)")}}).Encode(); err == nil {
-		f.Add(raw)
-	}
+// FuzzCommitCode: the commit-code decoder faces attacker bytes at
+// commit validation — deflate bombs and corrupt tags must error, not
+// panic; the inflate is size-bounded
+func FuzzCommitCode(f *testing.F) {
+	f.Add(EncodeCommitCode([]byte{0x00, 0x61, 0x73, 0x6d}))
 	f.Add([]byte{0x00})
 	f.Add([]byte{0x01})
+	f.Add([]byte{0x01, 0xff, 0xff, 0xff})
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		extra, err := DecodeCommitExtra(data)
-		if err != nil {
-			return
-		}
-		_, _ = extra.Apply([]byte("(module)"))
+		_, _ = DecodeCommitCode(data)
 	})
 }

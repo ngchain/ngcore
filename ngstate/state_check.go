@@ -158,23 +158,13 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 		return err
 	}
 
-	baseText := []byte(nil)
-
 	slot, err := getContract(txn, from)
-	if err == nil {
+	if err == nil && slot.IsActive() {
 		// an active contract is immutable
-		if slot.IsActive() {
-			return ErrContractActive
-		}
-		baseText = slot.Source
+		return ErrContractActive
 	}
 
-	commitExtra, err := ngtypes.DecodeCommitExtra(commitTx.Extra)
-	if err != nil {
-		return err
-	}
-
-	newSource, err := commitExtra.Apply(baseText)
+	newSource, err := ngtypes.DecodeCommitCode(commitTx.Extra)
 	if err != nil {
 		return err
 	}

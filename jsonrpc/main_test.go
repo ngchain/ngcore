@@ -399,10 +399,9 @@ func TestRPCContractLifecycle(t *testing.T) {
 	// deploy: the first commit opens the address's contract slot,
 	// carrying the compiled wasm module (client compiles locally)
 	contractWasm := hex.EncodeToString(mustWat(contractWat))
-	signAndSend(genResult("genContractUpdate", map[string]any{
-		"address": addr.BS58(),
-		"fee":     0.05,
-		"wasm":    contractWasm,
+	signAndSend(genResult("genCommit", map[string]any{
+		"fee":  0.05,
+		"wasm": contractWasm,
 	}))
 	mineViaRPC(t, node, key)
 

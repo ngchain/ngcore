@@ -241,10 +241,9 @@ func getCliToolsCommand() *cli.Command {
 					if err != nil {
 						return err
 					}
-					return genThenSend(ctx, "genContractUpdate", map[string]any{
-						"address": ownAddress(ctx).BS58(),
-						"fee":     ctx.Float64("fee"),
-						"wasm":    hex.EncodeToString(module),
+					return genThenSend(ctx, "genCommit", map[string]any{
+						"fee":  ctx.Float64("fee"),
+						"wasm": hex.EncodeToString(module),
 					})
 				},
 			},
