@@ -3,6 +3,7 @@ package ngstate
 import (
 	"bytes"
 	"reflect"
+	"sort"
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/types"
@@ -198,4 +199,125 @@ func fromRaw(raw uint64, t reflect.Type) reflect.Value {
 	default:
 		panic(errors.Wrap(ErrServiceBadExport, "float service returns are disabled"))
 	}
+}
+
+// serviceCall is the DYNAMIC cross-contract call: it dispatches by a
+// RUNTIME address instead of a static import, so one compiled module
+// (a Uniswap pair, a router) works against any target. The target
+// runs on ITS OWN state (currentAddress switches to it), sees the
+// caller via address.get_caller, reads the passed calldata through
+// tx.get_extra, and returns byte payloads through the env buf slots —
+// exactly the static-service ABI, resolved at runtime.
+//
+// Trade-off vs static service/<addr> imports: no compile-time
+// dependency, so no immutability guarantee on the target (same as an
+// opt-in proxy). Re-entrancy is still blocked and gas still charged.
+func (vm *VM) serviceCall(ins *wasman.Instance, addrPtr, argsPtr, argsLen uint32) uint32 {
+	vm.charge(gasServiceCall)
+
+	if len(vm.frames) >= maxDepChainDepth {
+		panic(errors.Wrapf(ErrDepLimit, "dynamic call chain deeper than %d", maxDepChainDepth))
+	}
+
+	target, err := readAddr(ins, addrPtr)
+	if err != nil {
+		vm.logger.Error(err)
+		return 0
+	}
+	calldata, err := readMem(ins, argsPtr, argsLen)
+	if err != nil {
+		vm.logger.Error(err)
+		return 0
+	}
+	// copy: the callee runs on a different instance, the caller's
+	// memory must not alias the args mid-call
+	calldata = append([]byte{}, calldata...)
+
+	// the re-entrancy guard: a contract still executing within this tx
+	// cannot be entered again
+	if vm.onStack(target) {
+		panic(errors.Wrapf(ErrServiceReentry, "contract %s", target))
+	}
+
+	acc, err := getContract(vm.txn, target)
+	if err != nil || !acc.IsActive() || len(acc.Source) == 0 {
+		return 0 // no callable contract at the target
+	}
+
+	bin, err := LoadContractWasm(acc.Source)
+	if err != nil {
+		return 0
+	}
+	mod, err := wasman.NewModule(vm.cfg, bytes.NewReader(bin))
+	if err != nil {
+		return 0
+	}
+	// the target's OWN static deps (if any) link first
+	if err := vm.loadContractDeps(mod, len(vm.frames)); err != nil {
+		vm.logger.Error(err)
+		return 0
+	}
+	inst, err := vm.linker.Instantiate(mod)
+	if err != nil {
+		vm.logger.Error(err)
+		return 0
+	}
+
+	entry, args := resolveDynEntry(mod, calldata)
+
+	// swap the calldata the callee sees, switch the frame, run, restore
+	savedArgs := vm.callArgs
+	vm.callArgs = args
+	vm.frames = append(vm.frames, target)
+	_, _, runErr := inst.CallExportedFunc(entry)
+	vm.frames = vm.frames[:len(vm.frames)-1]
+	vm.callArgs = savedArgs
+
+	if runErr != nil {
+		panic(errors.Wrapf(runErr, "dynamic call %s.%s failed", target, entry))
+	}
+
+	return 1
+}
+
+// resolveDynEntry maps a calldata's 4-byte selector to a zero-arg
+// export of the module (init excluded), falling back to main with the
+// whole calldata — the same rule EntryFor uses for the outer tx
+func resolveDynEntry(module *wasman.Module, calldata []byte) (entry string, args []byte) {
+	if len(calldata) < 4 {
+		return VMEntryOnTx, calldata
+	}
+
+	sel := calldata[:4]
+	names := make([]string, 0, len(module.ExportSection))
+	for name := range module.ExportSection {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		if name == VMEntryOnActivate {
+			continue
+		}
+		sig, ok := exportFuncSig(module, name)
+		if !ok || len(sig.InputTypes) != 0 {
+			continue
+		}
+		if bytes.Equal(ngtypes.CallSelector(name), sel) {
+			return name, calldata[4:]
+		}
+	}
+
+	return VMEntryOnTx, calldata
+}
+
+// initServiceCallImports binds the dynamic cross-contract call: the
+// "service" host module's "call" — distinct from the static
+// "service/<addr>" import namespace
+func initServiceCallImports(vm *VM) error {
+	return vm.linker.DefineAdvancedFunc("service", "call", func(ins *wasman.Instance) interface{} {
+		return func(addrPtr, argsPtr, argsLen uint32) uint32 {
+			return vm.serviceCall(ins, addrPtr, argsPtr, argsLen)
+		}
+	})
 }

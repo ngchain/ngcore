@@ -1775,3 +1775,83 @@ func TestCodeDedup(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestDynamicServiceCall: contract A calls contract B by RUNTIME
+// address via service.call — B runs on its OWN state and sees A as the
+// caller. This is the generic-composition primitive (Uniswap
+// pair->token, router->pair) that needs no compile-time binding.
+func TestDynamicServiceCall(t *testing.T) {
+	db := newTestDB(t)
+
+	callee := testAddr(0xbe)
+	caller := testAddr(0xca)
+
+	// B: on a transact/dynamic call, records who called it (get_caller)
+	// and a marker into its OWN kv
+	calleeWat := `
+(module
+  (import "address" "get_caller" (func $caller (param i32) (result i32)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "hitwho")
+  (func (export "ping")
+    (i32.store8 (i32.const 100) (i32.const 1))
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 100) (i32.const 1)))
+    (drop (call $caller (i32.const 128)))
+    (drop (call $set (i32.const 3) (i32.const 3) (i32.const 128) (i32.const 32)))))
+`
+	// A: on main, calls B.ping via service.call(B, selector("ping"))
+	callerWat := `
+(module
+  (import "service" "call" (func $call (param i32 i32 i32) (result i32)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (import "tx" "get_extra" (func $args (param i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "ok ")
+  ;; args layout: [0..32] target addr, [32..36] selector for "ping"
+  (func (export "main")
+    (drop (call $args (i32.const 512)))
+    ;; call target@512 with calldata = selector@544 (4 bytes)
+    (i32.store8 (i32.const 200) (call $call (i32.const 512) (i32.const 544) (i32.const 4)))
+    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 200) (i32.const 1)))))
+`
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		b := ngtypes.NewContract(callee, mustWat(calleeWat), nil)
+		b.SetActive(true)
+		putContract(t, txn, b, 0)
+		a := ngtypes.NewContract(caller, mustWat(callerWat), nil)
+		a.SetActive(true)
+		putContract(t, txn, a, 0)
+
+		// calldata to A's main: target address ‖ selector("ping")
+		args := append(append([]byte{}, callee[:]...), ngtypes.CallSelector("ping")...)
+		tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1, caller, nil, nil, args, nil)
+
+		vm, err := NewVM(txn, a, tx, 1)
+		if err != nil {
+			return err
+		}
+		if err := vm.Run(VMEntryOnTx); err != nil {
+			return err
+		}
+
+		// A recorded call success
+		ra, _ := getContract(txn, caller)
+		if got := ra.Context.Get("ok "); len(got) != 1 || got[0] != 1 {
+			t.Fatalf("A call result = %v, want [1]", got)
+		}
+		// B ran on ITS OWN state and saw A as caller
+		rb, _ := getContract(txn, callee)
+		if got := rb.Context.Get("hit"); len(got) != 1 || got[0] != 1 {
+			t.Fatalf("B did not run on its own state: %v", got)
+		}
+		if got := rb.Context.Get("who"); string(got) != string(caller[:]) {
+			t.Fatalf("B saw caller %x, want %x", got, caller[:])
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

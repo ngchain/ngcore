@@ -33,6 +33,7 @@ func (vm *VM) initBuiltInImports() error {
 		initTxImports,
 		initEnvImports,
 		initCryptoImports,
+		initServiceCallImports,
 	} {
 		if err := init(vm); err != nil {
 			return err
