@@ -161,11 +161,11 @@ Shared rules:
 
 - dependencies are declared STATICALLY by the wat import section, so
   the chain extracts them at lock time — no runtime analysis needed
-- a dependency must be locked (active) before its dependents can lock;
-  this ordering makes the dependency graph a DAG by construction
+- a dependency must be active before its dependents can activate; this
+  ordering makes the dependency graph a DAG by construction
 - every dependee carries a reference count: while referenced it can be
-  neither unlocked nor destroyed, so linked code never changes under a
-  dependent. Deactivating the dependent releases its references
+  neither deactivated nor destroyed, so linked code never changes under
+  a dependent. Deactivating the dependent releases its references
 - the ledger lives in the reserved context keys `_deps` (dependent's
   list) and `_refs` (dependee's counter), invisible to contracts
 - the whole call tree shares ONE gas budget
@@ -185,6 +185,61 @@ exports use scalar (i32/i64) params and returns — byte payloads
 (u256 amounts, strings) cross through the env transfer slots: the
 caller stages bytes with buf_set before the call, the callee reads
 them with buf_get and returns results the same way.
+
+## Immutability & upgrades
+
+A referenced contract is frozen: while `_refs > 0` it can be neither
+deactivated nor destroyed. This is a **feature, not a limitation**.
+When B declares `service/A`, B's author audited *that* code; if A could
+rewrite itself, B would live under the shadow of a dependency turning
+malicious (imagine A is a token that one day rewrites `transfer` to
+pay itself). Immutability is the guarantee B receives, not a penalty A
+suffers — it is what makes cross-contract composition trustable at all.
+
+So the chain has no in-place upgrade, by design. Two honest models
+cover every need:
+
+**Publish a new version (the default).** Contracts are libraries: you
+do not edit the v1 others depend on, you deploy v2 at a new address and
+dependents migrate by re-declaring `service/<v2 address>` and
+re-activating. Old versions never disappear; migration is a social,
+opt-in act — exactly how classical DeFi legos are built on immutable
+contracts. Fragmentation is the price of not betraying anyone's audit.
+
+**Delegate to a proxy (opt-in mutability).** If you want upgradeability,
+build it in wat: deploy a thin proxy P that forwards to an
+implementation address stored in its own kv, and have dependents point
+at P. Upgrading means P's owner repoints the kv slot. The trust model
+downgrades honestly — a dependent of P trusts P's owner not to swap in
+malice — but that is the dependent's *informed* choice, not something
+the protocol imposed. The primitives are already here: `kv` for the
+pointer, `account.get_caller` to gate who may repoint, `service/<impl>`
+to forward.
+
+```wat
+;; a minimal upgradeable proxy: owner repoints "impl", everyone else's
+;; calls forward to whatever address that slot holds
+(module
+  (import "address" "get_caller" (func $caller (param i32) (result i32)))
+  (import "kv" "get" (func $get (param i32 i32 i32) (result i32)))
+  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (import "tx" "get_extra" (func $args (param i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "implownr")     ;; keys: "impl", "ownr"
+  ;; on "set_impl": if caller == stored owner, store the new impl addr
+  ;; (a real proxy would then forward main/other entries to $impl via
+  ;;  a service import; omitted here for brevity)
+  (func (export "set_impl")
+    (drop (call $caller (i32.const 64)))       ;; caller -> 64
+    (drop (call $get (i32.const 4) (i32.const 4) (i32.const 96))) ;; owner -> 96
+    ;; compare 32 bytes at 64 vs 96; if equal, accept the new impl from args
+    (drop (call $args (i32.const 128)))        ;; new impl addr -> 128
+    (drop (call $set (i32.const 0) (i32.const 4) (i32.const 128) (i32.const 32)))))
+```
+
+Rule of thumb: **immutable by default, upgradeable by explicit proxy.**
+The protocol gives you the trustable primitive; upgrade policy is
+yours to compose, and its risks are yours to own.
 
 Exports a contract may provide:
 
