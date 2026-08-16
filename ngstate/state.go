@@ -3,7 +3,6 @@ package ngstate
 import (
 	"sync"
 
-	"github.com/c0mm4nd/rlp"
 	logging "github.com/ngchain/zap-log"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
@@ -81,17 +80,12 @@ func InitStateFromGenesis(db *bbolt.DB, network ngtypes.Network) *State {
 
 // initFromSheet will overwrite a state from the given sheet
 func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
-	contractBucket := txn.Bucket(storage.ContractBucketName)
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
 
 	for _, account := range sheet.Contracts {
-		rawAccount, err := rlp.EncodeToBytes(account)
-		if err != nil {
-			return err
-		}
-
-		err = contractBucket.Put(account.Owner[:], rawAccount)
-		if err != nil {
+		// setContract registers the module in the code bucket and
+		// stores the slot referencing it by hash
+		if err := setContract(txn, account); err != nil {
 			return err
 		}
 	}
@@ -127,6 +121,7 @@ func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) err
 	for _, name := range [][]byte{
 		storage.Addr2BalBucketName,
 		storage.ContractBucketName,
+		storage.CodeBucketName,
 		storage.KeyRegistryBucketName,
 	} {
 		if err := txn.DeleteBucket(name); err != nil {
@@ -152,6 +147,7 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 	for _, name := range [][]byte{
 		storage.Addr2BalBucketName,
 		storage.ContractBucketName,
+		storage.CodeBucketName,
 		storage.KeyRegistryBucketName,
 		storage.ReceiptBucketName, // receipts regenerate with the replay
 	} {

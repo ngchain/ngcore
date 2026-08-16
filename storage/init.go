@@ -14,6 +14,10 @@ var (
 	// ContractBucketName maps an address to its contract slot
 	// (opened by the first commit — the address IS the namespace)
 	ContractBucketName = []byte("addr:contract")
+	// CodeBucketName is the content-addressed code store: codeHash ->
+	// refcount ‖ wasm. Identical modules deployed by many addresses
+	// share one physical copy, released when the last slot drops it
+	CodeBucketName     = []byte("code")
 	Addr2BalBucketName = []byte("addr:bal")
 
 	// KeyRegistryBucketName maps an address to its revealed public
@@ -42,7 +46,7 @@ func InitDB(db *bbolt.DB) {
 	db.Update(func(txn *bbolt.Tx) error {
 		for _, name := range [][]byte{
 			BlockBucketName, TxBucketName,
-			ContractBucketName, Addr2BalBucketName,
+			ContractBucketName, CodeBucketName, Addr2BalBucketName,
 			KeyRegistryBucketName,
 			SnapshotBucketName, ReceiptBucketName,
 		} {

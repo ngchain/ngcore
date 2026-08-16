@@ -1,6 +1,8 @@
 package ngstate
 
 import (
+	"bytes"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/c0mm4nd/rlp"
@@ -9,48 +11,136 @@ import (
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/utils"
 )
 
-// getContract loads the contract slot of an address; ErrKeyNotFound
-// when the address never deployed
-func getContract(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, error) {
-	contractBucket := txn.Bucket(storage.ContractBucketName)
+// storedContract is the on-disk shape of a contract slot: the code
+// lives ONCE in the code bucket, addressed by its keccak hash, so
+// identical modules deployed by many addresses cost one copy. The slot
+// only references the hash
+type storedContract struct {
+	Owner    ngtypes.Address
+	CodeHash []byte
+	Context  *ngtypes.ContractContext
+}
 
-	rawAcc := contractBucket.Get(addr[:])
-	if rawAcc == nil {
+// getContract loads the contract slot of an address, resolving its code
+// from the content-addressed code bucket; ErrKeyNotFound when the
+// address never deployed
+func getContract(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, error) {
+	raw := txn.Bucket(storage.ContractBucketName).Get(addr[:])
+	if raw == nil {
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no contract slot on %s", addr)
 	}
 
-	var acc ngtypes.Contract
-	err := rlp.DecodeBytes(rawAcc, &acc)
-	if err != nil {
+	var sc storedContract
+	if err := rlp.DecodeBytes(raw, &sc); err != nil {
 		return nil, err
 	}
 
-	return &acc, nil
+	return &ngtypes.Contract{
+		Owner:   sc.Owner,
+		Source:  loadCode(txn, sc.CodeHash),
+		Context: sc.Context,
+	}, nil
 }
 
 func contractExists(txn *bbolt.Tx, addr ngtypes.Address) bool {
 	return txn.Bucket(storage.ContractBucketName).Get(addr[:]) != nil
 }
 
+// setContract stores the slot and reconciles the code registry: the
+// new module is retained (a fresh hash is stored once, a shared hash
+// just bumps its refcount) and any previously-referenced module is
+// released
 func setContract(txn *bbolt.Tx, account *ngtypes.Contract) error {
-	rawAccount, err := rlp.EncodeToBytes(account)
+	newHash := utils.KeccakSum256(account.Source)
+
+	// release the code the slot referenced before, if it changed
+	if prev := txn.Bucket(storage.ContractBucketName).Get(account.Owner[:]); prev != nil {
+		var old storedContract
+		if err := rlp.DecodeBytes(prev, &old); err == nil && !bytes.Equal(old.CodeHash, newHash) {
+			releaseCode(txn, old.CodeHash)
+		} else if err == nil && bytes.Equal(old.CodeHash, newHash) {
+			// unchanged code: keep the refcount as-is
+			goto store
+		}
+	}
+	retainCode(txn, newHash, account.Source)
+
+store:
+	raw, err := rlp.EncodeToBytes(&storedContract{
+		Owner:    account.Owner,
+		CodeHash: newHash,
+		Context:  account.Context,
+	})
 	if err != nil {
 		return err
 	}
 
-	contractBucket := txn.Bucket(storage.ContractBucketName)
-	err = contractBucket.Put(account.Owner[:], rawAccount)
-	if err != nil {
-		return errors.Wrap(err, "cannot set account")
+	if err := txn.Bucket(storage.ContractBucketName).Put(account.Owner[:], raw); err != nil {
+		return errors.Wrap(err, "cannot set contract slot")
 	}
 
 	return nil
 }
 
 func delContract(txn *bbolt.Tx, addr ngtypes.Address) error {
-	return txn.Bucket(storage.ContractBucketName).Delete(addr[:])
+	bucket := txn.Bucket(storage.ContractBucketName)
+	if prev := bucket.Get(addr[:]); prev != nil {
+		var old storedContract
+		if err := rlp.DecodeBytes(prev, &old); err == nil {
+			releaseCode(txn, old.CodeHash)
+		}
+	}
+
+	return bucket.Delete(addr[:])
+}
+
+// the code bucket entry is refcount(8 LE) ‖ wasm: one physical copy of
+// each distinct module, shared by every slot that references it
+
+func loadCode(txn *bbolt.Tx, codeHash []byte) []byte {
+	entry := txn.Bucket(storage.CodeBucketName).Get(codeHash)
+	if len(entry) < 8 {
+		return nil
+	}
+	return entry[8:]
+}
+
+func retainCode(txn *bbolt.Tx, codeHash, code []byte) {
+	bucket := txn.Bucket(storage.CodeBucketName)
+	entry := bucket.Get(codeHash)
+	if entry == nil {
+		out := make([]byte, 8+len(code))
+		binary.LittleEndian.PutUint64(out[:8], 1)
+		copy(out[8:], code)
+		_ = bucket.Put(codeHash, out)
+		return
+	}
+
+	refs := binary.LittleEndian.Uint64(entry[:8]) + 1
+	updated := append([]byte{}, entry...)
+	binary.LittleEndian.PutUint64(updated[:8], refs)
+	_ = bucket.Put(codeHash, updated)
+}
+
+func releaseCode(txn *bbolt.Tx, codeHash []byte) {
+	bucket := txn.Bucket(storage.CodeBucketName)
+	entry := bucket.Get(codeHash)
+	if len(entry) < 8 {
+		return
+	}
+
+	refs := binary.LittleEndian.Uint64(entry[:8])
+	if refs <= 1 {
+		_ = bucket.Delete(codeHash) // last reference: reclaim the module
+		return
+	}
+
+	updated := append([]byte{}, entry...)
+	binary.LittleEndian.PutUint64(updated[:8], refs-1)
+	_ = bucket.Put(codeHash, updated)
 }
 
 func getBalance(txn *bbolt.Tx, addr ngtypes.Address) *big.Int {

@@ -102,16 +102,17 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 		return err
 	}
 
-	contractBucket := txn.Bucket(storage.ContractBucketName)
-	c := contractBucket.Cursor()
-	for addr, rawAccount := c.First(); addr != nil; addr, rawAccount = c.Next() {
-		var account ngtypes.Contract
-		err = rlp.DecodeBytes(rawAccount, &account)
+	c := txn.Bucket(storage.ContractBucketName).Cursor()
+	for k, _ := c.First(); k != nil; k, _ = c.Next() {
+		var addr ngtypes.Address
+		copy(addr[:], k)
+		// resolve the code so the sheet carries a self-contained
+		// snapshot (setContract re-dedups it on apply)
+		account, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}
-
-		contracts = append(contracts, &account)
+		contracts = append(contracts, account)
 	}
 
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)

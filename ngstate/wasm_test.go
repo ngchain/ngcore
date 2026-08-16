@@ -1705,3 +1705,73 @@ func TestCryptoHostFuncs(t *testing.T) {
 		t.Fatalf("corrupted verify result = %v, want [0]", got)
 	}
 }
+
+// TestCodeDedup: identical modules deployed by many addresses share
+// ONE physical copy in the code bucket; the copy is reclaimed only
+// when the last referencing slot drops it
+func TestCodeDedup(t *testing.T) {
+	db := newTestDB(t)
+	code := mustWat(kvWat)
+	codeHash := utils.KeccakSum256(code)
+
+	refs := func(txn *bbolt.Tx) uint64 {
+		entry := txn.Bucket(storage.CodeBucketName).Get(codeHash)
+		if len(entry) < 8 {
+			return 0
+		}
+		return binary.LittleEndian.Uint64(entry[:8])
+	}
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		a, b, c := testAddr(0x1), testAddr(0x2), testAddr(0x3)
+
+		// three addresses deploy the SAME module
+		for _, addr := range []ngtypes.Address{a, b, c} {
+			if err := setContract(txn, ngtypes.NewContract(addr, code, nil)); err != nil {
+				return err
+			}
+		}
+		if got := refs(txn); got != 3 {
+			t.Fatalf("refcount = %d, want 3 (shared)", got)
+		}
+		// only ONE physical copy despite three slots
+		count := 0
+		cur := txn.Bucket(storage.CodeBucketName).Cursor()
+		for k, _ := cur.First(); k != nil; k, _ = cur.Next() {
+			count++
+		}
+		if count != 1 {
+			t.Fatalf("code bucket holds %d modules, want 1", count)
+		}
+
+		// each slot still resolves the full code
+		if got, _ := getContract(txn, b); !bytes.Equal(got.Source, code) {
+			t.Fatal("slot b lost its code")
+		}
+
+		// re-committing DIFFERENT code on a moves its reference off the
+		// shared module
+		if err := setContract(txn, ngtypes.NewContract(a, mustWat(logWat), nil)); err != nil {
+			return err
+		}
+		if got := refs(txn); got != 2 {
+			t.Fatalf("refcount after a switches code = %d, want 2", got)
+		}
+
+		// destroy b and c: the shared module is reclaimed at zero
+		if err := delContract(txn, b); err != nil {
+			return err
+		}
+		if err := delContract(txn, c); err != nil {
+			return err
+		}
+		if got := refs(txn); got != 0 {
+			t.Fatalf("refcount after all drop = %d, want 0 (reclaimed)", got)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
