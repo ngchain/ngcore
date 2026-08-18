@@ -2,7 +2,6 @@ package ngstate
 
 import (
 	"bytes"
-	"sort"
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
@@ -68,9 +67,9 @@ type VM struct {
 	// contract this vm was built for, service calls push their callee
 	frames []ngtypes.Address
 
-	// callArgs is what tx.get_extra serves: the args part of the
-	// calldata once EntryFor consumed the selector (the whole extra
-	// when the call falls back to the default entry)
+	// callArgs is what tx.get_extra serves: the Args of the decoded
+	// CallData once EntryFor resolved the method (the whole extra when
+	// the call falls back to the default entry)
 	callArgs []byte
 
 	// events accumulate during the run and only survive a SUCCESSFUL
@@ -253,47 +252,6 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 	return nil
 }
 
-// CheckSelectorCollisions refuses a contract whose callable exports
-// (zero-arg funcs, init excluded) collide on their 4-byte eth-style
-// selectors: sorted-order tie-breaking would silently shadow one of
-// them, so activation surfaces the clash as a hard error instead
-func CheckSelectorCollisions(source []byte) error {
-	if len(source) == 0 {
-		return nil
-	}
-
-	bin, err := LoadContractWasm(source)
-	if err != nil {
-		return err
-	}
-
-	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewReader(bin))
-	if err != nil {
-		return err
-	}
-
-	seen := make(map[[4]byte]string)
-	for name := range module.ExportSection {
-		if name == VMEntryOnActivate {
-			continue
-		}
-		sig, ok := exportFuncSig(module, name)
-		if !ok || len(sig.InputTypes) != 0 {
-			continue
-		}
-
-		var sel [4]byte
-		copy(sel[:], ngtypes.CallSelector(name))
-		if other, clash := seen[sel]; clash {
-			return errors.Wrapf(ErrSelectorCollision,
-				"exports %q and %q share selector %x", other, name, sel)
-		}
-		seen[sel] = name
-	}
-
-	return nil
-}
-
 // LimitToll shrinks this vm's toll budget below the per-call default,
 // implementing the block-level gas cap: the station simply starts
 // pre-charged by the difference
@@ -326,40 +284,33 @@ func (vm *VM) charge(cost uint64) {
 	}
 }
 
-// EntryFor resolves the entry to run. For the default transact entry
-// the eth-style 4-byte selector (keccak256(name)[:4]) is matched
-// against the contract's zero-arg exports in sorted name order, the
-// reserved init entry excluded; a match runs that entry with the args
-// after the selector. Anything unresolvable falls back to the default
-// entry, which — like eth's fallback — sees the WHOLE extra as args
+// EntryFor resolves the entry to run. For the default transact entry the
+// tx extra is decoded as an RLP CallData{Method, Args}: a non-empty
+// Method naming a zero-arg export (the reserved init entry excluded)
+// runs that export with Args; an empty/"main" method, an absent export,
+// or an extra that is not a CallData all fall back to the default entry,
+// which sees the whole extra as its args
 func (vm *VM) EntryFor(defaultEntry string) string {
-	if defaultEntry != VMEntryOnTx || len(vm.caller.Extra) < 4 {
+	if defaultEntry != VMEntryOnTx || len(vm.caller.Extra) == 0 {
 		return defaultEntry
 	}
 
-	sel := vm.caller.Extra[:4]
-
-	names := make([]string, 0, len(vm.module.ExportSection))
-	for name := range vm.module.ExportSection {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	for _, name := range names {
-		if name == VMEntryOnActivate {
-			continue
-		}
-		sig, ok := exportFuncSig(vm.module, name)
-		if !ok || len(sig.InputTypes) != 0 {
-			continue
-		}
-		if bytes.Equal(ngtypes.CallSelector(name), sel) {
-			vm.callArgs = vm.caller.Extra[4:]
-			return name
-		}
+	method, args, err := ngtypes.DecodeCallData(vm.caller.Extra)
+	if err != nil {
+		return defaultEntry // not a call payload: the whole extra is main's args
 	}
 
-	return defaultEntry
+	// a decoded payload always feeds its Args to the entry that runs
+	vm.callArgs = args
+
+	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate {
+		return defaultEntry // default entry (init is not tx-callable)
+	}
+	if sig, ok := exportFuncSig(vm.module, method); !ok || len(sig.InputTypes) != 0 {
+		return defaultEntry // no such callable export: fall back to main with the args
+	}
+
+	return method
 }
 
 // Events returns what the (successful) run emitted

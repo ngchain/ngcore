@@ -159,8 +159,8 @@ func initTxImports(vm *VM) error {
 		return err
 	}
 
-	// get_extra serves the ARGS part of the calldata: the entry
-	// selector is routing information already consumed by the runtime
+	// get_extra serves the Args of the decoded CallData: the method name
+	// is routing information already consumed by the runtime
 	err = vm.linker.DefineAdvancedFunc("tx", "get_extra_size", func(ins *wasman.Instance) interface{} {
 		return func() uint32 {
 			return uint32(len(vm.callArgs))

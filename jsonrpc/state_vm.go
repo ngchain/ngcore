@@ -18,7 +18,7 @@ type callContractParams struct {
 	Contract string `json:"contract"`
 	// Value is the NG amount the simulated tx pays to the contract
 	Value float64 `json:"value"`
-	// Entry optionally names the export to run (eth-style selector)
+	// Entry optionally names the export to run (by name; empty = main)
 	Entry string `json:"entry"`
 	// Extra is the raw args the contract reads through tx.get_extra
 	Extra string `json:"extra"`

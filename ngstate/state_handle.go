@@ -205,12 +205,8 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 	}
 
 	// activating turns the vm on, so the contract text must compile
-	// and its callable exports must not collide on selectors
 	if len(slot.Source) != 0 {
 		if _, err := LoadContractWasm(slot.Source); err != nil {
-			return err
-		}
-		if err := CheckSelectorCollisions(slot.Source); err != nil {
 			return err
 		}
 	}

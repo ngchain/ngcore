@@ -216,7 +216,7 @@ func getCliToolsCommand() *cli.Command {
 					&cli.StringFlag{Name: "to", Required: true, Usage: "recipient bs58 address"},
 					&cli.Float64Flag{Name: "value", Usage: "amount in NG"},
 					&cli.Float64Flag{Name: "fee", Usage: "tx fee in NG"},
-					&cli.StringFlag{Name: "entry", Usage: "contract entry to call (eth-style selector)"},
+					&cli.StringFlag{Name: "entry", Usage: "contract export to call (by name)"},
 					&cli.StringFlag{Name: "args", Usage: "hex args for the entry"},
 				},
 				Action: func(ctx *cli.Context) error {

@@ -196,11 +196,10 @@ func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
 		return ErrContractActive
 	}
 
-	// activating turns the vm on, so the contract text must compile,
-	// its callable exports must not collide on selectors, and every
-	// declared module dependency must be an active contract
+	// activating turns the vm on, so the contract text must compile and
+	// every declared module dependency must be an active contract
 	if len(slot.Source) != 0 {
-		if err := CheckSelectorCollisions(slot.Source); err != nil {
+		if _, err := LoadContractWasm(slot.Source); err != nil {
 			return err
 		}
 

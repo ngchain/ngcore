@@ -3,7 +3,6 @@ package ngstate
 import (
 	"bytes"
 	"reflect"
-	"sort"
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/types"
@@ -203,7 +202,7 @@ func fromRaw(raw uint64, t reflect.Type) reflect.Value {
 
 // serviceCall is the DYNAMIC cross-contract call: it dispatches by a
 // RUNTIME address instead of a static import, so one compiled module
-// (a Uniswap pair, a router) works against any target. The target
+// (an AMM pair, a router) works against any target. The target
 // runs on ITS OWN state (currentAddress switches to it), sees the
 // caller via address.get_caller, reads the passed calldata through
 // tx.get_extra, and returns byte payloads through the env buf slots —
@@ -280,35 +279,24 @@ func (vm *VM) serviceCall(ins *wasman.Instance, addrPtr, argsPtr, argsLen uint32
 	return 1
 }
 
-// resolveDynEntry maps a calldata's 4-byte selector to a zero-arg
-// export of the module (init excluded), falling back to main with the
-// whole calldata — the same rule EntryFor uses for the outer tx
+// resolveDynEntry decodes a calldata's RLP CallData and maps its Method
+// to a zero-arg export of the module (init excluded), falling back to
+// main — the same rule EntryFor uses for the outer tx
 func resolveDynEntry(module *wasman.Module, calldata []byte) (entry string, args []byte) {
-	if len(calldata) < 4 {
-		return VMEntryOnTx, calldata
+	method, a, err := ngtypes.DecodeCallData(calldata)
+	if err != nil {
+		return VMEntryOnTx, calldata // not a call payload: whole calldata is main's args
+	}
+	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate {
+		return VMEntryOnTx, a
 	}
 
-	sel := calldata[:4]
-	names := make([]string, 0, len(module.ExportSection))
-	for name := range module.ExportSection {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	for _, name := range names {
-		if name == VMEntryOnActivate {
-			continue
-		}
-		sig, ok := exportFuncSig(module, name)
-		if !ok || len(sig.InputTypes) != 0 {
-			continue
-		}
-		if bytes.Equal(ngtypes.CallSelector(name), sel) {
-			return name, calldata[4:]
-		}
+	sig, ok := exportFuncSig(module, method)
+	if !ok || len(sig.InputTypes) != 0 {
+		return VMEntryOnTx, a
 	}
 
-	return VMEntryOnTx, calldata
+	return method, a
 }
 
 // initServiceCallImports binds the dynamic cross-contract call: the

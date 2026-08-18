@@ -1253,10 +1253,10 @@ const multiEntryWat = `
     (drop (call $set (i32.const 11) (i32.const 4) (i32.const 64) (call $args (i32.const 64))))))
 `
 
-// TestCallSelector: the eth-style 4-byte selector routes a transact to
-// a named export; unknown selectors fall back to main which sees the
-// whole extra (eth fallback semantics)
-func TestCallSelector(t *testing.T) {
+// TestCallDataDispatch: an RLP CallData routes a transact to the named
+// export; an unknown method falls back to main (still fed the call's
+// args), and a non-CallData extra reaches main as raw args
+func TestCallDataDispatch(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -1283,7 +1283,7 @@ func TestCallSelector(t *testing.T) {
 		return reloaded
 	}
 
-	// selector picks ping; args are the bytes after the selector
+	// the method names ping; args are the CallData's Args
 	acc := callWith(ngtypes.EncodeCallData("ping", []byte("xy")))
 	if got := string(acc.Context.Get("hit")); got != "ping" {
 		t.Fatalf("hit = %q, want ping", got)
@@ -1292,7 +1292,7 @@ func TestCallSelector(t *testing.T) {
 		t.Fatalf("args = %q, want xy", got)
 	}
 
-	// explicit main selector also routes, args stripped of the selector
+	// an explicit "main" method also routes to the default entry
 	acc = callWith(ngtypes.EncodeCallData("main", []byte("ab")))
 	if got := string(acc.Context.Get("hit")); got != "main" {
 		t.Fatalf("hit = %q, want main", got)
@@ -1301,14 +1301,23 @@ func TestCallSelector(t *testing.T) {
 		t.Fatalf("args = %q, want ab", got)
 	}
 
-	// unknown selector: fallback to main, which sees the WHOLE extra
-	raw := append(ngtypes.CallSelector("nope"), []byte("zz")...)
-	acc = callWith(raw)
+	// unknown method: fallback to main, which still sees the call's args
+	acc = callWith(ngtypes.EncodeCallData("nope", []byte("zz")))
 	if got := string(acc.Context.Get("hit")); got != "main" {
 		t.Fatalf("hit = %q, want main (fallback)", got)
 	}
+	if got := string(acc.Context.Get("args")); got != "zz" {
+		t.Fatalf("fallback args = %q, want zz", got)
+	}
+
+	// a non-CallData extra: main sees the WHOLE raw extra as args
+	raw := []byte("raw-not-rlp")
+	acc = callWith(raw)
+	if got := string(acc.Context.Get("hit")); got != "main" {
+		t.Fatalf("hit = %q, want main (raw)", got)
+	}
 	if got := string(acc.Context.Get("args")); got != string(raw) {
-		t.Fatalf("fallback args = %x, want the whole extra %x", got, raw)
+		t.Fatalf("raw args = %q, want the whole extra %q", got, raw)
 	}
 
 	// empty extra: plain main, no args
@@ -1432,67 +1441,6 @@ func TestCompactEnvelope(t *testing.T) {
 		copy(forged.Sign[:ngtypes.AddressSize], addr[:]) // pose as addr
 		if err := checkTransaction(txn, forged); err == nil {
 			t.Fatal("a forged compact envelope must fail")
-		}
-
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// TestSelectorCollisionRefused: two callable exports sharing a 4-byte
-// selector make activation fail loudly instead of silently shadowing
-func TestSelectorCollisionRefused(t *testing.T) {
-	// brute-force a colliding pair of export names
-	var nameA, nameB string
-	seen := make(map[[4]byte]string)
-	for i := 0; ; i++ {
-		name := fmt.Sprintf("m%d", i)
-		var sel [4]byte
-		copy(sel[:], ngtypes.CallSelector(name))
-		if other, ok := seen[sel]; ok {
-			nameA, nameB = other, name
-			break
-		}
-		seen[sel] = name
-	}
-
-	collidingWat := fmt.Sprintf(`
-(module
-  (func (export "%s"))
-  (func (export "%s")))
-`, nameA, nameB)
-
-	if err := CheckSelectorCollisions(mustWat(collidingWat)); !errors.Is(err, ErrSelectorCollision) {
-		t.Fatalf("got %v, want ErrSelectorCollision (%q vs %q)", err, nameA, nameB)
-	}
-
-	// distinct selectors pass
-	if err := CheckSelectorCollisions(mustWat(kvWat)); err != nil {
-		t.Fatalf("clean contract refused: %v", err)
-	}
-
-	// and the activation path refuses the colliding contract end to end
-	db := newTestDB(t)
-	state := &State{Network: ngtypes.ZERONET}
-	priv, _ := ngtypes.GenerateKey()
-	addr := ngtypes.NewAddress(priv)
-
-	err := db.Update(func(txn *bbolt.Tx) error {
-		putContract(t, txn, ngtypes.NewContract(addr, mustWat(collidingWat), nil), 100)
-
-		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
-			ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-		if err := activateTx.Signature(priv); err != nil {
-			return err
-		}
-
-		if err := checkActivate(txn, activateTx); !errors.Is(err, ErrSelectorCollision) {
-			t.Fatalf("checkActivate: got %v, want ErrSelectorCollision", err)
-		}
-		if err := state.handleActivate(txn, activateTx, 1, nil); !errors.Is(err, ErrSelectorCollision) {
-			t.Fatalf("handleActivate: got %v, want ErrSelectorCollision", err)
 		}
 
 		return nil
@@ -1778,7 +1726,7 @@ func TestCodeDedup(t *testing.T) {
 
 // TestDynamicServiceCall: contract A calls contract B by RUNTIME
 // address via service.call — B runs on its OWN state and sees A as the
-// caller. This is the generic-composition primitive (Uniswap
+// caller. This is the generic-composition primitive (AMM
 // pair->token, router->pair) that needs no compile-time binding.
 func TestDynamicServiceCall(t *testing.T) {
 	db := newTestDB(t)
@@ -1800,7 +1748,9 @@ func TestDynamicServiceCall(t *testing.T) {
     (drop (call $caller (i32.const 128)))
     (drop (call $set (i32.const 3) (i32.const 3) (i32.const 128) (i32.const 32)))))
 `
-	// A: on main, calls B.ping via service.call(B, selector("ping"))
+	// A: on main, calls B.ping via service.call(B, CallData{"ping"}). The
+	// dynamic calldata is the RLP CallData ngcore dispatches on — for
+	// ping with no args that is a fixed 7 bytes: c6 84 'ping' 80
 	callerWat := `
 (module
   (import "service" "call" (func $call (param i32 i32 i32) (result i32)))
@@ -1808,11 +1758,12 @@ func TestDynamicServiceCall(t *testing.T) {
   (import "tx" "get_extra" (func $args (param i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "ok ")
-  ;; args layout: [0..32] target addr, [32..36] selector for "ping"
+  ;; RLP CallData{method:"ping", args:[]} = c6 84 70 69 6e 67 80
+  (data (i32.const 600) "\c6\84\70\69\6e\67\80")
   (func (export "main")
     (drop (call $args (i32.const 512)))
-    ;; call target@512 with calldata = selector@544 (4 bytes)
-    (i32.store8 (i32.const 200) (call $call (i32.const 512) (i32.const 544) (i32.const 4)))
+    ;; call target@512 with calldata = the 7-byte RLP payload @600
+    (i32.store8 (i32.const 200) (call $call (i32.const 512) (i32.const 600) (i32.const 7)))
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 200) (i32.const 1)))))
 `
 
@@ -1824,8 +1775,9 @@ func TestDynamicServiceCall(t *testing.T) {
 		a.SetActive(true)
 		putContract(t, txn, a, 0)
 
-		// calldata to A's main: target address ‖ selector("ping")
-		args := append(append([]byte{}, callee[:]...), ngtypes.CallSelector("ping")...)
+		// A runs via Run(main) directly, so its get_extra is the raw
+		// extra: the 32-byte target address
+		args := append([]byte{}, callee[:]...)
 		tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1, caller, nil, nil, args, nil)
 
 		vm, err := NewVM(txn, a, tx, 1)

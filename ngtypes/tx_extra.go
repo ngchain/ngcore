@@ -7,9 +7,8 @@ import (
 	"compress/flate"
 	"io"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
-
-	"github.com/ngchain/ngcore/utils"
 )
 
 var ErrCommitExtraInvalid = errors.New("malformed commit extra payload")
@@ -63,21 +62,42 @@ func DecodeCommitCode(extra []byte) ([]byte, error) {
 	}
 }
 
-// CallSelector returns the eth-style 4-byte selector of an entry name
-func CallSelector(entry string) []byte {
-	return utils.KeccakSum256([]byte(entry))[:4]
+// CallData is a contract call's payload: the export to run and its raw
+// argument bytes, RLP-encoded into a tx's Extra (and into the calldata a
+// contract hands to service.call). ngcore dispatches by the export NAME
+// directly — a wasm module already has named exports, so there is no
+// eth-style 4-byte selector, and thus no selector-collision class to
+// guard against. An empty Method addresses the default "main" entry.
+type CallData struct {
+	Method string
+	Args   []byte
 }
 
-// EncodeCallData packs an entry selector and its args into a tx extra
-func EncodeCallData(entry string, args []byte) []byte {
-	if entry == "" || entry == "main" {
-		if len(args) == 0 {
-			return []byte{}
-		}
-		entry = "main"
+// EncodeCallData RLP-encodes a contract call payload into a tx extra. A
+// "main"/empty method plus empty args yields an empty extra — a bare
+// value transfer carries no calldata
+func EncodeCallData(method string, args []byte) []byte {
+	if method == "main" {
+		method = "" // the default entry is addressed by the empty method
+	}
+	if method == "" && len(args) == 0 {
+		return []byte{}
 	}
 
-	out := make([]byte, 0, 4+len(args))
-	out = append(out, CallSelector(entry)...)
-	return append(out, args...)
+	out, err := rlp.EncodeToBytes(&CallData{Method: method, Args: args})
+	if err != nil {
+		return nil
+	}
+
+	return out
+}
+
+// DecodeCallData recovers a contract call payload from a tx extra
+func DecodeCallData(extra []byte) (method string, args []byte, err error) {
+	var cd CallData
+	if err := rlp.DecodeBytes(extra, &cd); err != nil {
+		return "", nil, err
+	}
+
+	return cd.Method, cd.Args, nil
 }

@@ -131,7 +131,7 @@ type genTransactionParams struct {
 	To    string  `json:"to"` // bs58 address
 	Value float64 `json:"value"`
 	Fee   float64 `json:"fee"`
-	Entry string  `json:"entry"` // optional contract entry (eth-style selector)
+	Entry string  `json:"entry"` // optional contract export name (empty = main)
 	Extra string  `json:"extra"` // hex args
 }
 
