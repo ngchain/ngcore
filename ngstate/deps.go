@@ -1,12 +1,10 @@
 package ngstate
 
 import (
-	"bytes"
 	"encoding/binary"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/c0mm4nd/wasman"
-	"github.com/c0mm4nd/wasman/config"
 	"github.com/pkg/errors"
 	"strings"
 
@@ -78,7 +76,9 @@ func extractContractDeps(contractText []byte) ([]ngtypes.Address, error) {
 		return nil, err
 	}
 
-	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewReader(bin))
+	// read-only use (import section only); the shared cached template is
+	// safe to pass without a copy since we never instantiate it here
+	module, err := templateFor(bin)
 	if err != nil {
 		return nil, err
 	}

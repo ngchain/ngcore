@@ -2,6 +2,8 @@ package ngstate
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"sync"
 
 	"github.com/c0mm4nd/wasman"
 	"github.com/c0mm4nd/wasman/config"
@@ -91,6 +93,49 @@ type VM struct {
 // wasmMagic is the 4-byte preamble of every WebAssembly binary module
 var wasmMagic = []byte{0x00, 0x61, 0x73, 0x6d}
 
+// moduleCache memoizes DECODED + VALIDATED wasm templates by code hash, so
+// a contract is parsed and statically validated once instead of on every
+// call. The cached template is treated as immutable: callers take a
+// shallow copy and bind their OWN per-call ModuleConfig (a fresh
+// TollStation etc.) before instantiating. This is safe because wasman's
+// Instantiate builds fresh, instance-owned functions/index spaces from the
+// (read-only) decoded sections and only writes back to the Module pointer
+// it is given — which is the per-call copy, never the shared template.
+var moduleCache sync.Map // [32]byte -> *wasman.Module
+
+// templateFor returns the cached decoded+validated template for source,
+// building (and caching) it on first sight. A malformed binary returns an
+// error and is not cached, so it is re-checked every time (and stays out
+// of the hot path).
+func templateFor(source []byte) (*wasman.Module, error) {
+	key := sha256.Sum256(source)
+	if t, ok := moduleCache.Load(key); ok {
+		return t.(*wasman.Module), nil
+	}
+	// validate under the plainest config; the config a template carries is
+	// irrelevant since every caller overrides it via loadModule
+	m, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewReader(source))
+	if err != nil {
+		return nil, err
+	}
+	t, _ := moduleCache.LoadOrStore(key, m)
+	return t.(*wasman.Module), nil
+}
+
+// loadModule returns a per-call Module for source bound to cfg, reusing the
+// cached decoded template (no re-parse, no re-validate). The returned value
+// is a shallow copy the caller may instantiate; the shared template is not
+// mutated.
+func loadModule(source []byte, cfg config.ModuleConfig) (*wasman.Module, error) {
+	t, err := templateFor(source)
+	if err != nil {
+		return nil, err
+	}
+	m := *t              // shallow copy: shares the immutable decoded sections
+	m.ModuleConfig = cfg // bind this call's config (fresh toll station, ...)
+	return &m, nil
+}
+
 // LoadContractWasm validates the on-chain contract bytecode: it must be
 // a well-formed WebAssembly binary the vm can load. Contracts are
 // authored in any language that targets wasm (Rust, AssemblyScript,
@@ -111,9 +156,10 @@ func LoadContractWasm(source []byte) (bin []byte, err error) {
 		return nil, errors.New("contract is not a wasm binary (missing \\0asm magic)")
 	}
 
-	// a full parse+validate: the module must load under the plainest
-	// config, so a malformed binary is rejected before execution
-	if _, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewReader(source)); err != nil {
+	// a full parse+validate on first sight (cached thereafter): the module
+	// must load under the plainest config, so a malformed binary is
+	// rejected before execution
+	if _, err := templateFor(source); err != nil {
 		return nil, errors.Wrap(err, "invalid wasm contract")
 	}
 
@@ -141,9 +187,15 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTi
 		// ONE toll station across the whole link set: dependency code
 		// burns the caller's gas
 		TollStation: tollstation.NewSimpleTollStation(vmMaxToll),
+		// wasman's inline-metered JIT: toll counts and results match the
+		// interpreter exactly (per-step gas is byte-identical with the JIT on
+		// or off, and across architectures), so it is consensus-safe. Requires
+		// wasman >= v1.7.1, which fixes host-call dispatch for contracts that
+		// share a linker with their service dependencies.
+		EnableJIT: true,
 	}
 
-	module, err := wasman.NewModule(cfg, bytes.NewReader(bin))
+	module, err := loadModule(bin, cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load the compiled contract")
 	}
@@ -232,7 +284,7 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		if err != nil {
 			return errors.Wrapf(err, "dependency contract %s does not compile", addr)
 		}
-		depModule, err := wasman.NewModule(vm.cfg, bytes.NewReader(depBin))
+		depModule, err := loadModule(depBin, vm.cfg)
 		if err != nil {
 			return errors.Wrapf(err, "failed to load dependency contract %s", addr)
 		}
