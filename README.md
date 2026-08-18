@@ -17,7 +17,7 @@ active. That's the entire ontology.
 | Verb | Effect |
 |---|---|
 | `Generate` | the mining reward |
-| `Transact` | pay an address; runs its active contract (eth-style 4-byte selector routes the entry, `main` is the fallback) |
+| `Transact` | pay an address; runs its active contract (the call routes to the export named in the payload, `main` is the fallback) |
 | `Commit` | apply diff hunks onto the own contract source; the first commit opens the slot |
 | `Activate` | freeze the source, turn the vm on (runs `init` once) |
 | `Deactivate` | turn the vm off, reopen the source |
@@ -55,7 +55,10 @@ address>` calls run on the dependency's own state (tokens, pools) with
 re-entry guarded and dependees reference-pinned. Execution is
 journaled (all-or-nothing), gas-tiered (state writes cost orders of
 magnitude more than arithmetic), and receipts with events stay local
-— never consensus data. See [docs/contract.md](docs/contract.md).
+— never consensus data. See [docs/contract.md](docs/contract.md) for the
+contract model, [docs/implementation.md](docs/implementation.md) for the
+VM internals, and [docs/positioning.md](docs/positioning.md) for the
+design rationale.
 
 ## Consensus
 
