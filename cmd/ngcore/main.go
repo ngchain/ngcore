@@ -30,6 +30,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		getKeyToolsCommand(),
 		getCliToolsCommand(),
+		getContractTestCommand(),
 	}
 
 	err := app.Run(os.Args)
