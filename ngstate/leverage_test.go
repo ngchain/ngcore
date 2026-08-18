@@ -19,9 +19,9 @@ import (
 //	D publishes leverage — the strategy: borrow usdt from C, approve
 //	                       B, swap into native NG (depends on A, B, C)
 //
-// Every party IS its address: contracts import each other through
-// service/<deployer bs58 address>, ledger keys are 32-byte addresses,
-// and addresses cross service boundaries through the buf slots
+// Every party IS its address: contracts import each other directly by
+// <deployer bs58 address>, ledger keys are 32-byte addresses, and
+// addresses cross service boundaries through the buf slots
 // (slot 1 = primary address argument, slot 2 = secondary)
 
 // usdtTokenWat: balances keyed by the 32-byte address; allowances by
@@ -102,7 +102,7 @@ func dexWatFor(token ngtypes.Address) string {
   (import "address" "get_host" (func $host (param i32) (result i32)))
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
   (import "coin" "transfer" (func $pay (param i32 i64) (result i32)))
-  (import "service/` + token.String() + `" "transfer_from"
+  (import "` + token.String() + `" "transfer_from"
     (func $pull (param i64) (result i32)))
   (memory 1)
 
@@ -128,9 +128,9 @@ func lendingWatFor(token ngtypes.Address) string {
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
   (import "kv" "get" (func $kvget (param i32 i32 i32) (result i32)))
   (import "kv" "set" (func $kvset (param i32 i32 i32 i32) (result i32)))
-  (import "service/` + token.String() + `" "transfer"
+  (import "` + token.String() + `" "transfer"
     (func $send (param i64) (result i32)))
-  (import "service/` + token.String() + `" "transfer_from"
+  (import "` + token.String() + `" "transfer_from"
     (func $pull (param i64) (result i32)))
   (memory 1)
 
@@ -168,11 +168,11 @@ func strategyWatFor(token, dex, lending ngtypes.Address) string {
 	return `
 (module
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
-  (import "service/` + lending.String() + `" "borrow"
+  (import "` + lending.String() + `" "borrow"
     (func $borrow (param i64) (result i32)))
-  (import "service/` + token.String() + `" "approve"
+  (import "` + token.String() + `" "approve"
     (func $approve (param i64)))
-  (import "service/` + dex.String() + `" "buy_coin"
+  (import "` + dex.String() + `" "buy_coin"
     (func $buy (param i64) (result i32)))
   (memory 1)
   (data (i32.const 0) "` + watBytes(dex[:]) + `")

@@ -49,10 +49,10 @@ aggregate proofs) without touching a single txid.
 ## Contracts
 
 On-chain source is human-readable wat, compiled deterministically at
-activation. Contracts compose two ways: `contract/<deployer address>`
-imports run library code on the caller's state; `service/<deployer
-address>` calls run on the dependency's own state (tokens, pools) with
-re-entry guarded and dependees reference-pinned. Execution is
+activation. Contracts compose by CALLING one another: a contract imports
+another by its `<deployer address>` (or calls one at runtime), and the
+callee always runs on its OWN state (tokens, pools) with re-entry guarded
+and statically-declared dependees reference-pinned. Execution is
 journaled (all-or-nothing), gas-tiered (state writes cost orders of
 magnitude more than arithmetic), and receipts with events stay local
 — never consensus data. See [docs/contract.md](docs/contract.md) for the

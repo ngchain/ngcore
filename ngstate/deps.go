@@ -6,31 +6,25 @@ import (
 	"github.com/c0mm4nd/rlp"
 	"github.com/c0mm4nd/wasman"
 	"github.com/pkg/errors"
-	"strings"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// Contracts compose like code modules: a contract imports another
-// LOCKED contract's exports through the "contract/<deployer bs58
-// address>" namespace, e.g.
-// (import "contract/9VLK...Gkb" "swap" (func $swap ...)).
+// Contracts compose by calling one another: a contract imports another
+// LOCKED contract's exports directly by the dependee's deployer bs58
+// ADDRESS as the import module name, e.g.
+// (import "9VLK...Gkb" "swap" (func $swap ...)).
 //
-// The import section of the wat text declares the dependencies
-// STATICALLY, so the chain extracts them at lock time and maintains a
-// reference count on every dependee: a depended-on contract can be
-// neither deactivated nor destroyed until all dependents released it.
-// Activation ordering (a dependee activates before its dependents) makes
-// the dependency graph a DAG by construction.
-
-// ContractDepPrefix is the wat import namespace for LIBRARY modules:
-// the dependency contributes code running on the caller's state
-const ContractDepPrefix = "contract/"
-
-// ServiceDepPrefix is the wat import namespace for SERVICE modules:
-// calls run on the dependency's own state (tokens, pools, any shared
-// ledger), with address.get_caller exposing the invoking contract
-const ServiceDepPrefix = "service/"
+// Every dependency is a SERVICE: its exports run on the dependee's OWN
+// state (tokens, pools, any shared ledger), with address.get_caller
+// exposing the invoking contract. There is no library form running on the
+// caller's state — compose by calling, or inline shared code.
+//
+// The import section declares the dependencies STATICALLY, so the chain
+// extracts them at lock time and reference-counts every dependee: a
+// depended-on contract can be neither deactivated nor destroyed until all
+// dependents release it. Activation ordering (a dependee activates before
+// its dependents) makes the dependency graph a DAG by construction.
 
 const (
 	// maxDepsPerContract bounds the direct imports of one contract
@@ -91,36 +85,22 @@ func extractContractDeps(contractText []byte) ([]ngtypes.Address, error) {
 	return resolveDepAddrs(deps)
 }
 
-// contractDep is one declared dependency: a library (code on the
-// caller's state) or a service (code on its own state). Raw is the
-// deployer address as written in the import
-type contractDep struct {
-	Raw     string
-	Service bool
-}
-
 // parseContractDeps extracts the declared contract dependencies from a
-// compiled module's import section
-func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
+// compiled module's import section: a dependency is imported directly by
+// its deployer bs58 ADDRESS as the module name. Host modules (kv, tx,
+// u256, ...) use reserved short names that never decode to an address, so
+// they are skipped. The returned slice holds the bs58 address strings.
+func parseContractDeps(module *wasman.Module) ([]string, error) {
 	seen := make(map[string]bool)
-	deps := make([]contractDep, 0)
+	deps := make([]string, 0)
 
 	for _, imp := range module.ImportSection {
-		var addrStr string
-		var service bool
-		switch {
-		case strings.HasPrefix(imp.Module, ContractDepPrefix):
-			addrStr = imp.Module[len(ContractDepPrefix):]
-		case strings.HasPrefix(imp.Module, ServiceDepPrefix):
-			addrStr = imp.Module[len(ServiceDepPrefix):]
-			service = true
-		default:
-			continue
+		if _, err := ngtypes.NewAddressFromBS58(imp.Module); err != nil {
+			continue // not an address: a host module import
 		}
-
 		if !seen[imp.Module] {
 			seen[imp.Module] = true
-			deps = append(deps, contractDep{Raw: addrStr, Service: service})
+			deps = append(deps, imp.Module)
 		}
 	}
 
@@ -133,11 +113,11 @@ func parseContractDeps(module *wasman.Module) ([]contractDep, error) {
 
 // resolveDepAddrs flattens the dependency set into the unique
 // addresses the reference ledger tracks
-func resolveDepAddrs(deps []contractDep) ([]ngtypes.Address, error) {
+func resolveDepAddrs(deps []string) ([]ngtypes.Address, error) {
 	seen := make(map[ngtypes.Address]bool)
 	addrs := make([]ngtypes.Address, 0, len(deps))
-	for _, dep := range deps {
-		addr, err := resolveDepAddr(dep.Raw)
+	for _, raw := range deps {
+		addr, err := resolveDepAddr(raw)
 		if err != nil {
 			return nil, err
 		}

@@ -407,7 +407,7 @@ func TestCommitFlow(t *testing.T) {
 	}
 }
 
-// dexWat is a pure code library: it exports an algorithm and touches no
+// dexWat is a stateless service: it exports an algorithm and touches no
 // state of its own
 const dexWat = `
 (module
@@ -415,13 +415,13 @@ const dexWat = `
     (i64.mul (local.get 0) (i64.const 2))))
 `
 
-// leverageWatFor composes the dex module by its deployer address: it
-// imports dex's algorithm and stores the computed result into its OWN
-// kv state (delegate semantics)
+// leverageWatFor composes dex by its deployer address: it CALLS dex's
+// algorithm (a service) and stores the computed result into its OWN kv
+// state
 func leverageWatFor(dex ngtypes.Address) string {
 	return `
 (module
-  (import "contract/` + dex.String() + `" "double" (func $double (param i64) (result i64)))
+  (import "` + dex.String() + `" "double" (func $double (param i64) (result i64)))
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "num")
@@ -431,10 +431,9 @@ func leverageWatFor(dex ngtypes.Address) string {
 `
 }
 
-// TestContractModuleDeps covers the code-module dependency system:
+// TestContractModuleDeps covers the contract dependency system:
 // leverage imports dex by address, the reference pins dex until
-// leverage releases it, and the linked execution runs dex's code on
-// leverage's state
+// leverage releases it, and the service call runs dex on its own state
 func TestContractModuleDeps(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
@@ -505,7 +504,7 @@ func TestContractModuleDeps(t *testing.T) {
 		if got := levAcc.Context.Get("num"); len(got) != 1 || got[0] != 42 {
 			t.Fatalf("leverage kv num = %v, want [42]", got)
 		}
-		// delegate semantics: dex's own state stays untouched
+		// dex is a stateless service: its own state stays untouched
 		dexAcc, _ = getContract(txn, dexAddr)
 		if got := dexAcc.Context.Get("num"); len(got) != 0 {
 			t.Fatal("dex state must stay untouched")
@@ -569,8 +568,8 @@ const tokenWat = `
 func tokenUserWatFor(token, self, dest ngtypes.Address) string {
 	return `
 (module
-  (import "service/` + token.String() + `" "mint_to" (func $mint (param i64)))
-  (import "service/` + token.String() + `" "transfer" (func $transfer (param i64) (result i32)))
+  (import "` + token.String() + `" "mint_to" (func $mint (param i64)))
+  (import "` + token.String() + `" "transfer" (func $transfer (param i64) (result i32)))
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "` + watBytes(self[:]) + `")
@@ -915,7 +914,7 @@ func bigCallerWatFor(vault ngtypes.Address) string {
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
   (import "env" "buf_get" (func $bget (param i32 i32) (result i32)))
   (import "kv" "set" (func $kvset (param i32 i32 i32 i32) (result i32)))
-  (import "service/` + vault.String() + `" "deposit_big" (func $deposit))
+  (import "` + vault.String() + `" "deposit_big" (func $deposit))
   (memory 1)
   (data (i32.const 0) "got")
   (data (i32.const 32) "\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff")
@@ -1753,7 +1752,7 @@ func TestDynamicServiceCall(t *testing.T) {
 	// ping with no args that is a fixed 7 bytes: c6 84 'ping' 80
 	callerWat := `
 (module
-  (import "service" "call" (func $call (param i32 i32 i32) (result i32)))
+  (import "call" "call" (func $call (param i32 i32 i32) (result i32)))
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (import "tx" "get_extra" (func $args (param i32) (result i32)))
   (memory 1)

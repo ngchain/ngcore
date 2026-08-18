@@ -141,21 +141,38 @@ methods like a `balance_of` export are directly callable off-chain.
 
 ## Module dependencies
 
-Contracts compose like code modules with TWO dependency semantics,
-picked per import by its namespace:
+Contracts compose by CALLING one another. A contract imports another
+LOCKED contract's exports directly by its deployer bs58 ADDRESS:
 
 ```wat
-;; library: code runs on the CALLER's state (math, curves, algorithms)
-(import "contract/<id>" "double" (func $double (param i64) (result i64)))
-
-;; service: code runs on the DEPENDENCY's own state (tokens, pools,
-;; any shared ledger)
-(import "service/<id>" "transfer" (func $transfer (param i64 i64) (result i32)))
+;; call another contract's export; it runs on ITS OWN state (tokens,
+;; pools, any shared ledger)
+(import "<id>" "transfer" (func $transfer (param i64 i64) (result i32)))
 ```
 
 `<id>` is the deployer's bs58 address — the address IS the namespace:
-it anchors WHO published the code you link against, like a Go module
-path, with no name registry to squat or numbers to race for.
+it anchors WHO published the code you call, like a Go module path, with
+no name registry to squat, no numbers to race for, and no prefix to pick.
+
+Every dependency is a SERVICE: each call switches the execution frame to
+the dependency's account — its kv/coin effects act on ITS OWN state,
+which is exactly how a token keeps one ledger shared by all callers.
+`account.get_caller` writes the invoking contract's address (msg.from)
+for authorization; `account.get_host` the executing one. Within one
+transaction execution, a contract that is still executing cannot be
+re-entered (calls after it returned are fine); service exports use scalar
+(i32/i64) params and returns — byte payloads (u256 amounts, strings)
+cross through the env transfer slots: the caller stages bytes with
+buf_set before the call, the callee reads them with buf_get and returns
+results the same way.
+
+There is no library form running on the CALLER's state (there was once a
+`contract/` namespace for it). It was the only primitive that let
+external code touch your storage — a sharp footgun, and the sole source
+of a "whose state does this run on?" choice. Removing it makes
+composition uniform: a dependency ALWAYS runs on its own state. Shared
+pure code is reused by inlining it (identical bytecode is deduplicated on
+chain by hash).
 
 Shared rules:
 
@@ -170,27 +187,17 @@ Shared rules:
   list) and `_refs` (dependee's counter), invisible to contracts
 - the whole call tree shares ONE gas budget
 
-Library semantics (`contract/<addr>`): the dependency's code links directly
-and runs with the caller's host modules — its kv/coin effects act on
-the calling address. A library contributes code, not state.
-
-Service semantics (`service/<addr>`): each call switches the execution frame
-to the dependency's account — its kv/coin effects act on ITS OWN state,
-which is exactly how a token keeps one ledger shared by all callers.
-`account.get_caller` writes the invoking contract's address
-(msg.from) for authorization; `account.get_host` the executing one.
-Within one transaction execution, a contract that is still executing
-cannot be re-entered (calls after it returned are fine); service
-exports use scalar (i32/i64) params and returns — byte payloads
-(u256 amounts, strings) cross through the env transfer slots: the
-caller stages bytes with buf_set before the call, the callee reads
-them with buf_get and returns results the same way.
+For calling a contract chosen at RUNTIME (not fixed at lock time), a
+contract uses the dynamic `call(addr, calldata)` host function
+instead of a static import — same service semantics, address resolved on
+the fly, no reference pinning. This is the common path for tokens and
+pools addressed by a variable.
 
 ## Immutability & upgrades
 
 A referenced contract is frozen: while `_refs > 0` it can be neither
 deactivated nor destroyed. This is a **feature, not a limitation**.
-When B declares `service/A`, B's author audited *that* code; if A could
+When B depends on A, B's author audited *that* code; if A could
 rewrite itself, B would live under the shadow of a dependency turning
 malicious (imagine A is a token that one day rewrites `transfer` to
 pay itself). Immutability is the guarantee B receives, not a penalty A
@@ -199,9 +206,9 @@ suffers — it is what makes cross-contract composition trustable at all.
 So the chain has no in-place upgrade, by design. Two honest models
 cover every need:
 
-**Publish a new version (the default).** Contracts are libraries: you
-do not edit the v1 others depend on, you deploy v2 at a new address and
-dependents migrate by re-declaring `service/<v2 address>` and
+**Publish a new version (the default).** Once referenced a contract is
+immutable: you do not edit the v1 others depend on, you deploy v2 at a
+new address and dependents migrate by re-declaring the v2 address and
 re-activating. Old versions never disappear; migration is a social,
 opt-in act — exactly how classical DeFi legos are built on immutable
 contracts. Fragmentation is the price of not betraying anyone's audit.
@@ -213,8 +220,8 @@ at P. Upgrading means P's owner repoints the kv slot. The trust model
 downgrades honestly — a dependent of P trusts P's owner not to swap in
 malice — but that is the dependent's *informed* choice, not something
 the protocol imposed. The primitives are already here: `kv` for the
-pointer, `account.get_caller` to gate who may repoint, `service/<impl>`
-to forward.
+pointer, `account.get_caller` to gate who may repoint, and a dynamic
+`call` to forward.
 
 ```wat
 ;; a minimal upgradeable proxy: owner repoints "impl", everyone else's
@@ -227,8 +234,8 @@ to forward.
   (memory 1)
   (data (i32.const 0) "implownr")     ;; keys: "impl", "ownr"
   ;; on "set_impl": if caller == stored owner, store the new impl addr
-  ;; (a real proxy would then forward main/other entries to $impl via
-  ;;  a service import; omitted here for brevity)
+  ;; (a real proxy would then forward main/other entries to the stored
+  ;;  impl address via a dynamic call; omitted here for brevity)
   (func (export "set_impl")
     (drop (call $caller (i32.const 64)))       ;; caller -> 64
     (drop (call $get (i32.const 4) (i32.const 4) (i32.const 96))) ;; owner -> 96

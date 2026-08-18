@@ -67,7 +67,8 @@ do not share linear memory.
 | `env` | buf_set / buf_get — cross-frame byte payloads; get_gas |
 | `log` | error / emit (events) |
 | `u128` / `u256` | 128/256-bit add/sub/mul/div/rem/cmp/shift + `mul_div`, `isqrt` |
-| `service/<addr>`, `contract/<addr>` | cross-contract calls (see Dependencies) |
+| `call` | dynamic cross-contract call by runtime address |
+| `<bs58 addr>` | static import of another contract's exports (see Dependencies) |
 
 ## Call dispatch — by export name
 
@@ -76,7 +77,7 @@ ngcore dispatches to the export **named** by `Method`; there is no
 eth-style 4-byte selector (a wasm module already has named exports, so
 the selector — and its collision class — is pure overhead).
 
-`EntryFor` (outer tx) and `resolveDynEntry` (dynamic `service.call`) share
+`EntryFor` (outer tx) and `resolveDynEntry` (dynamic `call`) share
 one rule:
 
 - a non-empty `Method` naming a **zero-arg export** (the reserved `init`
@@ -129,25 +130,25 @@ verified across every scenario, on vs off. A node that JIT-compiles
 (arm64) and one that runs the metered interpreter (other targets)
 therefore agree on both result and gas. Requires wasman ≥ v1.7.1.
 
-## Dependencies — libraries and services
+## Dependencies — one form, always a service
 
-A contract may import another *locked* contract's exports, declared
-statically in its wasm import section and extracted at lock time
-(`ngstate/deps.go`). Two namespaces, two semantics:
-
-- **`contract/<addr>` — library.** The dependency's code links directly
-  and runs on the CALLER's state: it contributes code, not its own
-  ledger. Delegate semantics.
-- **`service/<addr>` — service.** Calls run on the dependency's OWN state
-  (tokens, pools, any shared ledger); `address.get_caller` exposes the
-  invoking contract. This is how tokens and AMMs compose.
+A contract composes by CALLING another *locked* contract, imported
+directly by its deployer **bs58 address** as the import module name and
+extracted at lock time (`ngstate/deps.go`; a host module like `kv` is
+told apart because it does not decode to an address). Every dependency is
+a **service**: its exports run on the dependency's OWN state (tokens,
+pools, any shared ledger), with `address.get_caller` exposing the
+invoking contract. There is no library form running on the caller's state
+— removing it makes composition uniform and closes the one primitive that
+let external code touch your storage.
 
 Dependencies instantiate before their dependents (a DAG by activation
 order), the chain **reference-counts** dependees (a depended-on contract
 can be neither deactivated nor destroyed until released), and the link
-depth is bounded. `service.call` additionally allows **dynamic** dispatch
-by a runtime address, so one compiled module (an AMM pair, a router)
-works against any target resolved at call time.
+depth is bounded. For a target chosen at RUNTIME, the `call` host
+function dispatches by a runtime address (same service semantics, no
+static declaration, no pinning), so one compiled module (an AMM pair, a
+router) works against any target resolved at call time.
 
 ## Determinism guarantees
 

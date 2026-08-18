@@ -227,14 +227,12 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTi
 	return vm, nil
 }
 
-// loadContractDeps recursively links the contract modules imported
-// through the contract/<bs58 addr> namespace. Dependencies instantiate before
-// their dependents (wasman links against instantiated modules only), so
-// the whole set loads in dependency order.
-//
-// NOTE the delegate semantics: dependency code runs with THIS vm's host
-// modules, so its kv/coin effects act on the CALLING address's state —
-// a dependency contributes code, not its own state
+// loadContractDeps recursively links the contract dependencies imported
+// by the dependee's bs58 ADDRESS. Every dependency is a service: its
+// exports run on the dependency's OWN state through a host wrapper module
+// named by the address (see linkServiceDep). Dependencies instantiate
+// before their dependents (wasman links against instantiated modules
+// only), so the whole set loads in DAG order.
 func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 	deps, err := parseContractDeps(module)
 	if err != nil {
@@ -244,17 +242,13 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 		return errors.Wrapf(ErrDepLimit, "dependency chain deeper than %d", maxDepChainDepth)
 	}
 
-	for _, dep := range deps {
-		prefix := ContractDepPrefix
-		if dep.Service {
-			prefix = ServiceDepPrefix
-		}
-		name := prefix + dep.Raw
+	for _, raw := range deps {
+		name := raw // the import module name IS the dependee's bs58 address
 		if _, linked := vm.linker.Modules[name]; linked {
 			continue
 		}
 
-		addr, err := resolveDepAddr(dep.Raw)
+		addr, err := resolveDepAddr(raw)
 		if err != nil {
 			return err
 		}
@@ -270,35 +264,11 @@ func (vm *VM) loadContractDeps(module *wasman.Module, depth int) error {
 			return errors.Wrapf(ErrDepNotActive, "contract %s", addr)
 		}
 
-		if dep.Service {
-			// service: own-state semantics via a host wrapper module
-			if err := vm.linkServiceDep(name, depAcc, depth); err != nil {
-				return err
-			}
-			continue
-		}
-
-		// library: the dependency's code links directly and runs on the
-		// caller's state
-		depBin, err := LoadContractWasm(depAcc.Source)
-		if err != nil {
-			return errors.Wrapf(err, "dependency contract %s does not compile", addr)
-		}
-		depModule, err := loadModule(depBin, vm.cfg)
-		if err != nil {
-			return errors.Wrapf(err, "failed to load dependency contract %s", addr)
-		}
-
-		// resolve the dependency's own imports first (DAG order)
-		if err := vm.loadContractDeps(depModule, depth+1); err != nil {
+		// every dependency runs on its OWN state, exposed as a host
+		// wrapper module named by the address
+		if err := vm.linkServiceDep(name, depAcc, depth); err != nil {
 			return err
 		}
-
-		if _, err := vm.linker.Instantiate(depModule); err != nil {
-			return errors.Wrapf(err, "failed to instantiate dependency contract %s", addr)
-		}
-
-		vm.linker.Define(name, depModule)
 	}
 
 	return nil
