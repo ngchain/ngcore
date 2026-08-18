@@ -1724,7 +1724,7 @@ func TestCodeDedup(t *testing.T) {
 }
 
 // TestDynamicServiceCall: contract A calls contract B by RUNTIME
-// address via service.call — B runs on its OWN state and sees A as the
+// address via contract.call — B runs on its OWN state and sees A as the
 // caller. This is the generic-composition primitive (AMM
 // pair->token, router->pair) that needs no compile-time binding.
 func TestDynamicServiceCall(t *testing.T) {
@@ -1747,12 +1747,12 @@ func TestDynamicServiceCall(t *testing.T) {
     (drop (call $caller (i32.const 128)))
     (drop (call $set (i32.const 3) (i32.const 3) (i32.const 128) (i32.const 32)))))
 `
-	// A: on main, calls B.ping via service.call(B, CallData{"ping"}). The
+	// A: on main, calls B.ping via contract.call(B, CallData{"ping"}). The
 	// dynamic calldata is the RLP CallData ngcore dispatches on — for
 	// ping with no args that is a fixed 7 bytes: c6 84 'ping' 80
 	callerWat := `
 (module
-  (import "call" "call" (func $call (param i32 i32 i32) (result i32)))
+  (import "contract" "call" (func $call (param i32 i32 i32) (result i32)))
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (import "tx" "get_extra" (func $args (param i32) (result i32)))
   (memory 1)

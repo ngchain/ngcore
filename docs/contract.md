@@ -82,12 +82,15 @@ log:     debug(ptr, size)            error(ptr, size)
          emit(tptr, tlen, dptr, dlen) -> i32
          ; records an event (topic + data) into the tx's LOCAL receipt;
          ; attributed to the executing address, dropped on failed runs
-account: get_size() -> i32          ; address length (32)
+address: get_size() -> i32          ; address length (32)
          get_host(ptr) -> i32       ; writes the EXECUTING address
          get_caller(ptr) -> i32     ; msg.From address (zero addr at top)
-         get_contract_size(addr_ptr) -> i32
-         get_contract(addr_ptr, ptr) -> i32
-         is_active(addr_ptr) -> i32
+contract:call(addr_ptr, args_ptr, args_len) -> i32
+         ; invoke the contract at a RUNTIME address on its OWN state (1|0)
+         is_active(addr_ptr) -> i32      ; an active contract lives there?
+         get_code_size(addr_ptr) -> i32
+         get_code(addr_ptr, ptr) -> i32  ; the on-chain code bytes
+         code_hash(addr_ptr, ptr) -> i32 ; 32-byte keccak of the code
 coin:    get_balance_size(addr_ptr) -> i32
          get_balance(addr_ptr, ptr) -> i32   ; big-endian bytes
          transfer(to_ptr, value: i64) -> i32
@@ -119,25 +122,27 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_to(ptr) -> i32         ; the tx's To address
          get_fee_size() -> i32       get_fee(ptr) -> i32
          get_extra_size() -> i32     get_extra(ptr) -> i32
-         ; the ARGS part of the calldata (see the selector convention)
+         ; the ARGS of the decoded CallData (the method already consumed)
 ```
 
 ## Calling a contract
 
-A transact tx paying an address with an ACTIVE contract runs it. The
-tx extra addresses the entry eth-style:
+A transact tx paying an address with an ACTIVE contract runs it. The tx
+extra is an RLP `CallData{method, args}` — ngcore dispatches by the
+export NAME (wasm modules already carry named exports, so there is no
+eth-style 4-byte selector):
 
 ```
-extra = keccak256(entry name)[:4] ‖ args
+extra = rlp([method, args])
 ```
 
-The runtime matches the 4-byte selector against the contract's
-zero-arg exports (sorted by name; the reserved `init` entry excluded)
-and runs the match with `tx.get_extra` serving `args`. An empty extra,
-a short extra or an unmatched selector falls back to `main`, which —
-like eth's fallback function — receives the WHOLE extra as its args.
-`callContract` (rpc dry-run) resolves the same way, so read-only
-methods like a `balance_of` export are directly callable off-chain.
+The runtime runs the export named `method` (when it is a zero-arg export;
+the reserved `init` entry excluded), with `tx.get_extra` serving `args`.
+An empty/`main` method, an absent export, or an extra that is not a
+CallData falls back to `main`, which receives its args (the whole extra
+when the payload was not a CallData). `callContract` (rpc dry-run)
+resolves the same way, so read-only methods like a `balance_of` export
+are directly callable off-chain.
 
 ## Module dependencies
 
@@ -221,7 +226,7 @@ downgrades honestly — a dependent of P trusts P's owner not to swap in
 malice — but that is the dependent's *informed* choice, not something
 the protocol imposed. The primitives are already here: `kv` for the
 pointer, `account.get_caller` to gate who may repoint, and a dynamic
-`call` to forward.
+`contract.call` to forward.
 
 ```wat
 ;; a minimal upgradeable proxy: owner repoints "impl", everyone else's

@@ -61,14 +61,14 @@ do not share linear memory.
 |---|---|
 | `kv` | get / get_size / set / del — the account's on-chain k-v (`Context`) |
 | `tx` | get_from / get_to / get_paid / get_extra / get_height / get_timestamp |
-| `address` | get_host / get_caller / is_active |
+| `address` | get_host / get_caller — identity only |
+| `contract` | call (by runtime address) / is_active / get_code / get_code_size / code_hash |
 | `coin` | transfer / get_balance — native NG |
 | `crypto` | keccak256 / verify / addr_of |
 | `env` | buf_set / buf_get — cross-frame byte payloads; get_gas |
 | `log` | error / emit (events) |
 | `u128` / `u256` | 128/256-bit add/sub/mul/div/rem/cmp/shift + `mul_div`, `isqrt` |
-| `call` | dynamic cross-contract call by runtime address |
-| `<bs58 addr>` | static import of another contract's exports (see Dependencies) |
+| `<bs58 addr>` | static import of another contract's exports, by address (see Dependencies) |
 
 ## Call dispatch — by export name
 
@@ -77,7 +77,7 @@ ngcore dispatches to the export **named** by `Method`; there is no
 eth-style 4-byte selector (a wasm module already has named exports, so
 the selector — and its collision class — is pure overhead).
 
-`EntryFor` (outer tx) and `resolveDynEntry` (dynamic `call`) share
+`EntryFor` (outer tx) and `resolveDynEntry` (dynamic `contract.call`) share
 one rule:
 
 - a non-empty `Method` naming a **zero-arg export** (the reserved `init`
@@ -145,10 +145,13 @@ let external code touch your storage.
 Dependencies instantiate before their dependents (a DAG by activation
 order), the chain **reference-counts** dependees (a depended-on contract
 can be neither deactivated nor destroyed until released), and the link
-depth is bounded. For a target chosen at RUNTIME, the `call` host
-function dispatches by a runtime address (same service semantics, no
+depth is bounded. For a target chosen at RUNTIME, the `contract.call`
+host function dispatches by a runtime address (same service semantics, no
 static declaration, no pinning), so one compiled module (an AMM pair, a
-router) works against any target resolved at call time.
+router) works against any target resolved at call time. The rest of the
+`contract` module introspects a contract at an address — `is_active`,
+`get_code`/`get_code_size`, and `code_hash` (pin the exact code you
+trust: verify a dependency, or a proxy its impl).
 
 ## Determinism guarantees
 

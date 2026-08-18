@@ -300,13 +300,5 @@ func resolveDynEntry(module *wasman.Module, calldata []byte) (entry string, args
 	return method, a
 }
 
-// initServiceCallImports binds the dynamic cross-contract call: the
-// `call` host module's `call`, which dispatches to a runtime address —
-// distinct from a static import that names a fixed dependee by address
-func initServiceCallImports(vm *VM) error {
-	return vm.linker.DefineAdvancedFunc("call", "call", func(ins *wasman.Instance) interface{} {
-		return func(addrPtr, argsPtr, argsLen uint32) uint32 {
-			return vm.serviceCall(ins, addrPtr, argsPtr, argsLen)
-		}
-	})
-}
+// The dynamic cross-contract call `contract.call` is bound in
+// initContractImports; vm.serviceCall (below/above) is its implementation.

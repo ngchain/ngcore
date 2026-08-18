@@ -18,8 +18,10 @@ func readAddr(ins *wasman.Instance, ptr uint32) (ngtypes.Address, error) {
 	return addr, nil
 }
 
-// initAddressImports binds the account module. Identities are plain
-// 32-byte addresses passed through linear memory
+// initAddressImports binds the `address` host module: identity only —
+// who is executing (get_host) and who called (get_caller). Contract
+// introspection (is_active, code, code_hash) lives in the `contract`
+// module. Addresses are plain 32-byte values passed through linear memory
 func initAddressImports(vm *VM) error {
 	err := vm.linker.DefineAdvancedFunc("address", "get_size", func(ins *wasman.Instance) interface{} {
 		return func() uint32 {
@@ -60,76 +62,6 @@ func initAddressImports(vm *VM) error {
 			}
 
 			return l
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("address", "get_contract_size", func(ins *wasman.Instance) interface{} {
-		return func(addrPtr uint32) uint32 {
-			addr, err := readAddr(ins, addrPtr)
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			acc, err := getContract(vm.txn, addr)
-			if err != nil {
-				return 0
-			}
-
-			return uint32(len(acc.Source))
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("address", "get_contract", func(ins *wasman.Instance) interface{} {
-		return func(addrPtr, ptr uint32) uint32 {
-			addr, err := readAddr(ins, addrPtr)
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			acc, err := getContract(vm.txn, addr)
-			if err != nil {
-				return 0
-			}
-
-			l, err := cp(ins, ptr, acc.Source)
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			return l
-		}
-	})
-	if err != nil {
-		return err
-	}
-
-	err = vm.linker.DefineAdvancedFunc("address", "is_active", func(ins *wasman.Instance) interface{} {
-		return func(addrPtr uint32) uint32 {
-			addr, err := readAddr(ins, addrPtr)
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
-
-			acc, err := getContract(vm.txn, addr)
-			if err != nil {
-				return 0
-			}
-
-			if acc.IsActive() {
-				return 1
-			}
-
-			return 0
 		}
 	})
 	if err != nil {
