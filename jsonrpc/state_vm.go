@@ -118,13 +118,7 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(result)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, result)
 }
 
 type getReceiptParams struct {
@@ -192,11 +186,5 @@ func (s *Server) getReceiptFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		})
 	}
 
-	raw, err := utils.JSON.Marshal(result)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, result)
 }

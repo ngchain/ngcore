@@ -28,21 +28,15 @@ type GetWorkReply struct {
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	block, txs := s.pow.GetBareBlockTemplateWithTxs()
 	id := uint64(time.Now().UnixNano())
-	reply := &GetWorkReply{
+	work := &GetWorkReply{
 		WorkID: id,
 		Block:  utils.HexRLPEncode(block),
 		Txs:    utils.HexRLPEncode(txs),
 	}
 
-	workPool.Put(strconv.FormatUint(reply.WorkID, 10), reply)
+	workPool.Put(strconv.FormatUint(work.WorkID, 10), work)
 
-	raw, err := utils.JSON.Marshal(reply)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, work)
 }
 
 type SubmitWorkParams struct {

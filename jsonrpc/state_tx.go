@@ -45,13 +45,7 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(tx.GetHash()))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, hex.EncodeToString(tx.GetHash()))
 }
 
 type signTxParams struct {
@@ -117,13 +111,7 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, hex.EncodeToString(rawTx))
 }
 
 type genTransactionParams struct {
@@ -185,13 +173,7 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, hex.EncodeToString(rawTx))
 }
 
 type genDestroyParams struct {
@@ -235,13 +217,7 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, hex.EncodeToString(rawTx))
 }
 
 type genCommitParams struct {
@@ -327,13 +303,7 @@ func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxTy
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(rawTx))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, hex.EncodeToString(rawTx))
 }
 
 type getContractParams struct {
@@ -361,11 +331,5 @@ func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(account.Source))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, hex.EncodeToString(account.Source))
 }

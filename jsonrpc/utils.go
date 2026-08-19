@@ -85,3 +85,16 @@ func ngAmount(s string) (*big.Int, error) {
 	}
 	return raw, nil
 }
+
+// reply marshals v as the success result of msg, or returns a json-rpc
+// error if marshaling fails. Collapses the marshal-and-guard boilerplate
+// that was copy-pasted into ~24 handlers (each an unreachable error arm)
+// into one place — the reply types never fail to marshal
+func reply(msg *jsonrpc2.JsonRpcMessage, v interface{}) *jsonrpc2.JsonRpcMessage {
+	raw, err := utils.JSON.Marshal(v)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}

@@ -55,11 +55,5 @@ func (s *Server) getNetworkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 }
 
 func (s *Server) getPeersFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	raw, err := utils.JSON.Marshal(s.pow.LocalNode.Peerstore().PeersWithAddrs())
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, s.pow.LocalNode.Peerstore().PeersWithAddrs())
 }

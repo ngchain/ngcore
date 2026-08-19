@@ -14,41 +14,20 @@ import (
 func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	height := s.pow.Chain.GetLatestBlockHeight()
 
-	raw, err := utils.JSON.Marshal(height)
-	if err != nil {
-		log.Error(err)
-
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, height)
 }
 
 func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	hash := s.pow.Chain.GetLatestBlockHash()
 
 	// human-facing raw bytes are lowercase hex, never base64
-	raw, err := utils.JSON.Marshal(hex.EncodeToString(hash))
-	if err != nil {
-		log.Error(err)
-
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, hex.EncodeToString(hash))
 }
 
 func (s *Server) getLatestBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	block := s.pow.Chain.GetLatestBlock()
 
-	raw, err := utils.JSON.Marshal(block)
-	if err != nil {
-		log.Error(err)
-
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, block)
 }
 
 type getBlockByHeightParams struct {
@@ -70,13 +49,7 @@ func (s *Server) getBlockByHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(block)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, block)
 }
 
 type getBlockByHashParams struct {
@@ -104,13 +77,7 @@ func (s *Server) getBlockByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(block)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, block)
 }
 
 type getTxByHashParams struct {
@@ -148,41 +115,30 @@ func (s *Server) getTxByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 	}
 
 	if tx != nil {
-		reply := &getTxByHashReply{
+		res := &getTxByHashReply{
 			OnChain: true,
 			Tx:      tx,
 		}
 
 		blockHash, height, err := s.pow.Chain.GetTxLocation(hash)
 		if err == nil {
-			reply.BlockHash = hex.EncodeToString(blockHash)
-			reply.BlockHeight = height
+			res.BlockHash = hex.EncodeToString(blockHash)
+			res.BlockHeight = height
 			if latest := s.pow.Chain.GetLatestBlockHeight(); latest >= height {
-				reply.Confirmations = latest - height + 1
+				res.Confirmations = latest - height + 1
 			}
 		}
 
-		raw, err := utils.JSON.Marshal(reply)
-		if err != nil {
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-
-		return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+		return reply(msg, res)
 	}
 
 	// search in pool
 	exists, tx := s.pow.Pool.IsInPool(hash)
 	if exists && tx != nil {
-		raw, err := utils.JSON.Marshal(&getTxByHashReply{
+		return reply(msg, &getTxByHashReply{
 			OnChain: false,
 			Tx:      tx,
 		})
-		if err != nil {
-			log.Error(err)
-			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-		}
-
-		return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 	}
 
 	log.Error(err)

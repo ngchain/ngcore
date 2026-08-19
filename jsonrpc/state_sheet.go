@@ -37,18 +37,12 @@ type getHeadReply struct {
 func (s *Server) getHeadFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	latest := s.pow.Chain.GetLatestBlock()
 
-	raw, err := utils.JSON.Marshal(getHeadReply{
+	return reply(msg, getHeadReply{
 		Network:   uint8(s.pow.State.Network),
 		Height:    latest.GetHeight(),
 		BlockHash: hex.EncodeToString(latest.GetHash()),
 		Timestamp: latest.GetTimestamp(),
 	})
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 // getAddressStateReply is one address's full state — the unit of LAZY
@@ -78,24 +72,18 @@ func (s *Server) getAddressStateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		balance = big.NewInt(0)
 	}
 
-	reply := getAddressStateReply{Balance: balance.String()}
+	res := getAddressStateReply{Balance: balance.String()}
 	if account, err := s.pow.State.GetContract(addr); err == nil {
 		rawAcc, err := rlp.EncodeToBytes(account)
 		if err != nil {
 			log.Error(err)
 			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 		}
-		reply.Contract = hex.EncodeToString(rawAcc)
+		res.Contract = hex.EncodeToString(rawAcc)
 	}
-	reply.Exists = balance.Sign() > 0 || reply.Contract != ""
+	res.Exists = balance.Sign() > 0 || res.Contract != ""
 
-	raw, err := utils.JSON.Marshal(reply)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, res)
 }
 
 func (s *Server) getSheetFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -116,19 +104,13 @@ func (s *Server) getSheetFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMes
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(getSheetReply{
+	return reply(msg, getSheetReply{
 		Network:   uint8(sheet.Network),
 		Height:    sheet.Height,
 		BlockHash: hex.EncodeToString(sheet.BlockHash),
 		Timestamp: s.pow.Chain.GetLatestBlock().GetTimestamp(),
 		Sheet:     hex.EncodeToString(rawSheet),
 	})
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
 type addressParams struct {
@@ -155,13 +137,7 @@ func (s *Server) getContractInfoFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(account)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+	return reply(msg, account)
 }
 
 type balanceReply struct {
@@ -197,15 +173,9 @@ func (s *Server) getBalanceByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	raw, err := utils.JSON.Marshal(balanceReply{
+	return reply(msg, balanceReply{
 		TotalBalance:  totalBalance.String(),
 		MatureBalance: matureBalance.String(),
 		LockedBalance: new(big.Int).Sub(totalBalance, matureBalance).String(),
 	})
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
