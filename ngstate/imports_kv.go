@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/c0mm4nd/wasman"
+	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 )
@@ -89,7 +90,10 @@ func initKVImports(vm *VM) error {
 			}
 
 			if isReservedKey(string(key)) {
-				return 0
+				// writes to reserved keys trap LOUDLY: silently dropping
+				// them turns an authoring bug into hours of debugging.
+				// (Reads stay quiet — probing is harmless.)
+				panic(errors.Errorf("kv.set on reserved key %q", key))
 			}
 
 			val, err := readMem(ins, valPtr, valLen)
@@ -204,7 +208,8 @@ func initKVImports(vm *VM) error {
 			}
 
 			if isReservedKey(string(key)) {
-				return 0
+				// a reserved-key delete is an authoring bug: trap loudly
+				panic(errors.Errorf("kv.del on reserved key %q", key))
 			}
 
 			vmContext(vm).Del(string(key))

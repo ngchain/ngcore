@@ -30,6 +30,11 @@ const (
 	vmMaxToll = 1 << 24
 	// vmCallDepth bounds the wasm call stack depth per contract call
 	vmCallDepth uint64 = 512
+	// vmMaxMemPages caps a contract instance's linear memory at 64 pages
+	// (4 MiB). Toll bounds INSTRUCTIONS, but memory.grow allocates 64 KiB
+	// of host memory for ~1 toll — without this consensus cap a contract
+	// could grow to wasm32's 4 GiB and exhaust the node
+	vmMaxMemPages uint32 = 64
 
 	// vmBufSlots / vmBufMaxLen bound the cross-frame transfer slots
 	vmBufSlots  = 8
@@ -187,6 +192,9 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTi
 		// ONE toll station across the whole link set: dependency code
 		// burns the caller's gas
 		TollStation: tollstation.NewSimpleTollStation(vmMaxToll),
+		// hard host-side cap on linear memory (declared AND grown), so a
+		// contract cannot allocate its way past the toll model
+		MaxMemoryPages: vmMaxMemPages,
 		// wasman's inline-metered JIT: toll counts and results match the
 		// interpreter exactly (per-step gas is byte-identical with the JIT on
 		// or off, and across architectures), so it is consensus-safe.

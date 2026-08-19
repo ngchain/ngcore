@@ -27,6 +27,8 @@ func initContractImports(vm *VM) error {
 	// is_active(addr_ptr) -> 1|0: whether an ACTIVE contract lives at addr
 	err = vm.linker.DefineAdvancedFunc("contract", "is_active", func(ins *wasman.Instance) interface{} {
 		return func(addrPtr uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			addr, err := readAddr(ins, addrPtr)
 			if err != nil {
 				vm.logger.Error(err)
@@ -47,6 +49,8 @@ func initContractImports(vm *VM) error {
 	// on-chain code at addr (0 if none)
 	err = vm.linker.DefineAdvancedFunc("contract", "get_code_size", func(ins *wasman.Instance) interface{} {
 		return func(addrPtr uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			addr, err := readAddr(ins, addrPtr)
 			if err != nil {
 				vm.logger.Error(err)
@@ -76,6 +80,8 @@ func initContractImports(vm *VM) error {
 			if err != nil {
 				return 0
 			}
+			// priced per byte copied: code runs up to the source cap
+			vm.charge(gasKVRead + uint64(len(acc.Source))/8)
 			l, err := cp(ins, ptr, acc.Source)
 			if err != nil {
 				vm.logger.Error(err)
@@ -103,7 +109,8 @@ func initContractImports(vm *VM) error {
 			if err != nil || len(acc.Source) == 0 {
 				return 0
 			}
-			vm.charge(gasKVRead)
+			// priced per byte hashed: keccak over up to the source cap
+			vm.charge(gasKVRead + uint64(len(acc.Source))/8)
 			l, err := cp(ins, ptr, utils.KeccakSum256(acc.Source))
 			if err != nil {
 				vm.logger.Error(err)
