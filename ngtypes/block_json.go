@@ -8,65 +8,6 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// jsonBlockHeader is the hex-encoded wire form of one sub header
-type jsonBlockHeader struct {
-	Network       string `json:"network"`
-	Height        uint64 `json:"height"`
-	Timestamp     uint64 `json:"timestamp"`
-	PrevBlockHash string `json:"prevBlockHash"`
-	TxTrieHash    string `json:"txTrieHash"`
-	WitnessRoot   string `json:"subTrieHash"`
-	Difficulty    string `json:"difficulty"`
-	Nonce         string `json:"nonce"`
-}
-
-func headerToJSON(h *BlockHeader) jsonBlockHeader {
-	return jsonBlockHeader{
-		Network:       h.Network.String(),
-		Height:        h.Height,
-		Timestamp:     h.Timestamp,
-		PrevBlockHash: hex.EncodeToString(h.PrevBlockHash),
-		TxTrieHash:    hex.EncodeToString(h.TxTrieHash),
-		WitnessRoot:   hex.EncodeToString(h.WitnessRoot),
-		Difficulty:    new(big.Int).SetBytes(h.Difficulty).String(),
-		Nonce:         hex.EncodeToString(h.Nonce),
-	}
-}
-
-func headerFromJSON(j jsonBlockHeader) (*BlockHeader, error) {
-	prev, err := hex.DecodeString(j.PrevBlockHash)
-	if err != nil {
-		return nil, err
-	}
-	txTrie, err := hex.DecodeString(j.TxTrieHash)
-	if err != nil {
-		return nil, err
-	}
-	subTrie, err := hex.DecodeString(j.WitnessRoot)
-	if err != nil {
-		return nil, err
-	}
-	diff, ok := new(big.Int).SetString(j.Difficulty, 10)
-	if !ok {
-		return nil, ErrInvalidDiff
-	}
-	nonce, err := hex.DecodeString(j.Nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	return &BlockHeader{
-		Network:       GetNetwork(j.Network),
-		Height:        j.Height,
-		Timestamp:     j.Timestamp,
-		PrevBlockHash: prev,
-		TxTrieHash:    txTrie,
-		WitnessRoot:   subTrie,
-		Difficulty:    diff.Bytes(),
-		Nonce:         nonce,
-	}, nil
-}
-
 type jsonBlock struct {
 	Network string `json:"network"`
 

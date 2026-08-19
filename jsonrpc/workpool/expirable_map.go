@@ -31,10 +31,6 @@ func NewExpirableMap(l int, expire func(time.Time, *Entry) bool) (m *ExpirableMa
 	return
 }
 
-func (m *ExpirableMap) Len() int {
-	return len(m.m)
-}
-
 func (m *ExpirableMap) Put(k string, v interface{}) {
 	m.l.Lock()
 	it, ok := m.m[k]

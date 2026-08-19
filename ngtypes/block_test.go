@@ -120,24 +120,6 @@ func TestBlockJSON(t *testing.T) {
 	}
 }
 
-func TestBlockRawPoW(t *testing.T) {
-	for _, net := range ngtypes.AvailableNetworks {
-		block := ngtypes.GetGenesisBlock(net)
-		raw := block.GetPoWRawHeader(nil)
-		txs := block.Txs
-		block2, err := ngtypes.NewBlockFromPoWRaw(raw, txs)
-		if err != nil {
-			panic(err)
-		}
-
-		if eq, _ := block.Equals(block2); !eq {
-			log.Errorf("block  %#v", block)
-			log.Errorf("block2 %#v", block2)
-			t.Fail()
-		}
-	}
-}
-
 // TestWitnessSeparation pins the segwit-style split: the txid ignores
 // the signature envelope, the witness root commits it, and a block
 // whose witness bytes were swapped is rejected even though every txid

@@ -17,10 +17,8 @@ import (
 var log = logging.Logger("types")
 
 var (
-	// ErrInvalidPoWRawLen means the length of the PoW raw is not 153 bytes
-	ErrInvalidPoWRawLen = errors.New("wrong length of PoW raw bytes")
-	ErrBlockNoGen       = errors.New("the first tx in one block is required to be a generate tx")
-	ErrBlockOnlyOneGen  = errors.New("tx should have only one tx")
+	ErrBlockNoGen      = errors.New("the first tx in one block is required to be a generate tx")
+	ErrBlockOnlyOneGen = errors.New("tx should have only one tx")
 
 	ErrBlockNoHeader          = errors.New("block header is nil")
 	ErrBlockDiffInvalid       = errors.New("invalid block diff")
@@ -63,14 +61,6 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 	}
 }
 
-// NewBlockFromHeader creates a new Block
-func NewBlockFromHeader(blockHeader *BlockHeader, txs []*FullTx) *FullBlock {
-	return &FullBlock{
-		BlockHeader: blockHeader,
-		Txs:         txs,
-	}
-}
-
 // CalcWitnessRoot commits the txs' signature envelopes in block
 // order: keccak over the per-tx keccak of the witness bytes. The
 // header carries it so witness data is immutable in the live chain,
@@ -83,40 +73,6 @@ func CalcWitnessRoot(txs []*FullTx) []byte {
 	}
 
 	return utils.KeccakSum256(buf)
-}
-
-// NewBlockFromPoWRaw will apply the raw pow of header and txs to the block.
-func NewBlockFromPoWRaw(raw []byte, txs []*FullTx) (*FullBlock, error) {
-	// lenRaw := NetSize +  // 1
-	//   HeightSize+        // 8
-	//   TimestampSize +    // +
-	//   HashSize +         // 32
-	//   HashSize +         // +
-	//   HashSize +         // +
-	//   DiffSize +         // +
-	//   NonceSize          // 8
-	//   1+8*2+32*4+8       // = 153
-	if len(raw) != 153 {
-		return nil, ErrInvalidPoWRawLen
-	}
-
-	newBlock := NewBlock(
-		Network(raw[0]),
-		binary.LittleEndian.Uint64(raw[1:9][:]),
-		binary.LittleEndian.Uint64(raw[9:17]),
-		raw[17:49],
-		raw[49:81],
-		raw[81:113],
-		bytes.TrimLeft(utils.ReverseBytes(raw[113:145]), string(byte(0))), // remove left padding
-		raw[145:153],
-		txs,
-	)
-
-	if err := newBlock.verifyNonce(); err != nil {
-		return nil, err
-	}
-
-	return newBlock, nil
 }
 
 // NewBareBlock will return an unsealing block and

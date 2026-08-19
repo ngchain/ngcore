@@ -2,7 +2,6 @@ package ngblocks
 
 import (
 	"bytes"
-	"encoding/binary"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
@@ -78,47 +77,6 @@ func (store *BlockStore) hasGenesisBlock(network ngtypes.Network) bool {
 		}
 		if !bytes.Equal(hash, ngtypes.GetGenesisBlock(network).GetHash()) {
 			panic(errors.Wrapf(ErrMalformedGenesisBlock, "genesis block hash mismatch %x and %x", hash, ngtypes.GetGenesisBlock(network).GetHash()))
-		}
-
-		return nil
-	}); err != nil {
-		return false
-	}
-
-	return true
-}
-
-// hasOrigin checks whether the genesis origin is in db.
-func (store *BlockStore) hasOrigin(network ngtypes.Network) bool {
-	if err := store.View(func(txn *bbolt.Tx) error {
-		blockBucket := txn.Bucket(storage.BlockBucketName)
-		if blockBucket == nil {
-			return ErrDBNotInit
-		}
-
-		height := blockBucket.Get(storage.OriginHeightTag)
-		if height == nil {
-			return storage.ErrKeyNotFound
-		}
-
-		hash := blockBucket.Get(storage.OriginHashTag)
-		if hash == nil {
-			return storage.ErrKeyNotFound
-		}
-
-		rawBlock := blockBucket.Get(hash)
-		if rawBlock == nil {
-			return storage.ErrKeyNotFound
-		}
-
-		var originBlock ngtypes.FullBlock
-		err := rlp.DecodeBytes(rawBlock, &originBlock)
-		if err != nil {
-			return err
-		}
-
-		if originBlock.BlockHeader.Network != network || originBlock.GetHeight() != binary.LittleEndian.Uint64(height) {
-			panic(ErrMalformedGenesisBlock)
 		}
 
 		return nil
