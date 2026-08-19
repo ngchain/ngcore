@@ -9,6 +9,7 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 	"go.etcd.io/bbolt"
 
@@ -254,10 +255,15 @@ func TestPeerManagerRedials(t *testing.T) {
 		t.Fatal("nodes must be connected")
 	}
 
-	// drop the connection: the peer manager must redial from the peerstore
+	// drop the connection: the peer manager must redial from the peerstore.
+	// Pin node1's addrs first — ClosePeer lets libp2p expire them on a
+	// short TTL, and under load that expiry can win the race against the
+	// redial tick, leaving PeersWithAddrs empty (test flake, not a bug)
+	node2.Peerstore().AddAddrs(node1.ID(), node2.Peerstore().Addrs(node1.ID()), peerstore.PermanentAddrTTL)
 	if err := node2.Network().ClosePeer(node1.ID()); err != nil {
 		t.Fatal(err)
 	}
+	node2.Peerstore().AddAddrs(node1.ID(), node1.Network().ListenAddresses(), peerstore.PermanentAddrTTL)
 
 	deadline := time.Now().Add(15 * time.Second)
 	for node2.Network().Connectedness(node1.ID()) != network.Connected {
