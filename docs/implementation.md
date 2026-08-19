@@ -47,6 +47,7 @@ The per-call `ModuleConfig` fixes the execution contract:
 | `DisableFloatPoint` | true | floats are not deterministic across platforms |
 | `Recover` | true | a contract panic must never kill the node |
 | `CallDepthLimit` | 512 | bound the wasm call stack |
+| `MaxMemoryPages` | 64 (4 MiB) | cap linear memory — memory.grow is ~1 toll per 64 KiB page, so growth must be bounded by fiat, not gas |
 | `EnableWideInt` | true | the `u128`/`u256` host modules (256-bit money) |
 | `TollStation` | SimpleTollStation(1<<24) | the gas meter (below) |
 | `EnableJIT` | true | native execution, gas-identical (below) |
@@ -59,11 +60,11 @@ do not share linear memory.
 
 | module | functions |
 |---|---|
-| `kv` | get / get_size / set / del / count / key_at / key_size_at — the account's on-chain k-v (`Context`) |
+| `kv` | get / get_size / set / del / count / key_at / key_size_at — the account's on-chain k-v (`Context`); `_`-reserved keys read as absent, writes to them trap |
 | `tx` | get_from / get_to / get_paid / get_extra / get_height / get_timestamp |
 | `address` | get_host / get_caller — identity only |
 | `contract` | call (by runtime address) / is_active / get_code / get_code_size / code_hash |
-| `coin` | transfer / get_balance — native NG |
+| `coin` | transfer / get_balance — native NG, fixed 32-byte LE amounts (full 256-bit; NG is 18-decimal) |
 | `crypto` | keccak256 / verify / addr_of |
 | `env` | buf_set / buf_get — cross-frame byte payloads; get_gas |
 | `log` | error / emit (events) |
@@ -101,6 +102,7 @@ operations that are much heavier than arithmetic add a surcharge on top:
 | coin transfer | 2000 |
 | event | 500 + 5/byte |
 | service call | 2000 |
+| code introspection (get_code / code_hash) | 100 + len/8 |
 
 The block layer enforces a shared budget by **pre-burning** the station
 (`LimitToll`): the per-call default budget starts charged by the amount

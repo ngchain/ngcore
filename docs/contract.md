@@ -45,8 +45,10 @@ accepts explicit hunks; `getContract` reads the current text. Sign and
 broadcast with the existing `signTx` / `sendTx` methods.
 
 The lock flag is stored in the account context under the reserved key
-`_active`. Keys prefixed with `_` are system-reserved and invisible to
-contracts through the kv host module.
+`_active`. Keys prefixed with `_` are system-reserved: reads through the
+kv host module see nothing (a probe is harmless), but a `set`/`del` on a
+reserved key TRAPS the call — silently dropping the write would turn an
+authoring bug into hours of debugging.
 
 ## Determinism & safety
 
@@ -57,8 +59,12 @@ contracts through the kv host module.
 - gas: `SimpleTollStation` with a fixed budget of 2^24 toll per call;
   every instruction costs 1, and host operations charge tiered extras
   (kv.set 1000 + 10/byte, kv.del 500, kv reads 100, coin.transfer 2000,
-  log.emit 500 + 5/byte, each cross-contract call 2000) so state writes cost
-  orders of magnitude more than arithmetic; overflowing aborts the call
+  log.emit 500 + 5/byte, each cross-contract call 2000, code
+  introspection 100 + len/8) so state writes cost orders of magnitude
+  more than arithmetic; overflowing aborts the call
+- linear memory is capped at 64 pages (4 MiB) per instance, declared AND
+  grown: toll bounds instructions, but memory.grow allocates 64 KiB of
+  host memory for ~1 toll — the cap closes that gap
 - all host functions bounds-check every pointer/length against the
   instance's linear memory
 
@@ -94,9 +100,10 @@ contract: call(addr_ptr, args_ptr, args_len) -> i32
 crypto:  keccak256(ptr, size, out) -> i32
          verify(scheme, pk_ptr, pk_len, hash_ptr, sig_ptr, sig_len) -> i32
          addr_of(scheme, pk_ptr, pk_len, out) -> i32
-coin:    get_balance_size(addr_ptr) -> i32
-         get_balance(addr_ptr, ptr) -> i32   ; big-endian bytes
-         transfer(to_ptr, value: i64) -> i32
+coin:    get_balance(addr_ptr, ptr) -> i32   ; fixed 32-byte LE amount
+         transfer(to_ptr, value_ptr) -> i32  ; value: 32-byte LE amount
+         ; money crosses the ABI as a FIXED 32-byte little-endian value —
+         ; the u256/token wire format, full 256-bit range (NG is 18-decimal)
 kv:      get_size(kptr, klen) -> i32
          get(kptr, klen, vptr) -> i32
          set(kptr, klen, vptr, vlen) -> i32
@@ -118,9 +125,9 @@ u128/u256: add/sub/mul/div_u/div_s/rem_u/rem_s(dst, a, b)
 tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_network() -> i32        get_height() -> i64
          get_timestamp() -> i64      ; enclosing block time (unix s)
-         get_paid_size() -> i32      get_paid(ptr) -> i32
+         get_paid(ptr) -> i32
          ; msg.value: what this tx pays to the EXECUTING address
-         ; (zero unless it is the To address), big-endian big.Int bytes
+         ; (zero unless it is the To address), fixed 32-byte LE amount
          get_from(ptr) -> i32       ; the tx's From address
          get_to(ptr) -> i32         ; the tx's To address
          get_fee_size() -> i32       get_fee(ptr) -> i32
