@@ -1,6 +1,8 @@
 package ngstate
 
 import (
+	"math/big"
+
 	"github.com/c0mm4nd/wasman"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -62,28 +64,16 @@ func initTxImports(vm *VM) error {
 	}
 
 	// get_paid exposes msg.value: what this tx pays to the address
-	// executing right now, as big-endian big.Int bytes (zero for any
-	// frame other than the tx's To address)
-	paidToCurrent := func() []byte {
-		if vm.caller.To != vm.currentAddress() {
-			return nil
-		}
-
-		return vm.caller.Value.Bytes()
-	}
-
-	err = vm.linker.DefineAdvancedFunc("tx", "get_paid_size", func(ins *wasman.Instance) interface{} {
-		return func() uint32 {
-			return uint32(len(paidToCurrent()))
-		}
-	})
-	if err != nil {
-		return err
-	}
-
+	// executing right now, as a fixed 32-byte LE amount (the ABI money
+	// format; zero for any frame other than the tx's To address)
 	err = vm.linker.DefineAdvancedFunc("tx", "get_paid", func(ins *wasman.Instance) interface{} {
 		return func(ptr uint32) uint32 {
-			l, err := cp(ins, ptr, paidToCurrent())
+			paid := big.NewInt(0)
+			if vm.caller.To == vm.currentAddress() {
+				paid = vm.caller.Value
+			}
+
+			l, err := writeBigLE(ins, ptr, paid)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

@@ -1,35 +1,56 @@
 package ngstate
 
 import (
+	"math/big"
+
 	"github.com/c0mm4nd/wasman"
+	"github.com/pkg/errors"
 )
 
-func initCoinImports(vm *VM) error {
-	err := vm.linker.DefineAdvancedFunc("coin", "get_balance_size", func(ins *wasman.Instance) interface{} {
-		return func(addrPtr uint32) uint32 {
-			addr, err := readAddr(ins, addrPtr)
-			if err != nil {
-				vm.logger.Error(err)
-				return 0
-			}
+// Money crosses the host ABI as a FIXED 32-byte little-endian value — the
+// same wire format the u256 wideint module and the token standard use, so
+// native NG (18 decimals, big.Int on chain) and token amounts share one
+// representation with full 256-bit range.
 
-			return uint32(len(vm.journal.balanceOf(vm.txn, addr).Bytes()))
-		}
-	})
+// readBigLE reads a 32-byte little-endian amount out of linear memory
+func readBigLE(ins *wasman.Instance, ptr uint32) (*big.Int, error) {
+	raw, err := readMem(ins, ptr, 32)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	be := make([]byte, 32)
+	for i, b := range raw {
+		be[31-i] = b
+	}
+	return new(big.Int).SetBytes(be), nil
+}
 
-	// get_balance writes the big-endian bytes of the balance into ptr
-	err = vm.linker.DefineAdvancedFunc("coin", "get_balance", func(ins *wasman.Instance) interface{} {
+// writeBigLE writes an amount as 32-byte little-endian into linear memory
+func writeBigLE(ins *wasman.Instance, ptr uint32, v *big.Int) (uint32, error) {
+	be := v.Bytes()
+	if len(be) > 32 {
+		return 0, errors.New("amount exceeds 256 bits")
+	}
+	le := make([]byte, 32)
+	for i, b := range be {
+		le[len(be)-1-i] = b
+	}
+	return cp(ins, ptr, le)
+}
+
+func initCoinImports(vm *VM) error {
+	// get_balance writes the address's native balance as 32-byte LE
+	err := vm.linker.DefineAdvancedFunc("coin", "get_balance", func(ins *wasman.Instance) interface{} {
 		return func(addrPtr, ptr uint32) uint32 {
+			vm.charge(gasKVRead)
+
 			addr, err := readAddr(ins, addrPtr)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
 			}
 
-			l, err := cp(ins, ptr, vm.journal.balanceOf(vm.txn, addr).Bytes())
+			l, err := writeBigLE(ins, ptr, vm.journal.balanceOf(vm.txn, addr))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -42,12 +63,12 @@ func initCoinImports(vm *VM) error {
 		return err
 	}
 
-	// transfer moves value from the EXECUTING address to the `to`
-	// address, through the journal: nothing is final until the whole
-	// call succeeds. Within a service call the callee spends its own
-	// funds, never the caller's
+	// transfer moves a 32-byte LE amount from the EXECUTING address to
+	// the `to` address, through the journal: nothing is final until the
+	// whole call succeeds. Within a service call the callee spends its
+	// own funds, never the caller's
 	err = vm.linker.DefineAdvancedFunc("coin", "transfer", func(ins *wasman.Instance) interface{} {
-		return func(toPtr uint32, value uint64) uint32 {
+		return func(toPtr, valuePtr uint32) uint32 {
 			vm.charge(gasCoinTransfer)
 
 			to, err := readAddr(ins, toPtr)
@@ -56,7 +77,13 @@ func initCoinImports(vm *VM) error {
 				return 0
 			}
 
-			err = vm.journal.transfer(vm.txn, vm.currentAddress(), to, bigIntFromUint64(value))
+			value, err := readBigLE(ins, valuePtr)
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			err = vm.journal.transfer(vm.txn, vm.currentAddress(), to, value)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

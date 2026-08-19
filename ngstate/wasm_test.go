@@ -41,15 +41,17 @@ func watBytes(b []byte) string {
 }
 
 // transferWatTo pays 10 raw units to the given address (the To
-// address is embedded as a data segment)
+// address is embedded as a data segment; the value is a 32-byte LE
+// amount — the i64 store sets the low limb, the rest stays zero)
 func transferWatTo(to ngtypes.Address) string {
 	return `
 (module
-  (import "coin" "transfer" (func $transfer (param i32 i64) (result i32)))
+  (import "coin" "transfer" (func $transfer (param i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "` + watBytes(to[:]) + `")
   (func (export "main")
-    (drop (call $transfer (i32.const 0) (i64.const 10)))))
+    (i64.store (i32.const 64) (i64.const 10))
+    (drop (call $transfer (i32.const 0) (i32.const 64)))))
 `
 }
 
@@ -732,7 +734,6 @@ func TestVMU256(t *testing.T) {
 const txCtxWat = `
 (module
   (import "tx" "get_timestamp" (func $ts (result i64)))
-  (import "tx" "get_paid_size" (func $paid_size (result i32)))
   (import "tx" "get_paid" (func $paid (param i32) (result i32)))
   (import "env" "get_gas" (func $gas (result i64)))
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
@@ -779,10 +780,16 @@ func TestVMTxContext(t *testing.T) {
 			t.Fatalf("ts = %x, want LE(1755264000)", ts)
 		}
 
-		// 70 + 7 to the owner; the 5 to another address must not count
+		// 70 + 7 to the owner; the 5 to another address must not count.
+		// get_paid writes a fixed 32-byte LE amount
 		paid := reloaded.Context.Get("pd")
-		if len(paid) != 1 || paid[0] != 77 {
-			t.Fatalf("paid = %x, want [77]", paid)
+		if len(paid) != 32 || binary.LittleEndian.Uint64(paid[:8]) != 77 {
+			t.Fatalf("paid = %x, want 32-byte LE(77)", paid)
+		}
+		for _, b := range paid[8:] {
+			if b != 0 {
+				t.Fatalf("paid high limbs not zero: %x", paid)
+			}
 		}
 
 		gas := reloaded.Context.Get("gs")

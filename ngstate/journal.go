@@ -23,10 +23,6 @@ type vmJournal struct {
 	balances map[ngtypes.Address]*big.Int
 }
 
-func bigIntFromUint64(v uint64) *big.Int {
-	return new(big.Int).SetUint64(v)
-}
-
 func newVMJournal(self *ngtypes.Contract) *vmJournal {
 	selfCopy := *self
 	selfCopy.Context = self.Context.Clone()

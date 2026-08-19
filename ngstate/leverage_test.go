@@ -101,7 +101,7 @@ func dexWatFor(token ngtypes.Address) string {
   (import "address" "get_caller" (func $caller (param i32) (result i32)))
   (import "address" "get_host" (func $host (param i32) (result i32)))
   (import "env" "buf_set" (func $bset (param i32 i32 i32) (result i32)))
-  (import "coin" "transfer" (func $pay (param i32 i64) (result i32)))
+  (import "coin" "transfer" (func $pay (param i32 i32) (result i32)))
   (import "` + token.String() + `" "transfer_from"
     (func $pull (param i64) (result i32)))
   (memory 1)
@@ -114,7 +114,9 @@ func dexWatFor(token ngtypes.Address) string {
     (drop (call $bset (i32.const 2) (i32.const 32) (i32.const 32)))
     (if (i32.eqz (call $pull (local.get $usdt)))
       (then (return (i32.const 0))))
-    (call $pay (i32.const 0) (i64.div_u (local.get $usdt) (i64.const 2)))))
+    ;; value = usdt/2 as a 32-byte LE amount at 64 (high limbs stay zero)
+    (i64.store (i32.const 64) (i64.div_u (local.get $usdt) (i64.const 2)))
+    (call $pay (i32.const 0) (i32.const 64))))
 `
 }
 
