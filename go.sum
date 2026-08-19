@@ -14,10 +14,6 @@ github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88 h1:FKMI5llQYoe
 github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88/go.mod h1:1uXjZQveTnArkEcE4uVJBEb8MtQwH2l1SSkckTI9R18=
 github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956 h1:SmdoahoEJuQOgi0OkfUBT1WORylSuVmyCTxeJTZOH/k=
 github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956/go.mod h1:Lj9Wi4tUaji+kdIpbvScxggeOhzF95+6V1CqQLUQy58=
-github.com/c0mm4nd/wasman v1.6.2 h1:BH9JckWOVkyN8BWco/7sfJuBofaMr/Z/bWAeMaZD/ck=
-github.com/c0mm4nd/wasman v1.6.2/go.mod h1:7nHjHhB5td0mKTDIQBNtZz/b0+/4C50ryCEiz8NpBXs=
-github.com/c0mm4nd/wasman v1.7.1 h1:iBYk9x0xQkAyMjQrM7aMBgHoZPju9myhz01yPznQfRo=
-github.com/c0mm4nd/wasman v1.7.1/go.mod h1:7nHjHhB5td0mKTDIQBNtZz/b0+/4C50ryCEiz8NpBXs=
 github.com/c0mm4nd/wasman v1.7.2 h1:X0MFrdwJFnlmSWJFnpzd10y+O959Irwp6XpojTa0uG4=
 github.com/c0mm4nd/wasman v1.7.2/go.mod h1:7nHjHhB5td0mKTDIQBNtZz/b0+/4C50ryCEiz8NpBXs=
 github.com/canonical/go-sp800.90a-drbg v0.0.0-20210314144037-6eeb1040d6c3 h1:oe6fCvaEpkhyW3qAicT0TnGtyht/UrgvOwMcEgLb7Aw=

@@ -170,12 +170,8 @@ type balanceReply struct {
 	LockedBalance string
 }
 
-type getBalanceByAddressParams struct {
-	Address string `json:"address"`
-}
-
 func (s *Server) getBalanceByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params getBalanceByAddressParams
+	var params addressParams
 
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {

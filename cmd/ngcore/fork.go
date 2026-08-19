@@ -9,8 +9,10 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/go-jsonrpc2/jsonrpc2http"
@@ -111,9 +113,25 @@ func runFork(c *cli.Context) error {
 	}
 
 	// the working db is always throwaway: the fork source is read once
-	// and never touched again
+	// and never touched again. Snapshot copies go with it on exit
 	d.dbPath = filepath.Join(os.TempDir(), fmt.Sprintf("ngfork-%d.db", os.Getpid()))
-	defer func() { _ = os.Remove(d.dbPath) }()
+	cleanup := func() {
+		_ = os.Remove(d.dbPath)
+		for _, snap := range d.snapshots {
+			_ = os.Remove(snap.path)
+		}
+	}
+	defer cleanup()
+	// the server blocks until a signal kills the process, so the defer
+	// alone would never run: catch ctrl-c/TERM and sweep the temp files
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		d.mu.Lock() // let an in-flight call finish
+		cleanup()
+		os.Exit(0)
+	}()
 
 	mode := "fresh genesis"
 	switch {
