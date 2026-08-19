@@ -64,11 +64,16 @@ func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 }
 
 // ngToRaw converts a float64 amount of whole NG (the human-facing rpc
-// unit) into raw 18-decimal units. Via big.Float: `uint64(v * 1e18)`
-// overflows for anything above ~18.4 NG (the u64 ceiling), silently
-// corrupting large transfers
+// unit) into raw 18-decimal units. Via big.Float at 256-bit precision:
+// `uint64(v * 1e18)` overflows for anything above ~18.4 NG (the u64
+// ceiling), silently corrupting large transfers — and the default
+// 53-bit big.Float would still round large products. The only remaining
+// imprecision is the caller's own float64 (exactly-representable values
+// convert exactly)
 func ngToRaw(v float64) *big.Int {
-	raw, _ := new(big.Float).Mul(big.NewFloat(v), big.NewFloat(ngtypes.FloatNG)).Int(nil)
+	scale := new(big.Float).SetPrec(256).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	amount := new(big.Float).SetPrec(256).SetFloat64(v)
+	raw, _ := amount.Mul(amount, scale).Int(nil)
 	if raw == nil || raw.Sign() < 0 {
 		return big.NewInt(0)
 	}

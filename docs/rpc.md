@@ -99,11 +99,11 @@ Example session:
 ```sh
 ngcore fork --rpc http://node:52521 &   # lazy fork of a live chain
 
-curl -s localhost:52521 -d '{"jsonrpc":"2.0","id":1,"method":"dev_deploy",
+curl -s localhost:52522 -d '{"jsonrpc":"2.0","id":1,"method":"dev_deploy",
   "params":{"name":"token","path":"ngtoken.wasm"}}'
-curl -s localhost:52521 -d '{"jsonrpc":"2.0","id":2,"method":"dev_call",
+curl -s localhost:52522 -d '{"jsonrpc":"2.0","id":2,"method":"dev_call",
   "params":{"to":"@token","by":"@dev0","method":"mint",
             "args":["@dev0","u256:1000000000000000000"]}}'
-curl -s localhost:52521 -d '{"jsonrpc":"2.0","id":3,"method":"dev_kv",
+curl -s localhost:52522 -d '{"jsonrpc":"2.0","id":3,"method":"dev_kv",
   "params":{"contract":"@token","key":["str:bal","@dev0"]}}'
 ```
