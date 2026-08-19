@@ -59,7 +59,7 @@ do not share linear memory.
 
 | module | functions |
 |---|---|
-| `kv` | get / get_size / set / del — the account's on-chain k-v (`Context`) |
+| `kv` | get / get_size / set / del / count / key_at / key_size_at — the account's on-chain k-v (`Context`) |
 | `tx` | get_from / get_to / get_paid / get_extra / get_height / get_timestamp |
 | `address` | get_host / get_caller — identity only |
 | `contract` | call (by runtime address) / is_active / get_code / get_code_size / code_hash |

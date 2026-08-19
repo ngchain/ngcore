@@ -57,7 +57,7 @@ contracts through the kv host module.
 - gas: `SimpleTollStation` with a fixed budget of 2^24 toll per call;
   every instruction costs 1, and host operations charge tiered extras
   (kv.set 1000 + 10/byte, kv.del 500, kv reads 100, coin.transfer 2000,
-  log.emit 500 + 5/byte, each service call 2000) so state writes cost
+  log.emit 500 + 5/byte, each cross-contract call 2000) so state writes cost
   orders of magnitude more than arithmetic; overflowing aborts the call
 - all host functions bounds-check every pointer/length against the
   instance's linear memory
@@ -85,12 +85,15 @@ log:     debug(ptr, size)            error(ptr, size)
 address: get_size() -> i32          ; address length (32)
          get_host(ptr) -> i32       ; writes the EXECUTING address
          get_caller(ptr) -> i32     ; msg.From address (zero addr at top)
-contract:call(addr_ptr, args_ptr, args_len) -> i32
+contract: call(addr_ptr, args_ptr, args_len) -> i32
          ; invoke the contract at a RUNTIME address on its OWN state (1|0)
          is_active(addr_ptr) -> i32      ; an active contract lives there?
          get_code_size(addr_ptr) -> i32
          get_code(addr_ptr, ptr) -> i32  ; the on-chain code bytes
          code_hash(addr_ptr, ptr) -> i32 ; 32-byte keccak of the code
+crypto:  keccak256(ptr, size, out) -> i32
+         verify(scheme, pk_ptr, pk_len, hash_ptr, sig_ptr, sig_len) -> i32
+         addr_of(scheme, pk_ptr, pk_len, out) -> i32
 coin:    get_balance_size(addr_ptr) -> i32
          get_balance(addr_ptr, ptr) -> i32   ; big-endian bytes
          transfer(to_ptr, value: i64) -> i32
@@ -118,7 +121,7 @@ tx:      get_hash_size() -> i32      get_hash(ptr) -> i32
          get_paid_size() -> i32      get_paid(ptr) -> i32
          ; msg.value: what this tx pays to the EXECUTING address
          ; (zero unless it is the To address), big-endian big.Int bytes
-         get_sender(ptr) -> i32     ; the tx from's address
+         get_from(ptr) -> i32       ; the tx's From address
          get_to(ptr) -> i32         ; the tx's To address
          get_fee_size() -> i32       get_fee(ptr) -> i32
          get_extra_size() -> i32     get_extra(ptr) -> i32
@@ -162,8 +165,8 @@ no name registry to squat, no numbers to race for, and no prefix to pick.
 Every dependency is a SERVICE: each call switches the execution frame to
 the dependency's account — its kv/coin effects act on ITS OWN state,
 which is exactly how a token keeps one ledger shared by all callers.
-`account.get_caller` writes the invoking contract's address (msg.from)
-for authorization; `account.get_host` the executing one. Within one
+`address.get_caller` writes the invoking contract's address (msg.from)
+for authorization; `address.get_host` the executing one. Within one
 transaction execution, a contract that is still executing cannot be
 re-entered (calls after it returned are fine); service exports use scalar
 (i32/i64) params and returns — byte payloads (u256 amounts, strings)
@@ -225,7 +228,7 @@ at P. Upgrading means P's owner repoints the kv slot. The trust model
 downgrades honestly — a dependent of P trusts P's owner not to swap in
 malice — but that is the dependent's *informed* choice, not something
 the protocol imposed. The primitives are already here: `kv` for the
-pointer, `account.get_caller` to gate who may repoint, and a dynamic
+pointer, `address.get_caller` to gate who may repoint, and a dynamic
 `contract.call` to forward.
 
 ```wat

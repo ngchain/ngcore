@@ -209,7 +209,7 @@ func fromRaw(raw uint64, t reflect.Type) reflect.Value {
 // tx.get_extra, and returns byte payloads through the env buf slots —
 // exactly the static-service ABI, resolved at runtime.
 //
-// Trade-off vs static service/<addr> imports: no compile-time
+// Trade-off vs static by-address imports: no compile-time
 // dependency, so no immutability guarantee on the target (same as an
 // opt-in proxy). Re-entrancy is still blocked and gas still charged.
 func (vm *VM) serviceCall(ins *wasman.Instance, addrPtr, argsPtr, argsLen uint32) uint32 {

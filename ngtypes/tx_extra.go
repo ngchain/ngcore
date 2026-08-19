@@ -64,7 +64,7 @@ func DecodeCommitCode(extra []byte) ([]byte, error) {
 
 // CallData is a contract call's payload: the export to run and its raw
 // argument bytes, RLP-encoded into a tx's Extra (and into the calldata a
-// contract hands to service.call). ngcore dispatches by the export NAME
+// contract hands to contract.call). ngcore dispatches by the export NAME
 // directly — a wasm module already has named exports, so there is no
 // eth-style 4-byte selector, and thus no selector-collision class to
 // guard against. An empty Method addresses the default "main" entry.

@@ -532,7 +532,7 @@ func TestContractModuleDeps(t *testing.T) {
 // tokenWat is a shared-ledger service (erc20-style): balances live in
 // the TOKEN's own kv, keyed by the 32-byte address. The target address
 // of transfer/mint_to crosses the service boundary through buf slot 1;
-// account.get_caller (= msg.from) authorizes the debit
+// address.get_caller (= msg.from) authorizes the debit
 const tokenWat = `
 (module
   (import "address" "get_caller" (func $caller (param i32) (result i32)))
