@@ -19,10 +19,7 @@ var (
 	floatingReward = new(big.Int).Mul(NG, big.NewInt(floatingBlockRewardNG)) // 8NG
 )
 
-var (
-	big1  = big.NewInt(1)
-	big10 = big.NewInt(10000)
-)
+var big10 = big.NewInt(10)
 
 var ErrRewardInvalid = errors.New("block reward is invalid")
 
@@ -34,8 +31,10 @@ func GetBlockReward(height uint64) *big.Int {
 	d := new(big.Int)
 	era := height / rewardEra
 	for i := uint64(0); i < era; i++ {
-		// reward = reward * 0.9
-		d.Mul(reward, big1)
+		// reward -= reward/10, i.e. reward *= 0.9 — pure integer math,
+		// no floats anywhere near consensus. (The old code divided by a
+		// mistyped 10000 and carried a dead Mul, decaying ~0.9999/era
+		// against the documented curve.)
 		d.Div(reward, big10)
 		reward.Sub(reward, d)
 	}
