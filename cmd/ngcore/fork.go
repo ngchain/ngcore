@@ -1,16 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/go-jsonrpc2/jsonrpc2http"
+	"github.com/c0mm4nd/rlp"
 	logging "github.com/ngchain/zap-log"
 	"github.com/urfave/cli/v2"
 	"go.etcd.io/bbolt"
@@ -21,18 +24,23 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-var devLog = logging.Logger("devnet")
+var devLog = logging.Logger("fork")
 
-// devnet is an anvil-style local dev chain for debugging contracts: an
-// instantly-sealing single-node fork with deterministic prefunded
-// accounts, driven over JSON-RPC. No PoW, no p2p — every submitted tx
-// goes through the REAL state-transition path (HandleTxs: fees, balances,
+// `ngcore fork` is an anvil-style fork-chain tool for debugging
+// contracts: it FORKS a chain's state and serves an instantly-sealing
+// local copy over JSON-RPC. No PoW, no p2p — every submitted tx goes
+// through the REAL state-transition path (HandleTxs: fees, balances,
 // contract lifecycle, receipts, block gas), it just seals immediately.
 //
-// Two modes:
-//   - fresh (default): a throwaway genesis chain in a temp db
-//   - --fork <db>: work on a COPY of an existing node's db — the running
-//     node's file is never touched, like anvil's fork mode
+// Fork sources:
+//   - --rpc <url>: fork a RUNNING node over its JSON-RPC — one `getSheet`
+//     call pulls the whole state (balances, contracts with code+context,
+//     the key registry) and rebuilds it locally at the same height/time;
+//     the remote node is read once and never touched again. ngchain
+//     state is compact by design, so an eager one-shot fetch replaces
+//     anvil's lazy per-slot fetching.
+//   - --db <path>: fork a local node's database (works on a copy)
+//   - neither: a throwaway fresh genesis chain
 //
 // Named identities: every account (dev0..devN, or dev_newAccount) and
 // every deployed contract registers under "@name"; RPC params accept
@@ -64,24 +72,25 @@ type devSnapshot struct {
 	blockTime uint64
 }
 
-func getDevnetCommand() *cli.Command {
+func getForkCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "devnet",
-		Usage: "run an anvil-style instant-seal dev chain for contract debugging",
+		Name:  "fork",
+		Usage: "fork a chain (over RPC or from a db) into an instant-seal local copy for contract debugging",
 		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "listen", Value: "127.0.0.1:52521", Usage: "JSON-RPC listen address"},
+			&cli.StringFlag{Name: "rpc", Usage: "fork a RUNNING node over JSON-RPC (one getSheet pull)"},
+			&cli.StringFlag{Name: "db", Usage: "fork a local chain db (works on a copy)"},
+			&cli.StringFlag{Name: "listen", Value: "127.0.0.1:52521", Usage: "local JSON-RPC listen address"},
 			&cli.IntFlag{Name: "accounts", Value: 10, Usage: "number of prefunded dev accounts"},
 			&cli.StringFlag{Name: "fund", Value: "1000000000000000000000000", Usage: "raw units per account (default 1M NG)"},
-			&cli.StringFlag{Name: "fork", Usage: "fork an existing chain db (works on a copy)"},
-			&cli.Uint64Flag{Name: "time", Value: 1_000_000, Usage: "starting block timestamp"},
+			&cli.Uint64Flag{Name: "time", Value: 1_000_000, Usage: "starting block timestamp (fresh/db modes)"},
 		},
 		Action: func(c *cli.Context) error {
-			return runDevnet(c)
+			return runFork(c)
 		},
 	}
 }
 
-func runDevnet(c *cli.Context) error {
+func runFork(c *cli.Context) error {
 	fund, ok := new(big.Int).SetString(c.String("fund"), 10)
 	if !ok {
 		return fmt.Errorf("bad --fund %q", c.String("fund"))
@@ -98,26 +107,50 @@ func runDevnet(c *cli.Context) error {
 		nextSnap:  1,
 	}
 
-	// the working db is always a throwaway copy: fresh mode starts from
-	// genesis, fork mode from a snapshot of the given node db
-	d.dbPath = filepath.Join(os.TempDir(), fmt.Sprintf("ngdev-%d.db", os.Getpid()))
-	if forkPath := c.String("fork"); forkPath != "" {
-		if err := copyFile(forkPath, d.dbPath); err != nil {
-			return fmt.Errorf("fork copy: %w", err)
-		}
-		devLog.Warnf("forking %s (on a copy — the original stays untouched)", forkPath)
-	}
+	// the working db is always throwaway: the fork source is read once
+	// and never touched again
+	d.dbPath = filepath.Join(os.TempDir(), fmt.Sprintf("ngfork-%d.db", os.Getpid()))
 	defer func() { _ = os.Remove(d.dbPath) }()
 
-	if err := d.open(); err != nil {
-		return err
-	}
-	defer func() { _ = d.db.Close() }()
+	mode := "fresh genesis"
+	switch {
+	case c.String("rpc") != "" && c.String("db") != "":
+		return fmt.Errorf("--rpc and --db are exclusive")
 
-	if c.String("fork") == "" {
+	case c.String("rpc") != "":
+		// rpc fork: ONE getSheet call captures the remote node's full
+		// state; rebuild it locally at the same height/time
+		sheet, timestamp, err := fetchRemoteSheet(c.String("rpc"))
+		if err != nil {
+			return fmt.Errorf("rpc fork %s: %w", c.String("rpc"), err)
+		}
+		if err := d.open(); err != nil {
+			return err
+		}
+		d.network = sheet.Network
+		d.state = ngstate.InitStateFromSheet(d.db, sheet.Network, sheet)
+		d.height = sheet.Height + 1
+		d.blockTime = timestamp
+		mode = fmt.Sprintf("rpc fork of %s (height %d, %d contracts, %d balances)",
+			c.String("rpc"), sheet.Height, len(sheet.Contracts), len(sheet.Balances))
+
+	case c.String("db") != "":
+		if err := copyFile(c.String("db"), d.dbPath); err != nil {
+			return fmt.Errorf("db fork copy: %w", err)
+		}
+		if err := d.open(); err != nil {
+			return err
+		}
+		mode = fmt.Sprintf("db fork of %s (on a copy)", c.String("db"))
+
+	default:
+		if err := d.open(); err != nil {
+			return err
+		}
 		// fresh genesis fork (same base contract-run uses)
 		d.state = ngstate.InitStateFromSheet(d.db, d.network, &ngtypes.Sheet{Network: d.network})
 	}
+	defer func() { _ = d.db.Close() }()
 
 	// prefund the deterministic dev accounts through the real
 	// GenerateTx path (this also registers their pubkeys on chain)
@@ -128,7 +161,8 @@ func runDevnet(c *cli.Context) error {
 		}
 	}
 
-	fmt.Printf("ngcore devnet — instant-seal dev chain (no PoW)\n")
+	fmt.Printf("ngcore fork — instant-seal fork chain (no PoW)\n")
+	fmt.Printf("  source: %s\n", mode)
 	fmt.Printf("  rpc:    http://%s\n", c.String("listen"))
 	fmt.Printf("  db:     %s\n", d.dbPath)
 	fmt.Printf("  block:  height %d, time %d (+1s per sealed tx)\n\n", d.height, d.blockTime)
@@ -149,8 +183,55 @@ func runDevnet(c *cli.Context) error {
 	})
 	d.register(server)
 
-	devLog.Warnf("devnet JSON-RPC listening on %s", c.String("listen"))
+	devLog.Warnf("fork-chain JSON-RPC listening on %s", c.String("listen"))
 	return server.ListenAndServe()
+}
+
+// fetchRemoteSheet forks a running node over JSON-RPC: one `getSheet`
+// call returns the full state (hex RLP) plus the head height/timestamp
+func fetchRemoteSheet(url string) (*ngtypes.Sheet, uint64, error) {
+	resp, err := http.Post(url, "application/json",
+		bytes.NewReader([]byte(`{"jsonrpc":"2.0","id":1,"method":"getSheet","params":{}}`)))
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var reply struct {
+		Result *struct {
+			Height    uint64 `json:"height"`
+			Timestamp uint64 `json:"timestamp"`
+			Sheet     string `json:"sheet"`
+		} `json:"result"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := utils.JSON.Unmarshal(body, &reply); err != nil {
+		return nil, 0, fmt.Errorf("bad getSheet response: %w", err)
+	}
+	if reply.Error != nil {
+		return nil, 0, fmt.Errorf("remote node: %s", reply.Error.Message)
+	}
+	if reply.Result == nil || reply.Result.Sheet == "" {
+		return nil, 0, fmt.Errorf("remote node returned no sheet (does it support getSheet?)")
+	}
+
+	raw, err := hex.DecodeString(reply.Result.Sheet)
+	if err != nil {
+		return nil, 0, err
+	}
+	var sheet ngtypes.Sheet
+	if err := rlp.DecodeBytes(raw, &sheet); err != nil {
+		return nil, 0, fmt.Errorf("decode sheet: %w", err)
+	}
+
+	return &sheet, reply.Result.Timestamp, nil
 }
 
 // open (re)opens the working db and rebuilds the State handle around it

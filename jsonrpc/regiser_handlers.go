@@ -43,6 +43,8 @@ func registerHTTPHandler(s *Server) {
 
 	s.RegisterJsonRpcHandleFunc("getContractInfo", s.requireSynced(s.getContractInfoFunc))
 	s.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
+	// full-state export: what `ngcore fork --rpc` forks from
+	s.RegisterJsonRpcHandleFunc("getSheet", s.requireSynced(s.getSheetFunc))
 
 	// mining
 	if !s.DisableMiningMethods {

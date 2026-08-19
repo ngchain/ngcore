@@ -180,14 +180,22 @@ scheme (keys derive from `keccak("signer:"+name)`) and one byte-part DSL
   on-chain state. External contract projects (ngwasm, ngswap, nglend)
   test their Rust through this binary with no Go in their own trees.
 
-- **`ngcore devnet`** (`cmd/ngcore/devnet.go`) — interactive, anvil-style:
-  an instant-seal local chain over JSON-RPC, no PoW/p2p, but every tx
-  goes through the REAL state transition (`HandleTxs`: fees, lifecycle,
-  receipts, block gas). Prefunded deterministic accounts; `--fork <db>`
-  works on a COPY of an existing node's database. Methods: `dev_deploy`
-  (real Commit+Activate), `dev_call` (returns the receipt — gas, events,
-  per-run status; `dry:true` executes then rolls back, an eth_call
-  analogue; `at:` time-travels one call), `dev_kv` (storage reads with
-  u64/u256 decodes), `dev_mine`/`dev_setTime` (advance height/time for
-  interest and deadline debugging), and `dev_snapshot`/`dev_revert`
-  (whole-state try-and-rewind loops).
+- **`ngcore fork`** (`cmd/ngcore/fork.go`) — interactive, anvil-style
+  fork chain: fork a chain's state and debug against an instant-seal
+  local copy over JSON-RPC — no PoW/p2p, but every tx goes through the
+  REAL state transition (`HandleTxs`: fees, lifecycle, receipts, block
+  gas). The primary source is `--rpc <url>`: ONE `getSheet` call to a
+  running node pulls its whole state (balances, contracts with
+  code+context, key registry) and rebuilds it locally at the same
+  height/time — ngchain state is compact by design, so an eager one-shot
+  fetch replaces anvil's lazy per-slot fetching, and the remote node is
+  never touched again. `--db <path>` forks a local database (on a copy);
+  no source starts a fresh genesis chain. Prefunded deterministic
+  accounts; methods: `dev_deploy` (real Commit+Activate), `dev_call`
+  (returns the receipt — gas, events, per-run status; `dry:true`
+  executes then rolls back, an eth_call analogue; `at:` time-travels one
+  call), `dev_kv` (storage reads with u64/u256 decodes),
+  `dev_mine`/`dev_setTime` (advance height/time for interest and
+  deadline debugging), and `dev_snapshot`/`dev_revert` (whole-state
+  try-and-rewind loops). The node side exposes the export as the
+  `getSheet` RPC (`ngstate.DumpSheetTxn`).

@@ -89,17 +89,18 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 	return sm.hashToSnapshot[hex.EncodeToString(hash)]
 }
 
-// GenerateSnapshotTxn captures the current state as the sheet of the
-// latest block (a checkpoint) inside the given txn, making it servable
-// to snapshot-syncing peers
-func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
+// DumpSheetTxn captures the current state as a self-contained sheet of
+// the latest block: every balance, every contract (code + context) and
+// the key registry. This is the full-state export snapshot sync AND
+// rpc-based forking (`getSheet` / `ngcore fork --rpc`) are built on.
+func DumpSheetTxn(network ngtypes.Network, txn *bbolt.Tx) (*ngtypes.Sheet, error) {
 	contracts := make([]*ngtypes.Contract, 0)
 	balances := make([]*ngtypes.Balance, 0)
 
 	blockBucket := txn.Bucket(storage.BlockBucketName)
 	latestBlock, err := ngblocks.GetLatestBlock(blockBucket)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	c := txn.Bucket(storage.ContractBucketName).Cursor()
@@ -110,7 +111,7 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 		// snapshot (setContract re-dedups it on apply)
 		account, err := getContract(txn, addr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		contracts = append(contracts, account)
 	}
@@ -133,7 +134,17 @@ func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
 		keys = append(keys, row)
 	}
 
-	sheet := ngtypes.NewSheet(state.Network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, contracts, keys)
+	return ngtypes.NewSheet(network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, contracts, keys), nil
+}
+
+// GenerateSnapshotTxn captures the current state as the sheet of the
+// latest block (a checkpoint) inside the given txn, making it servable
+// to snapshot-syncing peers
+func (state *State) GenerateSnapshotTxn(txn *bbolt.Tx) error {
+	sheet, err := DumpSheetTxn(state.Network, txn)
+	if err != nil {
+		return err
+	}
 
 	return state.PutSnapshotTxn(txn, sheet)
 }
