@@ -2,7 +2,6 @@ package jsonrpc
 
 import (
 	"encoding/hex"
-	"math/big"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
@@ -150,8 +149,8 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	value := new(big.Int).SetUint64(uint64(params.Value * ngtypes.FloatNG))
-	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
+	value := ngToRaw(params.Value)
+	fee := ngToRaw(params.Fee)
 
 	args, err := hex.DecodeString(params.Extra)
 	if err != nil {
@@ -200,7 +199,7 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	fee := new(big.Int).SetUint64(uint64(params.Fee * ngtypes.FloatNG))
+	fee := ngToRaw(params.Fee)
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
@@ -294,7 +293,7 @@ func (s *Server) genDeactivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonR
 
 // buildSimpleTx composes an unsigned from-only tx of the given type
 func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxType, feeNG float64, extra []byte) *jsonrpc2.JsonRpcMessage {
-	fee := new(big.Int).SetUint64(uint64(feeNG * ngtypes.FloatNG))
+	fee := ngToRaw(feeNG)
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,

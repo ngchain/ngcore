@@ -1,6 +1,8 @@
 package jsonrpc
 
 import (
+	"math/big"
+
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
@@ -59,4 +61,16 @@ func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 	}
 
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
+}
+
+// ngToRaw converts a float64 amount of whole NG (the human-facing rpc
+// unit) into raw 18-decimal units. Via big.Float: `uint64(v * 1e18)`
+// overflows for anything above ~18.4 NG (the u64 ceiling), silently
+// corrupting large transfers
+func ngToRaw(v float64) *big.Int {
+	raw, _ := new(big.Float).Mul(big.NewFloat(v), big.NewFloat(ngtypes.FloatNG)).Int(nil)
+	if raw == nil || raw.Sign() < 0 {
+		return big.NewInt(0)
+	}
+	return raw
 }

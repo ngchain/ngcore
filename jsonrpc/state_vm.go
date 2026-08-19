@@ -71,7 +71,7 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	value := new(big.Int).SetUint64(uint64(params.Value * ngtypes.FloatNG))
+	value := ngToRaw(params.Value)
 
 	result := &callContractResult{}
 	err = s.pow.State.View(func(txn *bbolt.Tx) error {
