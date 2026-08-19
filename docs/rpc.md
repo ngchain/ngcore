@@ -17,8 +17,10 @@ One rule set on every human-facing surface, in params and replies alike:
   contract source uses);
 - **all other raw bytes** (hashes, code, calldata, event data, RLP
   payloads) — **lowercase hex**, never base64;
-- **money** — decimal strings of raw units (NG is 18-decimal) in JSON;
-  inside the contract ABI it is a fixed 32-byte little-endian u256.
+- **money** — never a float, anywhere: tx-composition params take
+  decimal strings of whole NG ("1.5", parsed exactly); balances return
+  decimal strings of raw units (NG is 18-decimal); inside the contract
+  ABI it is a fixed 32-byte little-endian u256.
 
 ## Node methods
 
@@ -58,7 +60,7 @@ wallet.
 
 | method | what it does |
 |---|---|
-| `genTransaction` | unsigned pay/call tx (optional `entry` = export name + hex args) |
+| `genTransaction` | unsigned pay/call tx; `value`/`fee` are decimal-NG strings (optional `entry` = export name + hex args) |
 | `genCommit` | unsigned commit carrying a whole contract module |
 | `genActivate` / `genDeactivate` / `genDestroy` | unsigned lifecycle txs |
 | `signTx` | sign an encoded unsigned tx with the node-side key file |
@@ -99,11 +101,11 @@ Example session:
 ```sh
 ngcore fork --rpc http://node:52521 &   # lazy fork of a live chain
 
-curl -s localhost:52522 -d '{"jsonrpc":"2.0","id":1,"method":"dev_deploy",
+curl -s localhost:52525 -d '{"jsonrpc":"2.0","id":1,"method":"dev_deploy",
   "params":{"name":"token","path":"ngtoken.wasm"}}'
-curl -s localhost:52522 -d '{"jsonrpc":"2.0","id":2,"method":"dev_call",
+curl -s localhost:52525 -d '{"jsonrpc":"2.0","id":2,"method":"dev_call",
   "params":{"to":"@token","by":"@dev0","method":"mint",
             "args":["@dev0","u256:1000000000000000000"]}}'
-curl -s localhost:52522 -d '{"jsonrpc":"2.0","id":3,"method":"dev_kv",
+curl -s localhost:52525 -d '{"jsonrpc":"2.0","id":3,"method":"dev_kv",
   "params":{"contract":"@token","key":["str:bal","@dev0"]}}'
 ```

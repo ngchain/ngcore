@@ -214,16 +214,16 @@ func getCliToolsCommand() *cli.Command {
 				Description: "pay an address (optionally calling a contract entry)",
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "to", Required: true, Usage: "recipient bs58 address"},
-					&cli.Float64Flag{Name: "value", Usage: "amount in NG"},
-					&cli.Float64Flag{Name: "fee", Usage: "tx fee in NG"},
+					&cli.StringFlag{Name: "value", Usage: "amount in NG, decimal string (exact)"},
+					&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"},
 					&cli.StringFlag{Name: "entry", Usage: "contract export to call (by name)"},
 					&cli.StringFlag{Name: "args", Usage: "hex args for the entry"},
 				},
 				Action: func(ctx *cli.Context) error {
 					return genThenSend(ctx, "genTransaction", map[string]any{
 						"to":    ctx.String("to"),
-						"value": ctx.Float64("value"),
-						"fee":   ctx.Float64("fee"),
+						"value": ctx.String("value"),
+						"fee":   ctx.String("fee"),
 						"entry": ctx.String("entry"),
 						"extra": ctx.String("args"),
 					})
@@ -234,7 +234,7 @@ func getCliToolsCommand() *cli.Command {
 				Description: "commit a compiled wasm module onto the own contract slot: the node diffs it against the on-chain binary and carries the minimal patch (the first commit deploys)",
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "file", Required: true, Usage: "path to the compiled contract module (.wasm)"},
-					&cli.Float64Flag{Name: "fee", Usage: "tx fee in NG"},
+					&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"},
 				},
 				Action: func(ctx *cli.Context) error {
 					module, err := os.ReadFile(ctx.String("file"))
@@ -242,7 +242,7 @@ func getCliToolsCommand() *cli.Command {
 						return err
 					}
 					return genThenSend(ctx, "genCommit", map[string]any{
-						"fee":  ctx.Float64("fee"),
+						"fee":  ctx.String("fee"),
 						"wasm": hex.EncodeToString(module),
 					})
 				},
@@ -250,25 +250,25 @@ func getCliToolsCommand() *cli.Command {
 			{
 				Name:        "activate",
 				Description: "freeze the own contract source and turn its vm on (runs init once)",
-				Flags:       []cli.Flag{&cli.Float64Flag{Name: "fee", Usage: "tx fee in NG"}},
+				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "genActivate", map[string]any{"fee": ctx.Float64("fee")})
+					return genThenSend(ctx, "genActivate", map[string]any{"fee": ctx.String("fee")})
 				},
 			},
 			{
 				Name:        "deactivate",
 				Description: "turn the own contract vm off and reopen the source for commits",
-				Flags:       []cli.Flag{&cli.Float64Flag{Name: "fee", Usage: "tx fee in NG"}},
+				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "genDeactivate", map[string]any{"fee": ctx.Float64("fee")})
+					return genThenSend(ctx, "genDeactivate", map[string]any{"fee": ctx.String("fee")})
 				},
 			},
 			{
 				Name:        "destroy",
 				Description: "remove the own contract slot (source AND storage)",
-				Flags:       []cli.Flag{&cli.Float64Flag{Name: "fee", Usage: "tx fee in NG"}},
+				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "genDestroy", map[string]any{"fee": ctx.Float64("fee")})
+					return genThenSend(ctx, "genDestroy", map[string]any{"fee": ctx.String("fee")})
 				},
 			},
 			{
@@ -298,14 +298,14 @@ func getCliToolsCommand() *cli.Command {
 					&cli.StringFlag{Name: "contract", Required: true, Usage: "deployer bs58 address"},
 					&cli.StringFlag{Name: "entry", Usage: "entry export (empty = main)"},
 					&cli.StringFlag{Name: "args", Usage: "raw args string"},
-					&cli.Float64Flag{Name: "value", Usage: "simulated payment in NG"},
+					&cli.StringFlag{Name: "value", Usage: "simulated payment in NG, decimal string"},
 				},
 				Action: func(ctx *cli.Context) error {
 					raw, err := rpcCall(ctx.String("addr"), "callContract", map[string]any{
 						"contract": ctx.String("contract"),
 						"entry":    ctx.String("entry"),
 						"extra":    ctx.String("args"),
-						"value":    ctx.Float64("value"),
+						"value":    ctx.String("value"),
 					})
 					if err != nil {
 						return err

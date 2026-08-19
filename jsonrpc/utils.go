@@ -63,19 +63,25 @@ func (s *Server) publicKeyToAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 	return jsonrpc2.NewJsonRpcSuccess(msg.ID, raw)
 }
 
-// ngToRaw converts a float64 amount of whole NG (the human-facing rpc
-// unit) into raw 18-decimal units. Via big.Float at 256-bit precision:
-// `uint64(v * 1e18)` overflows for anything above ~18.4 NG (the u64
-// ceiling), silently corrupting large transfers — and the default
-// 53-bit big.Float would still round large products. The only remaining
-// imprecision is the caller's own float64 (exactly-representable values
-// convert exactly)
-func ngToRaw(v float64) *big.Int {
-	scale := new(big.Float).SetPrec(256).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
-	amount := new(big.Float).SetPrec(256).SetFloat64(v)
-	raw, _ := amount.Mul(amount, scale).Int(nil)
-	if raw == nil || raw.Sign() < 0 {
-		return big.NewInt(0)
+// ngAmount parses a decimal string of whole NG ("1.5") into raw
+// 18-decimal units, EXACTLY — no float anywhere on a money path. Empty
+// means zero; more than 18 fractional digits, negatives and garbage are
+// rejected
+func ngAmount(s string) (*big.Int, error) {
+	if s == "" {
+		return big.NewInt(0), nil
 	}
-	return raw
+	r, ok := new(big.Rat).SetString(s)
+	if !ok {
+		return nil, errors.Errorf("bad NG amount %q", s)
+	}
+	r.Mul(r, new(big.Rat).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
+	if !r.IsInt() {
+		return nil, errors.Errorf("NG amount %q has more than 18 decimal places", s)
+	}
+	raw := r.Num()
+	if raw.Sign() < 0 {
+		return nil, errors.Errorf("NG amount %q is negative", s)
+	}
+	return raw, nil
 }

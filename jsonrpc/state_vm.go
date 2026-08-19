@@ -16,8 +16,9 @@ import (
 type callContractParams struct {
 	// Contract is the deployer's bs58 address
 	Contract string `json:"contract"`
-	// Value is the NG amount the simulated tx pays to the contract
-	Value float64 `json:"value"`
+	// Value is the NG amount the simulated tx pays to the contract, as
+	// a decimal string ("1.5") — exact, no float on any money path
+	Value string `json:"value"`
 	// Entry optionally names the export to run (by name; empty = main)
 	Entry string `json:"entry"`
 	// Extra is the raw args the contract reads through tx.get_extra
@@ -71,7 +72,11 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	value := ngToRaw(params.Value)
+	value, err := ngAmount(params.Value)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	result := &callContractResult{}
 	err = s.pow.State.View(func(txn *bbolt.Tx) error {

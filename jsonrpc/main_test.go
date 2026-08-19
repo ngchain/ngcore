@@ -401,7 +401,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	// carrying the compiled wasm module (client compiles locally)
 	contractWasm := hex.EncodeToString(mustWat(contractWat))
 	signAndSend(genResult("genCommit", map[string]any{
-		"fee":  0.05,
+		"fee":  "0.05",
 		"wasm": contractWasm,
 	}))
 	mineViaRPC(t, node, key)
@@ -422,7 +422,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	}
 
 	// activate: the From address locks its own slot
-	signAndSend(genResult("genActivate", map[string]any{"fee": 0.05}))
+	signAndSend(genResult("genActivate", map[string]any{"fee": "0.05"}))
 	mineViaRPC(t, node, key)
 
 	// dry-run by address: nothing lands on chain, but the simulated
@@ -459,8 +459,8 @@ func TestRPCContractLifecycle(t *testing.T) {
 	// trigger for real: a transact tx to the contract address runs main
 	txHash := signAndSend(genResult("genTransaction", map[string]any{
 		"to":    addr.BS58(),
-		"value": 0,
-		"fee":   0.01,
+		"value": "0",
+		"fee":   "0.01",
 		"extra": "",
 	}))
 	mineViaRPC(t, node, key)

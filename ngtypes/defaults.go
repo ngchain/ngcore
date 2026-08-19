@@ -92,10 +92,10 @@ const (
 
 var ErrHashSize = errors.New("the length of hash is wrong ")
 
-// Unit const
+// Unit const: NG is an 18-decimal coin; money never touches a float —
+// human surfaces carry decimal strings, the chain carries big.Int
 const (
-	FloatNG = 1_000_000_000_000_000_000.0
-	pico    = 1_000_000_000_000_000_000 // 10^(-18)
+	pico = 1_000_000_000_000_000_000 // raw units per NG (10^18)
 )
 
 // Units variables:

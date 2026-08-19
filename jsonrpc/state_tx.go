@@ -127,11 +127,11 @@ func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 }
 
 type genTransactionParams struct {
-	To    string  `json:"to"` // bs58 address
-	Value float64 `json:"value"`
-	Fee   float64 `json:"fee"`
-	Entry string  `json:"entry"` // optional contract export name (empty = main)
-	Extra string  `json:"extra"` // hex args
+	To    string `json:"to"`    // bs58 address
+	Value string `json:"value"` // decimal NG ("1.5"); exact
+	Fee   string `json:"fee"`
+	Entry string `json:"entry"` // optional contract export name (empty = main)
+	Extra string `json:"extra"` // hex args
 }
 
 // all genTx should reply protobuf encoded bytes.
@@ -149,8 +149,16 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	value := ngToRaw(params.Value)
-	fee := ngToRaw(params.Fee)
+	value, err := ngAmount(params.Value)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	fee, err := ngAmount(params.Fee)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	args, err := hex.DecodeString(params.Extra)
 	if err != nil {
@@ -187,8 +195,8 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 }
 
 type genDestroyParams struct {
-	Fee   float64 `json:"fee"`
-	Extra string  `json:"extra"` // optional hex payload
+	Fee   string `json:"fee"`   // decimal NG; exact
+	Extra string `json:"extra"` // optional hex payload
 }
 
 func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -199,7 +207,11 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	fee := ngToRaw(params.Fee)
+	fee, err := ngAmount(params.Fee)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	extra, err := hex.DecodeString(params.Extra)
 	if err != nil {
@@ -233,8 +245,8 @@ func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 }
 
 type genCommitParams struct {
-	Fee  float64 `json:"fee"`
-	Wasm string  `json:"wasm"` // hex of the compiled contract module
+	Fee  string `json:"fee"`  // decimal NG; exact
+	Wasm string `json:"wasm"` // hex of the compiled contract module
 }
 
 // genCommitFunc composes an unsigned commit tx carrying the WHOLE
@@ -259,7 +271,7 @@ func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 }
 
 type genActivateParams struct {
-	Fee float64 `json:"fee"`
+	Fee string `json:"fee"` // decimal NG; exact
 }
 
 // genActivateFunc composes an unsigned activate tx (the From address locks its own
@@ -276,7 +288,7 @@ func (s *Server) genActivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpc
 }
 
 type genDeactivateParams struct {
-	Fee float64 `json:"fee"`
+	Fee string `json:"fee"` // decimal NG; exact
 }
 
 // genDeactivateFunc composes an unsigned unactivate tx
@@ -292,8 +304,12 @@ func (s *Server) genDeactivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonR
 }
 
 // buildSimpleTx composes an unsigned from-only tx of the given type
-func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxType, feeNG float64, extra []byte) *jsonrpc2.JsonRpcMessage {
-	fee := ngToRaw(feeNG)
+func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxType, feeNG string, extra []byte) *jsonrpc2.JsonRpcMessage {
+	fee, err := ngAmount(feeNG)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
 
 	tx := ngtypes.NewUnsignedTx(
 		s.pow.Network,
