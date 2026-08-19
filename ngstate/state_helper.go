@@ -30,6 +30,10 @@ type storedContract struct {
 func getContract(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, error) {
 	raw := txn.Bucket(storage.ContractBucketName).Get(addr[:])
 	if raw == nil {
+		// lazy fork: a local miss may resolve remotely (no-op on nodes)
+		if acc, _, ok := fetchRemoteState(txn, addr); ok && acc != nil {
+			return acc, nil
+		}
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no contract slot on %s", addr)
 	}
 
@@ -46,7 +50,12 @@ func getContract(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, error)
 }
 
 func contractExists(txn *bbolt.Tx, addr ngtypes.Address) bool {
-	return txn.Bucket(storage.ContractBucketName).Get(addr[:]) != nil
+	if txn.Bucket(storage.ContractBucketName).Get(addr[:]) != nil {
+		return true
+	}
+	// lazy fork: a local miss may resolve remotely (no-op on nodes)
+	acc, _, ok := fetchRemoteState(txn, addr)
+	return ok && acc != nil
 }
 
 // setContract stores the slot and reconciles the code registry: the
@@ -148,6 +157,10 @@ func getBalance(txn *bbolt.Tx, addr ngtypes.Address) *big.Int {
 
 	rawBalance := addr2balBucket.Get(addr[:])
 	if rawBalance == nil {
+		// lazy fork: a local miss may resolve remotely (no-op on nodes)
+		if _, bal, ok := fetchRemoteState(txn, addr); ok && bal != nil {
+			return bal
+		}
 		return big.NewInt(0)
 	}
 

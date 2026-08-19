@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
@@ -33,16 +34,17 @@ var devLog = logging.Logger("fork")
 // contract lifecycle, receipts, block gas), it just seals immediately.
 //
 // Fork sources:
-//   - --rpc <url>: fork a RUNNING node over its JSON-RPC — one `getSheet`
-//     call pulls the whole state (balances, contracts with code+context,
-//     the key registry) and rebuilds it locally at the same height/time;
-//     the remote node is read once and never touched again. ngchain
-//     state is compact by design, so an eager one-shot fetch replaces
-//     anvil's lazy per-slot fetching.
+//   - --rpc <url>: fork a RUNNING node over its JSON-RPC, LAZILY (anvil
+//     style): boot reads only the head (getHead); every address —
+//     balance, contract code + context — is fetched on FIRST TOUCH
+//     (getAddressState) through ngstate's read-through fallback and
+//     materialized locally, so forking scales with what the debug
+//     session actually reads, not with chain size. --eager instead pulls
+//     the whole state in one getSheet call (small chains, offline work).
 //   - --db <path>: fork a local node's database (works on a copy)
 //   - neither: a throwaway fresh genesis chain
 //
-// Named identities: every account (dev0..devN, or dev_newAccount) and
+// Named identities: every dev address (dev0..devN, or dev_newAddress) and
 // every deployed contract registers under "@name"; RPC params accept
 // "@name" or a bs58 address anywhere an address is expected. Keys derive
 // deterministically from keccak("signer:"+name) — the SAME derivation
@@ -61,7 +63,7 @@ type devnet struct {
 	names map[string]ngtypes.Address
 	keys  map[string]*ngtypes.PrivateKey
 
-	fund      *big.Int // raw units credited to every new account
+	fund      *big.Int // raw units credited to every new dev address
 	snapshots map[int]devSnapshot
 	nextSnap  int
 }
@@ -77,11 +79,12 @@ func getForkCommand() *cli.Command {
 		Name:  "fork",
 		Usage: "fork a chain (over RPC or from a db) into an instant-seal local copy for contract debugging",
 		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "rpc", Usage: "fork a RUNNING node over JSON-RPC (one getSheet pull)"},
+			&cli.StringFlag{Name: "rpc", Usage: "fork a RUNNING node over JSON-RPC (lazy per-address fetch)"},
+			&cli.BoolFlag{Name: "eager", Usage: "with --rpc: pull the whole state up front (one getSheet) instead of lazily"},
 			&cli.StringFlag{Name: "db", Usage: "fork a local chain db (works on a copy)"},
 			&cli.StringFlag{Name: "listen", Value: "127.0.0.1:52521", Usage: "local JSON-RPC listen address"},
-			&cli.IntFlag{Name: "accounts", Value: 10, Usage: "number of prefunded dev accounts"},
-			&cli.StringFlag{Name: "fund", Value: "1000000000000000000000000", Usage: "raw units per account (default 1M NG)"},
+			&cli.IntFlag{Name: "addresses", Value: 10, Usage: "number of prefunded dev addresses"},
+			&cli.StringFlag{Name: "fund", Value: "1000000000000000000000000", Usage: "raw units per dev address (default 1M NG)"},
 			&cli.Uint64Flag{Name: "time", Value: 1_000_000, Usage: "starting block timestamp (fresh/db modes)"},
 		},
 		Action: func(c *cli.Context) error {
@@ -117,9 +120,9 @@ func runFork(c *cli.Context) error {
 	case c.String("rpc") != "" && c.String("db") != "":
 		return fmt.Errorf("--rpc and --db are exclusive")
 
-	case c.String("rpc") != "":
-		// rpc fork: ONE getSheet call captures the remote node's full
-		// state; rebuild it locally at the same height/time
+	case c.String("rpc") != "" && c.Bool("eager"):
+		// eager rpc fork: ONE getSheet call captures the remote node's
+		// full state; rebuild it locally at the same height/time
 		sheet, timestamp, err := fetchRemoteSheet(c.String("rpc"))
 		if err != nil {
 			return fmt.Errorf("rpc fork %s: %w", c.String("rpc"), err)
@@ -131,8 +134,28 @@ func runFork(c *cli.Context) error {
 		d.state = ngstate.InitStateFromSheet(d.db, sheet.Network, sheet)
 		d.height = sheet.Height + 1
 		d.blockTime = timestamp
-		mode = fmt.Sprintf("rpc fork of %s (height %d, %d contracts, %d balances)",
+		mode = fmt.Sprintf("rpc fork (eager) of %s (height %d, %d contracts, %d balances)",
 			c.String("rpc"), sheet.Height, len(sheet.Contracts), len(sheet.Balances))
+
+	case c.String("rpc") != "":
+		// LAZY rpc fork (the default): boot reads only the head; every
+		// address materializes on first touch through ngstate's
+		// read-through fallback, so forking cost tracks what the debug
+		// session actually reads — chain size does not matter
+		head, err := fetchRemoteHead(c.String("rpc"))
+		if err != nil {
+			return fmt.Errorf("rpc fork %s: %w", c.String("rpc"), err)
+		}
+		if err := d.open(); err != nil {
+			return err
+		}
+		d.network = ngtypes.Network(head.Network)
+		d.state = ngstate.InitStateFromSheet(d.db, d.network, &ngtypes.Sheet{Network: d.network})
+		d.height = head.Height + 1
+		d.blockTime = head.Timestamp
+		d.installLazyFetcher(c.String("rpc"))
+		mode = fmt.Sprintf("rpc fork (lazy) of %s at height %d — state fetches on first touch",
+			c.String("rpc"), head.Height)
 
 	case c.String("db") != "":
 		if err := copyFile(c.String("db"), d.dbPath); err != nil {
@@ -152,11 +175,11 @@ func runFork(c *cli.Context) error {
 	}
 	defer func() { _ = d.db.Close() }()
 
-	// prefund the deterministic dev accounts through the real
+	// prefund the deterministic dev addresses through the real
 	// GenerateTx path (this also registers their pubkeys on chain)
-	for i := 0; i < c.Int("accounts"); i++ {
+	for i := 0; i < c.Int("addresses"); i++ {
 		name := fmt.Sprintf("dev%d", i)
-		if _, err := d.newAccount(name); err != nil {
+		if _, err := d.newAddress(name); err != nil {
 			return err
 		}
 	}
@@ -166,12 +189,12 @@ func runFork(c *cli.Context) error {
 	fmt.Printf("  rpc:    http://%s\n", c.String("listen"))
 	fmt.Printf("  db:     %s\n", d.dbPath)
 	fmt.Printf("  block:  height %d, time %d (+1s per sealed tx)\n\n", d.height, d.blockTime)
-	fmt.Printf("accounts (keys derive from keccak(\"signer:\"+name), same as contract-run):\n")
-	for i := 0; i < c.Int("accounts"); i++ {
+	fmt.Printf("addresses (keys derive from keccak(\"signer:\"+name), same as contract-run):\n")
+	for i := 0; i < c.Int("addresses"); i++ {
 		name := fmt.Sprintf("dev%d", i)
 		fmt.Printf("  @%-6s %s  (%s raw)\n", name, d.names[name].String(), d.fund)
 	}
-	fmt.Printf("\nmethods: dev_accounts dev_newAccount dev_deploy dev_call dev_kv\n")
+	fmt.Printf("\nmethods: dev_addresses dev_newAddress dev_deploy dev_call dev_kv\n")
 	fmt.Printf("         dev_balance dev_mine dev_setTime dev_snapshot dev_revert\n")
 	fmt.Printf("example:\n")
 	fmt.Printf("  curl -s http://%s -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"dev_deploy\",\"params\":{\"name\":\"token\",\"path\":\"ngtoken.wasm\"}}'\n", c.String("listen"))
@@ -187,51 +210,152 @@ func runFork(c *cli.Context) error {
 	return server.ListenAndServe()
 }
 
-// fetchRemoteSheet forks a running node over JSON-RPC: one `getSheet`
-// call returns the full state (hex RLP) plus the head height/timestamp
-func fetchRemoteSheet(url string) (*ngtypes.Sheet, uint64, error) {
-	resp, err := http.Post(url, "application/json",
-		bytes.NewReader([]byte(`{"jsonrpc":"2.0","id":1,"method":"getSheet","params":{}}`)))
+// rpcPost fires one JSON-RPC call at the remote node and returns the
+// raw `result` bytes (an error when the node answered with one)
+func rpcPost(url, method, params string) ([]byte, error) {
+	if params == "" {
+		params = "{}"
+	}
+	req := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":%q,"params":%s}`, method, params)
+	resp, err := http.Post(url, "application/json", bytes.NewReader([]byte(req)))
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	var reply struct {
-		Result *struct {
-			Height    uint64 `json:"height"`
-			Timestamp uint64 `json:"timestamp"`
-			Sheet     string `json:"sheet"`
-		} `json:"result"`
-		Error *struct {
+		Result json.RawMessage `json:"result"`
+		Error  *struct {
 			Message string `json:"message"`
 		} `json:"error"`
 	}
 	if err := utils.JSON.Unmarshal(body, &reply); err != nil {
-		return nil, 0, fmt.Errorf("bad getSheet response: %w", err)
+		return nil, fmt.Errorf("bad %s response: %w", method, err)
 	}
 	if reply.Error != nil {
-		return nil, 0, fmt.Errorf("remote node: %s", reply.Error.Message)
+		return nil, fmt.Errorf("remote node: %s", reply.Error.Message)
 	}
-	if reply.Result == nil || reply.Result.Sheet == "" {
-		return nil, 0, fmt.Errorf("remote node returned no sheet (does it support getSheet?)")
+	if len(reply.Result) == 0 {
+		return nil, fmt.Errorf("remote node returned no result (does it support %s?)", method)
+	}
+	return reply.Result, nil
+}
+
+// remoteHead is the light boot info of a lazy rpc fork
+type remoteHead struct {
+	Network   uint8  `json:"network"`
+	Height    uint64 `json:"height"`
+	Timestamp uint64 `json:"timestamp"`
+}
+
+func fetchRemoteHead(url string) (*remoteHead, error) {
+	raw, err := rpcPost(url, "getHead", "")
+	if err != nil {
+		return nil, err
+	}
+	var head remoteHead
+	if err := utils.JSON.Unmarshal(raw, &head); err != nil {
+		return nil, err
+	}
+	return &head, nil
+}
+
+// fetchRemoteSheet forks a running node over JSON-RPC eagerly: one
+// `getSheet` call returns the full state (hex RLP) plus the head
+// height/timestamp
+func fetchRemoteSheet(url string) (*ngtypes.Sheet, uint64, error) {
+	raw, err := rpcPost(url, "getSheet", "")
+	if err != nil {
+		return nil, 0, err
 	}
 
-	raw, err := hex.DecodeString(reply.Result.Sheet)
+	var result struct {
+		Height    uint64 `json:"height"`
+		Timestamp uint64 `json:"timestamp"`
+		Sheet     string `json:"sheet"`
+	}
+	if err := utils.JSON.Unmarshal(raw, &result); err != nil {
+		return nil, 0, fmt.Errorf("bad getSheet result: %w", err)
+	}
+
+	rawSheet, err := hex.DecodeString(result.Sheet)
 	if err != nil {
 		return nil, 0, err
 	}
 	var sheet ngtypes.Sheet
-	if err := rlp.DecodeBytes(raw, &sheet); err != nil {
+	if err := rlp.DecodeBytes(rawSheet, &sheet); err != nil {
 		return nil, 0, fmt.Errorf("decode sheet: %w", err)
 	}
 
-	return &sheet, reply.Result.Timestamp, nil
+	return &sheet, result.Timestamp, nil
+}
+
+// installLazyFetcher wires ngstate's read-through fallback to the remote
+// node: on the FIRST local miss of an address its state (balance +
+// contract with code and storage) is pulled via getAddressState and
+// materialized locally; every address is fetched at most once (negative
+// results cache too), so the remote sees one small request per address
+// the debug session actually touches
+func (d *devnet) installLazyFetcher(url string) {
+	type cached struct {
+		acc   *ngtypes.Contract
+		bal   *big.Int
+		found bool
+	}
+	cache := map[ngtypes.Address]cached{} // single-goroutine: d.mu serializes all rpc handlers
+
+	ngstate.SetRemoteFallback(func(addr ngtypes.Address) (*ngtypes.Contract, *big.Int, bool) {
+		if hit, ok := cache[addr]; ok {
+			return hit.acc, hit.bal, hit.found
+		}
+		entry := cached{}
+		cache[addr] = entry // negative until proven otherwise (no refetch storms)
+
+		raw, err := rpcPost(url, "getAddressState", fmt.Sprintf(`{"address":%q}`, addr.String()))
+		if err != nil {
+			devLog.Errorf("lazy fetch %s: %v", addr, err)
+			return nil, nil, false
+		}
+		var result struct {
+			Exists   bool   `json:"exists"`
+			Balance  string `json:"balance"`
+			Contract string `json:"contract"`
+		}
+		if err := utils.JSON.Unmarshal(raw, &result); err != nil {
+			devLog.Errorf("lazy fetch %s: %v", addr, err)
+			return nil, nil, false
+		}
+		if !result.Exists {
+			return nil, nil, false
+		}
+
+		entry.found = true
+		if bal, ok := new(big.Int).SetString(result.Balance, 10); ok && bal.Sign() > 0 {
+			entry.bal = bal
+		}
+		if result.Contract != "" {
+			rawAcc, err := hex.DecodeString(result.Contract)
+			if err == nil {
+				var acc ngtypes.Contract
+				if err := rlp.DecodeBytes(rawAcc, &acc); err == nil {
+					entry.acc = &acc
+				}
+			}
+		}
+		cache[addr] = entry
+
+		kvKeys, codeLen := 0, 0
+		if entry.acc != nil {
+			kvKeys, codeLen = len(entry.acc.Context.Keys), len(entry.acc.Source)
+		}
+		devLog.Warnf("lazily forked %s: balance=%s code=%dB kv=%d", addr, result.Balance, codeLen, kvKeys)
+		return entry.acc, entry.bal, entry.found
+	})
 }
 
 // open (re)opens the working db and rebuilds the State handle around it
@@ -264,9 +388,9 @@ func (d *devnet) seal(blockTime uint64, txs ...*ngtypes.FullTx) error {
 	return nil
 }
 
-// newAccount derives the deterministic signer, registers "@name" and
+// newAddress derives the deterministic signer, registers "@name" and
 // prefunds it via a self-signed GenerateTx (the real minting path)
-func (d *devnet) newAccount(name string) (ngtypes.Address, error) {
+func (d *devnet) newAddress(name string) (ngtypes.Address, error) {
 	if _, taken := d.names[name]; taken {
 		return d.names[name], nil
 	}
@@ -310,7 +434,7 @@ func (d *devnet) signerOf(by string) (*ngtypes.PrivateKey, ngtypes.Address, erro
 	}
 	key, ok := d.keys[by]
 	if !ok {
-		return nil, ngtypes.Address{}, fmt.Errorf("no key for %q (dev accounts only)", by)
+		return nil, ngtypes.Address{}, fmt.Errorf("no key for %q (dev addresses only)", by)
 	}
 	return key, d.names[by], nil
 }
@@ -346,8 +470,8 @@ func (d *devnet) register(server *jsonrpc2http.Server) {
 	server.RegisterJsonRpcHandleFunc("ping", func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 		return jsonrpc2.NewJsonRpcSuccess(msg.ID, []byte(`"pong"`))
 	})
-	server.RegisterJsonRpcHandleFunc("dev_accounts", wrap(d.rpcAccounts))
-	server.RegisterJsonRpcHandleFunc("dev_newAccount", wrap(d.rpcNewAccount))
+	server.RegisterJsonRpcHandleFunc("dev_addresses", wrap(d.rpcAddresses))
+	server.RegisterJsonRpcHandleFunc("dev_newAddress", wrap(d.rpcNewAddress))
 	server.RegisterJsonRpcHandleFunc("dev_deploy", wrap(d.rpcDeploy))
 	server.RegisterJsonRpcHandleFunc("dev_call", wrap(d.rpcCall))
 	server.RegisterJsonRpcHandleFunc("dev_kv", wrap(d.rpcKV))
@@ -360,26 +484,26 @@ func (d *devnet) register(server *jsonrpc2http.Server) {
 
 // ---- methods ----
 
-type devAccount struct {
+type devAddress struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
 	Balance string `json:"balance"`
 }
 
-func (d *devnet) rpcAccounts(_ []byte) (interface{}, error) {
-	out := make([]devAccount, 0, len(d.keys))
+func (d *devnet) rpcAddresses(_ []byte) (interface{}, error) {
+	out := make([]devAddress, 0, len(d.keys))
 	for name := range d.keys {
 		addr := d.names[name]
 		bal, err := d.state.GetTotalBalanceByAddress(addr)
 		if err != nil {
 			bal = big.NewInt(0)
 		}
-		out = append(out, devAccount{Name: "@" + name, Address: addr.String(), Balance: bal.String()})
+		out = append(out, devAddress{Name: "@" + name, Address: addr.String(), Balance: bal.String()})
 	}
 	return out, nil
 }
 
-func (d *devnet) rpcNewAccount(params []byte) (interface{}, error) {
+func (d *devnet) rpcNewAddress(params []byte) (interface{}, error) {
 	var p struct {
 		Name string `json:"name"`
 	}
@@ -389,14 +513,14 @@ func (d *devnet) rpcNewAccount(params []byte) (interface{}, error) {
 	if p.Name == "" {
 		return nil, fmt.Errorf("name required")
 	}
-	addr, err := d.newAccount(p.Name)
+	addr, err := d.newAddress(p.Name)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]string{"name": "@" + p.Name, "address": addr.String()}, nil
 }
 
-// rpcDeploy commits + activates wasm code under a FRESH named account
+// rpcDeploy commits + activates wasm code under a FRESH named address
 // (a contract lives at its deployer's address), through the real
 // CommitTx/ActivateTx lifecycle
 func (d *devnet) rpcDeploy(params []byte) (interface{}, error) {
@@ -426,8 +550,8 @@ func (d *devnet) rpcDeploy(params []byte) (interface{}, error) {
 		return nil, err
 	}
 
-	// the deployer account IS the contract address
-	addr, err := d.newAccount(p.Name)
+	// the deployer address IS the contract address
+	addr, err := d.newAddress(p.Name)
 	if err != nil {
 		return nil, err
 	}

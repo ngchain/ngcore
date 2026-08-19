@@ -43,7 +43,10 @@ func registerHTTPHandler(s *Server) {
 
 	s.RegisterJsonRpcHandleFunc("getContractInfo", s.requireSynced(s.getContractInfoFunc))
 	s.RegisterJsonRpcHandleFunc("getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
-	// full-state export: what `ngcore fork --rpc` forks from
+	// fork-chain sources: getHead + getAddressState back LAZY rpc forking,
+	// getSheet the eager one-shot export
+	s.RegisterJsonRpcHandleFunc("getHead", s.requireSynced(s.getHeadFunc))
+	s.RegisterJsonRpcHandleFunc("getAddressState", s.requireSynced(s.getAddressStateFunc))
 	s.RegisterJsonRpcHandleFunc("getSheet", s.requireSynced(s.getSheetFunc))
 
 	// mining
