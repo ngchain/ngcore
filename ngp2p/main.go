@@ -87,7 +87,12 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 
 	localNode := &LocalNode{
 		// sub modules
-		Host:      rhost.Wrap(localHost, p2pDHT),
+		Host: rhost.Wrap(localHost, p2pDHT),
+		// the peer manager reads MinPeers / ReconnectInterval /
+		// DisableConnectingBootstraps off this: without it every setting is
+		// the zero value, so a user who DISABLED bootstrap dialing still
+		// gets the public bootstrap nodes redialed
+		P2PConfig: config,
 		network:   config.Network,
 		ctx:       ctx,
 		cancel:    cancel,

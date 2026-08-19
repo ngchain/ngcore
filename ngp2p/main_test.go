@@ -40,9 +40,6 @@ func newTestChain(t *testing.T) *blockchain.Chain {
 }
 
 // newTestNode boots a LocalNode on random loopback-capable ports.
-// NOTE: InitLocalNode never stores the config into LocalNode.P2PConfig
-// (suspected bug, see the report), so the tests re-set it manually for
-// the peer manager
 func newTestNode(t *testing.T, cfg P2PConfig) *LocalNode {
 	t.Helper()
 
@@ -51,11 +48,26 @@ func newTestNode(t *testing.T, cfg P2PConfig) *LocalNode {
 	}
 
 	node := InitLocalNode(newTestChain(t), cfg)
-	node.P2PConfig = cfg
 
 	t.Cleanup(func() { _ = node.Close() })
 
 	return node
+}
+
+// TestInitLocalNodeStoresConfig is the regression for the dropped config:
+// InitLocalNode must copy the P2PConfig onto the node, or the peer manager
+// runs on the zero value (redialing the public bootstraps even when the
+// user disabled that)
+func TestInitLocalNodeStoresConfig(t *testing.T) {
+	cfg := hermeticConfig()
+	cfg.MinPeers = 7
+	cfg.ReconnectInterval = 42
+	node := newTestNode(t, cfg)
+
+	if node.P2PConfig.MinPeers != 7 || node.P2PConfig.ReconnectInterval != 42 ||
+		!node.P2PConfig.DisableConnectingBootstraps {
+		t.Fatalf("InitLocalNode dropped the config: %+v", node.P2PConfig)
+	}
 }
 
 func hermeticConfig() P2PConfig {
