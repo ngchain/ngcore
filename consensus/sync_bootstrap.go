@@ -31,18 +31,10 @@ func (mod *syncModule) bootstrap() {
 	}
 	wg.Wait()
 
-	peerNum := len(mod.store)
-	if peerNum < minDesiredPeerCount {
-		log.Warnf("lack remote peer for bootstrapping, current peer num: %d", peerNum)
+	slice := mod.remotesSnapshot()
+	if len(slice) < minDesiredPeerCount {
+		log.Warnf("lack remote peer for bootstrapping, current peer num: %d", len(slice))
 		// TODO: when peer count is less than the minDesiredPeerCount, the consensus shouldn't do any sync nor converge
-	}
-
-	slice := make([]*RemoteRecord, len(mod.store))
-	i := 0
-
-	for _, v := range mod.store {
-		slice[i] = v
-		i++
 	}
 
 	sort.SliceStable(slice, func(i, j int) bool {

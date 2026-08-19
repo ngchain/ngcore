@@ -31,14 +31,9 @@ func (mod *syncModule) loop(ctx context.Context) {
 		}
 
 		// do sync check takes the priority
-		// convert map to slice first
-		slice := make([]*RemoteRecord, len(mod.store))
-		i := 0
-
-		for _, v := range mod.store {
-			slice[i] = v
-			i++
-		}
+		// snapshot the records under the read lock (never iterate the map
+		// concurrently with a write from onPong)
+		slice := mod.remotesSnapshot()
 
 		sort.SliceStable(slice, func(i, j int) bool {
 			return slice[i].lastChatTime > slice[j].lastChatTime

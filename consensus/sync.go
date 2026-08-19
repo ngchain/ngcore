@@ -53,3 +53,28 @@ func (mod *syncModule) putRemote(id peer.ID, remote *RemoteRecord) {
 	defer mod.storeMu.Unlock()
 	mod.store[id] = remote
 }
+
+// upsertRemote records or refreshes a peer's status under ONE write lock.
+// The callers used to read store[id] then update/put unlocked, racing
+// putRemote's write (storeMu guarded the write but not those reads)
+func (mod *syncModule) upsertRemote(id peer.ID, origin, latest uint64, checkpointHash, checkpointActualDiff []byte) {
+	mod.storeMu.Lock()
+	defer mod.storeMu.Unlock()
+	if r, exists := mod.store[id]; exists {
+		r.update(origin, latest, checkpointHash, checkpointActualDiff)
+	} else {
+		mod.store[id] = NewRemoteRecord(id, origin, latest, checkpointHash, checkpointActualDiff)
+	}
+}
+
+// remotesSnapshot copies the current records under a read lock so the map
+// is never iterated concurrently with a write
+func (mod *syncModule) remotesSnapshot() []*RemoteRecord {
+	mod.storeMu.RLock()
+	defer mod.storeMu.RUnlock()
+	slice := make([]*RemoteRecord, 0, len(mod.store))
+	for _, v := range mod.store {
+		slice = append(slice, v)
+	}
+	return slice
+}
