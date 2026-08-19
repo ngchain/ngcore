@@ -34,13 +34,8 @@ func (mod *syncModule) getRemoteStatus(peerID core.PeerID) error {
 			return err
 		}
 
-		if _, exists := mod.store[peerID]; !exists {
-			mod.putRemote(peerID, NewRemoteRecord(peerID, pongPayload.Origin, pongPayload.Latest,
-				pongPayload.CheckpointHash, pongPayload.CheckpointDiff))
-		} else {
-			mod.store[peerID].update(pongPayload.Origin, pongPayload.Latest,
-				pongPayload.CheckpointHash, pongPayload.CheckpointDiff)
-		}
+		mod.upsertRemote(peerID, pongPayload.Origin, pongPayload.Latest,
+			pongPayload.CheckpointHash, pongPayload.CheckpointDiff)
 
 	case wired.RejectMsg:
 		return errors.Wrapf(ErrMsgRejected, "ping is rejected by remote: %s", string(reply.Payload))
@@ -104,7 +99,7 @@ func (mod *syncModule) getRemoteChain(peerID core.PeerID, from [][]byte, to []by
 	case wired.ChainMsg:
 		chainPayload, err := wired.DecodeChainPayload(reply.Payload)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to send ping")
+			return nil, errors.Wrap(err, "failed to decode chain payload")
 		}
 
 		// TODO: add support for hashes etc

@@ -43,7 +43,7 @@ var (
 )
 
 func InitDB(db *bbolt.DB) {
-	db.Update(func(txn *bbolt.Tx) error {
+	err := db.Update(func(txn *bbolt.Tx) error {
 		for _, name := range [][]byte{
 			BlockBucketName, TxBucketName,
 			ContractBucketName, CodeBucketName, Addr2BalBucketName,
@@ -57,4 +57,10 @@ func InitDB(db *bbolt.DB) {
 
 		return nil
 	})
+	// bucket creation failing leaves the db unusable — every later
+	// txn.Bucket() returns nil and panics far from here. Fail loudly at
+	// the source instead of swallowing the error
+	if err != nil {
+		log.Panicf("failed to initialize db buckets: %v", err)
+	}
 }

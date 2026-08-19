@@ -45,7 +45,7 @@ func (chain *Chain) GetLatestBlockHash() []byte {
 
 		return nil
 	}); err != nil {
-		log.Error("failed to get latest block hash: %s", err)
+		log.Errorf("failed to get latest block hash: %s", err)
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func (chain *Chain) GetLatestBlockHeight() uint64 {
 
 		return nil
 	}); err != nil {
-		log.Error("failed to get latest block height: %s", err)
+		log.Errorf("failed to get latest block height: %s", err)
 		return 0
 	}
 

@@ -76,7 +76,7 @@ func GetBlockByHeight(blockBucket *bbolt.Bucket, height uint64) (*ngtypes.FullBl
 func GetLatestHeight(blockBucket *bbolt.Bucket) (uint64, error) {
 	height := blockBucket.Get(storage.LatestHeightTag)
 	if height == nil {
-		return 0, errors.Wrapf(storage.ErrKeyNotFound, "no such hash in latestTag")
+		return 0, errors.Wrapf(storage.ErrKeyNotFound, "no latest height tag")
 	}
 
 	return binary.LittleEndian.Uint64(height), nil
@@ -85,7 +85,7 @@ func GetLatestHeight(blockBucket *bbolt.Bucket) (uint64, error) {
 func GetLatestHash(blockBucket *bbolt.Bucket) ([]byte, error) {
 	hash := blockBucket.Get(storage.LatestHashTag)
 	if hash == nil {
-		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no such hash in latestTag")
+		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no latest hash tag")
 	}
 
 	return hash, nil
