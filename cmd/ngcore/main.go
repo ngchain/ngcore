@@ -31,6 +31,7 @@ func main() {
 		getKeyToolsCommand(),
 		getCliToolsCommand(),
 		getContractTestCommand(),
+		getDevnetCommand(),
 	}
 
 	err := app.Run(os.Args)
