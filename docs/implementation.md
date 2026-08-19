@@ -60,7 +60,7 @@ do not share linear memory.
 
 | module | functions |
 |---|---|
-| `kv` | get / get_size / set / del / count / key_at / key_size_at — the account's on-chain k-v (`Context`); `_`-reserved keys read as absent, writes to them trap |
+| `kv` | get / get_size / set / del / count / key_at / key_size_at — the address's on-chain k-v (`Context`); `_`-reserved keys read as absent, writes to them trap |
 | `tx` | get_from / get_to / get_paid / get_extra / get_height / get_timestamp |
 | `address` | get_host / get_caller — identity only |
 | `contract` | call (by runtime address) / is_active / get_code / get_code_size / code_hash |
@@ -101,7 +101,7 @@ operations that are much heavier than arithmetic add a surcharge on top:
 | kv read | 100 |
 | coin transfer | 2000 |
 | event | 500 + 5/byte |
-| service call | 2000 |
+| cross-contract call | 2000 |
 | code introspection (get_code / code_hash) | 100 + len/8 |
 
 The block layer enforces a shared budget by **pre-burning** the station
@@ -200,4 +200,5 @@ scheme (keys derive from `keccak("signer:"+name)`) and one byte-part DSL
   analogue; `at:` time-travels one call), `dev_kv` (storage reads with
   u64/u256 decodes), `dev_mine`/`dev_setTime` (advance height/time for
   interest and deadline debugging), and `dev_snapshot`/`dev_revert`
-  (whole-state try-and-rewind loops).
+  (whole-state try-and-rewind loops). The full
+  method reference lives in [rpc.md](./rpc.md).

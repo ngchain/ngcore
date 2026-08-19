@@ -15,8 +15,8 @@ lifecycle see [contract.md](./contract.md).
 The whole ontology is **two nouns and six verbs** (see the README): an
 Address is identity, balance and namespace at once; a Contract is the
 code slot an address opens under itself. Nothing is registered, any key
-spends directly, contracts are plain WebAssembly text edited by diff
-hunks like a git repo.
+spends directly, contracts are compiled WebAssembly modules committed
+whole like git blobs.
 
 Subtraction *is* the usability strategy. A smaller surface is easier to
 reason about, harder to misuse, and cheaper to keep deterministic across
@@ -88,12 +88,13 @@ which removes a whole approval-exploit surface.
 |---|---|
 | Consensus | proof-of-work |
 | State ontology | 2 nouns, 6 verbs — minimal by construction |
-| Contract format | WebAssembly (any source language), stored as editable wat |
-| Contract upgrade | diff-hunk patches on the text, like a git repo |
+| Contract format | compiled WebAssembly module (any source language), deduplicated by code hash |
+| Contract upgrade | whole-module commits while unlocked; immutable once depended on (proxy for opt-in mutability) |
 | Integers | exact 256-bit via a deterministic host module (no EVM 256-bit-word tax, no forked ISA) |
 | Execution | metered JIT with gas byte-identical to the interpreter |
 | Call dispatch | by wasm export name (no selectors) |
 | Token model | transfer-in settlement (no allowance) |
+| Tooling | scenario runner for CI (`contract-run`) + lazy rpc fork chain for debugging (`fork --rpc`) |
 
 The through-line: take the newest thing that survives the determinism and
 usability filters, and leave the rest on the table — visibly, on purpose.

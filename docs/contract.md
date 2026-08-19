@@ -1,50 +1,44 @@
 # ngchain Smart Contract Design
 
 The contract engine is a deterministic WebAssembly sandbox built on
-[wasman v1](https://github.com/c0mm4nd/wasman), living in the `ngstate`
+[wasman](https://github.com/c0mm4nd/wasman), living in the `ngstate`
 package.
 
-A contract lives on chain as **WebAssembly text (wat)** in the account's
-`Contract` field — human-readable, diff-able and editable in place by
-patch (edit) txs, like a script. It is compiled to binary by the
-deterministic `wat.Compile` only when the account gets locked (and on
-each execution); an account whose text does not compile cannot be
-locked, so every active contract is guaranteed valid. The contract's
-persistent storage is the account's `Context` (an on-chain sorted k-v).
+A contract lives on chain as a **compiled WebAssembly module** in the
+address's `Contract` slot: any language that targets wasm (Rust,
+AssemblyScript, TinyGo, C) produces a contract, and the module is
+validated (full parse + static type check) before it can be committed or
+activated, so every active contract is guaranteed loadable. Identical
+modules deployed by many addresses are stored ONCE, content-addressed by
+their keccak hash. The contract's persistent storage is the address's
+`Context` (an on-chain sorted k-v). Wat text appears throughout this doc
+as the readable notation for wasm — on chain lives the binary.
 
 ## Lifecycle
 
 | step | tx type | effect |
 |---|---|---|
-| deploy / edit | `CommitTx` | apply a patch (hunks) onto the contract text atomically (only while unlocked) |
-| activate | `ActivateTx` | compile-check + freeze the text, run the optional `init` export once, enable the vm |
-| execute | `TransactTx` | when an active contract account is a participant, its `main` export runs |
-| upgrade | `DeactivateTx` → `CommitTx` → `ActivateTx` | disable the vm, patch the text, re-activate |
+| deploy / edit | `CommitTx` | replace the whole module (only while unlocked); the first commit opens the slot |
+| activate | `ActivateTx` | validate + freeze the module, run the optional `init` export once, enable the vm |
+| execute | `TransactTx` | paying an address with an ACTIVE contract runs the export named in the calldata (`main` fallback) |
+| upgrade | `DeactivateTx` → `CommitTx` → `ActivateTx` | disable the vm, replace the module, re-activate |
 
-An `CommitTx` carries an encoded `CommitExtra` patch: each hunk replaces
-bytes at an offset of the ORIGINAL text; hunks are sorted, must not
-overlap, and a stale patch fails whole. A small source change therefore
-costs a patch proportional to the change, not to the contract size.
+A `CommitTx`'s extra carries the WHOLE module — a full snapshot, like a
+git commit stores a blob, not a diff. Diffing made sense when contracts
+were hand-written text; compiled wasm relayouts entirely on any change,
+so a patch would be as large as the module. The wire encoding is a
+one-byte format tag plus the bytes, deflate-compressed when that
+shrinks them; decode caps the inflated size against decompression
+bombs, and the state layer enforces `MaxContractSourceSize`.
 
-The wire encoding minimizes the tx further:
+Tooling: the `genCommit` RPC composes the unsigned commit tx from the
+module bytes (`ngcore cli commit --file contract.wasm`); `genActivate` /
+`genDeactivate` / `genDestroy` cover the rest of the lifecycle;
+`getContract` reads the current on-chain module (hex). Sign and
+broadcast with the existing `signTx` / `sendTx` methods. See
+[rpc.md](./rpc.md) for the full method reference.
 
-- **shape** — when the removed content outweighs one hash, the patch
-  pins the original text with its keccak-256 (32 bytes flat) and drops
-  the `Del` bytes entirely (hunks carry just `DelLen`); tiny patches
-  keep the cheaper content shape. `NewCommitExtra` picks automatically.
-- **compression** — `Encode` deflates the payload when that shrinks it
-  (large deploys of repetitive wat text compress well; tiny patches
-  stay raw). `DecodeCommitExtra` caps the decompressed size at
-  `TxMaxExtraSize` against zip bombs.
-
-Tooling: the `genContractUpdate` RPC (and the
-`ngcore cli contract-update --file new.wat` subcommand) diffs
-the on-chain text against the new text server-side (line LCS + byte
-shrinking) and returns the unsigned minimal-patch CommitTx; `genEdit`
-accepts explicit hunks; `getContract` reads the current text. Sign and
-broadcast with the existing `signTx` / `sendTx` methods.
-
-The lock flag is stored in the account context under the reserved key
+The lock flag is stored in the address's context under the reserved key
 `_active`. Keys prefixed with `_` are system-reserved: reads through the
 kv host module see nothing (a probe is harmless), but a `set`/`del` on a
 reserved key TRAPS the call — silently dropping the write would turn an
@@ -119,6 +113,8 @@ u128/u256: add/sub/mul/div_u/div_s/rem_u/rem_s(dst, a, b)
          and/or/xor(dst, a, b)   not(dst, a)
          shl/shr_u/shr_s(dst, a, bits)
          cmp_u/cmp_s(a, b) -> i32   iszero(a) -> i32
+u256:    mul_div(dst, a, b, c)      ; floor(a*b/c), full 512-bit product
+         isqrt(dst, a)              ; floor(sqrt(a))
          ; wide-integer extension: values are 16/32-byte little-endian
          ; limbs in linear memory passed by pointer — deterministic
          ; 256-bit token math without floats (evm division conventions)
@@ -170,7 +166,7 @@ it anchors WHO published the code you call, like a Go module path, with
 no name registry to squat, no numbers to race for, and no prefix to pick.
 
 Every dependency is a SERVICE: each call switches the execution frame to
-the dependency's account — its kv/coin effects act on ITS OWN state,
+the dependency's address — its kv/coin effects act on ITS OWN state,
 which is exactly how a token keeps one ledger shared by all callers.
 `address.get_caller` writes the invoking contract's address (msg.from)
 for authorization; `address.get_host` the executing one. Within one
@@ -203,7 +199,7 @@ Shared rules:
 - the whole call tree shares ONE gas budget
 
 For calling a contract chosen at RUNTIME (not fixed at lock time), a
-contract uses the dynamic `call(addr, calldata)` host function
+contract uses the dynamic `contract.call(addr, calldata)` host function
 instead of a static import — same service semantics, address resolved on
 the fly, no reference pinning. This is the common path for tokens and
 pools addressed by a variable.
