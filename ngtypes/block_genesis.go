@@ -8,7 +8,11 @@ func GetGenesisBlock(network Network) *FullBlock {
 		GetGenesisGenerateTx(network),
 	}
 
-	if genesisBlock == nil {
+	// memoize per network: caching on nil alone froze the singleton to the
+	// FIRST caller's network, so GetGenesisBlock(TESTNET) after ZERONET
+	// returned the ZERONET block (GetGenesisGenerateTx already re-checks
+	// this way)
+	if genesisBlock == nil || genesisBlock.Network != network {
 		txTrie := NewTxTrie(txs)
 		genesisBlock = NewBlock(
 			network,

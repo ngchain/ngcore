@@ -1,7 +1,12 @@
 package ngtypes
 
+import "github.com/pkg/errors"
+
 // Network is the type of the ngchain network
 type Network uint8
+
+// ErrNetworkInvalid is returned by ParseNetwork for an unknown name
+var ErrNetworkInvalid = errors.New("invalid network name")
 
 const (
 	// ZERONET is the local regression testnet
@@ -12,18 +17,31 @@ const (
 	MAINNET Network = 2
 )
 
-// GetNetwork converts the network name to the Network type
-func GetNetwork(netName string) Network {
+// ParseNetwork converts a network name to a Network, erroring (never
+// panicking) on an unknown name — for decoding UNTRUSTED input like a
+// JSON tx/block, where an attacker-chosen "network":"FOO" must degrade to
+// an error, not crash the node
+func ParseNetwork(netName string) (Network, error) {
 	switch netName {
 	case "ZERONET":
-		return ZERONET
+		return ZERONET, nil
 	case "TESTNET":
-		return TESTNET
+		return TESTNET, nil
 	case "MAINNET":
-		return MAINNET
+		return MAINNET, nil
 	default:
-		panic("invalid network: " + netName)
+		return 0, errors.Wrapf(ErrNetworkInvalid, "%q", netName)
 	}
+}
+
+// GetNetwork converts the network name to the Network type, panicking on
+// an unknown name — for trusted, hardcoded call sites only
+func GetNetwork(netName string) Network {
+	net, err := ParseNetwork(netName)
+	if err != nil {
+		panic(err)
+	}
+	return net
 }
 
 func (net Network) String() string {

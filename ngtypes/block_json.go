@@ -81,8 +81,13 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	network, err := ParseNetwork(b.Network)
+	if err != nil {
+		return err
+	}
+
 	*x = *NewBlock(
-		GetNetwork(b.Network),
+		network,
 		b.Height,
 		b.Timestamp,
 		prevBlockHash,

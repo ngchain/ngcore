@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/pkg/errors"
+
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -57,8 +59,20 @@ func (x *FullTx) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	network, err := ParseNetwork(tx.Network)
+	if err != nil {
+		return err
+	}
+
+	// negative amounts are unrepresentable (RLP encodes unsigned); a
+	// JSON-sourced negative Value/Fee would otherwise panic later on
+	// GetHash/Signature/MarshalJSON — reject it here instead
+	if (tx.Value != nil && tx.Value.Sign() < 0) || (tx.Fee != nil && tx.Fee.Sign() < 0) {
+		return errors.New("tx value and fee must be non-negative")
+	}
+
 	*x = *NewTx(
-		GetNetwork(tx.Network),
+		network,
 		tx.Type,
 		tx.Height,
 		tx.To,
