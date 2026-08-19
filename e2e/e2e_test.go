@@ -818,8 +818,15 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		if got := string(c.Context.Get("hit")); got != "MAIN" {
 			t.Fatalf("node%s: main hit = %q, want MAIN (patched code)", name, got)
 		}
-		if got := c.Context.Get("paid"); !bytes.Equal(got, twoNG.Bytes()) {
-			t.Fatalf("node%s: paid = %x, want %x", name, got, twoNG.Bytes())
+		// get_paid writes a fixed 32-byte little-endian amount (the u256
+		// ABI money format); the contract stored all 32 bytes at "paid"
+		got := c.Context.Get("paid")
+		be := make([]byte, len(got))
+		for i, b := range got {
+			be[len(got)-1-i] = b
+		}
+		if len(got) != 32 || new(big.Int).SetBytes(be).Cmp(twoNG) != 0 {
+			t.Fatalf("node%s: paid = %x, want 32-byte LE of %x", name, got, twoNG.Bytes())
 		}
 	})
 
