@@ -32,13 +32,14 @@ import (
 //	  "contracts": { "tokA": "path/to/ngtoken.wasm", "pair": "pair.wasm" },
 //	  "steps": [ { "to": "pair", "by": "lp", "call": "setup",
 //	               "args": ["@tokA", "@tokB"] }, ... ],
-//	  "expect": [ { "in": "pair", "key": ["str:l", "@lp"], "u64": 2000000 } ]
+//	  "expect": [ { "in": "pair", "key": ["str:lp", "@lp"], "u64": 2000000 } ]
 //	}
 //
 // Byte-part DSL (args and expect.key): "@name" resolves to a 32-byte
 // address (a contract's deploy address or a signer's key address),
-// "u64:N" is an 8-byte little-endian integer, "str:X" is raw ASCII,
-// "hex:XX" is raw hex.
+// "u64:N" is an 8-byte little-endian integer, "u256:<decimal>" a fixed
+// 32-byte little-endian amount, "str:X" is raw ASCII, "hex:XX" is raw
+// hex. Expectations compare "u64" or a decimal "u256".
 type scenario struct {
 	Contracts map[string]string `json:"contracts"`
 	Steps     []struct {

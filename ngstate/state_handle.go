@@ -336,7 +336,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 		return
 	}
 
-	// the calldata selector may address a named export
+	// the calldata method may address a named export
 	entry = vm.EntryFor(entry)
 	run.Entry = entry
 
