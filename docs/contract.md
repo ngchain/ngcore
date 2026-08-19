@@ -165,6 +165,14 @@ LOCKED contract's exports directly by its deployer bs58 ADDRESS:
 it anchors WHO published the code you call, like a Go module path, with
 no name registry to squat, no numbers to race for, and no prefix to pick.
 
+One encoding convention across every surface: wherever a HUMAN writes an
+address (imports, rpc params, scenarios, contract source) it is this
+same bs58 text; the 32-byte machine form is what flows at runtime
+(calldata, `get_caller`, the `contract.call` argument). SDKs convert at
+compile time — ngwasm's `const fn addr("bs58...")` decodes the literal
+into its 32 bytes in the compiler, so the string never crosses the ABI
+and a typo is a compile error.
+
 Every dependency is a SERVICE: each call switches the execution frame to
 the dependency's address — its kv/coin effects act on ITS OWN state,
 which is exactly how a token keeps one ledger shared by all callers.
