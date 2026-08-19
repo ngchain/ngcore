@@ -7,7 +7,18 @@ Two servers speak JSON-RPC 2.0 over HTTP POST:
   which additionally *consumes* the node's fork-source methods.
 
 All methods are registered in `jsonrpc/regiser_handlers.go`; the fork
-tool's in `cmd/ngcore/fork.go`.
+tool's in `cmd/ngcore/fork.go`. Both answer `ping` with `"pong"`.
+
+## Encoding conventions
+
+One rule set on every human-facing surface, in params and replies alike:
+
+- **addresses** — the bs58 string (the same text a static wasm import or
+  contract source uses);
+- **all other raw bytes** (hashes, code, calldata, event data, RLP
+  payloads) — **lowercase hex**, never base64;
+- **money** — decimal strings of raw units (NG is 18-decimal) in JSON;
+  inside the contract ABI it is a fixed 32-byte little-endian u256.
 
 ## Node methods
 

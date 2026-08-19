@@ -25,7 +25,7 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-var devLog = logging.Logger("fork")
+var forkLog = logging.Logger("fork")
 
 // `ngcore fork` is an anvil-style fork-chain tool for debugging
 // contracts: it FORKS a chain's state and serves an instantly-sealing
@@ -49,7 +49,7 @@ var devLog = logging.Logger("fork")
 // "@name" or a bs58 address anywhere an address is expected. Keys derive
 // deterministically from keccak("signer:"+name) — the SAME derivation
 // contract-run uses, so scenarios and interactive debugging agree.
-type devnet struct {
+type forkChain struct {
 	mu sync.Mutex
 
 	network ngtypes.Network
@@ -99,7 +99,7 @@ func runFork(c *cli.Context) error {
 		return fmt.Errorf("bad --fund %q", c.String("fund"))
 	}
 
-	d := &devnet{
+	d := &forkChain{
 		network:   ngtypes.ZERONET,
 		height:    1,
 		blockTime: c.Uint64("time"),
@@ -202,11 +202,11 @@ func runFork(c *cli.Context) error {
 
 	server := jsonrpc2http.NewServer(jsonrpc2http.ServerConfig{
 		Addr:   c.String("listen"),
-		Logger: devLog,
+		Logger: forkLog,
 	})
 	d.register(server)
 
-	devLog.Warnf("fork-chain JSON-RPC listening on %s", c.String("listen"))
+	forkLog.Warnf("fork-chain JSON-RPC listening on %s", c.String("listen"))
 	return server.ListenAndServe()
 }
 
@@ -301,7 +301,7 @@ func fetchRemoteSheet(url string) (*ngtypes.Sheet, uint64, error) {
 // materialized locally; every address is fetched at most once (negative
 // results cache too), so the remote sees one small request per address
 // the debug session actually touches
-func (d *devnet) installLazyFetcher(url string) {
+func (d *forkChain) installLazyFetcher(url string) {
 	type cached struct {
 		acc   *ngtypes.Contract
 		bal   *big.Int
@@ -318,7 +318,7 @@ func (d *devnet) installLazyFetcher(url string) {
 
 		raw, err := rpcPost(url, "getAddressState", fmt.Sprintf(`{"address":%q}`, addr.String()))
 		if err != nil {
-			devLog.Errorf("lazy fetch %s: %v", addr, err)
+			forkLog.Errorf("lazy fetch %s: %v", addr, err)
 			return nil, nil, false
 		}
 		var result struct {
@@ -327,7 +327,7 @@ func (d *devnet) installLazyFetcher(url string) {
 			Contract string `json:"contract"`
 		}
 		if err := utils.JSON.Unmarshal(raw, &result); err != nil {
-			devLog.Errorf("lazy fetch %s: %v", addr, err)
+			forkLog.Errorf("lazy fetch %s: %v", addr, err)
 			return nil, nil, false
 		}
 		if !result.Exists {
@@ -353,13 +353,13 @@ func (d *devnet) installLazyFetcher(url string) {
 		if entry.acc != nil {
 			kvKeys, codeLen = len(entry.acc.Context.Keys), len(entry.acc.Source)
 		}
-		devLog.Warnf("lazily forked %s: balance=%s code=%dB kv=%d", addr, result.Balance, codeLen, kvKeys)
+		forkLog.Warnf("lazily forked %s: balance=%s code=%dB kv=%d", addr, result.Balance, codeLen, kvKeys)
 		return entry.acc, entry.bal, entry.found
 	})
 }
 
 // open (re)opens the working db and rebuilds the State handle around it
-func (d *devnet) open() error {
+func (d *forkChain) open() error {
 	db, err := bbolt.Open(d.dbPath, 0o600, nil)
 	if err != nil {
 		return err
@@ -373,7 +373,7 @@ func (d *devnet) open() error {
 
 // seal applies txs as one instantly-mined dev block through the real
 // state-transition path; height/time advance only when it lands
-func (d *devnet) seal(blockTime uint64, txs ...*ngtypes.FullTx) error {
+func (d *forkChain) seal(blockTime uint64, txs ...*ngtypes.FullTx) error {
 	if blockTime == 0 {
 		blockTime = d.blockTime + 1
 	}
@@ -390,7 +390,7 @@ func (d *devnet) seal(blockTime uint64, txs ...*ngtypes.FullTx) error {
 
 // newAddress derives the deterministic signer, registers "@name" and
 // prefunds it via a self-signed GenerateTx (the real minting path)
-func (d *devnet) newAddress(name string) (ngtypes.Address, error) {
+func (d *forkChain) newAddress(name string) (ngtypes.Address, error) {
 	if _, taken := d.names[name]; taken {
 		return d.names[name], nil
 	}
@@ -415,7 +415,7 @@ func (d *devnet) newAddress(name string) (ngtypes.Address, error) {
 }
 
 // resolve turns "@name" or a bs58 address into an Address
-func (d *devnet) resolve(who string) (ngtypes.Address, error) {
+func (d *forkChain) resolve(who string) (ngtypes.Address, error) {
 	if len(who) > 1 && who[0] == '@' {
 		addr, ok := d.names[who[1:]]
 		if !ok {
@@ -426,9 +426,9 @@ func (d *devnet) resolve(who string) (ngtypes.Address, error) {
 	return ngtypes.NewAddressFromBS58(who)
 }
 
-// signerOf finds the key behind "@name" (txs must be signed by a devnet-
+// signerOf finds the key behind "@name" (txs must be signed by a forkChain-
 // managed identity)
-func (d *devnet) signerOf(by string) (*ngtypes.PrivateKey, ngtypes.Address, error) {
+func (d *forkChain) signerOf(by string) (*ngtypes.PrivateKey, ngtypes.Address, error) {
 	if len(by) > 1 && by[0] == '@' {
 		by = by[1:]
 	}
@@ -444,7 +444,7 @@ func (d *devnet) signerOf(by string) (*ngtypes.PrivateKey, ngtypes.Address, erro
 type devHandler func(params []byte) (interface{}, error)
 
 // register binds every dev_* method with shared locking/serialization
-func (d *devnet) register(server *jsonrpc2http.Server) {
+func (d *forkChain) register(server *jsonrpc2http.Server) {
 	wrap := func(h devHandler) func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 		return func(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 			d.mu.Lock()
@@ -456,7 +456,7 @@ func (d *devnet) register(server *jsonrpc2http.Server) {
 			}
 			result, err := h(params)
 			if err != nil {
-				devLog.Error(err)
+				forkLog.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
 			raw, err := utils.JSON.Marshal(result)
@@ -490,7 +490,7 @@ type devAddress struct {
 	Balance string `json:"balance"`
 }
 
-func (d *devnet) rpcAddresses(_ []byte) (interface{}, error) {
+func (d *forkChain) rpcAddresses(_ []byte) (interface{}, error) {
 	out := make([]devAddress, 0, len(d.keys))
 	for name := range d.keys {
 		addr := d.names[name]
@@ -503,7 +503,7 @@ func (d *devnet) rpcAddresses(_ []byte) (interface{}, error) {
 	return out, nil
 }
 
-func (d *devnet) rpcNewAddress(params []byte) (interface{}, error) {
+func (d *forkChain) rpcNewAddress(params []byte) (interface{}, error) {
 	var p struct {
 		Name string `json:"name"`
 	}
@@ -523,7 +523,7 @@ func (d *devnet) rpcNewAddress(params []byte) (interface{}, error) {
 // rpcDeploy commits + activates wasm code under a FRESH named address
 // (a contract lives at its deployer's address), through the real
 // CommitTx/ActivateTx lifecycle
-func (d *devnet) rpcDeploy(params []byte) (interface{}, error) {
+func (d *forkChain) rpcDeploy(params []byte) (interface{}, error) {
 	var p struct {
 		Name string `json:"name"`
 		Path string `json:"path"` // local wasm file, or
@@ -588,7 +588,7 @@ func (d *devnet) rpcDeploy(params []byte) (interface{}, error) {
 // receipt (gas, events, per-run status). dry=true executes and reports
 // but ROLLS BACK — state stays untouched (an eth_call analogue). at=N
 // sets the sealed block's timestamp (time travel)
-func (d *devnet) rpcCall(params []byte) (interface{}, error) {
+func (d *forkChain) rpcCall(params []byte) (interface{}, error) {
 	var p struct {
 		To     string   `json:"to"`
 		By     string   `json:"by"`
@@ -633,7 +633,7 @@ func (d *devnet) rpcCall(params []byte) (interface{}, error) {
 	}
 
 	var runs []ngstate.ContractRun
-	errRollback := fmt.Errorf("devnet dry-run rollback")
+	errRollback := fmt.Errorf("forkChain dry-run rollback")
 	err = d.state.Update(func(txn *bbolt.Tx) error {
 		if err := d.state.HandleTxs(txn, blockTime, tx); err != nil {
 			return err
@@ -661,7 +661,7 @@ func (d *devnet) rpcCall(params []byte) (interface{}, error) {
 
 // rpcKV reads a contract's storage; the key is the same byte-part DSL
 // contract-run uses (@name / str: / u64: / u256: / hex:)
-func (d *devnet) rpcKV(params []byte) (interface{}, error) {
+func (d *forkChain) rpcKV(params []byte) (interface{}, error) {
 	var p struct {
 		Contract string   `json:"contract"`
 		Key      []string `json:"key"`
@@ -694,7 +694,7 @@ func (d *devnet) rpcKV(params []byte) (interface{}, error) {
 	return out, nil
 }
 
-func (d *devnet) rpcBalance(params []byte) (interface{}, error) {
+func (d *forkChain) rpcBalance(params []byte) (interface{}, error) {
 	var p struct {
 		Who string `json:"who"`
 	}
@@ -714,7 +714,7 @@ func (d *devnet) rpcBalance(params []byte) (interface{}, error) {
 
 // rpcMine advances empty dev blocks (height/time), for interest accrual
 // and deadline debugging
-func (d *devnet) rpcMine(params []byte) (interface{}, error) {
+func (d *forkChain) rpcMine(params []byte) (interface{}, error) {
 	var p struct {
 		Blocks   uint64 `json:"blocks"`
 		Interval uint64 `json:"interval"`
@@ -735,7 +735,7 @@ func (d *devnet) rpcMine(params []byte) (interface{}, error) {
 	return map[string]uint64{"height": d.height, "time": d.blockTime}, nil
 }
 
-func (d *devnet) rpcSetTime(params []byte) (interface{}, error) {
+func (d *forkChain) rpcSetTime(params []byte) (interface{}, error) {
 	var p struct {
 		Time uint64 `json:"time"`
 	}
@@ -751,7 +751,7 @@ func (d *devnet) rpcSetTime(params []byte) (interface{}, error) {
 
 // rpcSnapshot copies the whole db aside; rpcRevert swaps it back —
 // anvil's snapshot/revert, for try-and-rewind debugging loops
-func (d *devnet) rpcSnapshot(_ []byte) (interface{}, error) {
+func (d *forkChain) rpcSnapshot(_ []byte) (interface{}, error) {
 	id := d.nextSnap
 	path := fmt.Sprintf("%s.snap%d", d.dbPath, id)
 	f, err := os.Create(path)
@@ -771,7 +771,7 @@ func (d *devnet) rpcSnapshot(_ []byte) (interface{}, error) {
 	return map[string]int{"id": id}, nil
 }
 
-func (d *devnet) rpcRevert(params []byte) (interface{}, error) {
+func (d *forkChain) rpcRevert(params []byte) (interface{}, error) {
 	var p struct {
 		ID int `json:"id"`
 	}
