@@ -189,9 +189,11 @@ func NewVM(txn *bbolt.Tx, account *ngtypes.Contract, tx *ngtypes.FullTx, blockTi
 		TollStation: tollstation.NewSimpleTollStation(vmMaxToll),
 		// wasman's inline-metered JIT: toll counts and results match the
 		// interpreter exactly (per-step gas is byte-identical with the JIT on
-		// or off, and across architectures), so it is consensus-safe. Requires
-		// wasman >= v1.7.1, which fixes host-call dispatch for contracts that
-		// share a linker with their service dependencies.
+		// or off, and across architectures), so it is consensus-safe.
+		// Requires wasman >= v1.7.1, which fixes host-call dispatch for
+		// contracts that share a linker with their service dependencies;
+		// v1.7.2 additionally hardens table-element bindings and restores
+		// the fast wide-integer dispatch.
 		EnableJIT: true,
 	}
 

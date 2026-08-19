@@ -6,7 +6,7 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.5.0
 	github.com/c0mm4nd/go-jsonrpc2 v0.0.0-20210730135302-66cb45a7fd88
 	github.com/c0mm4nd/rlp v0.0.0-20210628165635-6ae77e058956
-	github.com/c0mm4nd/wasman v1.7.1
+	github.com/c0mm4nd/wasman v1.7.2
 	github.com/cbergoon/merkletree v0.2.0
 	github.com/cloudflare/circl v1.6.5
 	github.com/google/uuid v1.6.0
