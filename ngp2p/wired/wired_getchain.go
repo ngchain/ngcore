@@ -87,8 +87,22 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 
 	blocks := make([]*ngtypes.FullBlock, 0, defaults.MaxBlocks)
 
-	if getChainPayload.From == nil || len(getChainPayload.From) == 0 && len(getChainPayload.To) == 16 {
-		// fetching mode
+	// validate the request shape up front: To is either a 16-byte
+	// from‖to height range or a 32-byte hash. Without this a malformed
+	// payload from ANY peer (empty From with a 32-byte To, or a short
+	// To) indexes past From[0] / To[0:8] and panics the stream handler —
+	// a remote node crash
+	if len(getChainPayload.To) != 16 && len(getChainPayload.To) != 32 {
+		w.sendReject(msg.Header.ID, stream, errors.Errorf("getchain: To must be 16 or 32 bytes, got %d", len(getChainPayload.To)))
+		return
+	}
+
+	if len(getChainPayload.From) == 0 {
+		// fetching mode: no known hashes, To carries a 16-byte height range
+		if len(getChainPayload.To) != 16 {
+			w.sendReject(msg.Header.ID, stream, errors.New("getchain: empty From requires a 16-byte height range in To"))
+			return
+		}
 		from := binary.LittleEndian.Uint64(getChainPayload.To[0:8])
 		to := binary.LittleEndian.Uint64(getChainPayload.To[8:16])
 		for blockHeight := from; blockHeight <= to; blockHeight++ {

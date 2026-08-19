@@ -26,11 +26,11 @@ func (w *Wired) sendReject(uuid []byte, stream network.Stream, err error) bool {
 	// send the response
 	err = Reply(stream, resp)
 	if err != nil {
-		log.Debugf("sent sendChain to: %s was with message Id: %x", stream.Conn().RemotePeer(), resp.Header.ID)
+		log.Debugf("sent reject to: %s was with message Id: %x", stream.Conn().RemotePeer(), resp.Header.ID)
 		return false
 	}
 
-	log.Debugf("sent sendChain to: %s with message Id: %x", stream.Conn().RemotePeer(), resp.Header.ID)
+	log.Debugf("sent reject to: %s with message Id: %x", stream.Conn().RemotePeer(), resp.Header.ID)
 
 	return true
 }

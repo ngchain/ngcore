@@ -844,3 +844,44 @@ func TestSendGetSheetUnknownPeer(t *testing.T) {
 		t.Fatal("SendGetSheet to an unknown peer must fail")
 	}
 }
+
+// TestGetChainMalformedRejectsNoPanic is the regression for the remote
+// crash DoS: a payload with an EMPTY (non-nil) From and a 32-byte To used
+// to fall through to From[0] and panic the server's stream handler. Every
+// malformed shape must now come back as a reject, server still alive.
+func TestGetChainMalformedRejectsNoPanic(t *testing.T) {
+	fx := newWiredFixture(t, 3)
+
+	cases := []struct {
+		name string
+		from [][]byte
+		to   []byte
+	}{
+		{"empty From, 32-byte To", [][]byte{}, make([]byte, 32)}, // the crasher
+		{"empty From, short To", [][]byte{}, make([]byte, 8)},    // To[0:8] OOB
+		{"empty From, odd To", [][]byte{}, make([]byte, 20)},     // neither 16 nor 32
+		{"nonempty From, odd To", [][]byte{make([]byte, 32)}, make([]byte, 7)},
+	}
+	for _, c := range cases {
+		id, stream, err := fx.client.SendGetChain(fx.serverHost.ID(), c.from, c.to)
+		if err != nil {
+			t.Fatalf("%s: SendGetChain: %v", c.name, err)
+		}
+		reply, err := ReceiveReply(id, stream)
+		if err != nil {
+			t.Fatalf("%s: no reply (server likely crashed): %v", c.name, err)
+		}
+		if reply.Header.Type != RejectMsg {
+			t.Fatalf("%s: got %s, want RejectMsg", c.name, reply.Header.Type)
+		}
+	}
+
+	// the server is still serving after all the malformed requests
+	id, stream, err := fx.client.SendGetChain(fx.serverHost.ID(), nil, packHeights(1, 2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReceiveReply(id, stream); err != nil {
+		t.Fatalf("server unresponsive after malformed requests: %v", err)
+	}
+}
