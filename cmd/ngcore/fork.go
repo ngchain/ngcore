@@ -84,7 +84,7 @@ func getForkCommand() *cli.Command {
 			&cli.StringFlag{Name: "rpc", Usage: "fork a RUNNING node over JSON-RPC (lazy per-address fetch)"},
 			&cli.BoolFlag{Name: "eager", Usage: "with --rpc: pull the whole state up front (one getSheet) instead of lazily"},
 			&cli.StringFlag{Name: "db", Usage: "fork a local chain db (works on a copy)"},
-			&cli.StringFlag{Name: "listen", Value: "127.0.0.1:52522", Usage: "local JSON-RPC listen address"},
+			&cli.StringFlag{Name: "listen", Value: "127.0.0.1:52525", Usage: "local JSON-RPC listen address"},
 			&cli.IntFlag{Name: "addresses", Value: 10, Usage: "number of prefunded dev addresses"},
 			&cli.StringFlag{Name: "fund", Value: "1000000000000000000000000", Usage: "raw units per dev address (default 1M NG)"},
 			&cli.Uint64Flag{Name: "time", Value: 1_000_000, Usage: "starting block timestamp (fresh/db modes)"},

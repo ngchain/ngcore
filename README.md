@@ -101,7 +101,7 @@ go build -o ngcore ./cmd/ngcore
 ./ngcore cli call --contract <bs58> --entry balance_of
 
 # fork a running chain for contract debugging (lazy, anvil-style)
-./ngcore fork --rpc http://127.0.0.1:52521   # serves its own rpc on :52522
+./ngcore fork --rpc http://127.0.0.1:52521   # serves its own rpc on :52525
 ```
 
 ## Status
