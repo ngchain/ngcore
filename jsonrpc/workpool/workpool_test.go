@@ -103,11 +103,9 @@ func TestExpirableMapRefreshOnUse(t *testing.T) {
 		t.Fatal("an idle entry must expire")
 	}
 
-	// Put on a live key must refresh, not duplicate
+	// Put on an existing key overwrites the value (and refreshes the ts)
 	m.Put("busy", 3)
-	if v, ok := m.Get("busy"); !ok || v.(int) != 1 {
-		// Put keeps the FIRST value for an existing key: only the
-		// timestamp refreshes (see ExpirableMap.Put)
-		t.Fatalf("Get(busy) = %v, %v; want the original value 1", v, ok)
+	if v, ok := m.Get("busy"); !ok || v.(int) != 3 {
+		t.Fatalf("Get(busy) = %v, %v; want the overwritten value 3", v, ok)
 	}
 }

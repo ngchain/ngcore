@@ -42,6 +42,12 @@ func AES256GCMDecrypt(raw []byte, password []byte) (decrypted []byte) {
 		panic(err)
 	}
 
+	// guard the length before slicing: a ciphertext shorter than the
+	// nonce (a truncated/corrupt key file) would otherwise be a raw
+	// slice-bounds panic instead of the controlled "cannot decrypt" one
+	if len(raw) < gcm.NonceSize() {
+		panic("ciphertext shorter than the nonce")
+	}
 	nonce, encrypted := raw[:gcm.NonceSize()], raw[gcm.NonceSize():]
 
 	decrypted, err = gcm.Open(nil, nonce, encrypted, nil)

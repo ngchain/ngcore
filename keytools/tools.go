@@ -20,7 +20,7 @@ func ReadLocalKey(filename string, password string) *ngtypes.PrivateKey {
 	if filename == "" {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			err := os.Mkdir(path, os.ModePerm)
+			err := os.Mkdir(path, 0o700)
 			if err != nil {
 				panic(err)
 			}
@@ -75,7 +75,7 @@ func CreateLocalKeyWithScheme(filename, password string, scheme ngtypes.SigSchem
 	if filename == "" {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			err := os.Mkdir(path, os.ModePerm)
+			err := os.Mkdir(path, 0o700)
 			if err != nil {
 				panic(err)
 			}
@@ -85,7 +85,7 @@ func CreateLocalKeyWithScheme(filename, password string, scheme ngtypes.SigSchem
 	}
 
 	// save key to ngcore.key file
-	file, err := os.Create(filename)
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		panic(err)
 	}
@@ -117,7 +117,7 @@ func RecoverLocalKey(filename, password, privateKey string) *ngtypes.PrivateKey 
 	if filename == "" {
 		path := GetDefaultFolder()
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			err := os.Mkdir(path, os.ModePerm)
+			err := os.Mkdir(path, 0o700)
 			if err != nil {
 				panic(err)
 			}
@@ -127,7 +127,7 @@ func RecoverLocalKey(filename, password, privateKey string) *ngtypes.PrivateKey 
 	}
 
 	// save key to ngcore.key file
-	file, err := os.Create(filename)
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		panic(err)
 	}

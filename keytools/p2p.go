@@ -39,7 +39,7 @@ func GetP2PKey(path string) crypto.PrivKey {
 
 		path = filepath.Join(home, ".ngkeys")
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			err := os.Mkdir(path, os.ModePerm)
+			err := os.Mkdir(path, 0o700)
 			if err != nil {
 				panic(err)
 			}
@@ -61,7 +61,7 @@ func GetP2PKey(path string) crypto.PrivKey {
 
 		// log.Info("creating bootstrap key")
 
-		f, err := os.Create(path)
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			panic(err)
 		}

@@ -33,12 +33,10 @@ func NewExpirableMap(l int, expire func(time.Time, *Entry) bool) (m *ExpirableMa
 
 func (m *ExpirableMap) Put(k string, v interface{}) {
 	m.l.Lock()
-	it, ok := m.m[k]
-	if !ok {
-		it = &Entry{Value: v}
-		m.m[k] = it
-	}
-	it.Timestamp = time.Now().Unix()
+	// overwrite the value on an existing key: the old code kept the FIRST
+	// value and only refreshed the timestamp, so Put silently dropped
+	// updates
+	m.m[k] = &Entry{Value: v, Timestamp: time.Now().Unix()}
 	m.l.Unlock()
 }
 

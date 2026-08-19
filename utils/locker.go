@@ -21,9 +21,10 @@ func (l *Locker) Lock() {
 }
 
 func (l *Locker) Unlock() {
-	for !l.status.CompareAndSwap(true, false) {
-		runtime.Gosched()
-	}
+	// releasing is unconditional: the old CAS(true,false) spun FOREVER if
+	// Unlock was ever called on an unlocked Locker — a misuse that
+	// deadlocked the caller instead of surfacing the bug
+	l.status.Store(false)
 }
 
 func (l *Locker) IsActive() bool {
