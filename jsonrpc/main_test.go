@@ -244,10 +244,11 @@ func TestRPCChainQueries(t *testing.T) {
 		t.Fatalf("getLatestBlockHeight = %d, want 0", height)
 	}
 
-	var hash []byte
-	decodeInto(t, node.mustCall(t, "getLatestBlockHash", nil), &hash)
-	if !bytes.Equal(hash, genesisHash) {
-		t.Fatalf("getLatestBlockHash = %x, want %x", hash, genesisHash)
+	// raw bytes reach humans as lowercase hex strings, never base64
+	var hashHex string
+	decodeInto(t, node.mustCall(t, "getLatestBlockHash", nil), &hashHex)
+	if hashHex != hex.EncodeToString(genesisHash) {
+		t.Fatalf("getLatestBlockHash = %s, want %x", hashHex, genesisHash)
 	}
 
 	var latest ngtypes.FullBlock

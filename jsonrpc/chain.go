@@ -27,7 +27,8 @@ func (s *Server) getLatestBlockHeightFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc
 func (s *Server) getLatestBlockHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	hash := s.pow.Chain.GetLatestBlockHash()
 
-	raw, err := utils.JSON.Marshal(hash)
+	// human-facing raw bytes are lowercase hex, never base64
+	raw, err := utils.JSON.Marshal(hex.EncodeToString(hash))
 	if err != nil {
 		log.Error(err)
 

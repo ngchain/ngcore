@@ -1,12 +1,15 @@
 package ngstate
 
 import (
+	"encoding/hex"
+
 	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // Receipts are LOCAL, non-consensus data: every node derives them
@@ -28,6 +31,34 @@ type ContractRun struct {
 	Error    string
 	GasUsed  uint64
 	Events   []Event
+}
+
+// Receipts cross rpc into human hands, so they marshal in the two
+// canonical human encodings — addresses as bs58, raw bytes as lowercase
+// hex — never Go's default base64 for []byte. (RLP storage is
+// untouched: rlp does not consult MarshalJSON.)
+
+func (e Event) MarshalJSON() ([]byte, error) {
+	var addr ngtypes.Address
+	copy(addr[:], e.Contract)
+	return utils.JSON.Marshal(struct {
+		Contract string `json:"contract"`
+		Topic    string `json:"topic"`
+		Data     string `json:"data"`
+	}{addr.String(), e.Topic, hex.EncodeToString(e.Data)})
+}
+
+func (r ContractRun) MarshalJSON() ([]byte, error) {
+	var addr ngtypes.Address
+	copy(addr[:], r.Contract)
+	return utils.JSON.Marshal(struct {
+		Contract string  `json:"contract"`
+		Entry    string  `json:"entry"`
+		Ok       bool    `json:"ok"`
+		Error    string  `json:"error,omitempty"`
+		GasUsed  uint64  `json:"gasUsed"`
+		Events   []Event `json:"events"`
+	}{addr.String(), r.Entry, r.Ok, r.Error, r.GasUsed, r.Events})
 }
 
 // emission limits keep the local receipt store abuse-resistant
