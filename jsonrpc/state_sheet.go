@@ -199,7 +199,9 @@ func (s *Server) getContractStorageFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.
 	}
 
 	var val []byte
-	if len(key) == 0 || key[0] != '_' { // reserved keys read as unset
+	// reserved keys read as unset; guard a nil Context defensively (a
+	// well-formed slot always has one, but a historical decode shouldn't panic)
+	if account.Context != nil && (len(key) == 0 || key[0] != '_') {
 		val = account.Context.Get(string(key))
 	}
 

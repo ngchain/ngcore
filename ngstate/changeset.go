@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
@@ -159,7 +160,10 @@ func contractAtHeight(txn *bbolt.Tx, addr ngtypes.Address, height uint64) (*ngty
 	if !changed {
 		acc, err := getContract(txn, addr)
 		if err != nil {
-			return nil, false, nil // no slot now and none recorded after: absent
+			if errors.Is(err, storage.ErrKeyNotFound) {
+				return nil, false, nil // genuinely no slot at this height
+			}
+			return nil, false, err // a real error (e.g. corrupt slot): surface it
 		}
 		return acc, true, nil
 	}

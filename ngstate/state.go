@@ -255,6 +255,10 @@ func (state *State) BackfillArchive() (bool, error) {
 		return false, err
 	}
 
+	// this is a whole-chain replay in a single txn (bbolt buffers all dirty
+	// pages until commit): expect it to be slow and memory-heavy on a large
+	// chain. It runs once — later startups find full coverage and skip it
+	log.Warn("archive backfill: replaying the chain to rebuild changeset history (one-time, may be slow)")
 	if err := state.RebuildFromBlockStore(); err != nil {
 		return false, err
 	}

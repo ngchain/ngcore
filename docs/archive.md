@@ -90,6 +90,22 @@ a snapshot-started node). `changesetCovers` gates this: every applied
 archive height carries at least the coinbase balance change, so the
 presence of the fork height's changeset implies the whole range above it.
 
+## Cost notes
+
+Steady-state capture is cheap (one pre-image per changed address per
+block) and consensus-neutral: `DumpSheetTxn` excludes the changeset
+buckets, so archive and prune nodes produce byte-identical state sheets
+and snapshot hashes; capture is a write-only side effect that never feeds
+block hashing, VM toll/gas, or validation.
+
+The expensive path is the **full-chain replay in one txn**
+(`RebuildFromBlockStoreTxn`): bbolt buffers all dirty pages until commit,
+and archive roughly doubles the write volume. Default archive nodes avoid
+it — reorgs use unwind (O(reorg depth)). It is reached only by
+`BackfillArchive` (a one-time upgrade of a large pre-archive db) and by
+the reorg replay fallback (prune nodes, which don't capture, so no
+archive amplification). Backfill logs a warning before it runs.
+
 ## Roadmap
 
 - **P1 (done)** — buckets, recorder + capture, `GetBalanceByAddressAt` /
