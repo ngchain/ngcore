@@ -146,6 +146,10 @@ func (vm *VM) makeServiceWrapper(addr ngtypes.Address, ins *wasman.Instance, exp
 			raw[i] = toRaw(a)
 		}
 
+		traceIdx := vm.traceStart(TraceCall{
+			Type: "call", From: vm.currentAddress().Bytes(), To: addr.Bytes(), Method: exportName,
+		})
+
 		vm.frames = append(vm.frames, addr)
 		rets, _, err := ins.CallExportedFunc(exportName, raw...)
 		vm.frames = vm.frames[:len(vm.frames)-1]
@@ -153,6 +157,7 @@ func (vm *VM) makeServiceWrapper(addr ngtypes.Address, ins *wasman.Instance, exp
 		if err != nil {
 			panic(errors.Wrapf(err, "service call %s.%s failed", addr, exportName))
 		}
+		vm.traceOk(traceIdx)
 		if len(rets) != len(out) {
 			panic(errors.Wrapf(ErrServiceBadExport, "%s.%s returned %d values", addr, exportName, len(rets)))
 		}
@@ -265,6 +270,12 @@ func (vm *VM) serviceCall(ins *wasman.Instance, addrPtr, argsPtr, argsLen uint32
 
 	entry, args := resolveDynEntry(mod, calldata)
 
+	// trace the internal call (kept even if it reverts below)
+	traceIdx := vm.traceStart(TraceCall{
+		Type: "call", From: vm.currentAddress().Bytes(), To: target.Bytes(),
+		Method: entry, Input: args,
+	})
+
 	// swap the calldata the callee sees, switch the frame, run, restore
 	savedArgs := vm.callArgs
 	vm.callArgs = args
@@ -277,6 +288,7 @@ func (vm *VM) serviceCall(ins *wasman.Instance, addrPtr, argsPtr, argsLen uint32
 		panic(errors.Wrapf(runErr, "dynamic call %s.%s failed", target, entry))
 	}
 
+	vm.traceOk(traceIdx)
 	return 1
 }
 

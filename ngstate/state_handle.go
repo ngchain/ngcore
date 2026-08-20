@@ -348,6 +348,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 
 	err = vm.Run(entry)
 	run.GasUsed = vm.GasUsed()
+	run.Trace = vm.Trace() // kept on failure too, to show where it reverted
 	if gas != nil {
 		if run.GasUsed >= gas.remaining {
 			gas.remaining = 0

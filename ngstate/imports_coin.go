@@ -102,6 +102,11 @@ func initCoinImports(vm *VM) error {
 				return 0
 			}
 
+			// record the internal transfer in the trace (a completed leaf)
+			vm.traceOk(vm.traceStart(TraceCall{
+				Type: "transfer", From: from.Bytes(), To: to[:], Value: bigToLE32(value),
+			}))
+
 			// surface the internal transfer as a log (queryable via
 			// ng_getLogs) — the emitter is the sender, data is to ‖ value.
 			// Same cap as user events so a transfer loop cannot bloat the receipt

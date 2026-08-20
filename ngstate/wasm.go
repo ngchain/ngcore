@@ -88,6 +88,10 @@ type VM struct {
 	// call (mirroring the journal semantics)
 	events []Event
 
+	// trace records the internal call/transfer tree in execution order;
+	// unlike events it is KEPT on failure, for debugging the revert
+	trace []TraceCall
+
 	// tollPreburn is the budget pre-charged by LimitToll (the block
 	// gas cap); subtracted when reporting this run's own consumption
 	tollPreburn uint64
@@ -353,6 +357,35 @@ func (vm *VM) EntryFor(defaultEntry string) string {
 // Events returns what the (successful) run emitted
 func (vm *VM) Events() []Event {
 	return vm.events
+}
+
+// Trace returns the internal call/transfer tree recorded this run
+func (vm *VM) Trace() []TraceCall {
+	return vm.trace
+}
+
+// maxTraceCalls caps how many internal steps a run records, so a
+// call/transfer loop cannot bloat the receipt
+const maxTraceCalls = 1024
+
+// traceStart appends a pending frame (Ok=false) and returns its index, so
+// the caller can mark it Ok after the sub-call returns. Returns -1 when
+// the cap is hit (recording stops, execution continues)
+func (vm *VM) traceStart(c TraceCall) int {
+	if len(vm.trace) >= maxTraceCalls {
+		return -1
+	}
+	// frames[0] is the tx entry (depth 0 implicitly); its direct internal
+	// calls are depth 0 in the trace, their children depth 1, and so on
+	c.Depth = uint32(len(vm.frames) - 1)
+	vm.trace = append(vm.trace, c)
+	return len(vm.trace) - 1
+}
+
+func (vm *VM) traceOk(idx int) {
+	if idx >= 0 {
+		vm.trace[idx].Ok = true
+	}
 }
 
 // Run instantiates the module and calls the entry export.

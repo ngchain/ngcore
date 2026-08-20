@@ -38,6 +38,22 @@ type Event struct {
 	Data     []byte
 }
 
+// TraceCall is one internal step of a contract execution — a
+// cross-contract call or a native value transfer — recorded in execution
+// (pre-order) with its Depth, so the flat list reconstructs the call tree.
+// Unlike events, the trace is KEPT on a failed run: it shows where the
+// call reverted (Ok marks each frame that completed before the abort).
+type TraceCall struct {
+	Type   string // "call" (contract.call) | "transfer" (coin.transfer)
+	Depth  uint32
+	From   []byte
+	To     []byte
+	Method string // the export the call invoked ("" for transfers)
+	Value  []byte // 32-byte LE amount (transfers)
+	Input  []byte // calldata args (dynamic calls)
+	Ok     bool
+}
+
 // ContractRun records one contract execution triggered by a tx
 type ContractRun struct {
 	Contract []byte // the address the entry ran on
@@ -46,6 +62,7 @@ type ContractRun struct {
 	Error    string
 	GasUsed  uint64
 	Events   []Event
+	Trace    []TraceCall
 }
 
 // Receipts cross rpc into human hands, so they marshal in the two
@@ -63,17 +80,35 @@ func (e Event) MarshalJSON() ([]byte, error) {
 	}{addr.String(), e.Topic, hex.EncodeToString(e.Data)})
 }
 
+func (c TraceCall) MarshalJSON() ([]byte, error) {
+	var from, to ngtypes.Address
+	copy(from[:], c.From)
+	copy(to[:], c.To)
+	return utils.JSON.Marshal(struct {
+		Type   string `json:"type"`
+		Depth  uint32 `json:"depth"`
+		From   string `json:"from"`
+		To     string `json:"to"`
+		Method string `json:"method,omitempty"`
+		Value  string `json:"value,omitempty"`
+		Input  string `json:"input,omitempty"`
+		Ok     bool   `json:"ok"`
+	}{c.Type, c.Depth, from.String(), to.String(), c.Method,
+		hex.EncodeToString(c.Value), hex.EncodeToString(c.Input), c.Ok})
+}
+
 func (r ContractRun) MarshalJSON() ([]byte, error) {
 	var addr ngtypes.Address
 	copy(addr[:], r.Contract)
 	return utils.JSON.Marshal(struct {
-		Contract string  `json:"contract"`
-		Entry    string  `json:"entry"`
-		Ok       bool    `json:"ok"`
-		Error    string  `json:"error,omitempty"`
-		GasUsed  uint64  `json:"gasUsed"`
-		Events   []Event `json:"events"`
-	}{addr.String(), r.Entry, r.Ok, r.Error, r.GasUsed, r.Events})
+		Contract string      `json:"contract"`
+		Entry    string      `json:"entry"`
+		Ok       bool        `json:"ok"`
+		Error    string      `json:"error,omitempty"`
+		GasUsed  uint64      `json:"gasUsed"`
+		Events   []Event     `json:"events"`
+		Trace    []TraceCall `json:"trace,omitempty"`
+	}{addr.String(), r.Entry, r.Ok, r.Error, r.GasUsed, r.Events, r.Trace})
 }
 
 // emission limits keep the local receipt store abuse-resistant
