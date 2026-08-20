@@ -291,6 +291,13 @@ func (state *State) UnwindToTxn(txn *bbolt.Tx, target uint64) (bool, error) {
 		unwindHeightTxn(txn, h)
 	}
 
+	// receipts are keyed by tx hash (not height), so unwindHeightTxn cannot
+	// drop them per height; clear the whole reverted range here so the
+	// branch re-apply rebuilds receipts fresh instead of doubling runs
+	if err := deleteReceiptsAboveTxn(txn, target); err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 

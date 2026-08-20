@@ -62,7 +62,7 @@ type ContractRun struct {
 	Error    string
 	GasUsed  uint64
 	Events   []Event
-	Trace    []TraceCall
+	Trace    []TraceCall `rlp:"optional"` // trailing-optional: old receipts decode with nil
 }
 
 // Receipts cross rpc into human hands, so they marshal in the two
@@ -131,7 +131,10 @@ type txReceipt struct {
 	Runs   []ContractRun
 }
 
-// appendContractRun attaches a run record to the tx's receipt
+// appendContractRun attaches a run record to the tx's receipt (a tx can
+// trigger several runs). Re-applying a tx on a reorg branch would double
+// its runs, so the reorg unwind clears the reverted heights' receipts
+// first (deleteReceiptsAboveTxn) — this stays a plain append.
 func appendContractRun(txn *bbolt.Tx, txHash []byte, height uint64, run ContractRun) error {
 	bucket := txn.Bucket(storage.ReceiptBucketName)
 
@@ -154,6 +157,25 @@ func appendContractRun(txn *bbolt.Tx, txHash []byte, height uint64, run Contract
 	}
 
 	return bucket.Put(txHash, raw)
+}
+
+// deleteReceiptsAboveTxn drops every receipt settled above height, used by
+// the reorg unwind so re-applying the branch rebuilds receipts fresh
+// instead of appending onto the orphaned branch's runs
+func deleteReceiptsAboveTxn(txn *bbolt.Tx, height uint64) error {
+	c := txn.Bucket(storage.ReceiptBucketName).Cursor()
+	for k, raw := c.First(); k != nil; k, raw = c.Next() {
+		var record txReceipt
+		if err := rlp.DecodeBytes(raw, &record); err != nil {
+			continue // leave undecodable entries for PruneReceiptsTxn
+		}
+		if record.Height > height {
+			if err := c.Delete(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // PruneReceiptsTxn ages out receipts settled deeper than the retention

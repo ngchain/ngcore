@@ -135,6 +135,39 @@ func TestGetTxRunsErrors(t *testing.T) {
 	}
 }
 
+// TestDeleteReceiptsAbove pins the reorg cleanup: receipts settled above
+// the fork height are dropped (so re-applying the branch rebuilds them
+// fresh instead of doubling runs), while receipts at or below survive
+func TestDeleteReceiptsAbove(t *testing.T) {
+	db := newTestDB(t)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		below := []byte("tx-below")
+		above := []byte("tx-above")
+		if err := appendContractRun(txn, below, 3, ContractRun{Ok: true}); err != nil {
+			return err
+		}
+		if err := appendContractRun(txn, above, 7, ContractRun{Ok: true}); err != nil {
+			return err
+		}
+
+		if err := deleteReceiptsAboveTxn(txn, 5); err != nil {
+			return err
+		}
+
+		if runs, _ := GetTxRuns(txn, above); runs != nil {
+			t.Fatalf("receipt above the fork survived: %+v", runs)
+		}
+		if runs, _ := GetTxRuns(txn, below); len(runs) != 1 {
+			t.Fatal("receipt at/below the fork must be kept")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestStateGetTxRuns covers the State-level rpc reader and the error
 // message truncation on stored runs
 func TestStateGetTxRuns(t *testing.T) {
