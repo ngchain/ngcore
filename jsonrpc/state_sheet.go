@@ -1,6 +1,7 @@
 package jsonrpc
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"math/big"
 
@@ -115,6 +116,9 @@ func (s *Server) getSheetFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMes
 
 type addressParams struct {
 	Address string `json:"address"`
+	// Height, when set, asks for the state as of that past block height
+	// (archive nodes only); nil reads the current tip
+	Height *uint64 `json:"height,omitempty"`
 }
 
 func (s *Server) getContractInfoFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
@@ -131,13 +135,90 @@ func (s *Server) getContractInfoFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	account, err := s.pow.State.GetContract(addr)
+	var account *ngtypes.Contract
+	if params.Height != nil {
+		account, err = s.pow.State.GetContractAt(addr, *params.Height)
+	} else {
+		account, err = s.pow.State.GetContract(addr)
+	}
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
 	return reply(msg, account)
+}
+
+type getContractStorageParams struct {
+	Address string  `json:"address"`
+	Key     string  `json:"key"`              // hex of the raw storage key
+	Height  *uint64 `json:"height,omitempty"` // past height (archive nodes); nil = tip
+}
+
+// getContractStorageReply is one storage slot's value with convenience
+// decodes for the two standard widths a contract stores
+type getContractStorageReply struct {
+	Value string  `json:"value"` // lowercase hex, "" when the key is unset
+	Len   int     `json:"len"`
+	U64   *uint64 `json:"u64,omitempty"`  // set when len in (1..8]
+	U256  string  `json:"u256,omitempty"` // decimal, set when len == 32
+}
+
+// getContractStorageFunc reads ONE value from a contract's on-chain kv by
+// its raw key (hex) — the targeted read external tools (indexers,
+// wallets, explorers) need instead of pulling the whole context via
+// getContractInfo. Reserved ("_"-prefixed) keys read as unset, mirroring
+// the kv host module.
+func (s *Server) getContractStorageFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getContractStorageParams
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	addr, err := ngtypes.NewAddressFromBS58(params.Address)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	key, err := hex.DecodeString(params.Key)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	var account *ngtypes.Contract
+	if params.Height != nil {
+		account, err = s.pow.State.GetContractAt(addr, *params.Height)
+	} else {
+		account, err = s.pow.State.GetContract(addr)
+	}
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	var val []byte
+	if len(key) == 0 || key[0] != '_' { // reserved keys read as unset
+		val = account.Context.Get(string(key))
+	}
+
+	out := getContractStorageReply{Value: hex.EncodeToString(val), Len: len(val)}
+	if n := len(val); n > 0 && n <= 8 {
+		var buf [8]byte
+		copy(buf[:], val)
+		v := binary.LittleEndian.Uint64(buf[:])
+		out.U64 = &v
+	}
+	if len(val) == 32 {
+		be := make([]byte, 32)
+		for i, b := range val {
+			be[31-i] = b
+		}
+		out.U256 = new(big.Int).SetBytes(be).String()
+	}
+
+	return reply(msg, out)
 }
 
 type balanceReply struct {
@@ -159,6 +240,17 @@ func (s *Server) getBalanceByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	// historical balance: mature/locked are tip-only concepts, so a
+	// height query reports just the total as of that height
+	if params.Height != nil {
+		bal, err := s.pow.State.GetBalanceByAddressAt(addr, *params.Height)
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		return reply(msg, balanceReply{TotalBalance: bal.String()})
 	}
 
 	totalBalance, err := s.pow.State.GetTotalBalanceByAddress(addr)

@@ -34,19 +34,15 @@ func TestRPCForkDataSources(t *testing.T) {
 	contractWasm := mustWat(`(module (func (export "main")))`)
 
 	var unsignedHex string
-	decodeInto(t, node.mustCall(t, "genCommit", map[string]any{
+	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{
 		"fee":  "0.05",
 		"wasm": hex.EncodeToString(contractWasm),
 	}), &unsignedHex)
 
-	var signedHex string
-	decodeInto(t, node.mustCall(t, "signTx", map[string]any{
-		"rawTx":       unsignedHex,
-		"privateKeys": []string{bs58Key(key)},
-	}), &signedHex)
+	signedHex := localSign(t, key, unsignedHex)
 
 	var txHash string
-	decodeInto(t, node.mustCall(t, "sendTx", map[string]any{"rawTx": signedHex}), &txHash)
+	decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex}), &txHash)
 	mineViaRPC(t, node, key)
 
 	latest := node.pow.Chain.GetLatestBlock()
@@ -58,7 +54,7 @@ func TestRPCForkDataSources(t *testing.T) {
 		BlockHash string `json:"blockHash"`
 		Timestamp uint64 `json:"timestamp"`
 	}
-	decodeInto(t, node.mustCall(t, "getHead", nil), &head)
+	decodeInto(t, node.mustCall(t, "ng_getHead", nil), &head)
 
 	if head.Network != uint8(ngtypes.ZERONET) {
 		t.Fatalf("getHead network = %d, want %d", head.Network, uint8(ngtypes.ZERONET))
@@ -84,7 +80,7 @@ func TestRPCForkDataSources(t *testing.T) {
 		Balance  string `json:"balance"`
 		Contract string `json:"contract"`
 	}
-	decodeInto(t, node.mustCall(t, "getAddressState",
+	decodeInto(t, node.mustCall(t, "ng_getAddressState",
 		map[string]any{"address": addr.BS58()}), &state)
 
 	if !state.Exists {
@@ -121,18 +117,18 @@ func TestRPCForkDataSources(t *testing.T) {
 		Balance  string `json:"balance"`
 		Contract string `json:"contract"`
 	}
-	decodeInto(t, node.mustCall(t, "getAddressState",
+	decodeInto(t, node.mustCall(t, "ng_getAddressState",
 		map[string]any{"address": ngtypes.NewAddress(other).BS58()}), &empty)
 	if empty.Exists || empty.Balance != "0" || empty.Contract != "" {
 		t.Fatalf("getAddressState(untouched) = %+v, want empty", empty)
 	}
 
 	// rejected inputs
-	if _, rpcErr := node.call(t, "getAddressState",
+	if _, rpcErr := node.call(t, "ng_getAddressState",
 		map[string]any{"address": "not-base58-0OIl"}); rpcErr == nil {
 		t.Fatal("getAddressState must reject a malformed address")
 	}
-	if _, rpcErr := node.call(t, "getAddressState", []int{1, 2}); rpcErr == nil {
+	if _, rpcErr := node.call(t, "ng_getAddressState", []int{1, 2}); rpcErr == nil {
 		t.Fatal("getAddressState must reject non-object params")
 	}
 
@@ -144,7 +140,7 @@ func TestRPCForkDataSources(t *testing.T) {
 		Timestamp uint64 `json:"timestamp"`
 		Sheet     string `json:"sheet"`
 	}
-	decodeInto(t, node.mustCall(t, "getSheet", nil), &sheetReply)
+	decodeInto(t, node.mustCall(t, "ng_getSheet", nil), &sheetReply)
 
 	if sheetReply.Network != uint8(ngtypes.ZERONET) {
 		t.Fatalf("getSheet network = %d, want %d", sheetReply.Network, uint8(ngtypes.ZERONET))

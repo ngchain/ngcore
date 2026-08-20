@@ -5,8 +5,6 @@ import (
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/rlp"
-	"github.com/mr-tron/base58"
-	"github.com/pkg/errors"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
@@ -46,72 +44,6 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	}
 
 	return reply(msg, hex.EncodeToString(tx.GetHash()))
-}
-
-type signTxParams struct {
-	RawTx       string   `json:"rawTx"`
-	PrivateKeys []string `json:"privateKeys"`
-}
-
-// signTxFunc receives the Proto encoded bytes of unsigned Tx and return the Proto encoded bytes of signed Tx.
-func (s *Server) signTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params signTxParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	unsignedTxRaw, err := hex.DecodeString(params.RawTx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	var tx ngtypes.FullTx
-	err = rlp.DecodeBytes(unsignedTxRaw, &tx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	if len(params.PrivateKeys) != 1 {
-		err := errors.New("signTx expects exactly one private key")
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	d, err := base58.FastBase58Decoding(params.PrivateKeys[0])
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	privateKey, err := ngtypes.ParsePrivateKey(d)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	// once the chain knows this key, the compact envelope saves the
-	// public key bytes automatically
-	if s.pow.State.PubKeyRegistered(ngtypes.NewAddress(privateKey)) {
-		err = tx.SignatureCompact(privateKey)
-	} else {
-		err = tx.Signature(privateKey)
-	}
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	rawTx, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return reply(msg, hex.EncodeToString(rawTx))
 }
 
 type genTransactionParams struct {
@@ -304,32 +236,4 @@ func (s *Server) buildSimpleTx(msg *jsonrpc2.JsonRpcMessage, txType ngtypes.TxTy
 	}
 
 	return reply(msg, hex.EncodeToString(rawTx))
-}
-
-type getContractParams struct {
-	Address string `json:"address"`
-}
-
-// getContractFunc returns the on-chain contract wasm (hex) of the address
-func (s *Server) getContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params getContractParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	addr, err := ngtypes.NewAddressFromBS58(params.Address)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	account, err := s.pow.State.GetContract(addr)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return reply(msg, hex.EncodeToString(account.Source))
 }

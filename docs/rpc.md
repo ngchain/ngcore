@@ -9,6 +9,11 @@ Two servers speak JSON-RPC 2.0 over HTTP POST:
 All methods are registered in `jsonrpc/regiser_handlers.go`; the fork
 tool's in `cmd/ngcore/fork.go`. Both answer `ping` with `"pong"`.
 
+Method names follow a geth-style namespace convention: `ng_` for chain,
+state, tx and mining; `net_` for network info; `admin_` for node/peer
+management. `ping` stays bare as a liveness probe. The fork tool keeps
+its own `dev_` namespace.
+
 ## Encoding conventions
 
 One rule set on every human-facing surface, in params and replies alike:
@@ -28,20 +33,24 @@ One rule set on every human-facing surface, in params and replies alike:
 
 | method | what it does |
 |---|---|
-| `getLatestBlockHeight` / `getLatestBlockHash` / `getLatestBlock` | the current head |
-| `getBlockByHeight` / `getBlockByHash` | block lookup |
-| `getTxByHash` | tx lookup |
-| `getNetwork` | which network the node runs |
+| `ng_getLatestBlockHeight` / `ng_getLatestBlockHash` / `ng_getLatestBlock` | the current head |
+| `ng_getBlockByHeight` / `ng_getBlockByHash` | block lookup |
+| `ng_getTxByHash` | tx lookup |
+| `net_getNetwork` | which network the node runs |
 
 ### State
 
 | method | what it does |
 |---|---|
-| `getBalanceByAddress` | total / mature / locked balance of an address |
-| `getContract` | the on-chain contract module of an address (hex) |
-| `getContractInfo` | the full contract slot (owner, code, context) |
-| `getReceipt` | a tx's contract runs — outcome, gas, events (local, derived data) |
-| `callContract` | DRY-RUN a contract call against current state — the journal never flushes, a free preview of a transact |
+| `ng_getBalanceByAddress` | total / mature / locked balance of an address (optional `height`: total as of a past block, archive nodes) |
+| `ng_getContractInfo` | the full contract slot (owner, code, context) (optional `height`: the slot as of a past block, archive nodes) |
+| `ng_getContractStorage` | ONE contract storage value by raw key (hex); returns hex plus u64/u256 decodes — the targeted read for indexers and wallets (optional `height`: value as of a past block, archive nodes) |
+
+Historical (`height`) reads work by default — archive is the default
+startup mode. A node started with `--prune` answers them with an error
+rather than a wrong current value. See [archive.md](./archive.md).
+| `ng_getReceipt` | a tx's contract runs — outcome, gas, events (local, derived data) |
+| `ng_callContract` | DRY-RUN a contract call against current state — the journal never flushes, a free preview of a transact |
 
 ### Fork sources
 
@@ -49,30 +58,31 @@ What `ngcore fork --rpc` pulls from. Ordinary wallets never need these.
 
 | method | what it does |
 |---|---|
-| `getHead` | light head info: network, height, block hash, timestamp |
-| `getAddressState` | ONE address's state — balance + contract (code and storage) as hex RLP; the unit of **lazy** forking |
-| `getSheet` | the whole state as one hex-RLP sheet (balances, contracts, key registry); the **eager** fork source |
+| `ng_getHead` | light head info: network, height, block hash, timestamp |
+| `ng_getAddressState` | ONE address's state — balance + contract (code and storage) as hex RLP; the unit of **lazy** forking |
+| `ng_getSheet` | the whole state as one hex-RLP sheet (balances, contracts, key registry); the **eager** fork source |
 
 ### Tx composition
 
 Compose unsigned, sign locally, then broadcast — keys never leave the
-wallet.
+wallet. There is deliberately no `ng_signTx`: the node never sees a
+private key. The cli signs the encoded unsigned tx locally and only the
+signed bytes reach `ng_sendTx`.
 
 | method | what it does |
 |---|---|
-| `genTransaction` | unsigned pay/call tx; `value`/`fee` are decimal-NG strings (optional `entry` = export name + hex args) |
-| `genCommit` | unsigned commit carrying a whole contract module |
-| `genActivate` / `genDeactivate` / `genDestroy` | unsigned lifecycle txs |
-| `signTx` | sign an encoded unsigned tx with the node-side key file |
-| `sendTx` | broadcast a signed tx |
-| `publicKeyToAddress` | derive the bs58 address of a public key |
+| `ng_genTransaction` | unsigned pay/call tx; `value`/`fee` are decimal-NG strings (optional `entry` = export name + hex args) |
+| `ng_genCommit` | unsigned commit carrying a whole contract module |
+| `ng_genActivate` / `ng_genDeactivate` / `ng_genDestroy` | unsigned lifecycle txs |
+| `ng_sendTx` | broadcast a signed tx |
+| `ng_publicKeyToAddress` | derive the bs58 address of a public key |
 
-### Mining & p2p
+### Mining & admin
 
 | method | what it does |
 |---|---|
-| `getBlockTemplate` / `getWork` / `submitWork` / `submitBlock` | the PoW mining loop |
-| `addPeer` / `getPeers` | peer management (`addNode`/`getNodes` aliases) |
+| `ng_getWork` / `ng_submitWork` | the PoW mining loop |
+| `admin_addPeer` / `admin_getPeers` | peer management |
 
 ## Fork-tool methods (`ngcore fork`)
 

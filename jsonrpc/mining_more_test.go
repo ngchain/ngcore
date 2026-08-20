@@ -21,7 +21,7 @@ func TestRPCSubmitWorkRejections(t *testing.T) {
 		Block  string `json:"block"`
 		Txs    string `json:"txs"`
 	}
-	decodeInto(t, node.mustCall(t, "getWork", nil), &work)
+	decodeInto(t, node.mustCall(t, "ng_getWork", nil), &work)
 
 	// rebuild the template locally, exactly like a miner would
 	var block ngtypes.FullBlock
@@ -54,7 +54,7 @@ func TestRPCSubmitWorkRejections(t *testing.T) {
 
 	// a non-generate tx in the gen slot: the block cannot unseal
 	var notGenHex string
-	decodeInto(t, node.mustCall(t, "genActivate", map[string]any{"fee": "0"}), &notGenHex)
+	decodeInto(t, node.mustCall(t, "ng_genActivate", map[string]any{"fee": "0"}), &notGenHex)
 
 	for _, c := range []struct {
 		name   string
@@ -67,7 +67,7 @@ func TestRPCSubmitWorkRejections(t *testing.T) {
 		{"shortNonce", map[string]any{"id": work.WorkID, "nonce": "00", "gen": genHex}},
 		{"greedyReward", map[string]any{"id": work.WorkID, "nonce": fullNonce, "gen": greedyHex}},
 	} {
-		if _, rpcErr := node.call(t, "submitWork", c.params); rpcErr == nil {
+		if _, rpcErr := node.call(t, "ng_submitWork", c.params); rpcErr == nil {
 			t.Errorf("submitWork/%s: accepted, want a jsonrpc error", c.name)
 		}
 	}
@@ -75,7 +75,7 @@ func TestRPCSubmitWorkRejections(t *testing.T) {
 	// the same work id must still be minable after all the rejections
 	mineViaRPC(t, node, miner)
 	var heightNow uint64
-	decodeInto(t, node.mustCall(t, "getLatestBlockHeight", nil), &heightNow)
+	decodeInto(t, node.mustCall(t, "ng_getLatestBlockHeight", nil), &heightNow)
 	if heightNow != 1 {
 		t.Fatalf("height after rejected submissions + a real mine = %d, want 1", heightNow)
 	}

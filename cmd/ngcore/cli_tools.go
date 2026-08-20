@@ -98,7 +98,7 @@ func signAndSend(ctx *cli.Context, unsignedRaw []byte) error {
 		return err
 	}
 
-	result, err := rpcCall(ctx.String("addr"), "sendTx",
+	result, err := rpcCall(ctx.String("addr"), "ng_sendTx",
 		map[string]any{"rawTx": hex.EncodeToString(signedRaw)})
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func getCliToolsCommand() *cli.Command {
 				Name:        "status",
 				Description: "chain status: network and the latest block",
 				Action: func(ctx *cli.Context) error {
-					for _, method := range []string{"getNetwork", "getLatestBlockHeight", "getLatestBlockHash"} {
+					for _, method := range []string{"net_getNetwork", "ng_getLatestBlockHeight", "ng_getLatestBlockHash"} {
 						raw, err := rpcCall(ctx.String("addr"), method, nil)
 						if err != nil {
 							return err
@@ -199,7 +199,7 @@ func getCliToolsCommand() *cli.Command {
 					if address == "" {
 						address = ownAddress(ctx).BS58()
 					}
-					raw, err := rpcCall(ctx.String("addr"), "getBalanceByAddress",
+					raw, err := rpcCall(ctx.String("addr"), "ng_getBalanceByAddress",
 						map[string]any{"address": address})
 					if err != nil {
 						return err
@@ -220,7 +220,7 @@ func getCliToolsCommand() *cli.Command {
 					&cli.StringFlag{Name: "args", Usage: "hex args for the entry"},
 				},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "genTransaction", map[string]any{
+					return genThenSend(ctx, "ng_genTransaction", map[string]any{
 						"to":    ctx.String("to"),
 						"value": ctx.String("value"),
 						"fee":   ctx.String("fee"),
@@ -241,7 +241,7 @@ func getCliToolsCommand() *cli.Command {
 					if err != nil {
 						return err
 					}
-					return genThenSend(ctx, "genCommit", map[string]any{
+					return genThenSend(ctx, "ng_genCommit", map[string]any{
 						"fee":  ctx.String("fee"),
 						"wasm": hex.EncodeToString(module),
 					})
@@ -252,7 +252,7 @@ func getCliToolsCommand() *cli.Command {
 				Description: "freeze the own contract source and turn its vm on (runs init once)",
 				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "genActivate", map[string]any{"fee": ctx.String("fee")})
+					return genThenSend(ctx, "ng_genActivate", map[string]any{"fee": ctx.String("fee")})
 				},
 			},
 			{
@@ -260,7 +260,7 @@ func getCliToolsCommand() *cli.Command {
 				Description: "turn the own contract vm off and reopen the source for commits",
 				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "genDeactivate", map[string]any{"fee": ctx.String("fee")})
+					return genThenSend(ctx, "ng_genDeactivate", map[string]any{"fee": ctx.String("fee")})
 				},
 			},
 			{
@@ -268,7 +268,7 @@ func getCliToolsCommand() *cli.Command {
 				Description: "remove the own contract slot (source AND storage)",
 				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "genDestroy", map[string]any{"fee": ctx.String("fee")})
+					return genThenSend(ctx, "ng_genDestroy", map[string]any{"fee": ctx.String("fee")})
 				},
 			},
 			{
@@ -282,7 +282,7 @@ func getCliToolsCommand() *cli.Command {
 					if address == "" {
 						address = ownAddress(ctx).BS58()
 					}
-					raw, err := rpcCall(ctx.String("addr"), "getContractInfo",
+					raw, err := rpcCall(ctx.String("addr"), "ng_getContractInfo",
 						map[string]any{"address": address})
 					if err != nil {
 						return err
@@ -301,7 +301,7 @@ func getCliToolsCommand() *cli.Command {
 					&cli.StringFlag{Name: "value", Usage: "simulated payment in NG, decimal string"},
 				},
 				Action: func(ctx *cli.Context) error {
-					raw, err := rpcCall(ctx.String("addr"), "callContract", map[string]any{
+					raw, err := rpcCall(ctx.String("addr"), "ng_callContract", map[string]any{
 						"contract": ctx.String("contract"),
 						"entry":    ctx.String("entry"),
 						"extra":    ctx.String("args"),
@@ -321,7 +321,7 @@ func getCliToolsCommand() *cli.Command {
 					&cli.StringFlag{Name: "hash", Required: true, Usage: "hex tx hash"},
 				},
 				Action: func(ctx *cli.Context) error {
-					for _, method := range []string{"getTxByHash", "getReceipt"} {
+					for _, method := range []string{"ng_getTxByHash", "ng_getReceipt"} {
 						raw, err := rpcCall(ctx.String("addr"), method,
 							map[string]any{"hash": ctx.String("hash")})
 						if err != nil {

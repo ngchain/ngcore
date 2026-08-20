@@ -272,7 +272,7 @@ type remoteHead struct {
 }
 
 func fetchRemoteHead(url string) (*remoteHead, error) {
-	raw, err := rpcPost(url, "getHead", "")
+	raw, err := rpcPost(url, "ng_getHead", "")
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func fetchRemoteHead(url string) (*remoteHead, error) {
 // `getSheet` call returns the full state (hex RLP) plus the head
 // height/timestamp
 func fetchRemoteSheet(url string) (*ngtypes.Sheet, uint64, error) {
-	raw, err := rpcPost(url, "getSheet", "")
+	raw, err := rpcPost(url, "ng_getSheet", "")
 	if err != nil {
 		return nil, 0, err
 	}
@@ -334,7 +334,7 @@ func (d *forkChain) installLazyFetcher(url string) {
 		entry := cached{}
 		cache[addr] = entry // negative until proven otherwise (no refetch storms)
 
-		raw, err := rpcPost(url, "getAddressState", fmt.Sprintf(`{"address":%q}`, addr.String()))
+		raw, err := rpcPost(url, "ng_getAddressState", fmt.Sprintf(`{"address":%q}`, addr.String()))
 		if err != nil {
 			forkLog.Errorf("lazy fetch %s: %v", addr, err)
 			return nil, nil, false

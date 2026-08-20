@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
+	"github.com/c0mm4nd/rlp"
 	"github.com/c0mm4nd/wasman/wat"
 	"github.com/mr-tron/base58"
 	"go.etcd.io/bbolt"
@@ -152,6 +153,29 @@ func decodeInto(t *testing.T, raw json.RawMessage, out any) {
 	}
 }
 
+// localSign signs an unsigned-tx hex with key and returns the signed
+// hex. Signing is a LOCAL client operation — the node exposes no signTx
+// (keys never travel to it)
+func localSign(t *testing.T, key *ngtypes.PrivateKey, unsignedHex string) string {
+	t.Helper()
+	raw, err := hex.DecodeString(unsignedHex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tx ngtypes.FullTx
+	if err := rlp.DecodeBytes(raw, &tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	signed, err := rlp.EncodeToBytes(&tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return hex.EncodeToString(signed)
+}
+
 func bs58Key(key *ngtypes.PrivateKey) string {
 	return base58.FastBase58Encoding(key.Serialize())
 }
@@ -166,7 +190,7 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 		Block  string `json:"block"`
 		Txs    string `json:"txs"`
 	}
-	decodeInto(t, node.mustCall(t, "getWork", nil), &work)
+	decodeInto(t, node.mustCall(t, "ng_getWork", nil), &work)
 
 	var block ngtypes.FullBlock
 	if err := utils.HexRLPDecode(work.Block, &block); err != nil {
@@ -196,7 +220,7 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
-			node.mustCall(t, "submitWork", map[string]any{
+			node.mustCall(t, "ng_submitWork", map[string]any{
 				"id":    work.WorkID,
 				"nonce": hex.EncodeToString(nonce),
 				"gen":   utils.HexRLPEncode(genTx),
@@ -233,48 +257,48 @@ func TestRPCChainQueries(t *testing.T) {
 	genesisHash := node.pow.Chain.GetLatestBlockHash()
 
 	var network string
-	decodeInto(t, node.mustCall(t, "getNetwork", nil), &network)
+	decodeInto(t, node.mustCall(t, "net_getNetwork", nil), &network)
 	if network != ngtypes.ZERONET.String() {
 		t.Fatalf("getNetwork = %q, want %q", network, ngtypes.ZERONET.String())
 	}
 
 	var height uint64
-	decodeInto(t, node.mustCall(t, "getLatestBlockHeight", nil), &height)
+	decodeInto(t, node.mustCall(t, "ng_getLatestBlockHeight", nil), &height)
 	if height != 0 {
 		t.Fatalf("getLatestBlockHeight = %d, want 0", height)
 	}
 
 	// raw bytes reach humans as lowercase hex strings, never base64
 	var hashHex string
-	decodeInto(t, node.mustCall(t, "getLatestBlockHash", nil), &hashHex)
+	decodeInto(t, node.mustCall(t, "ng_getLatestBlockHash", nil), &hashHex)
 	if hashHex != hex.EncodeToString(genesisHash) {
 		t.Fatalf("getLatestBlockHash = %s, want %x", hashHex, genesisHash)
 	}
 
 	var latest ngtypes.FullBlock
-	decodeInto(t, node.mustCall(t, "getLatestBlock", nil), &latest)
+	decodeInto(t, node.mustCall(t, "ng_getLatestBlock", nil), &latest)
 	if latest.GetHeight() != 0 {
 		t.Fatalf("getLatestBlock height = %d, want 0", latest.GetHeight())
 	}
 
 	var byHeight ngtypes.FullBlock
-	decodeInto(t, node.mustCall(t, "getBlockByHeight", map[string]any{"height": 0}), &byHeight)
+	decodeInto(t, node.mustCall(t, "ng_getBlockByHeight", map[string]any{"height": 0}), &byHeight)
 	if !bytes.Equal(byHeight.GetHash(), genesisHash) {
 		t.Fatal("getBlockByHeight(0) is not the genesis block")
 	}
 
 	var byHash ngtypes.FullBlock
-	decodeInto(t, node.mustCall(t, "getBlockByHash",
+	decodeInto(t, node.mustCall(t, "ng_getBlockByHash",
 		map[string]any{"hash": hex.EncodeToString(genesisHash)}), &byHash)
 	if byHash.GetHeight() != 0 {
 		t.Fatal("getBlockByHash(genesis) is not the genesis block")
 	}
 
-	if _, rpcErr := node.call(t, "getBlockByHeight", map[string]any{"height": 999}); rpcErr == nil {
+	if _, rpcErr := node.call(t, "ng_getBlockByHeight", map[string]any{"height": 999}); rpcErr == nil {
 		t.Fatal("getBlockByHeight(999) should fail on an empty chain")
 	}
 
-	if _, rpcErr := node.call(t, "getPeers", nil); rpcErr != nil {
+	if _, rpcErr := node.call(t, "admin_getPeers", nil); rpcErr != nil {
 		t.Fatalf("getPeers: %+v", rpcErr)
 	}
 }
@@ -292,14 +316,14 @@ func TestRPCAccountQueries(t *testing.T) {
 		MatureBalance string
 		LockedBalance string
 	}
-	decodeInto(t, node.mustCall(t, "getBalanceByAddress",
+	decodeInto(t, node.mustCall(t, "ng_getBalanceByAddress",
 		map[string]any{"address": ngtypes.NewAddress(miner).BS58()}), &balance)
 	if want := ngtypes.GetBlockReward(1).String(); balance.TotalBalance != want {
 		t.Fatalf("getBalanceByAddress = %s, want %s", balance.TotalBalance, want)
 	}
 
 	// an address without a contract slot has no account entry
-	if _, rpcErr := node.call(t, "getContractInfo",
+	if _, rpcErr := node.call(t, "ng_getContractInfo",
 		map[string]any{"address": ngtypes.NewAddress(miner).BS58()}); rpcErr == nil {
 		t.Fatal("getAccountByAddress before deploying should fail")
 	}
@@ -314,7 +338,7 @@ func TestRPCUtils(t *testing.T) {
 	var reply struct {
 		Address ngtypes.Address
 	}
-	decodeInto(t, node.mustCall(t, "publicKeyToAddress",
+	decodeInto(t, node.mustCall(t, "ng_publicKeyToAddress",
 		map[string]any{"PrivateKeys": []string{bs58Key(key)}}), &reply)
 
 	if want := ngtypes.NewAddress(key); !reply.Address.Equals(want) {
@@ -332,20 +356,20 @@ func TestRPCMiningLoop(t *testing.T) {
 	mineViaRPC(t, node, miner)
 
 	var height uint64
-	decodeInto(t, node.mustCall(t, "getLatestBlockHeight", nil), &height)
+	decodeInto(t, node.mustCall(t, "ng_getLatestBlockHeight", nil), &height)
 	if height != 1 {
 		t.Fatalf("height after submitWork = %d, want 1", height)
 	}
 
 	var balance struct{ TotalBalance string }
-	decodeInto(t, node.mustCall(t, "getBalanceByAddress",
+	decodeInto(t, node.mustCall(t, "ng_getBalanceByAddress",
 		map[string]any{"address": ngtypes.NewAddress(miner).BS58()}), &balance)
 	if want := ngtypes.GetBlockReward(1).String(); balance.TotalBalance != want {
 		t.Fatalf("miner balance = %s, want %s", balance.TotalBalance, want)
 	}
 
 	// a stale/unknown work id must be rejected
-	if _, rpcErr := node.call(t, "submitWork", map[string]any{
+	if _, rpcErr := node.call(t, "ng_submitWork", map[string]any{
 		"id": 42, "nonce": "00", "gen": "00",
 	}); rpcErr == nil {
 		t.Fatal("submitWork with an unknown work id should fail")
@@ -370,19 +394,30 @@ func TestRPCContractLifecycle(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
-	// signAndSend takes an unsigned tx from a gen* method, signs it with
-	// the rpc signer and broadcasts it; returns the tx hash
+	// signAndSend takes an unsigned tx from a gen* method, signs it
+	// LOCALLY (keys never travel to the node) and broadcasts the signed
+	// bytes; returns the tx hash
 	signAndSend := func(unsignedHex string) string {
 		t.Helper()
 
-		var signedHex string
-		decodeInto(t, node.mustCall(t, "signTx", map[string]any{
-			"rawTx":       unsignedHex,
-			"privateKeys": []string{bs58Key(key)},
-		}), &signedHex)
+		raw, err := hex.DecodeString(unsignedHex)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var tx ngtypes.FullTx
+		if err := rlp.DecodeBytes(raw, &tx); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Signature(key); err != nil {
+			t.Fatal(err)
+		}
+		signed, err := rlp.EncodeToBytes(&tx)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		var txHash string
-		decodeInto(t, node.mustCall(t, "sendTx", map[string]any{"rawTx": signedHex}), &txHash)
+		decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": hex.EncodeToString(signed)}), &txHash)
 		return txHash
 	}
 
@@ -400,29 +435,28 @@ func TestRPCContractLifecycle(t *testing.T) {
 	// deploy: the first commit opens the address's contract slot,
 	// carrying the compiled wasm module (client compiles locally)
 	contractWasm := hex.EncodeToString(mustWat(contractWat))
-	signAndSend(genResult("genCommit", map[string]any{
+	signAndSend(genResult("ng_genCommit", map[string]any{
 		"fee":  "0.05",
 		"wasm": contractWasm,
 	}))
 	mineViaRPC(t, node, key)
 
+	// getContractInfo carries owner + the wasm module (source) + context
 	var account struct {
-		Owner string `json:"owner"`
+		Owner  string `json:"owner"`
+		Source string `json:"source"`
 	}
-	decodeInto(t, node.mustCall(t, "getContractInfo",
+	decodeInto(t, node.mustCall(t, "ng_getContractInfo",
 		map[string]any{"address": addr.BS58()}), &account)
 	if account.Owner != addr.BS58() {
 		t.Fatalf("slot owner = %s, want %s", account.Owner, addr.BS58())
 	}
-
-	var gotWasm string
-	decodeInto(t, node.mustCall(t, "getContract", map[string]any{"address": addr.BS58()}), &gotWasm)
-	if gotWasm != contractWasm {
-		t.Fatal("getContract mismatch after the commit tx")
+	if account.Source != contractWasm {
+		t.Fatal("getContractInfo source mismatch after the commit tx")
 	}
 
 	// activate: the From address locks its own slot
-	signAndSend(genResult("genActivate", map[string]any{"fee": "0.05"}))
+	signAndSend(genResult("ng_genActivate", map[string]any{"fee": "0.05"}))
 	mineViaRPC(t, node, key)
 
 	// dry-run by address: nothing lands on chain, but the simulated
@@ -435,7 +469,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 			Topic    string `json:"topic"`
 		} `json:"events"`
 	}
-	decodeInto(t, node.mustCall(t, "callContract", map[string]any{
+	decodeInto(t, node.mustCall(t, "ng_callContract", map[string]any{
 		"contract": addr.BS58(),
 	}), &dryRun)
 	if !dryRun.Success {
@@ -457,7 +491,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	}
 
 	// trigger for real: a transact tx to the contract address runs main
-	txHash := signAndSend(genResult("genTransaction", map[string]any{
+	txHash := signAndSend(genResult("ng_genTransaction", map[string]any{
 		"to":    addr.BS58(),
 		"value": "0",
 		"fee":   "0.01",
@@ -473,12 +507,36 @@ func TestRPCContractLifecycle(t *testing.T) {
 		t.Fatalf("contract kv = %q, want val", got)
 	}
 
+	// the same value is readable over RPC by its raw key (hex) — the
+	// targeted external read primitive
+	var storage struct {
+		Value string `json:"value"`
+		Len   int    `json:"len"`
+	}
+	decodeInto(t, node.mustCall(t, "ng_getContractStorage", map[string]any{
+		"address": addr.BS58(),
+		"key":     hex.EncodeToString([]byte("key")),
+	}), &storage)
+	if storage.Value != hex.EncodeToString([]byte("val")) || storage.Len != 3 {
+		t.Fatalf("getContractStorage = %+v, want hex(val)", storage)
+	}
+	// a missing key reads as empty, a reserved key too
+	for _, k := range []string{hex.EncodeToString([]byte("nope")), hex.EncodeToString([]byte("_active"))} {
+		var empty struct {
+			Len int `json:"len"`
+		}
+		decodeInto(t, node.mustCall(t, "ng_getContractStorage", map[string]any{"address": addr.BS58(), "key": k}), &empty)
+		if empty.Len != 0 {
+			t.Fatalf("getContractStorage(%s) len = %d, want 0", k, empty.Len)
+		}
+	}
+
 	// the tx is now on chain with a receipt recording the run
 	var txReply struct {
 		OnChain       bool   `json:"onChain"`
 		Confirmations uint64 `json:"confirmations"`
 	}
-	decodeInto(t, node.mustCall(t, "getTxByHash", map[string]any{"hash": txHash}), &txReply)
+	decodeInto(t, node.mustCall(t, "ng_getTxByHash", map[string]any{"hash": txHash}), &txReply)
 	if !txReply.OnChain || txReply.Confirmations < 1 {
 		t.Fatalf("getTxByHash = %+v, want on-chain with confirmations", txReply)
 	}
@@ -494,7 +552,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 			} `json:"events"`
 		} `json:"runs"`
 	}
-	decodeInto(t, node.mustCall(t, "getReceipt", map[string]any{"hash": txHash}), &receipt)
+	decodeInto(t, node.mustCall(t, "ng_getReceipt", map[string]any{"hash": txHash}), &receipt)
 	if !receipt.OnChain {
 		t.Fatal("getReceipt: tx should be on chain")
 	}

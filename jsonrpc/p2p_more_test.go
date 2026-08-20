@@ -23,7 +23,7 @@ func TestRPCAddPeer(t *testing.T) {
 	defer peerHost.Close()
 
 	target := peerHost.Addrs()[0].String() + "/p2p/" + peerHost.ID().String()
-	node.mustCall(t, "addPeer", map[string]any{"peerMultiAddr": target})
+	node.mustCall(t, "admin_addPeer", map[string]any{"peerMultiAddr": target})
 
 	// the peerstore must now know the peer
 	found := false
@@ -36,21 +36,17 @@ func TestRPCAddPeer(t *testing.T) {
 		t.Fatal("addPeer connected but the peerstore does not list the peer")
 	}
 
-	// getPeers (and its alias getNodes) must answer without error
-	node.mustCall(t, "getPeers", nil)
-	node.mustCall(t, "getNodes", nil)
-
-	// the addNode alias goes through the same handler
-	node.mustCall(t, "addNode", map[string]any{"peerMultiAddr": target})
+	// admin_getPeers must answer without error
+	node.mustCall(t, "admin_getPeers", nil)
 
 	// not a multiaddr at all
-	if _, rpcErr := node.call(t, "addPeer",
+	if _, rpcErr := node.call(t, "admin_addPeer",
 		map[string]any{"peerMultiAddr": "not-a-multiaddr"}); rpcErr == nil {
 		t.Fatal("addPeer must reject a malformed multiaddr")
 	}
 
 	// a multiaddr without the /p2p/<id> component has no peer info
-	if _, rpcErr := node.call(t, "addPeer",
+	if _, rpcErr := node.call(t, "admin_addPeer",
 		map[string]any{"peerMultiAddr": "/ip4/127.0.0.1/tcp/1"}); rpcErr == nil {
 		t.Fatal("addPeer must reject a multiaddr without a peer id")
 	}
@@ -64,7 +60,7 @@ func TestRPCAddPeer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, rpcErr := node.call(t, "addPeer", map[string]any{
+	if _, rpcErr := node.call(t, "admin_addPeer", map[string]any{
 		"peerMultiAddr": "/ip4/127.0.0.1/tcp/1/p2p/" + strangerID.String(),
 	}); rpcErr == nil {
 		t.Fatal("addPeer must fail when the peer is unreachable")

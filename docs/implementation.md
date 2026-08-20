@@ -185,13 +185,13 @@ scheme (keys derive from `keccak("signer:"+name)`) and one byte-part DSL
   local copy over JSON-RPC — no PoW/p2p, but every tx goes through the
   REAL state transition (`HandleTxs`: fees, lifecycle, receipts, block
   gas). The primary source is `--rpc <url>`, forking a RUNNING node
-  **lazily**: boot reads only the head (`getHead`), then every address —
+  **lazily**: boot reads only the head (`ng_getHead`), then every address —
   balance, contract code + storage — is fetched on FIRST TOUCH
-  (`getAddressState`) through `ngstate`'s read-through fallback
+  (`ng_getAddressState`) through `ngstate`'s read-through fallback
   (`SetRemoteFallback`, nil and inert on real nodes) and materialized
   locally, so forking cost tracks what the session actually reads, not
   chain size; each address is fetched at most once (negatives cache
-  too). `--eager` instead pulls the whole state in one `getSheet` call
+  too). `--eager` instead pulls the whole state in one `ng_getSheet` call
   (small chains, offline work; `ngstate.DumpSheetTxn`). `--db <path>`
   forks a local database (on a copy); no source starts a fresh genesis
   chain. Prefunded deterministic addresses; methods: `dev_deploy` (real

@@ -48,7 +48,7 @@ func (c *Client) Loop() {
 }
 
 func (c *Client) GetWork() *Job {
-	msg := jsonrpc2.NewJsonRpcRequest(nil, "getWork", nil)
+	msg := jsonrpc2.NewJsonRpcRequest(nil, "ng_getWork", nil)
 	req, err := jsonrpc2http.NewClientRequest(c.baseURL, msg)
 	if err != nil {
 		panic(err)
@@ -96,7 +96,7 @@ func (c *Client) SubmitWork(workID uint64, nonce []byte, genTx string) bool {
 		panic(err)
 	}
 
-	msg := jsonrpc2.NewJsonRpcRequest(time.Now().UnixNano(), "submitWork", submitWork)
+	msg := jsonrpc2.NewJsonRpcRequest(time.Now().UnixNano(), "ng_submitWork", submitWork)
 	req, err := jsonrpc2http.NewClientRequest(c.baseURL, msg)
 	if err != nil {
 		panic(err)

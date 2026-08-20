@@ -31,11 +31,12 @@ one-byte format tag plus the bytes, deflate-compressed when that
 shrinks them; decode caps the inflated size against decompression
 bombs, and the state layer enforces `MaxContractSourceSize`.
 
-Tooling: the `genCommit` RPC composes the unsigned commit tx from the
-module bytes (`ngcore cli commit --file contract.wasm`); `genActivate` /
-`genDeactivate` / `genDestroy` cover the rest of the lifecycle;
-`getContract` reads the current on-chain module (hex). Sign and
-broadcast with the existing `signTx` / `sendTx` methods. See
+Tooling: the `ng_genCommit` RPC composes the unsigned commit tx from the
+module bytes (`ngcore cli commit --file contract.wasm`); `ng_genActivate` /
+`ng_genDeactivate` / `ng_genDestroy` cover the rest of the lifecycle;
+`ng_getContractInfo` reads the current on-chain slot (owner, module,
+context) and `ng_getContractStorage` reads one storage value by key. Sign
+the unsigned tx locally, then broadcast with `ng_sendTx`. See
 [rpc.md](./rpc.md) for the full method reference.
 
 The lock flag is stored in the address's context under the reserved key
@@ -146,7 +147,7 @@ The runtime runs the export named `method` (when it is a zero-arg export;
 the reserved `init` entry excluded), with `tx.get_extra` serving `args`.
 An empty/`main` method, an absent export, or an extra that is not a
 CallData falls back to `main`, which receives its args (the whole extra
-when the payload was not a CallData). `callContract` (rpc dry-run)
+when the payload was not a CallData). `ng_callContract` (rpc dry-run)
 resolves the same way, so read-only methods like a `balance_of` export
 are directly callable off-chain.
 
@@ -289,8 +290,8 @@ Every contract run a tx triggers lands in a LOCAL receipt (tx hash ->
 runs with outcome, error, gas and emitted events). Receipts never enter
 block hashes: each node derives them deterministically by executing the
 chain, and a reorg replay regenerates them for the winning branch.
-Query with the `getReceipt` rpc ({hash}) — it also reports the tx's
-block and confirmations; `callContract` previews the events a real tx
+Query with the `ng_getReceipt` rpc ({hash}) — it also reports the tx's
+block and confirmations; `ng_callContract` previews the events a real tx
 would emit. Note: a node which fast-synced (snapshot mode) has no
 receipts for txs below its checkpoint, since it never executed them.
 

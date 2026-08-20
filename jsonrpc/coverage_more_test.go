@@ -24,7 +24,7 @@ func TestGetBalanceMatureError(t *testing.T) {
 	addr := ngtypes.NewAddress(key).BS58()
 
 	// the healthy node answers first
-	node.mustCall(t, "getBalanceByAddress", map[string]any{"address": addr})
+	node.mustCall(t, "ng_getBalanceByAddress", map[string]any{"address": addr})
 
 	// remove the latest-height tag: GetMatureBalanceByAddress reads it and
 	// now errors
@@ -35,7 +35,7 @@ func TestGetBalanceMatureError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, rpcErr := node.call(t, "getBalanceByAddress",
+	if _, rpcErr := node.call(t, "ng_getBalanceByAddress",
 		map[string]any{"address": addr}); rpcErr == nil {
 		t.Fatal("getBalanceByAddress must fail once the mature balance cannot resolve")
 	}
@@ -133,23 +133,19 @@ func TestCallContractNoEvents(t *testing.T) {
 
 	signAndMine := func(unsignedHex string) {
 		t.Helper()
-		var signedHex string
-		decodeInto(t, node.mustCall(t, "signTx", map[string]any{
-			"rawTx":       unsignedHex,
-			"privateKeys": []string{bs58Key(key)},
-		}), &signedHex)
-		node.mustCall(t, "sendTx", map[string]any{"rawTx": signedHex})
+		signedHex := localSign(t, key, unsignedHex)
+		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex})
 		mineViaRPC(t, node, key)
 	}
 
 	var commitHex string
-	decodeInto(t, node.mustCall(t, "genCommit", map[string]any{
+	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{
 		"fee": "0.05", "wasm": hex.EncodeToString(quietWasm),
 	}), &commitHex)
 	signAndMine(commitHex)
 
 	var activateHex string
-	decodeInto(t, node.mustCall(t, "genActivate", map[string]any{"fee": "0.05"}), &activateHex)
+	decodeInto(t, node.mustCall(t, "ng_genActivate", map[string]any{"fee": "0.05"}), &activateHex)
 	signAndMine(activateHex)
 
 	var dryRun struct {
@@ -158,7 +154,7 @@ func TestCallContractNoEvents(t *testing.T) {
 			Topic string `json:"topic"`
 		} `json:"events"`
 	}
-	decodeInto(t, node.mustCall(t, "callContract", map[string]any{"contract": addr.BS58()}), &dryRun)
+	decodeInto(t, node.mustCall(t, "ng_callContract", map[string]any{"contract": addr.BS58()}), &dryRun)
 	if !dryRun.Success {
 		t.Fatal("a quiet contract must dry-run successfully")
 	}
@@ -181,19 +177,15 @@ func TestCallContractNewVMFails(t *testing.T) {
 	// commit invalid wasm bytes: the commit path never compiles, so the
 	// bogus source lands in the slot
 	var commitHex string
-	decodeInto(t, node.mustCall(t, "genCommit", map[string]any{
+	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{
 		"fee": "0.05", "wasm": hex.EncodeToString([]byte{0x00, 0x61, 0x73, 0x6d, 0xde, 0xad}),
 	}), &commitHex)
-	var signedHex string
-	decodeInto(t, node.mustCall(t, "signTx", map[string]any{
-		"rawTx":       commitHex,
-		"privateKeys": []string{bs58Key(key)},
-	}), &signedHex)
-	node.mustCall(t, "sendTx", map[string]any{"rawTx": signedHex})
+	signedHex := localSign(t, key, commitHex)
+	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex})
 	mineViaRPC(t, node, key)
 
-	// the slot exists (getContract succeeds) but the vm cannot be built
-	if _, rpcErr := node.call(t, "callContract", map[string]any{"contract": addr.BS58()}); rpcErr == nil {
+	// the slot exists (getContractInfo succeeds) but the vm cannot be built
+	if _, rpcErr := node.call(t, "ng_callContract", map[string]any{"contract": addr.BS58()}); rpcErr == nil {
 		t.Fatal("callContract on an uncompilable slot must fail at NewVM")
 	}
 }
@@ -216,7 +208,7 @@ func TestGetTxByHashBrokenRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, rpcErr := node.call(t, "getTxByHash",
+	if _, rpcErr := node.call(t, "ng_getTxByHash",
 		map[string]any{"hash": hex.EncodeToString(badHash)}); rpcErr == nil {
 		t.Fatal("getTxByHash on a corrupt tx record must fail")
 	}
@@ -232,16 +224,12 @@ func TestGetReceiptBrokenRecord(t *testing.T) {
 
 	// a simple funded transact tx we can land on chain
 	var unsignedHex string
-	decodeInto(t, node.mustCall(t, "genTransaction", map[string]any{
+	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
 		"to": ngtypes.NewAddress(key).BS58(), "value": "1", "fee": "0.01",
 	}), &unsignedHex)
-	var signedHex string
-	decodeInto(t, node.mustCall(t, "signTx", map[string]any{
-		"rawTx":       unsignedHex,
-		"privateKeys": []string{bs58Key(key)},
-	}), &signedHex)
+	signedHex := localSign(t, key, unsignedHex)
 	var txHash string
-	decodeInto(t, node.mustCall(t, "sendTx", map[string]any{"rawTx": signedHex}), &txHash)
+	decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex}), &txHash)
 	mineViaRPC(t, node, key)
 
 	rawHash, err := hex.DecodeString(txHash)
@@ -257,7 +245,7 @@ func TestGetReceiptBrokenRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, rpcErr := node.call(t, "getReceipt", map[string]any{"hash": txHash}); rpcErr == nil {
+	if _, rpcErr := node.call(t, "ng_getReceipt", map[string]any{"hash": txHash}); rpcErr == nil {
 		t.Fatal("getReceipt on a corrupt receipt record must fail")
 	}
 }
