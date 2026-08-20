@@ -136,6 +136,7 @@ func (vm *VM) makeServiceWrapper(addr ngtypes.Address, ins *wasman.Instance, exp
 		// the reentry guard: a contract still executing within this tx
 		// cannot be entered again
 		if vm.onStack(addr) {
+			vm.traceStart(TraceCall{Type: "call", From: vm.currentAddress().Bytes(), To: addr.Bytes(), Method: exportName})
 			panic(errors.Wrapf(ErrServiceReentry, "contract %s", addr))
 		}
 
@@ -241,6 +242,8 @@ func (vm *VM) serviceCall(ins *wasman.Instance, addrPtr, argsPtr, argsLen uint32
 	// the re-entrancy guard: a contract still executing within this tx
 	// cannot be entered again
 	if vm.onStack(target) {
+		// trace the blocked attempt (Ok=false) so it is not invisible
+		vm.traceStart(TraceCall{Type: "call", From: vm.currentAddress().Bytes(), To: target.Bytes()})
 		panic(errors.Wrapf(ErrServiceReentry, "contract %s", target))
 	}
 

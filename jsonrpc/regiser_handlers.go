@@ -40,6 +40,7 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("ng_getLogs", s.requireSynced(s.getLogsFunc))
 	// per-tx internal call/transfer trace (the internal-transactions tree)
 	s.RegisterJsonRpcHandleFunc("ng_traceTransaction", s.requireSynced(s.traceTransactionFunc))
+	s.RegisterJsonRpcHandleFunc("ng_traceBlock", s.requireSynced(s.traceBlockFunc))
 
 	s.RegisterJsonRpcHandleFunc("ng_getContractInfo", s.requireSynced(s.getContractInfoFunc))
 	// targeted contract kv read for external tools (indexers, wallets)

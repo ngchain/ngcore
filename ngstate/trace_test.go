@@ -102,6 +102,52 @@ func TestTraceInternalCalls(t *testing.T) {
 	_ = state
 }
 
+// TestTraceReentryBlocked pins that a re-entrancy-blocked internal call is
+// still visible in the trace (as a failed frame), not silently dropped
+func TestTraceReentryBlocked(t *testing.T) {
+	db := newTestDB(t)
+	self := testAddr(0xaa)
+
+	// main loads its OWN address and dynamically calls itself -> the
+	// re-entrancy guard blocks it and the run aborts
+	selfWat := `
+(module
+  (import "contract" "call" (func $call (param i32 i32 i32) (result i32)))
+  (import "address" "get_host" (func $host (param i32) (result i32)))
+  (memory 1)
+  (data (i32.const 600) "\c6\84\70\69\6e\67\80")
+  (func (export "main")
+    (drop (call $host (i32.const 512)))
+    (drop (call $call (i32.const 512) (i32.const 600) (i32.const 7)))))
+`
+	err := db.Update(func(txn *bbolt.Tx) error {
+		acc := ngtypes.NewContract(self, mustWat(selfWat), nil)
+		acc.SetActive(true)
+		putContract(t, txn, acc, 0)
+
+		tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1, self, nil, nil, self[:], nil)
+		vm, err := NewVM(txn, acc, tx, 1)
+		if err != nil {
+			return err
+		}
+		if err := vm.Run(VMEntryOnTx); err == nil {
+			t.Fatal("a reentrant self-call must fail the run")
+		}
+
+		trace := vm.Trace()
+		if len(trace) != 1 {
+			t.Fatalf("trace = %d frames, want 1 (the blocked call): %+v", len(trace), trace)
+		}
+		if trace[0].Type != "call" || trace[0].Ok || !bytes.Equal(trace[0].To, self[:]) {
+			t.Fatalf("frame = %+v, want a blocked call to self", trace[0])
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // reverse flips byte order (LE money -> BE for big.Int)
 func reverse(b []byte) []byte {
 	out := make([]byte, len(b))

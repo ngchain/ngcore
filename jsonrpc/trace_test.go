@@ -40,8 +40,9 @@ func TestRPCTraceTransaction(t *testing.T) {
 	mineViaRPC(t, node, key) // runs main -> internal transfer
 
 	var trace struct {
-		OnChain bool `json:"onChain"`
-		Runs    []struct {
+		OnChain     bool   `json:"onChain"`
+		BlockHeight uint64 `json:"blockHeight"`
+		Runs        []struct {
 			Ok    bool `json:"ok"`
 			Trace []struct {
 				Type  string `json:"type"`
@@ -66,5 +67,35 @@ func TestRPCTraceTransaction(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("ng_traceTransaction did not expose the internal transfer: %+v", trace.Runs)
+	}
+
+	// ng_traceBlock over the same block must contain that tx's trace
+	var blk struct {
+		Height uint64 `json:"height"`
+		Txs    []struct {
+			TxHash string `json:"txHash"`
+			Runs   []struct {
+				Trace []struct {
+					Type string `json:"type"`
+				} `json:"trace"`
+			} `json:"runs"`
+		} `json:"txs"`
+	}
+	decodeInto(t, node.mustCall(t, "ng_traceBlock", map[string]any{"height": trace.BlockHeight}), &blk)
+	var blockHasTransfer bool
+	for _, tx := range blk.Txs {
+		if tx.TxHash != txHash {
+			continue
+		}
+		for _, run := range tx.Runs {
+			for _, fr := range run.Trace {
+				if fr.Type == "transfer" {
+					blockHasTransfer = true
+				}
+			}
+		}
+	}
+	if !blockHasTransfer {
+		t.Fatalf("ng_traceBlock(%d) missing the tx's transfer trace: %+v", trace.BlockHeight, blk.Txs)
 	}
 }
