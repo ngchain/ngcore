@@ -170,7 +170,7 @@ func TestServiceDepFailures(t *testing.T) {
 		// bypassing activation): linking must refuse it
 		dep.Source = []byte{0x00, 0x61, 0x73, 0x6d, 0xff, 0xff}
 		dep.SetActive(true)
-		if err := setContract(txn, dep); err != nil {
+		if err := setContract(txn, nil, dep); err != nil {
 			return err
 		}
 		if _, err := NewVM(txn, caller, fakeTransactTx(ngtypes.Address{}, nil), 1); err == nil {
@@ -283,7 +283,7 @@ func TestJournalPrimitives(t *testing.T) {
 	other := testAddr(0x92)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, self.Owner, big.NewInt(50)); err != nil {
+		if err := setBalance(txn, nil, self.Owner, big.NewInt(50)); err != nil {
 			return err
 		}
 
@@ -322,7 +322,7 @@ func TestJournalPrimitives(t *testing.T) {
 		}
 		ctx.Set("k", []byte("v"))
 
-		if err := j.flush(txn); err != nil {
+		if err := j.flush(txn, nil); err != nil {
 			return err
 		}
 		if got := getBalance(txn, other); got.Int64() != 20 {

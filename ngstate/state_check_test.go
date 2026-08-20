@@ -34,7 +34,7 @@ func TestCheckBlockTxs(t *testing.T) {
 	userAddr := ngtypes.NewAddress(userPriv)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, userAddr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, userAddr, big.NewInt(100)); err != nil {
 			return err
 		}
 
@@ -100,7 +100,7 @@ func TestCheckTxPerType(t *testing.T) {
 	poorPriv, _ := ngtypes.GenerateKey()
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 
@@ -141,7 +141,7 @@ func TestCheckTxPerType(t *testing.T) {
 		}
 
 		// open an inactive slot: destroy and commit both check out
-		if err := setContract(txn, ngtypes.NewContract(addr, mustWat(logWat), nil)); err != nil {
+		if err := setContract(txn, nil, ngtypes.NewContract(addr, mustWat(logWat), nil)); err != nil {
 			return err
 		}
 		if err := CheckTx(txn, destroy); err != nil {
@@ -176,7 +176,7 @@ func TestCheckTxPerType(t *testing.T) {
 			return err
 		}
 		slot.SetActive(true)
-		if err := setContract(txn, slot); err != nil {
+		if err := setContract(txn, nil, slot); err != nil {
 			return err
 		}
 		if err := CheckTx(txn, activate); !errors.Is(err, ErrContractActive) {
@@ -191,14 +191,14 @@ func TestCheckTxPerType(t *testing.T) {
 
 		// a referenced slot can be neither deactivated nor destroyed
 		setRefCount(slot, 2)
-		if err := setContract(txn, slot); err != nil {
+		if err := setContract(txn, nil, slot); err != nil {
 			return err
 		}
 		if err := CheckTx(txn, deactivate); !errors.Is(err, ErrContractRefdBy) {
 			t.Fatalf("deactivate refd: got %v", err)
 		}
 		slot.SetActive(false)
-		if err := setContract(txn, slot); err != nil {
+		if err := setContract(txn, nil, slot); err != nil {
 			return err
 		}
 		if err := CheckTx(txn, destroy); !errors.Is(err, ErrContractRefdBy) {
@@ -249,13 +249,13 @@ func TestCheckActivateDeps(t *testing.T) {
 	}
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 
 		// a contract importing its OWN address
 		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "main")))`
-		if err := setContract(txn, ngtypes.NewContract(addr, mustWat(selfWat), nil)); err != nil {
+		if err := setContract(txn, nil, ngtypes.NewContract(addr, mustWat(selfWat), nil)); err != nil {
 			return err
 		}
 		if err := checkActivate(txn, activate(t)); !errors.Is(err, ErrDepSelf) {
@@ -264,7 +264,7 @@ func TestCheckActivateDeps(t *testing.T) {
 
 		// an unknown dependency address
 		depWat := `(module (import "` + depAddr.String() + `" "f" (func $f)) (func (export "main")))`
-		if err := setContract(txn, ngtypes.NewContract(addr, mustWat(depWat), nil)); err != nil {
+		if err := setContract(txn, nil, ngtypes.NewContract(addr, mustWat(depWat), nil)); err != nil {
 			return err
 		}
 		if err := checkActivate(txn, activate(t)); err == nil {
@@ -273,7 +273,7 @@ func TestCheckActivateDeps(t *testing.T) {
 
 		// the dependency exists but is not active
 		depWatSrc := `(module (func (export "f")))`
-		if err := setContract(txn, ngtypes.NewContract(depAddr, mustWat(depWatSrc), nil)); err != nil {
+		if err := setContract(txn, nil, ngtypes.NewContract(depAddr, mustWat(depWatSrc), nil)); err != nil {
 			return err
 		}
 		if err := checkActivate(txn, activate(t)); !errors.Is(err, ErrDepNotActive) {
@@ -286,7 +286,7 @@ func TestCheckActivateDeps(t *testing.T) {
 			return err
 		}
 		dep.SetActive(true)
-		if err := setContract(txn, dep); err != nil {
+		if err := setContract(txn, nil, dep); err != nil {
 			return err
 		}
 		if err := checkActivate(txn, activate(t)); err != nil {

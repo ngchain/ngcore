@@ -64,6 +64,11 @@ type VM struct {
 	txn       *bbolt.Tx
 	blockTime uint64 // the enclosing block's timestamp
 
+	// cs, when non-nil, is the archive pre-image recorder of the block
+	// being applied; the journal flush threads it to the write helpers.
+	// nil on dry-run / non-archive paths
+	cs *changeset
+
 	journal *vmJournal
 
 	cfg    config.ModuleConfig
@@ -365,7 +370,7 @@ func (vm *VM) Run(entry string) error {
 		return errors.Wrapf(err, "contract call %s failed", entry)
 	}
 
-	return vm.journal.flush(vm.txn)
+	return vm.journal.flush(vm.txn, vm.cs)
 }
 
 // DryRun executes the entry like Run but NEVER flushes the journal:

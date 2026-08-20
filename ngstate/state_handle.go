@@ -63,13 +63,13 @@ func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error
 		return err
 	}
 
-	if err := registerPubKey(txn, tx); err != nil {
+	if err := registerPubKey(txn, state.cs, tx); err != nil {
 		return err
 	}
 
 	balance := getBalance(txn, tx.To)
 
-	err = setBalance(txn, tx.To, new(big.Int).Add(balance, tx.Value))
+	err = setBalance(txn, state.cs, tx.To, new(big.Int).Add(balance, tx.Value))
 	if err != nil {
 		return err
 	}
@@ -79,12 +79,12 @@ func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error
 
 // chargeFrom verifies the tx, derives its From address and burns the
 // expenditure from the From address's balance
-func chargeFrom(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
+func chargeFrom(txn *bbolt.Tx, rec *changeset, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Address, error) {
 	if err := tx.Verify(keyResolver(txn)); err != nil {
 		return ngtypes.Address{}, err
 	}
 
-	if err := registerPubKey(txn, tx); err != nil {
+	if err := registerPubKey(txn, rec, tx); err != nil {
 		return ngtypes.Address{}, err
 	}
 
@@ -98,7 +98,7 @@ func chargeFrom(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Ad
 		return ngtypes.Address{}, ErrTxrBalanceInsufficient
 	}
 
-	if err := setBalance(txn, from, new(big.Int).Sub(balance, expense)); err != nil {
+	if err := setBalance(txn, rec, from, new(big.Int).Sub(balance, expense)); err != nil {
 		return ngtypes.Address{}, err
 	}
 
@@ -108,7 +108,7 @@ func chargeFrom(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtypes.Ad
 // handleDestroy removes the sender's own contract slot entirely (contract
 // text AND context); the slot must be inactive and unreferenced
 func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	from, err := chargeFrom(txn, tx, tx.Fee)
+	from, err := chargeFrom(txn, state.cs, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
@@ -125,16 +125,16 @@ func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error)
 		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
 	}
 
-	return delContract(txn, from)
+	return delContract(txn, state.cs, from)
 }
 
 func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64, gas *blockGas) (err error) {
-	if _, err := chargeFrom(txn, tx, tx.TotalExpenditure()); err != nil {
+	if _, err := chargeFrom(txn, state.cs, tx, tx.TotalExpenditure()); err != nil {
 		return err
 	}
 
 	toBalance := getBalance(txn, tx.To)
-	if err := setBalance(txn, tx.To, new(big.Int).Add(toBalance, tx.Value)); err != nil {
+	if err := setBalance(txn, state.cs, tx.To, new(big.Int).Add(toBalance, tx.Value)); err != nil {
 		return err
 	}
 
@@ -166,7 +166,7 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return ErrContractActive
 	}
 
-	if _, err := chargeFrom(txn, tx, tx.TotalExpenditure()); err != nil {
+	if _, err := chargeFrom(txn, state.cs, tx, tx.TotalExpenditure()); err != nil {
 		return err
 	}
 
@@ -180,7 +180,7 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 	}
 	slot.Source = newSource
 
-	return setContract(txn, slot)
+	return setContract(txn, state.cs, slot)
 }
 
 // handleActivate freezes the From address's contract: the body becomes immutable
@@ -190,7 +190,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 
-	from, err := chargeFrom(txn, tx, tx.Fee)
+	from, err := chargeFrom(txn, state.cs, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		}
 
 		setRefCount(depAcc, getRefCount(depAcc)+1)
-		if err := setContract(txn, depAcc); err != nil {
+		if err := setContract(txn, state.cs, depAcc); err != nil {
 			return err
 		}
 	}
@@ -241,7 +241,7 @@ func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime 
 		return err
 	}
 
-	err = setContract(txn, slot)
+	err = setContract(txn, state.cs, slot)
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 		return err
 	}
 
-	from, err := chargeFrom(txn, tx, tx.Fee)
+	from, err := chargeFrom(txn, state.cs, tx, tx.Fee)
 	if err != nil {
 		return err
 	}
@@ -290,7 +290,7 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 		}
 		if refs := getRefCount(depAcc); refs > 0 {
 			setRefCount(depAcc, refs-1)
-			if err := setContract(txn, depAcc); err != nil {
+			if err := setContract(txn, state.cs, depAcc); err != nil {
 				return err
 			}
 		}
@@ -301,7 +301,7 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 		return err
 	}
 
-	return setContract(txn, slot)
+	return setContract(txn, state.cs, slot)
 }
 
 // runContract executes the entry export of the address's contract, if
@@ -335,6 +335,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 		recordRun(txn, tx, run)
 		return
 	}
+	vm.cs = state.cs // capture the journal flush's pre-images (archive)
 
 	// the calldata method may address a named export
 	entry = vm.EntryFor(entry)

@@ -162,10 +162,10 @@ func TestGenerateSnapshot(t *testing.T) {
 
 	addr := testAddr(0x41)
 	err := state.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, addr, big.NewInt(88)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(88)); err != nil {
 			return err
 		}
-		if err := setContract(txn, ngtypes.NewContract(addr, mustWat(logWat), nil)); err != nil {
+		if err := setContract(txn, nil, ngtypes.NewContract(addr, mustWat(logWat), nil)); err != nil {
 			return err
 		}
 		return state.GenerateSnapshotTxn(txn)

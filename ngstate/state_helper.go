@@ -37,6 +37,13 @@ func getContract(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, error)
 		return nil, errors.Wrapf(storage.ErrKeyNotFound, "no contract slot on %s", addr)
 	}
 
+	return decodeStoredContract(txn, raw)
+}
+
+// decodeStoredContract turns a raw contract-slot blob into a Contract,
+// resolving its code from the content-addressed code bucket. Shared by
+// the current-state reader and the archive historical resolver
+func decodeStoredContract(txn *bbolt.Tx, raw []byte) (*ngtypes.Contract, error) {
 	var sc storedContract
 	if err := rlp.DecodeBytes(raw, &sc); err != nil {
 		return nil, err
@@ -62,14 +69,16 @@ func contractExists(txn *bbolt.Tx, addr ngtypes.Address) bool {
 // new module is retained (a fresh hash is stored once, a shared hash
 // just bumps its refcount) and any previously-referenced module is
 // released
-func setContract(txn *bbolt.Tx, account *ngtypes.Contract) error {
+func setContract(txn *bbolt.Tx, rec *changeset, account *ngtypes.Contract) error {
 	newHash := utils.KeccakSum256(account.Source)
+
+	rec.recordContract(txn, account.Owner) // pre-image before overwrite (archive)
 
 	// release the code the slot referenced before, if it changed
 	if prev := txn.Bucket(storage.ContractBucketName).Get(account.Owner[:]); prev != nil {
 		var old storedContract
 		if err := rlp.DecodeBytes(prev, &old); err == nil && !bytes.Equal(old.CodeHash, newHash) {
-			releaseCode(txn, old.CodeHash)
+			releaseCode(txn, old.CodeHash, rec != nil)
 		} else if err == nil && bytes.Equal(old.CodeHash, newHash) {
 			// unchanged code: keep the refcount as-is
 			goto store
@@ -94,12 +103,13 @@ store:
 	return nil
 }
 
-func delContract(txn *bbolt.Tx, addr ngtypes.Address) error {
+func delContract(txn *bbolt.Tx, rec *changeset, addr ngtypes.Address) error {
 	bucket := txn.Bucket(storage.ContractBucketName)
+	rec.recordContract(txn, addr) // pre-image before delete (archive)
 	if prev := bucket.Get(addr[:]); prev != nil {
 		var old storedContract
 		if err := rlp.DecodeBytes(prev, &old); err == nil {
-			releaseCode(txn, old.CodeHash)
+			releaseCode(txn, old.CodeHash, rec != nil)
 		}
 	}
 
@@ -134,7 +144,11 @@ func retainCode(txn *bbolt.Tx, codeHash, code []byte) {
 	_ = bucket.Put(codeHash, updated)
 }
 
-func releaseCode(txn *bbolt.Tx, codeHash []byte) {
+// releaseCode drops one reference to a module. keepForHistory (set on
+// archive nodes) retains the bytes even at refcount 0, so a historical
+// contract slot that still references this hash can resolve its code;
+// loadCode ignores the refcount, and a future deploy just re-retains it
+func releaseCode(txn *bbolt.Tx, codeHash []byte, keepForHistory bool) {
 	bucket := txn.Bucket(storage.CodeBucketName)
 	entry := bucket.Get(codeHash)
 	if len(entry) < 8 {
@@ -142,13 +156,16 @@ func releaseCode(txn *bbolt.Tx, codeHash []byte) {
 	}
 
 	refs := binary.LittleEndian.Uint64(entry[:8])
-	if refs <= 1 {
+	if refs <= 1 && !keepForHistory {
 		_ = bucket.Delete(codeHash) // last reference: reclaim the module
 		return
 	}
 
 	updated := append([]byte{}, entry...)
-	binary.LittleEndian.PutUint64(updated[:8], refs-1)
+	if refs > 0 {
+		refs--
+	}
+	binary.LittleEndian.PutUint64(updated[:8], refs)
 	_ = bucket.Put(codeHash, updated)
 }
 
@@ -167,8 +184,10 @@ func getBalance(txn *bbolt.Tx, addr ngtypes.Address) *big.Int {
 	return new(big.Int).SetBytes(rawBalance)
 }
 
-func setBalance(txn *bbolt.Tx, addr ngtypes.Address, balance *big.Int) error {
+func setBalance(txn *bbolt.Tx, rec *changeset, addr ngtypes.Address, balance *big.Int) error {
 	addr2balBucket := txn.Bucket(storage.Addr2BalBucketName)
+
+	rec.recordBal(txn, addr) // pre-image before overwrite (archive)
 
 	err := addr2balBucket.Put(addr[:], balance.Bytes())
 	if err != nil {
@@ -191,7 +210,7 @@ func keyResolver(txn *bbolt.Tx) ngtypes.PubKeyResolver {
 // registerPubKey records the address -> (scheme ‖ public key) binding
 // a verified full-envelope tx revealed, enabling compact envelopes
 // afterwards
-func registerPubKey(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
+func registerPubKey(txn *bbolt.Tx, rec *changeset, tx *ngtypes.FullTx) error {
 	if tx.IsCompactEnvelope() {
 		return nil
 	}
@@ -209,6 +228,8 @@ func registerPubKey(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 	if bucket.Get(addr[:]) != nil {
 		return nil // already registered
 	}
+
+	rec.recordKey(txn, addr) // first reveal: record so a reorg can drop it
 
 	entry := append([]byte{byte(scheme)}, pubKey...)
 	return bucket.Put(addr[:], entry)

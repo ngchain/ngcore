@@ -77,6 +77,88 @@ func (state *State) GetContract(address ngtypes.Address) (*ngtypes.Contract, err
 	return account, nil
 }
 
+// ErrArchiveDisabled is returned by the *AtHeight readers on a node that
+// did not retain historical state
+var ErrArchiveDisabled = errors.New("archive is not enabled on this node")
+
+// GetBalanceByAddressAt resolves an address's balance as of the given
+// block height, from the changeset history. Requires an archive node
+func (state *State) GetBalanceByAddressAt(address ngtypes.Address, height uint64) (*big.Int, error) {
+	if !state.Archive {
+		return nil, ErrArchiveDisabled
+	}
+
+	var balance *big.Int
+	err := state.View(func(txn *bbolt.Tx) error {
+		if err := checkHeightInRange(txn, height); err != nil {
+			return err
+		}
+		balance = balanceAtHeight(txn, address, height)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return balance, nil
+}
+
+// GetContractAt resolves an address's contract slot as of the given block
+// height, from the changeset history. Requires an archive node;
+// ErrKeyNotFound when the address had no slot at that height
+func (state *State) GetContractAt(address ngtypes.Address, height uint64) (*ngtypes.Contract, error) {
+	if !state.Archive {
+		return nil, ErrArchiveDisabled
+	}
+
+	var account *ngtypes.Contract
+	err := state.View(func(txn *bbolt.Tx) error {
+		if err := checkHeightInRange(txn, height); err != nil {
+			return err
+		}
+		acc, ok, err := contractAtHeight(txn, address, height)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.Wrapf(storage.ErrKeyNotFound, "no contract slot on %s at height %d", address, height)
+		}
+		account = acc
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+// checkHeightInRange rejects a query outside the retained history: above
+// the chain tip (a future height has no defined state) or below the
+// origin (a snapshot-started node has no state before its checkpoint, so
+// answering would be a guess rather than recorded history)
+func checkHeightInRange(txn *bbolt.Tx, height uint64) error {
+	blockBucket := txn.Bucket(storage.BlockBucketName)
+
+	tip, err := ngblocks.GetLatestHeight(blockBucket)
+	if err != nil {
+		return err
+	}
+	if height > tip {
+		return errors.Errorf("height %d is above the chain tip %d", height, tip)
+	}
+
+	origin, err := ngblocks.GetOriginHeight(blockBucket)
+	if err != nil {
+		return err
+	}
+	if height < origin {
+		return errors.Errorf("height %d is below the archive origin %d (no history retained)", height, origin)
+	}
+
+	return nil
+}
+
 // PubKeyRegistered reports whether the address's public key is already
 // on chain, so wallets can switch to the compact envelope
 func (state *State) PubKeyRegistered(addr ngtypes.Address) bool {

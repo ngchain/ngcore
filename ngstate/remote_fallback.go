@@ -38,11 +38,13 @@ func fetchRemoteState(txn *bbolt.Tx, addr ngtypes.Address) (*ngtypes.Contract, *
 		return nil, nil, false
 	}
 	if txn.Writable() {
+		// lazy-fork materialization is not a canonical block apply: never
+		// record a changeset (nil recorder)
 		if acc != nil {
-			_ = setContract(txn, acc)
+			_ = setContract(txn, nil, acc)
 		}
 		if bal != nil && bal.Sign() > 0 {
-			_ = setBalance(txn, addr, bal)
+			_ = setBalance(txn, nil, addr, bal)
 		}
 	}
 	return acc, bal, true

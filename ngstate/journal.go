@@ -88,16 +88,17 @@ func (j *vmJournal) transfer(txn *bbolt.Tx, from, to ngtypes.Address, value *big
 	return nil
 }
 
-// flush applies all pending changes onto the db txn
-func (j *vmJournal) flush(txn *bbolt.Tx) error {
+// flush applies all pending changes onto the db txn. rec (non-nil on an
+// archive apply) captures each mutated address's pre-image
+func (j *vmJournal) flush(txn *bbolt.Tx, rec *changeset) error {
 	for addr, balance := range j.balances {
-		if err := setBalance(txn, addr, balance); err != nil {
+		if err := setBalance(txn, rec, addr, balance); err != nil {
 			return err
 		}
 	}
 
 	for addr, acc := range j.accounts {
-		if err := setContract(txn, acc); err != nil {
+		if err := setContract(txn, rec, acc); err != nil {
 			return errors.Wrapf(err, "failed to flush account %s", addr)
 		}
 	}

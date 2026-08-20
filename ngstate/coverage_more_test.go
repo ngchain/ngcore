@@ -60,7 +60,7 @@ func TestCheckPerTypeNoSlot(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 
@@ -261,7 +261,7 @@ func TestStateHelperEdges(t *testing.T) {
 		if got := loadCode(txn, shortHash); got != nil {
 			t.Fatal("loadCode on a short entry must return nil")
 		}
-		releaseCode(txn, shortHash) // must be a no-op, not a panic
+		releaseCode(txn, shortHash, false) // must be a no-op, not a panic
 
 		return nil
 	})
@@ -353,7 +353,7 @@ func TestRegisterPubKeyAlreadyRegistered(t *testing.T) {
 	}
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := registerPubKey(txn, tx); err != nil {
+		if err := registerPubKey(txn, nil, tx); err != nil {
 			return err
 		}
 		// the registry now holds the key under its envelope-derived address
@@ -361,7 +361,7 @@ func TestRegisterPubKeyAlreadyRegistered(t *testing.T) {
 			t.Fatal("the key must be registered after the first envelope")
 		}
 		// the second registration hits the already-registered short-circuit
-		if err := registerPubKey(txn, tx); err != nil {
+		if err := registerPubKey(txn, nil, tx); err != nil {
 			t.Fatalf("re-registering must be a no-op, got %v", err)
 		}
 		return nil

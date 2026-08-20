@@ -104,10 +104,10 @@ func testAddr(b byte) ngtypes.Address {
 func putContract(t *testing.T, txn *bbolt.Tx, acc *ngtypes.Contract, balance int64) {
 	t.Helper()
 
-	if err := setContract(txn, acc); err != nil {
+	if err := setContract(txn, nil, acc); err != nil {
 		t.Fatal(err)
 	}
-	if err := setBalance(txn, acc.Owner, big.NewInt(balance)); err != nil {
+	if err := setBalance(txn, nil, acc.Owner, big.NewInt(balance)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -348,7 +348,7 @@ func TestCommitFlow(t *testing.T) {
 		}
 
 		// funded: the first commit opens the slot at plain fee cost
-		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 		if err := checkCommit(txn, deployTx); err != nil {
@@ -1183,7 +1183,7 @@ func TestDestroyRules(t *testing.T) {
 
 		// unlocked: destroy goes through and the slot is gone
 		acc.SetActive(false)
-		if err := setContract(txn, acc); err != nil {
+		if err := setContract(txn, nil, acc); err != nil {
 			return err
 		}
 		if err := state.handleDestroy(txn, destroyTx); err != nil {
@@ -1358,7 +1358,7 @@ func TestCompactEnvelope(t *testing.T) {
 	dest[0] = 0xd1
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 
@@ -1535,7 +1535,7 @@ func TestSourceSizeCap(t *testing.T) {
 	extra := ngtypes.EncodeCommitCode(huge)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, addr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 
@@ -1681,7 +1681,7 @@ func TestCodeDedup(t *testing.T) {
 
 		// three addresses deploy the SAME module
 		for _, addr := range []ngtypes.Address{a, b, c} {
-			if err := setContract(txn, ngtypes.NewContract(addr, code, nil)); err != nil {
+			if err := setContract(txn, nil, ngtypes.NewContract(addr, code, nil)); err != nil {
 				return err
 			}
 		}
@@ -1705,7 +1705,7 @@ func TestCodeDedup(t *testing.T) {
 
 		// re-committing DIFFERENT code on a moves its reference off the
 		// shared module
-		if err := setContract(txn, ngtypes.NewContract(a, mustWat(logWat), nil)); err != nil {
+		if err := setContract(txn, nil, ngtypes.NewContract(a, mustWat(logWat), nil)); err != nil {
 			return err
 		}
 		if got := refs(txn); got != 2 {
@@ -1713,10 +1713,10 @@ func TestCodeDedup(t *testing.T) {
 		}
 
 		// destroy b and c: the shared module is reclaimed at zero
-		if err := delContract(txn, b); err != nil {
+		if err := delContract(txn, nil, b); err != nil {
 			return err
 		}
-		if err := delContract(txn, c); err != nil {
+		if err := delContract(txn, nil, c); err != nil {
 			return err
 		}
 		if got := refs(txn); got != 0 {

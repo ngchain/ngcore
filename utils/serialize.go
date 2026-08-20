@@ -15,6 +15,11 @@ func PackUint64LE(n uint64) []byte {
 	return b
 }
 
+// UnpackUint64LE reads a LittleEndian uint64 from the first 8 bytes.
+func UnpackUint64LE(b []byte) uint64 {
+	return binary.LittleEndian.Uint64(b)
+}
+
 // ReverseBytes converts bytes order between LittleEndian and BigEndian.
 func ReverseBytes(b []byte) []byte {
 	_b := make([]byte, len(b))

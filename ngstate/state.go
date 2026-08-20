@@ -23,6 +23,17 @@ type State struct {
 
 	*bbolt.DB
 	*SnapshotManager
+
+	// Archive turns on historical-state retention: every block apply
+	// captures each mutated address's pre-image (changesets + inverted
+	// index), enabling the *AtHeight reads and, later, reorg unwind. Off
+	// by default — no extra storage and no behavior change
+	Archive bool
+
+	// cs is the pre-image recorder of the block currently being applied.
+	// Set for the duration of one Upgrade when Archive is on, nil
+	// otherwise; the write helpers skip capture on a nil recorder
+	cs *changeset
 }
 
 // InitStateFromSheet will initialize the state in the given db, with the sheet data
@@ -30,7 +41,8 @@ type State struct {
 // checkpoint
 func InitStateFromSheet(db *bbolt.DB, network ngtypes.Network, sheet *ngtypes.Sheet) *State {
 	state := &State{
-		DB: db,
+		DB:      db,
+		Archive: true, // archive is the default startup mode
 		SnapshotManager: &SnapshotManager{
 			RWMutex:        sync.RWMutex{},
 			heightToHash:   make(map[uint64]string),
@@ -52,6 +64,7 @@ func InitStateFromGenesis(db *bbolt.DB, network ngtypes.Network) *State {
 	state := &State{
 		Network: network,
 		DB:      db,
+		Archive: true, // archive is the default startup mode: capture from genesis
 		SnapshotManager: &SnapshotManager{
 			RWMutex:        sync.RWMutex{},
 			heightToHash:   make(map[uint64]string),
@@ -85,7 +98,7 @@ func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 	for _, account := range sheet.Contracts {
 		// setContract registers the module in the code bucket and
 		// stores the slot referencing it by hash
-		if err := setContract(txn, account); err != nil {
+		if err := setContract(txn, nil, account); err != nil {
 			return err
 		}
 	}
@@ -150,6 +163,11 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 		storage.CodeBucketName,
 		storage.KeyRegistryBucketName,
 		storage.ReceiptBucketName, // receipts regenerate with the replay
+		// changesets/indices regenerate too: the replay re-applies every
+		// block through Upgrade, which re-records them from scratch
+		storage.BalChangeSetBucketName, storage.ContractChangeSetBucketName,
+		storage.KeyChangeSetBucketName,
+		storage.BalHistBucketName, storage.ContractHistBucketName,
 	} {
 		if err := txn.DeleteBucket(name); err != nil {
 			return err
@@ -193,8 +211,103 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 	return nil
 }
 
+// BackfillArchive rebuilds the changeset history from the block store when
+// an archive node's db predates archiving — blocks are present but no
+// changesets were recorded. It is a one-time, idempotent full replay
+// (genesis -> tip) that recaptures state AND changesets, so historical
+// reads and unwind work afterward. Reports whether a rebuild ran.
+//
+// A no-op when: archive is off, the changesets already cover the chain,
+// or the node started from a snapshot (origin > 0) and so cannot replay
+// below its origin — those keep whatever history they have from genesis
+// forward, with the origin guard rejecting reads below it.
+func (state *State) BackfillArchive() (bool, error) {
+	if !state.Archive {
+		return false, nil
+	}
+
+	var need bool
+	err := state.View(func(txn *bbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+		tip, err := ngblocks.GetLatestHeight(blockBucket)
+		if err != nil {
+			return err
+		}
+		origin, err := ngblocks.GetOriginHeight(blockBucket)
+		if err != nil {
+			return err
+		}
+		// only a genesis-origin (strict) node can replay the whole chain;
+		// missing coverage at height 1 means the db predates archiving
+		if origin == 0 && tip > 0 {
+			need = !changesetCovers(txn, 1)
+		}
+		return nil
+	})
+	if err != nil || !need {
+		return false, err
+	}
+
+	if err := state.RebuildFromBlockStore(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// UnwindToTxn reverts the state from the current tip down to target using
+// the recorded changesets — O(reorg depth) instead of replaying the whole
+// chain. It reports whether the unwind was possible: false when archive is
+// off or the changesets do not reach target (a snapshot-started node),
+// leaving the caller to fall back to a full replay. The block store is
+// NOT touched here
+func (state *State) UnwindToTxn(txn *bbolt.Tx, target uint64) (bool, error) {
+	if !state.Archive {
+		return false, nil
+	}
+
+	tip, err := ngblocks.GetLatestHeight(txn.Bucket(storage.BlockBucketName))
+	if err != nil {
+		return false, err
+	}
+	if target >= tip {
+		return true, nil // nothing to unwind
+	}
+	if !changesetCovers(txn, target+1) {
+		return false, nil // history does not reach the fork point
+	}
+
+	for h := tip; h > target; h-- {
+		unwindHeightTxn(txn, h)
+	}
+
+	return true, nil
+}
+
+// ApplyBlocksTxn applies a forward run of blocks (a reorg branch) onto the
+// current state, enforcing tx validity like the replay path does
+func (state *State) ApplyBlocksTxn(txn *bbolt.Tx, blocks []*ngtypes.FullBlock) error {
+	for _, b := range blocks {
+		if !b.IsGenesis() {
+			if err := CheckBlockTxs(txn, b); err != nil {
+				return errors.Wrapf(err, "invalid txs in branch block@%d", b.GetHeight())
+			}
+		}
+		if err := state.Upgrade(txn, b); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Upgrade will apply block's txs on current state
 func (state *State) Upgrade(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
+	if state.Archive {
+		// record every mutated address's pre-image under this height
+		state.cs = newChangeset(block.GetHeight())
+		defer func() { state.cs = nil }()
+	}
+
 	err := state.HandleTxs(txn, block.BlockHeader.Timestamp, block.Txs...)
 	if err != nil {
 		return err

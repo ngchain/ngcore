@@ -100,10 +100,10 @@ func TestRebuildFromSheet(t *testing.T) {
 
 	junkAddr := testAddr(0x21)
 	err := state.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, junkAddr, big.NewInt(999)); err != nil {
+		if err := setBalance(txn, nil, junkAddr, big.NewInt(999)); err != nil {
 			return err
 		}
-		return setContract(txn, ngtypes.NewContract(junkAddr, mustWat(logWat), nil))
+		return setContract(txn, nil, ngtypes.NewContract(junkAddr, mustWat(logWat), nil))
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestRebuildFromBlockStore(t *testing.T) {
 
 	junkAddr := testAddr(0x22)
 	err := state.Update(func(txn *bbolt.Tx) error {
-		return setBalance(txn, junkAddr, big.NewInt(555))
+		return setBalance(txn, nil, junkAddr, big.NewInt(555))
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -167,10 +167,10 @@ func TestStateExternalReaders(t *testing.T) {
 	code := mustWat(logWat)
 
 	err := state.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, addr, big.NewInt(77)); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(77)); err != nil {
 			return err
 		}
-		return setContract(txn, ngtypes.NewContract(addr, code, nil))
+		return setContract(txn, nil, ngtypes.NewContract(addr, code, nil))
 	})
 	if err != nil {
 		t.Fatal(err)
