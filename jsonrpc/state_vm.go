@@ -25,34 +25,15 @@ type callContractParams struct {
 	Extra string `json:"extra"`
 }
 
-type jsonEvent struct {
-	Contract string `json:"contract"` // bs58 address
-	Topic    string `json:"topic"`
-	Data     string `json:"data"` // hex
-}
-
+// ngstate.Event / ngstate.ContractRun carry canonical MarshalJSON
+// (bs58 addresses, hex bytes), reused across getReceipt, callContract and
+// the trace endpoints so the run/event shape is uniform — `ok`, not
+// `success`, everywhere
 type callContractResult struct {
-	Success bool        `json:"success"`
-	Error   string      `json:"error,omitempty"`
-	GasUsed uint64      `json:"gasUsed"`
-	Events  []jsonEvent `json:"events,omitempty"`
-}
-
-func eventsToJSON(events []ngstate.Event) []jsonEvent {
-	if len(events) == 0 {
-		return nil
-	}
-
-	out := make([]jsonEvent, len(events))
-	for i, e := range events {
-		out[i] = jsonEvent{
-			Contract: base58.FastBase58Encoding(e.Contract),
-			Topic:    e.Topic,
-			Data:     hex.EncodeToString(e.Data),
-		}
-	}
-
-	return out
+	Ok      bool            `json:"ok"`
+	Error   string          `json:"error,omitempty"`
+	GasUsed uint64          `json:"gasUsed"`
+	Events  []ngstate.Event `json:"events,omitempty"`
 }
 
 // callContractFunc dry-runs a contract's main against the CURRENT state:
@@ -107,8 +88,8 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 		if runErr != nil {
 			result.Error = runErr.Error()
 		} else {
-			result.Success = true
-			result.Events = eventsToJSON(vm.Events())
+			result.Ok = true
+			result.Events = vm.Events()
 		}
 
 		return nil
@@ -126,12 +107,12 @@ type getReceiptParams struct {
 }
 
 type jsonContractRun struct {
-	Contract string      `json:"contract"` // bs58 address
-	Entry    string      `json:"entry"`
-	Success  bool        `json:"success"`
-	Error    string      `json:"error,omitempty"`
-	GasUsed  uint64      `json:"gasUsed"`
-	Events   []jsonEvent `json:"events,omitempty"`
+	Contract string          `json:"contract"` // bs58 address
+	Entry    string          `json:"entry"`
+	Ok       bool            `json:"ok"`
+	Error    string          `json:"error,omitempty"`
+	GasUsed  uint64          `json:"gasUsed"`
+	Events   []ngstate.Event `json:"events,omitempty"`
 }
 
 type getReceiptResult struct {
@@ -179,10 +160,10 @@ func (s *Server) getReceiptFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		result.Runs = append(result.Runs, jsonContractRun{
 			Contract: base58.FastBase58Encoding(run.Contract),
 			Entry:    run.Entry,
-			Success:  run.Ok,
+			Ok:       run.Ok,
 			Error:    run.Error,
 			GasUsed:  run.GasUsed,
-			Events:   eventsToJSON(run.Events),
+			Events:   run.Events,
 		})
 	}
 

@@ -252,14 +252,14 @@ func TestRPCCallContractFailure(t *testing.T) {
 	mineViaRPC(t, node, key)
 
 	var dryRun struct {
-		Success bool   `json:"success"`
-		Error   string `json:"error"`
+		Ok    bool   `json:"ok"`
+		Error string `json:"error"`
 	}
 	decodeInto(t, node.mustCall(t, "ng_callContract", map[string]any{
 		"contract": addr.BS58(),
 	}), &dryRun)
 
-	if dryRun.Success {
+	if dryRun.Ok {
 		t.Fatal("a trapping contract must not dry-run successfully")
 	}
 	if dryRun.Error == "" {

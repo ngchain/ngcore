@@ -149,13 +149,13 @@ func TestCallContractNoEvents(t *testing.T) {
 	signAndMine(activateHex)
 
 	var dryRun struct {
-		Success bool `json:"success"`
-		Events  []struct {
+		Ok     bool `json:"ok"`
+		Events []struct {
 			Topic string `json:"topic"`
 		} `json:"events"`
 	}
 	decodeInto(t, node.mustCall(t, "ng_callContract", map[string]any{"contract": addr.BS58()}), &dryRun)
-	if !dryRun.Success {
+	if !dryRun.Ok {
 		t.Fatal("a quiet contract must dry-run successfully")
 	}
 	if len(dryRun.Events) != 0 {

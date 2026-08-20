@@ -462,7 +462,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	// dry-run by address: nothing lands on chain, but the simulated
 	// run reports success, gas and events
 	var dryRun struct {
-		Success bool   `json:"success"`
+		Ok      bool   `json:"ok"`
 		GasUsed uint64 `json:"gasUsed"`
 		Events  []struct {
 			Contract string `json:"contract"`
@@ -472,7 +472,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	decodeInto(t, node.mustCall(t, "ng_callContract", map[string]any{
 		"contract": addr.BS58(),
 	}), &dryRun)
-	if !dryRun.Success {
+	if !dryRun.Ok {
 		t.Fatal("callContract dry-run failed")
 	}
 	if dryRun.GasUsed < 1000 {
@@ -545,7 +545,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 		OnChain bool `json:"onChain"`
 		Runs    []struct {
 			Contract string `json:"contract"`
-			Success  bool   `json:"success"`
+			Ok       bool   `json:"ok"`
 			GasUsed  uint64 `json:"gasUsed"`
 			Events   []struct {
 				Topic string `json:"topic"`
@@ -556,7 +556,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	if !receipt.OnChain {
 		t.Fatal("getReceipt: tx should be on chain")
 	}
-	if len(receipt.Runs) != 1 || !receipt.Runs[0].Success || receipt.Runs[0].Contract != addr.BS58() {
+	if len(receipt.Runs) != 1 || !receipt.Runs[0].Ok || receipt.Runs[0].Contract != addr.BS58() {
 		t.Fatalf("getReceipt runs = %+v", receipt.Runs)
 	}
 	if receipt.Runs[0].GasUsed == 0 || len(receipt.Runs[0].Events) != 1 ||
