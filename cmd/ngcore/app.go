@@ -101,6 +101,13 @@ var inMemFlag = &cli.BoolFlag{
 	Usage: "Run the database of blocks, vaults in memory",
 }
 
+var pruneFlag = &cli.BoolFlag{
+	Name: "prune",
+	Usage: "Prune historical state: keep only the current state instead of " +
+		"the default archive mode. Disables the height-parameter RPC reads " +
+		"and makes reorgs replay instead of unwind",
+}
+
 var dbFolderFlag = &cli.StringFlag{
 	Name:  "db-folder",
 	Usage: "The folder location for db",
@@ -173,9 +180,22 @@ var action = func(c *cli.Context) error {
 	store := ngblocks.Init(db, network)
 	// then sync
 	state := ngstate.InitStateFromGenesis(db, network)
+	// archive is the default; --prune opts out of historical-state retention
+	if c.Bool(pruneFlag.Name) {
+		state.Archive = false
+		log.Warn("running in prune mode: historical-state (height) reads are disabled")
+	}
 
 	chain := blockchain.Init(db, network, store, state)
 	chain.CheckHealth(network)
+
+	// upgrading a pre-archive db in place: rebuild the changeset history
+	// once so historical reads and unwind work (no-op on fresh/covered dbs)
+	if did, err := state.BackfillArchive(); err != nil {
+		log.Panicf("archive backfill failed: %v", err)
+	} else if did {
+		log.Warn("archive backfill: rebuilt changeset history from the block store")
+	}
 
 	localNode := ngp2p.InitLocalNode(chain, ngp2p.P2PConfig{
 		P2PKeyFile:                  p2pKeyFile,

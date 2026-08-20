@@ -22,7 +22,7 @@ func main() {
 		rpcHostFlag, rpcPortFlag, rpcDisableFlag,
 		isBootstrapFlag, profileFlag,
 
-		inMemFlag, dbFolderFlag,
+		inMemFlag, dbFolderFlag, pruneFlag,
 
 		testNetFlag, zeroNetFlag,
 	}
