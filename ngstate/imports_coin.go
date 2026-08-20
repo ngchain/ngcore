@@ -25,6 +25,18 @@ func readBigLE(ins *wasman.Instance, ptr uint32) (*big.Int, error) {
 	return new(big.Int).SetBytes(be), nil
 }
 
+// bigToLE32 encodes a non-negative amount as a fixed 32-byte little-endian
+// value (the money wire format); values wider than 256 bits are truncated
+// to the low 32 bytes, which cannot happen for real balances
+func bigToLE32(v *big.Int) []byte {
+	be := v.Bytes()
+	le := make([]byte, 32)
+	for i := 0; i < len(be) && i < 32; i++ {
+		le[i] = be[len(be)-1-i]
+	}
+	return le
+}
+
 // writeBigLE writes an amount as 32-byte little-endian into linear memory
 func writeBigLE(ins *wasman.Instance, ptr uint32, v *big.Int) (uint32, error) {
 	be := v.Bytes()
@@ -83,10 +95,25 @@ func initCoinImports(vm *VM) error {
 				return 0
 			}
 
-			err = vm.journal.transfer(vm.txn, vm.currentAddress(), to, value)
+			from := vm.currentAddress()
+			err = vm.journal.transfer(vm.txn, from, to, value)
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
+			}
+
+			// surface the internal transfer as a log (queryable via
+			// ng_getLogs) — the emitter is the sender, data is to ‖ value.
+			// Same cap as user events so a transfer loop cannot bloat the receipt
+			if len(vm.events) < maxEventsPerRun {
+				data := make([]byte, 64)
+				copy(data[:32], to[:])
+				copy(data[32:], bigToLE32(value))
+				vm.events = append(vm.events, Event{
+					Contract: from.Bytes(),
+					Topic:    EventTopicTransfer,
+					Data:     data,
+				})
 			}
 
 			return 1

@@ -82,7 +82,8 @@ writes into `ptr`):
 log:     debug(ptr, size)            error(ptr, size)
          emit(tptr, tlen, dptr, dlen) -> i32
          ; records an event (topic + data) into the tx's LOCAL receipt;
-         ; attributed to the executing address, dropped on failed runs
+         ; attributed to the executing address, dropped on failed runs.
+         ; topics under the reserved "ng." namespace are refused (return 0)
 address: get_size() -> i32          ; address length (32)
          get_host(ptr) -> i32       ; writes the EXECUTING address
          get_caller(ptr) -> i32     ; msg.From address (zero addr at top)
@@ -98,7 +99,9 @@ crypto:  keccak256(ptr, size, out) -> i32
 coin:    get_balance(addr_ptr, ptr) -> i32   ; fixed 32-byte LE amount
          transfer(to_ptr, value_ptr) -> i32  ; value: 32-byte LE amount
          ; money crosses the ABI as a FIXED 32-byte little-endian value —
-         ; the u256/token wire format, full 256-bit range (NG is 18-decimal)
+         ; the u256/token wire format, full 256-bit range (NG is 18-decimal).
+         ; each transfer auto-emits an "ng.transfer" log (data = to‖value),
+         ; so internal transfers are queryable via ng_getLogs
 kv:      get_size(kptr, klen) -> i32
          get(kptr, klen, vptr) -> i32
          set(kptr, klen, vptr, vlen) -> i32

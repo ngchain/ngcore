@@ -1,6 +1,8 @@
 package ngstate
 
 import (
+	"strings"
+
 	"github.com/c0mm4nd/wasman"
 )
 
@@ -73,6 +75,11 @@ func initLogImports(vm *VM) error {
 			topic, err := readMem(ins, topicPtr, topicLen)
 			if err != nil {
 				vm.logger.Error(err)
+				return 0
+			}
+			// the "ng." topic namespace is reserved for node-emitted system
+			// logs (e.g. internal transfers), so those stay unforgeable
+			if strings.HasPrefix(string(topic), EventTopicPrefix) {
 				return 0
 			}
 			data, err := readMem(ins, dataPtr, dataLen)

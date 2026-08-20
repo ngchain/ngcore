@@ -1,16 +1,31 @@
 package ngstate
 
 import (
+	"bytes"
 	"encoding/hex"
 
 	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 
+	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
+
+// EventTopicPrefix namespaces system-emitted events. Contracts may NOT
+// emit a topic under it (log.emit rejects them), so a consumer can trust
+// that a log with such a topic is genuine node-derived data, not
+// contract-forged.
+const EventTopicPrefix = "ng."
+
+// EventTopicTransfer is the topic of the log auto-emitted for every native
+// value transfer a contract makes through coin.transfer — the "internal
+// transaction" surfaced by ng_getLogs with no separate tracing subsystem.
+// The emitter (Event.Contract) is the sender; Data is to(32) ‖ value(32,
+// the LE money format).
+const EventTopicTransfer = EventTopicPrefix + "transfer"
 
 // Receipts are LOCAL, non-consensus data: every node derives them
 // deterministically by executing the chain, so they never enter block
@@ -153,4 +168,87 @@ func (state *State) GetTxRuns(txHash []byte) ([]ContractRun, error) {
 	})
 
 	return runs, err
+}
+
+// LogFilter selects logs by a block-height range and optional emitter and
+// topic. ToHeight 0 means up to the tip
+type LogFilter struct {
+	FromHeight uint64
+	ToHeight   uint64
+	Address    *ngtypes.Address // nil = any emitter
+	Topic      *string          // nil = any topic
+}
+
+// Log is one matched event with its on-chain location
+type Log struct {
+	Height   uint64
+	TxHash   []byte
+	RunIndex int
+	LogIndex int
+	Event    Event
+}
+
+// maxLogRange caps the block span of one getLogs query so a single call
+// cannot scan the whole chain
+const maxLogRange = 10000
+
+// GetLogs scans the receipts of the blocks in the filter's height range
+// and returns the events matching the emitter/topic. Contract events and
+// the auto-emitted native-transfer logs are both surfaced. On a
+// non-archive node receipts below the retention window are pruned, so a
+// range reaching into pruned history is refused rather than silently
+// returning a partial result.
+func (state *State) GetLogs(f LogFilter) ([]Log, error) {
+	var out []Log
+	err := state.View(func(txn *bbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
+		tip, err := ngblocks.GetLatestHeight(blockBucket)
+		if err != nil {
+			return err
+		}
+		if f.ToHeight == 0 || f.ToHeight > tip {
+			f.ToHeight = tip
+		}
+		if f.FromHeight > f.ToHeight {
+			return nil
+		}
+		if f.ToHeight-f.FromHeight >= maxLogRange {
+			return errors.Errorf("log range %d..%d spans more than %d blocks", f.FromHeight, f.ToHeight, maxLogRange)
+		}
+		if !state.Archive && tip > receiptRetention {
+			if floor := tip - receiptRetention; f.FromHeight < floor {
+				return errors.Errorf("logs before height %d are pruned (node is not in archive mode)", floor)
+			}
+		}
+
+		for h := f.FromHeight; h <= f.ToHeight; h++ {
+			block, err := ngblocks.GetBlockByHeight(blockBucket, h)
+			if err != nil {
+				return err
+			}
+			for _, tx := range block.Txs {
+				txHash := tx.GetHash()
+				runs, err := GetTxRuns(txn, txHash)
+				if err != nil {
+					return err
+				}
+				for ri := range runs {
+					for li := range runs[ri].Events {
+						ev := runs[ri].Events[li]
+						if f.Address != nil && !bytes.Equal(ev.Contract, f.Address[:]) {
+							continue
+						}
+						if f.Topic != nil && ev.Topic != *f.Topic {
+							continue
+						}
+						out = append(out, Log{Height: h, TxHash: txHash, RunIndex: ri, LogIndex: li, Event: ev})
+					}
+				}
+			}
+		}
+		return nil
+	})
+
+	return out, err
 }
