@@ -183,8 +183,10 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 			return err
 		}
 
-		if err := ngstate.PruneReceiptsTxn(txn, newTip.GetHeight()); err != nil {
-			return err
+		if !chain.State.Archive {
+			if err := ngstate.PruneReceiptsTxn(txn, newTip.GetHeight()); err != nil {
+				return err
+			}
 		}
 		if _, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(newTip.GetHeight())); err != nil {
 			return err

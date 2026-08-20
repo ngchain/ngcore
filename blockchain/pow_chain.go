@@ -55,8 +55,11 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 					return err
 				}
 
-				if err := ngstate.PruneReceiptsTxn(txn, block.GetHeight()); err != nil {
-					return err
+				// archive nodes keep receipts so ng_getLogs reaches all history
+				if !chain.State.Archive {
+					if err := ngstate.PruneReceiptsTxn(txn, block.GetHeight()); err != nil {
+						return err
+					}
 				}
 				pruned, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(block.GetHeight()))
 				if err != nil {
