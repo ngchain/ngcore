@@ -20,15 +20,15 @@ func TestTraceInternalCalls(t *testing.T) {
 	callee := testAddr(0xbe)
 	caller := testAddr(0xca)
 
-	// B: a plain callable export
+	// B: on ping it makes its OWN native transfer (a nested internal tx,
+	// depth 1) to the zero address (@800), value 1 (@700)
 	calleeWat := `
 (module
-  (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
+  (import "coin" "transfer" (func $transfer (param i32 i32) (result i32)))
   (memory 1)
-  (data (i32.const 0) "hit")
+  (data (i32.const 700) "\01")
   (func (export "ping")
-    (i32.store8 (i32.const 100) (i32.const 1))
-    (drop (call $set (i32.const 0) (i32.const 3) (i32.const 100) (i32.const 1)))))
+    (drop (call $transfer (i32.const 800) (i32.const 700)))))
 `
 	// A: transfer 5 to the zero address (@800), then call B.ping (@512 target)
 	callerWat := `
@@ -53,8 +53,11 @@ func TestTraceInternalCalls(t *testing.T) {
 		a.SetActive(true)
 		putContract(t, txn, a, 0)
 
-		// fund A so its transfer succeeds
+		// fund A and B so their transfers succeed
 		if err := setBalance(txn, nil, caller, big.NewInt(1000)); err != nil {
+			return err
+		}
+		if err := setBalance(txn, nil, callee, big.NewInt(1000)); err != nil {
 			return err
 		}
 
@@ -70,11 +73,11 @@ func TestTraceInternalCalls(t *testing.T) {
 		}
 
 		trace := vm.Trace()
-		if len(trace) != 2 {
-			t.Fatalf("trace has %d frames, want 2: %+v", len(trace), trace)
+		if len(trace) != 3 {
+			t.Fatalf("trace has %d frames, want 3: %+v", len(trace), trace)
 		}
 
-		// frame 0: the native transfer A -> zero address, value 5
+		// frame 0: A's native transfer to the zero address, value 5, depth 0
 		tr := trace[0]
 		if tr.Type != "transfer" || tr.Depth != 0 || !tr.Ok {
 			t.Fatalf("frame0 = %+v, want transfer depth 0 ok", tr)
@@ -86,13 +89,22 @@ func TestTraceInternalCalls(t *testing.T) {
 			t.Fatalf("frame0 value = %x, want 5", tr.Value)
 		}
 
-		// frame 1: the dynamic call A -> B, entry ping
+		// frame 1: the dynamic call A -> B (ping), depth 0
 		cl := trace[1]
 		if cl.Type != "call" || cl.Depth != 0 || !cl.Ok || cl.Method != "ping" {
 			t.Fatalf("frame1 = %+v, want call depth 0 ok ping", cl)
 		}
 		if !bytes.Equal(cl.From, caller[:]) || !bytes.Equal(cl.To, callee[:]) {
 			t.Fatalf("frame1 from/to = %x/%x, want %x/%x", cl.From, cl.To, caller[:], callee[:])
+		}
+
+		// frame 2: B's OWN transfer, nested one level deeper (depth 1)
+		nested := trace[2]
+		if nested.Type != "transfer" || nested.Depth != 1 || !nested.Ok {
+			t.Fatalf("frame2 = %+v, want transfer depth 1 ok", nested)
+		}
+		if !bytes.Equal(nested.From, callee[:]) {
+			t.Fatalf("frame2 from = %x, want B %x", nested.From, callee[:])
 		}
 		return nil
 	})

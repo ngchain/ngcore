@@ -147,6 +147,8 @@ func (vm *VM) makeServiceWrapper(addr ngtypes.Address, ins *wasman.Instance, exp
 			raw[i] = toRaw(a)
 		}
 
+		// a static service call carries wasm numeric args, not byte
+		// calldata, so Input is left empty (unlike the dynamic contract.call)
 		traceIdx := vm.traceStart(TraceCall{
 			Type: "call", From: vm.currentAddress().Bytes(), To: addr.Bytes(), Method: exportName,
 		})

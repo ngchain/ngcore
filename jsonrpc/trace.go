@@ -38,19 +38,32 @@ func (s *Server) traceTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Js
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
+	out := traceTransactionReply{Runs: []ngstate.ContractRun{}}
+
+	// resolve the location first: below the receipt-retention floor the
+	// trace is pruned, so refuse rather than returning empty runs that look
+	// like a contract-free tx
+	if _, height, err := s.pow.Chain.GetTxLocation(txHash); err == nil {
+		out.OnChain = true
+		out.BlockHeight = height
+		floor, err := s.pow.State.ReceiptRetainedFloor()
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		if height < floor {
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0,
+				errors.Errorf("trace of a tx at height %d is pruned (node is not in archive mode)", height)))
+		}
+	}
+
 	runs, err := s.pow.State.GetTxRuns(txHash)
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-	if runs == nil {
-		runs = []ngstate.ContractRun{}
-	}
-
-	out := traceTransactionReply{Runs: runs}
-	if _, height, err := s.pow.Chain.GetTxLocation(txHash); err == nil {
-		out.OnChain = true
-		out.BlockHeight = height
+	if runs != nil {
+		out.Runs = runs
 	}
 
 	return reply(msg, out)
@@ -78,6 +91,17 @@ func (s *Server) traceBlockFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	// below the retention floor the block's receipts are pruned: refuse
+	floor, err := s.pow.State.ReceiptRetainedFloor()
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	if params.Height < floor {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0,
+			errors.Errorf("traces before height %d are pruned (node is not in archive mode)", floor)))
 	}
 
 	block, err := s.pow.Chain.GetBlockByHeight(params.Height)

@@ -227,6 +227,28 @@ func (state *State) GetTxRuns(txHash []byte) ([]ContractRun, error) {
 	return runs, err
 }
 
+// ReceiptRetainedFloor is the lowest height whose receipts are still
+// available: 0 on an archive node (all kept), else tip - receiptRetention.
+// Log/trace reads below it cannot be answered truthfully and are refused
+// rather than returning a partial (empty) result.
+func (state *State) ReceiptRetainedFloor() (uint64, error) {
+	if state.Archive {
+		return 0, nil
+	}
+	var floor uint64
+	err := state.View(func(txn *bbolt.Tx) error {
+		tip, err := ngblocks.GetLatestHeight(txn.Bucket(storage.BlockBucketName))
+		if err != nil {
+			return err
+		}
+		if tip > receiptRetention {
+			floor = tip - receiptRetention
+		}
+		return nil
+	})
+	return floor, err
+}
+
 // LogFilter selects logs by a block-height range and optional emitter and
 // topic. ToHeight 0 means up to the tip
 type LogFilter struct {
