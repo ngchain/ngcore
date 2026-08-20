@@ -65,11 +65,13 @@ opts out: a prune node keeps only the current state, answers historical
 (`height`) RPC reads with an error rather than a wrong current value, and
 its reorgs fall back to replay.
 
-A `height` query is bounded to the retained range: above the chain tip is
-rejected (no future state), and below the origin is rejected too — a
-snapshot-started node (`--non-strict --snapshot`) has no recorded state
-before its checkpoint, so `GetOriginHeight` is the honest floor rather
-than guessing.
+A `height` query is bounded to what the archive can answer truthfully:
+above the chain tip is rejected (no future state), and below the tip the
+resolver requires the changesets to actually cover `(height, tip]` —
+checked via `changesetCovers(height+1)`. A height with no recorded
+history (a snapshot-started node below its checkpoint, or a pre-archive
+db not yet backfilled) is refused rather than answered with current
+state. This coverage check, not block-origin, is the honest floor.
 
 Upgrading a **pre-archive** db in place is handled on startup:
 `State.BackfillArchive` detects "blocks present but no changesets" on a
@@ -95,10 +97,10 @@ presence of the fork height's changeset implies the whole range above it.
   `ng_getContractInfo` / `ng_getContractStorage`.
 - **P2 (done)** — reorg by **unwind** instead of replay-from-genesis;
   archive default-on from genesis.
-- **P3 (done)** — `--prune` opt-out flag, a retained-range guard on
-  `height` reads (reject below `GetOriginHeight`, above tip), and a
-  one-pass replay **backfill** (`BackfillArchive`) on startup for
-  in-place upgrades of pre-archive dbs.
+- **P3 (done)** — `--prune` opt-out flag, a coverage-based guard on
+  `height` reads (reject uncovered heights and above tip), and a one-pass
+  replay **backfill** (`BackfillArchive`) on startup for in-place
+  upgrades of pre-archive dbs.
 - **Optional** — a shallow-window retention for prune nodes: capture a
   bounded changeset window so their reorgs still *unwind* instead of
   replay, without keeping full history. Not implemented — prune nodes
