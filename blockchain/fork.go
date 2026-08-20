@@ -149,6 +149,16 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 	blockBucket := txn.Bucket(storage.BlockBucketName)
 	txBucket := txn.Bucket(storage.TxBucketName)
 
+	// try to unwind state to the fork point from the changesets BEFORE the
+	// block store switches (the unwind reads the old tip height). On an
+	// archive node this replaces the full replay-from-genesis with an
+	// O(reorg depth) revert; otherwise it reports false and we replay
+	forkHeight := branch[0].GetHeight() - 1
+	unwound, err := chain.State.UnwindToTxn(txn, forkHeight)
+	if err != nil {
+		return err
+	}
+
 	if err := ngblocks.SwitchToBranch(blockBucket, txBucket, branch); err != nil {
 		return err
 	}
@@ -156,7 +166,12 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 	// the memoized work of the branch stays valid: it only depends on
 	// prev links, which do not change on a canonical switch
 
-	if err := chain.State.RebuildFromBlockStoreTxn(txn); err != nil {
+	if unwound {
+		// state is at the fork point: roll the branch forward
+		if err := chain.State.ApplyBlocksTxn(txn, branch); err != nil {
+			return err
+		}
+	} else if err := chain.State.RebuildFromBlockStoreTxn(txn); err != nil {
 		return err
 	}
 
