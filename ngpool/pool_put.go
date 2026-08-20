@@ -98,6 +98,7 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 				from, existing.Fee)
 		}
 		pool.txMap[from] = tx
+		pool.notifyNewTx(tx)
 
 		return nil
 	}
@@ -113,8 +114,15 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 	}
 
 	pool.txMap[from] = tx
+	pool.notifyNewTx(tx)
 
 	return nil
+}
+
+func (pool *TxPool) notifyNewTx(tx *ngtypes.FullTx) {
+	if pool.OnNewTx != nil {
+		pool.OnNewTx(tx)
+	}
 }
 
 // cheapestEntry finds the pool entry with the lowest fee (the higher

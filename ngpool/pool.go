@@ -37,6 +37,11 @@ type TxPool struct {
 	// Local policy, not consensus — zero disables the floor
 	MinFeePerByte *big.Int
 
+	// OnNewTx, when set, fires after a tx successfully enters the pool
+	// (drives the rpc pending-tx subscription). It runs under the pool
+	// lock, so it MUST NOT call back into the pool
+	OnNewTx func(*ngtypes.FullTx)
+
 	chain     *blockchain.Chain
 	localNode *ngp2p.LocalNode
 }

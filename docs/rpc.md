@@ -14,6 +14,21 @@ state, tx and mining; `net_` for network info; `admin_` for node/peer
 management. `ping` stays bare as a liveness probe. The fork tool keeps
 its own `dev_` namespace.
 
+The node also serves **WebSocket** at `/ws` on the same port: every method
+above is callable over it, plus push subscriptions (below).
+
+### Subscriptions (WebSocket)
+
+`ng_subscribe` opens a push stream and returns a subscription id;
+`ng_unsubscribe` (with `{ "id": ... }`) closes it. Events arrive as
+`ng_subscription` notifications carrying `{ subscription, result }`.
+
+| `type` | result pushed |
+|---|---|
+| `newHeads` | `{height, hash, prevHash, timestamp}` on every new tip |
+| `logs` | each matching log (same shape as `ng_getLogs`); optional `address` / `topic` filter |
+| `pendingTxs` | `{hash}` when a tx enters this node's mempool |
+
 ## Encoding conventions
 
 One rule set on every human-facing surface, in params and replies alike:

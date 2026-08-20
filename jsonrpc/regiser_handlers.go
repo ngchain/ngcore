@@ -7,66 +7,66 @@ import (
 
 // registerHTTPHandler will register jsonrpc functions onto the Server.
 func registerHTTPHandler(s *Server) {
-	s.RegisterJsonRpcHandleFunc("ping", func(message *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	s.reg("ping", func(message *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 		// the result must be valid json, or marshaling the response fails
 		return jsonrpc2.NewJsonRpcSuccess(message.ID, []byte(`"pong"`))
 	})
 
 	// network & node admin (geth-style: net_ for chain info, admin_ for peers)
 	if !s.DisableP2PMethods {
-		s.RegisterJsonRpcHandleFunc("net_getNetwork", s.getNetworkFunc)
-		s.RegisterJsonRpcHandleFunc("admin_addPeer", s.addPeerFunc)
-		s.RegisterJsonRpcHandleFunc("admin_getPeers", s.getPeersFunc)
+		s.reg("net_getNetwork", s.getNetworkFunc)
+		s.reg("admin_addPeer", s.addPeerFunc)
+		s.reg("admin_getPeers", s.getPeersFunc)
 	}
 
 	// chain
-	s.RegisterJsonRpcHandleFunc("ng_getLatestBlockHeight", s.requireSynced(s.getLatestBlockHeightFunc))
-	s.RegisterJsonRpcHandleFunc("ng_getLatestBlockHash", s.requireSynced(s.getLatestBlockHashFunc))
-	s.RegisterJsonRpcHandleFunc("ng_getLatestBlock", s.requireSynced(s.getLatestBlockFunc))
-	s.RegisterJsonRpcHandleFunc("ng_getBlockByHeight", s.getBlockByHeightFunc)
-	s.RegisterJsonRpcHandleFunc("ng_getBlockByHash", s.getBlockByHashFunc)
-	s.RegisterJsonRpcHandleFunc("ng_getTxByHash", s.getTxByHashFunc)
+	s.reg("ng_getLatestBlockHeight", s.requireSynced(s.getLatestBlockHeightFunc))
+	s.reg("ng_getLatestBlockHash", s.requireSynced(s.getLatestBlockHashFunc))
+	s.reg("ng_getLatestBlock", s.requireSynced(s.getLatestBlockFunc))
+	s.reg("ng_getBlockByHeight", s.getBlockByHeightFunc)
+	s.reg("ng_getBlockByHash", s.getBlockByHashFunc)
+	s.reg("ng_getTxByHash", s.getTxByHashFunc)
 
 	// state
-	s.RegisterJsonRpcHandleFunc("ng_sendTx", s.sendTxFunc)
-	s.RegisterJsonRpcHandleFunc("ng_genDestroy", s.genDestroyFunc)
-	s.RegisterJsonRpcHandleFunc("ng_genTransaction", s.genTransactionFunc)
-	s.RegisterJsonRpcHandleFunc("ng_genCommit", s.genCommitFunc)
-	s.RegisterJsonRpcHandleFunc("ng_genActivate", s.genActivateFunc)
-	s.RegisterJsonRpcHandleFunc("ng_genDeactivate", s.genDeactivateFunc)
-	s.RegisterJsonRpcHandleFunc("ng_callContract", s.callContractFunc)
-	s.RegisterJsonRpcHandleFunc("ng_getReceipt", s.getReceiptFunc)
+	s.reg("ng_sendTx", s.sendTxFunc)
+	s.reg("ng_genDestroy", s.genDestroyFunc)
+	s.reg("ng_genTransaction", s.genTransactionFunc)
+	s.reg("ng_genCommit", s.genCommitFunc)
+	s.reg("ng_genActivate", s.genActivateFunc)
+	s.reg("ng_genDeactivate", s.genDeactivateFunc)
+	s.reg("ng_callContract", s.callContractFunc)
+	s.reg("ng_getReceipt", s.getReceiptFunc)
 	// event/log query for indexers; internal transfers surface as ng.transfer
-	s.RegisterJsonRpcHandleFunc("ng_getLogs", s.requireSynced(s.getLogsFunc))
+	s.reg("ng_getLogs", s.requireSynced(s.getLogsFunc))
 	// per-tx internal call/transfer trace (the internal-transactions tree)
-	s.RegisterJsonRpcHandleFunc("ng_traceTransaction", s.requireSynced(s.traceTransactionFunc))
-	s.RegisterJsonRpcHandleFunc("ng_traceBlock", s.requireSynced(s.traceBlockFunc))
+	s.reg("ng_traceTransaction", s.requireSynced(s.traceTransactionFunc))
+	s.reg("ng_traceBlock", s.requireSynced(s.traceBlockFunc))
 
-	s.RegisterJsonRpcHandleFunc("ng_getContractInfo", s.requireSynced(s.getContractInfoFunc))
+	s.reg("ng_getContractInfo", s.requireSynced(s.getContractInfoFunc))
 	// targeted contract kv read for external tools (indexers, wallets)
-	s.RegisterJsonRpcHandleFunc("ng_getContractStorage", s.requireSynced(s.getContractStorageFunc))
-	s.RegisterJsonRpcHandleFunc("ng_getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
+	s.reg("ng_getContractStorage", s.requireSynced(s.getContractStorageFunc))
+	s.reg("ng_getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
 	// fork-chain sources: getHead + getAddressState back LAZY rpc forking,
 	// getSheet the eager one-shot export
-	s.RegisterJsonRpcHandleFunc("ng_getHead", s.requireSynced(s.getHeadFunc))
-	s.RegisterJsonRpcHandleFunc("ng_getAddressState", s.requireSynced(s.getAddressStateFunc))
-	s.RegisterJsonRpcHandleFunc("ng_getSheet", s.requireSynced(s.getSheetFunc))
+	s.reg("ng_getHead", s.requireSynced(s.getHeadFunc))
+	s.reg("ng_getAddressState", s.requireSynced(s.getAddressStateFunc))
+	s.reg("ng_getSheet", s.requireSynced(s.getSheetFunc))
 
 	// mining
 	if !s.DisableMiningMethods {
-		// s.RegisterJsonRpcHandleFunc("ng_submitBlock", s.requireSynced(s.submitBlockFunc))
-		// s.RegisterJsonRpcHandleFunc("ng_getBlockTemplate", s.requireSynced(s.getBlockTemplateFunc))
-		s.RegisterJsonRpcHandleFunc("ng_getWork", s.requireSynced(s.getWorkFunc))       // dangerous: public key reveal
-		s.RegisterJsonRpcHandleFunc("ng_submitWork", s.requireSynced(s.submitWorkFunc)) // dangerous: attack pow hash on verification
+		// s.reg("ng_submitBlock", s.requireSynced(s.submitBlockFunc))
+		// s.reg("ng_getBlockTemplate", s.requireSynced(s.getBlockTemplateFunc))
+		s.reg("ng_getWork", s.requireSynced(s.getWorkFunc))       // dangerous: public key reveal
+		s.reg("ng_submitWork", s.requireSynced(s.submitWorkFunc)) // dangerous: attack pow hash on verification
 	}
 
 	// node status & mempool (ungated: a client may query these while syncing)
-	s.RegisterJsonRpcHandleFunc("ng_syncing", s.syncingFunc)
-	s.RegisterJsonRpcHandleFunc("ng_suggestFee", s.suggestFeeFunc)
-	s.RegisterJsonRpcHandleFunc("ng_getPendingTxs", s.getPendingTxsFunc)
+	s.reg("ng_syncing", s.syncingFunc)
+	s.reg("ng_suggestFee", s.suggestFeeFunc)
+	s.reg("ng_getPendingTxs", s.getPendingTxsFunc)
 
 	// utils
-	s.RegisterJsonRpcHandleFunc("ng_publicKeyToAddress", s.publicKeyToAddressFunc)
+	s.reg("ng_publicKeyToAddress", s.publicKeyToAddressFunc)
 }
 
 func (s *Server) requireSynced(f func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage) func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {

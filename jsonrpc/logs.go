@@ -62,18 +62,24 @@ func (s *Server) getLogsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMess
 
 	out := make([]logReply, len(logs))
 	for i, l := range logs {
-		var addr ngtypes.Address
-		copy(addr[:], l.Event.Contract)
-		out[i] = logReply{
-			Height:   l.Height,
-			TxHash:   hex.EncodeToString(l.TxHash),
-			Contract: addr.BS58(),
-			Topic:    l.Event.Topic,
-			Data:     hex.EncodeToString(l.Event.Data),
-			RunIndex: l.RunIndex,
-			LogIndex: l.LogIndex,
-		}
+		out[i] = logToReply(l)
 	}
 
 	return reply(msg, out)
+}
+
+// logToReply maps a state Log to its rpc/notification shape (bs58 emitter,
+// hex bytes) — shared by ng_getLogs and the logs subscription
+func logToReply(l ngstate.Log) logReply {
+	var addr ngtypes.Address
+	copy(addr[:], l.Event.Contract)
+	return logReply{
+		Height:   l.Height,
+		TxHash:   hex.EncodeToString(l.TxHash),
+		Contract: addr.BS58(),
+		Topic:    l.Event.Topic,
+		Data:     hex.EncodeToString(l.Event.Data),
+		RunIndex: l.RunIndex,
+		LogIndex: l.LogIndex,
+	}
 }
