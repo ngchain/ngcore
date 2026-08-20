@@ -133,27 +133,26 @@ func (state *State) GetContractAt(address ngtypes.Address, height uint64) (*ngty
 	return account, nil
 }
 
-// checkHeightInRange rejects a query outside the retained history: above
-// the chain tip (a future height has no defined state) or below the
-// origin (a snapshot-started node has no state before its checkpoint, so
-// answering would be a guess rather than recorded history)
+// checkHeightInRange rejects a query the archive cannot answer truthfully.
+// Above the chain tip has no defined state. Below the tip, the resolver
+// relies on changesets covering (height, tip]: a missing changeset at
+// height+1 means no recorded history reaches this height — a
+// snapshot-started node below its checkpoint, or a pre-archive db not yet
+// backfilled — so it is refused rather than answered with current state.
+// (Every applied archive height carries the coinbase balance change, so
+// the presence of height+1 implies the whole range above it is covered.)
 func checkHeightInRange(txn *bbolt.Tx, height uint64) error {
-	blockBucket := txn.Bucket(storage.BlockBucketName)
-
-	tip, err := ngblocks.GetLatestHeight(blockBucket)
+	tip, err := ngblocks.GetLatestHeight(txn.Bucket(storage.BlockBucketName))
 	if err != nil {
 		return err
 	}
 	if height > tip {
 		return errors.Errorf("height %d is above the chain tip %d", height, tip)
 	}
-
-	origin, err := ngblocks.GetOriginHeight(blockBucket)
-	if err != nil {
-		return err
-	}
-	if height < origin {
-		return errors.Errorf("height %d is below the archive origin %d (no history retained)", height, origin)
+	// at the tip the current plain state IS the answer; below it, require
+	// recorded coverage
+	if height < tip && !changesetCovers(txn, height+1) {
+		return errors.Errorf("no archived history at height %d (below the retained range)", height)
 	}
 
 	return nil

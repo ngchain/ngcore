@@ -2,7 +2,6 @@ package blockchain_test
 
 import (
 	"errors"
-	"math/big"
 	"testing"
 
 	"go.etcd.io/bbolt"
@@ -76,17 +75,11 @@ func TestArchiveBackfill(t *testing.T) {
 		prev = b
 	}
 
-	// without the history, a past-height read silently falls back to the
-	// CURRENT balance (the gap backfill closes): height 1 wrongly reads the
-	// three-block total
+	// without the history, a past-height read is REFUSED (the coverage guard)
+	// rather than silently answered with the current balance
 	chain.State.Archive = true
-	tipTotal := new(big.Int).Add(
-		new(big.Int).Add(ngtypes.GetBlockReward(1), ngtypes.GetBlockReward(2)),
-		ngtypes.GetBlockReward(3))
-	if got, err := chain.State.GetBalanceByAddressAt(ngtypes.NewAddress(miner), 1); err != nil {
-		t.Fatal(err)
-	} else if got.Cmp(tipTotal) != 0 {
-		t.Fatalf("pre-backfill balance@1 = %s, want the (wrong) tip total %s", got, tipTotal)
+	if _, err := chain.State.GetBalanceByAddressAt(ngtypes.NewAddress(miner), 1); err == nil {
+		t.Fatal("pre-backfill historical read must be refused (no changesets recorded)")
 	}
 
 	// backfill rebuilds the changeset history from the block store

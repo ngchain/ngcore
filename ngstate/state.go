@@ -136,6 +136,13 @@ func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) err
 		storage.ContractBucketName,
 		storage.CodeBucketName,
 		storage.KeyRegistryBucketName,
+		// the sheet jumps the state to its height with NO changesets below
+		// it; drop any stale changeset/index entries from the pre-snapshot
+		// chain so the coverage-based read guard treats sub-sheet heights as
+		// unretained instead of surfacing an orphaned pre-image
+		storage.BalChangeSetBucketName, storage.ContractChangeSetBucketName,
+		storage.KeyChangeSetBucketName,
+		storage.BalHistBucketName, storage.ContractHistBucketName,
 	} {
 		if err := txn.DeleteBucket(name); err != nil {
 			return err
