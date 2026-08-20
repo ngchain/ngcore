@@ -36,6 +36,8 @@ func registerHTTPHandler(s *Server) {
 	s.RegisterJsonRpcHandleFunc("ng_genDeactivate", s.genDeactivateFunc)
 	s.RegisterJsonRpcHandleFunc("ng_callContract", s.callContractFunc)
 	s.RegisterJsonRpcHandleFunc("ng_getReceipt", s.getReceiptFunc)
+	// event/log query for indexers; internal transfers surface as ng.transfer
+	s.RegisterJsonRpcHandleFunc("ng_getLogs", s.requireSynced(s.getLogsFunc))
 
 	s.RegisterJsonRpcHandleFunc("ng_getContractInfo", s.requireSynced(s.getContractInfoFunc))
 	// targeted contract kv read for external tools (indexers, wallets)

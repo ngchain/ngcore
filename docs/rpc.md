@@ -50,6 +50,7 @@ Historical (`height`) reads work by default — archive is the default
 startup mode. A node started with `--prune` answers them with an error
 rather than a wrong current value. See [archive.md](./archive.md).
 | `ng_getReceipt` | a tx's contract runs — outcome, gas, events (local, derived data) |
+| `ng_getLogs` | events in a block range (`fromHeight`/`toHeight`, optional `address` emitter and `topic` filters). Internal transactions — contract value transfers — surface automatically as `ng.transfer` logs (emitter = sender, data = to‖value). Archive nodes serve full history; others are bounded to the receipt-retention window |
 | `ng_callContract` | DRY-RUN a contract call against current state — the journal never flushes, a free preview of a transact |
 
 ### Fork sources
