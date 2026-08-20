@@ -78,7 +78,17 @@ signed bytes reach `ng_sendTx`.
 | `ng_genCommit` | unsigned commit carrying a whole contract module |
 | `ng_genActivate` / `ng_genDeactivate` / `ng_genDestroy` | unsigned lifecycle txs |
 | `ng_sendTx` | broadcast a signed tx |
+| `ng_suggestFee` | this node's relay fee floor (`minFeePerByte`, decimal raw units); pass a `rawTx` to get the exact `minFee` that tx must carry |
 | `ng_publicKeyToAddress` | derive the bs58 address of a public key |
+
+### Node & mempool
+
+Ungated — answerable even while the node is syncing.
+
+| method | what it does |
+|---|---|
+| `ng_syncing` | whether the node is catching up, and its current tip height |
+| `ng_getPendingTxs` | the txs queued in this node's mempool (at most one per sender) |
 
 ### Mining & admin
 

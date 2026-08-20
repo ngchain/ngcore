@@ -71,6 +71,20 @@ func (pool *TxPool) IsInPool(txHash []byte) (exists bool, inPoolTx *ngtypes.Full
 	return false, nil
 }
 
+// List returns every tx currently queued in the pool (unordered). Used by
+// the rpc mempool query; the pool holds at most one tx per From address.
+func (pool *TxPool) List() []*ngtypes.FullTx {
+	pool.Lock()
+	defer pool.Unlock()
+
+	txs := make([]*ngtypes.FullTx, 0, len(pool.txMap))
+	for _, tx := range pool.txMap {
+		txs = append(txs, tx)
+	}
+
+	return txs
+}
+
 // Reset cleans all txs inside the pool.
 func (pool *TxPool) Reset() {
 	pool.Lock()

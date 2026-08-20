@@ -60,6 +60,11 @@ func registerHTTPHandler(s *Server) {
 		s.RegisterJsonRpcHandleFunc("ng_submitWork", s.requireSynced(s.submitWorkFunc)) // dangerous: attack pow hash on verification
 	}
 
+	// node status & mempool (ungated: a client may query these while syncing)
+	s.RegisterJsonRpcHandleFunc("ng_syncing", s.syncingFunc)
+	s.RegisterJsonRpcHandleFunc("ng_suggestFee", s.suggestFeeFunc)
+	s.RegisterJsonRpcHandleFunc("ng_getPendingTxs", s.getPendingTxsFunc)
+
 	// utils
 	s.RegisterJsonRpcHandleFunc("ng_publicKeyToAddress", s.publicKeyToAddressFunc)
 }
