@@ -30,10 +30,11 @@ type callContractParams struct {
 // the trace endpoints so the run/event shape is uniform — `ok`, not
 // `success`, everywhere
 type callContractResult struct {
-	Ok      bool            `json:"ok"`
-	Error   string          `json:"error,omitempty"`
-	GasUsed uint64          `json:"gasUsed"`
-	Events  []ngstate.Event `json:"events,omitempty"`
+	Ok      bool                `json:"ok"`
+	Error   string              `json:"error,omitempty"`
+	GasUsed uint64              `json:"gasUsed"`
+	Events  []ngstate.Event     `json:"events,omitempty"`
+	Trace   []ngstate.TraceCall `json:"trace,omitempty"` // internal call/transfer tree of the dry-run
 }
 
 // callContractFunc dry-runs a contract's main against the CURRENT state:
@@ -85,6 +86,7 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 
 		gasUsed, runErr := vm.DryRun(vm.EntryFor(ngstate.VMEntryOnTx))
 		result.GasUsed = gasUsed
+		result.Trace = vm.Trace() // the internal call/transfer tree, kept even on failure
 		if runErr != nil {
 			result.Error = runErr.Error()
 		} else {

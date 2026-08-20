@@ -53,7 +53,7 @@ rather than a wrong current value. See [archive.md](./archive.md).
 | `ng_getLogs` | events in a block range (`fromHeight`/`toHeight`, optional `address` emitter and `topic` filters). Internal transactions — contract value transfers — surface automatically as `ng.transfer` logs (emitter = sender, data = to‖value). Archive nodes serve full history; others are bounded to the receipt-retention window |
 | `ng_traceTransaction` | a tx's internal call/transfer tree (the "internal transactions"): each run's `trace` is a pre-order list of `call`/`transfer` frames with `depth`, `from`, `to`, `method`, `value`, `input`. Kept even for a reverted run (a re-entrancy-blocked call shows as a frame with `ok:false`), showing where it failed |
 | `ng_traceBlock` | the traces of every tx in a block (`height`) that ran a contract |
-| `ng_callContract` | DRY-RUN a contract call against current state — the journal never flushes, a free preview of a transact |
+| `ng_callContract` | DRY-RUN a contract call against current state — the journal never flushes, a free preview of a transact; returns outcome, gas, `events` and the internal `trace` |
 
 ### Fork sources
 
