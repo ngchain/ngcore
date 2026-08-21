@@ -1,6 +1,7 @@
 package jsonrpc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -78,6 +79,10 @@ func (sess *wsSession) readLoop() {
 		if err != nil {
 			return
 		}
+		if jsonrpc2.IsBatchMarshal(raw) {
+			sess.dispatchBatch(raw)
+			continue
+		}
 		msg, err := jsonrpc2.UnmarshalMessage(raw)
 		if err != nil {
 			continue
@@ -87,6 +92,26 @@ func (sess *wsSession) readLoop() {
 				sess.push(b)
 			}
 		}
+	}
+}
+
+// dispatchBatch handles a jsonrpc batch request over the WS transport
+func (sess *wsSession) dispatchBatch(raw []byte) {
+	batch, err := jsonrpc2.UnmarshalMessageBatch(raw)
+	if err != nil {
+		return
+	}
+	resBatch := make(jsonrpc2.JsonRpcMessageBatch, 0, len(batch))
+	for _, m := range batch {
+		if r := sess.server.dispatchWS(sess, m); r != nil {
+			resBatch = append(resBatch, r)
+		}
+	}
+	if len(resBatch) == 0 {
+		return
+	}
+	if b, err := resBatch.Marshal(); err == nil {
+		sess.push(b)
 	}
 }
 
@@ -136,9 +161,10 @@ func newSubHub(server *Server) *subHub {
 	return &subHub{server: server, subs: make(map[uint64]*subscription)}
 }
 
-// install wires the block and mempool event sources to the hub
+// install wires the block, reorg and mempool event sources to the hub
 func (h *subHub) install() {
 	h.server.pow.Chain.OnTipChanged = h.onTipChanged
+	h.server.pow.Chain.OnReorg = h.onReorg
 	h.server.pow.Pool.OnNewTx = h.onNewTx
 }
 
@@ -266,6 +292,28 @@ func (h *subHub) onTipChanged() {
 		}
 		for _, lg := range logs {
 			sub.sess.push(subNotification(sub.id, logToReply(lg)))
+		}
+	}
+}
+
+// onReorg pushes the logs orphaned by a reorg to matching subscribers,
+// marked removed, so an indexer can roll them back
+func (h *subHub) onReorg(removed []ngstate.Log) {
+	subs := h.snapshot(subLogs)
+	if len(subs) == 0 {
+		return
+	}
+	for _, lg := range removed {
+		for _, sub := range subs {
+			if sub.address != nil && !bytes.Equal(lg.Event.Contract, sub.address[:]) {
+				continue
+			}
+			if sub.topic != nil && lg.Event.Topic != *sub.topic {
+				continue
+			}
+			r := logToReply(lg)
+			r.Removed = true
+			sub.sess.push(subNotification(sub.id, r))
 		}
 	}
 }

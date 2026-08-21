@@ -28,6 +28,9 @@ type logReply struct {
 	Data     string `json:"data"`
 	RunIndex int    `json:"runIndex"`
 	LogIndex int    `json:"logIndex"`
+	// Removed is set on a logs subscription push when a reorg orphaned the
+	// log (so the subscriber can roll it back)
+	Removed bool `json:"removed,omitempty"`
 }
 
 // getLogsFunc scans the receipts in a block range and returns the events
