@@ -20,6 +20,9 @@ import (
 //     in one db txn — a failure rolls everything back)
 func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 	tipMoved := false
+	// drop any logs a previously aborted reorg txn left behind, so
+	// notifyReorg can only fire logs this call actually committed
+	chain.reorgRemoved = nil
 	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.TxBucketName)

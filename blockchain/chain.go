@@ -41,7 +41,9 @@ func (chain *Chain) notifyTipChanged() {
 
 // notifyReorg fires the OnReorg hook with the logs orphaned by the last
 // reorg (gathered inside switchToBranchTxn), then clears them. Reorgs are
-// serialized by the write lock, so reorgRemoved is single-owner
+// serialized by the write lock, so reorgRemoved is single-owner; the entry
+// points reset it before their txn, so an aborted reorg cannot leak stale
+// logs into a later fire
 func (chain *Chain) notifyReorg() {
 	if chain.OnReorg != nil && len(chain.reorgRemoved) > 0 {
 		chain.OnReorg(chain.reorgRemoved)

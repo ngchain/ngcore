@@ -218,6 +218,8 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 		return ngblocks.ErrBranchEmpty
 	}
 
+	// drop any logs a previously aborted reorg txn left behind (see ApplyBlock)
+	chain.reorgRemoved = nil
 	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
