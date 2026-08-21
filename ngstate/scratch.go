@@ -43,7 +43,10 @@ func (state *State) ReconstructAt(height uint64, fn func(txn *bbolt.Tx) error) e
 		return errors.Errorf("height %d is above the chain tip %d", height, tip)
 	}
 
-	// base state: the nearest snapshot at or below height (genesis at worst)
+	// base state: the nearest snapshot at or below height (genesis at worst).
+	// INVARIANT: the seed must be the EXACT full state at sheet.Height —
+	// every snapshot is a whole DumpSheet, so replaying from it is exact. A
+	// partial/delta snapshot here would silently produce wrong state.
 	sheet := state.GetSnapshotByHeight(height)
 	if sheet == nil {
 		return errors.Errorf("no base snapshot at or below height %d", height)
@@ -74,24 +77,32 @@ func (state *State) ReconstructAt(height uint64, fn func(txn *bbolt.Tx) error) e
 		},
 	}
 
-	// one live read txn feeds the blocks (concurrent with writers), one
-	// scratch write txn absorbs them — different dbs, no deadlock
-	return state.View(func(livetxn *bbolt.Tx) error {
-		blockBucket := livetxn.Bucket(storage.BlockBucketName)
-		return scratch.Update(func(stxn *bbolt.Tx) error {
-			if err := initFromSheet(stxn, sheet); err != nil {
+	// Replay into the scratch write txn, fetching each live block in its OWN
+	// short read txn (released immediately) rather than holding one live read
+	// txn for the whole replay — a long-lived reader pins bbolt's mmap and
+	// bloats the live db on a deep reconstruction. The scratch db is a
+	// different instance, so the nested read txn cannot deadlock the write.
+	//
+	// NOTE: the block/state readers honour the package-level lazy-fork
+	// remoteFallback; this is nil on validating/RPC nodes (where these RPCs
+	// run) and must not be used against a fork node's reconstruction.
+	return scratch.Update(func(stxn *bbolt.Tx) error {
+		if err := initFromSheet(stxn, sheet); err != nil {
+			return err
+		}
+		for h := sheet.Height + 1; h <= height; h++ {
+			var block *ngtypes.FullBlock
+			if err := state.View(func(livetxn *bbolt.Tx) error {
+				var e error
+				block, e = ngblocks.GetBlockByHeight(livetxn.Bucket(storage.BlockBucketName), h)
+				return e
+			}); err != nil {
+				return errors.Wrapf(err, "reconstruct: missing block@%d", h)
+			}
+			if err := scratch.Upgrade(stxn, block); err != nil {
 				return err
 			}
-			for h := sheet.Height + 1; h <= height; h++ {
-				block, err := ngblocks.GetBlockByHeight(blockBucket, h)
-				if err != nil {
-					return errors.Wrapf(err, "reconstruct: missing block@%d", h)
-				}
-				if err := scratch.Upgrade(stxn, block); err != nil {
-					return err
-				}
-			}
-			return fn(stxn)
-		})
+		}
+		return fn(stxn)
 	})
 }

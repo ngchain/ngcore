@@ -61,6 +61,9 @@ func delTxAddrIndex(txBucket *bbolt.Bucket, tx *ngtypes.FullTx) error {
 
 // GetTxsByAddress returns the txs an address touched, in height order,
 // within [fromHeight, toHeight] and capped at limit (0 = a sane default).
+// The genesis/checkpoint-origin block's txs are not indexed (they bypass
+// putTxs), so an origin coinbase is not returned — acceptable, as genesis
+// carries no premine.
 func GetTxsByAddress(txBucket *bbolt.Bucket, addr ngtypes.Address, fromHeight, toHeight uint64, limit int) ([]*ngtypes.FullTx, error) {
 	if limit <= 0 || limit > maxAddrTxLimit {
 		limit = maxAddrTxLimit
