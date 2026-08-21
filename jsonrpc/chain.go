@@ -80,6 +80,43 @@ func (s *Server) getBlockByHashFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	return reply(msg, block)
 }
 
+type getTxsByAddressParams struct {
+	Address    string `json:"address"`
+	FromHeight uint64 `json:"fromHeight"`
+	ToHeight   uint64 `json:"toHeight"` // 0 = up to the tip
+	Limit      int    `json:"limit"`    // 0 = a node-capped default
+}
+
+type getTxsByAddressReply struct {
+	Count int               `json:"count"`
+	Txs   []*ngtypes.FullTx `json:"txs"`
+}
+
+// getTxsByAddressFunc returns an address's transaction history (txs where
+// it is the sender or the recipient), in height order — the account page
+// for wallets and explorers
+func (s *Server) getTxsByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getTxsByAddressParams
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	addr, err := ngtypes.NewAddressFromBS58(params.Address)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	txs, err := s.pow.Chain.GetTxsByAddress(addr, params.FromHeight, params.ToHeight, params.Limit)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return reply(msg, getTxsByAddressReply{Count: len(txs), Txs: txs})
+}
+
 type getTxByHashParams struct {
 	Hash string `json:"hash"`
 }

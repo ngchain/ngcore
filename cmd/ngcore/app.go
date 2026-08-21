@@ -228,6 +228,7 @@ var action = func(c *cli.Context) error {
 	if rpcPort > 0 {
 		jsonRPCServerConfig := jsonrpc.ServerConfig{
 			Host:                 rpcHost,
+			Version:              Version,
 			Port:                 rpcPort,
 			DisableP2PMethods:    false,
 			DisableMiningMethods: false,

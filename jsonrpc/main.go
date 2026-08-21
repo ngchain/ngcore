@@ -20,6 +20,7 @@ type rpcFunc = func(*jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage
 
 type ServerConfig struct {
 	Host                 string
+	Version              string
 	Port                 int
 	DisableP2PMethods    bool
 	DisableMiningMethods bool

@@ -2,6 +2,7 @@ package jsonrpc
 
 import (
 	"encoding/hex"
+	"errors"
 	"math/big"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
@@ -9,6 +10,67 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
+
+type nodeInfoReply struct {
+	PeerID      string   `json:"peerId"`
+	Protocol    string   `json:"protocol"`
+	Network     string   `json:"network"`
+	Version     string   `json:"version,omitempty"`
+	Height      uint64   `json:"height"`
+	Peers       int      `json:"peers"`
+	ListenAddrs []string `json:"listenAddrs"`
+}
+
+// nodeInfoFunc reports the node's self-description for monitoring and
+// explorers: identity, wired protocol, network, version and peer count
+func (s *Server) nodeInfoFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	ln := s.pow.LocalNode
+
+	addrs := ln.Addrs()
+	listen := make([]string, len(addrs))
+	for i, a := range addrs {
+		listen[i] = a.String()
+	}
+
+	return reply(msg, nodeInfoReply{
+		PeerID:      ln.ID().String(),
+		Protocol:    string(ln.GetWiredProtocol()),
+		Network:     s.pow.Network.String(),
+		Version:     s.Version,
+		Height:      s.pow.Chain.GetLatestBlockHeight(),
+		Peers:       len(ln.Peerstore().PeersWithAddrs()),
+		ListenAddrs: listen,
+	})
+}
+
+// peerCountFunc is the count companion to admin_getPeers
+func (s *Server) peerCountFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	return reply(msg, len(s.pow.LocalNode.Peerstore().PeersWithAddrs()))
+}
+
+type difficultyReply struct {
+	Height      uint64 `json:"height"`
+	Difficulty  string `json:"difficulty"`  // the tip's actual pow difficulty (decimal)
+	BlockReward string `json:"blockReward"` // the tip height's reward, raw units
+	NextReward  string `json:"nextReward"`  // the next height's reward, raw units
+}
+
+// getDifficultyFunc exposes the chain's current difficulty and block
+// reward, for explorer front pages
+func (s *Server) getDifficultyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	tip, ok := s.pow.Chain.GetLatestBlock().(*ngtypes.FullBlock)
+	if !ok {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, errors.New("latest block unavailable")))
+	}
+	height := tip.GetHeight()
+
+	return reply(msg, difficultyReply{
+		Height:      height,
+		Difficulty:  tip.GetActualDiff().String(),
+		BlockReward: ngtypes.GetBlockReward(height).String(),
+		NextReward:  ngtypes.GetBlockReward(height + 1).String(),
+	})
+}
 
 type syncingReply struct {
 	Syncing bool   `json:"syncing"` // true while the sync module is catching up

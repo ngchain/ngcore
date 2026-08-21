@@ -15,6 +15,8 @@ func registerHTTPHandler(s *Server) {
 	// network & node admin (geth-style: net_ for chain info, admin_ for peers)
 	if !s.DisableP2PMethods {
 		s.reg("net_getNetwork", s.getNetworkFunc)
+		s.reg("net_nodeInfo", s.nodeInfoFunc)
+		s.reg("net_peerCount", s.peerCountFunc)
 		s.reg("admin_addPeer", s.addPeerFunc)
 		s.reg("admin_getPeers", s.getPeersFunc)
 	}
@@ -26,6 +28,8 @@ func registerHTTPHandler(s *Server) {
 	s.reg("ng_getBlockByHeight", s.getBlockByHeightFunc)
 	s.reg("ng_getBlockByHash", s.getBlockByHashFunc)
 	s.reg("ng_getTxByHash", s.getTxByHashFunc)
+	// account history: the txs an address sent or received
+	s.reg("ng_getTransactionsByAddress", s.requireSynced(s.getTxsByAddressFunc))
 
 	// state
 	s.reg("ng_sendTx", s.sendTxFunc)
@@ -62,6 +66,7 @@ func registerHTTPHandler(s *Server) {
 
 	// node status & mempool (ungated: a client may query these while syncing)
 	s.reg("ng_syncing", s.syncingFunc)
+	s.reg("ng_getDifficulty", s.getDifficultyFunc)
 	s.reg("ng_suggestFee", s.suggestFeeFunc)
 	s.reg("ng_getPendingTxs", s.getPendingTxsFunc)
 

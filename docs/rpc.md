@@ -51,6 +51,8 @@ One rule set on every human-facing surface, in params and replies alike:
 | `ng_getLatestBlockHeight` / `ng_getLatestBlockHash` / `ng_getLatestBlock` | the current head |
 | `ng_getBlockByHeight` / `ng_getBlockByHash` | block lookup |
 | `ng_getTxByHash` | tx lookup |
+| `ng_getTransactionsByAddress` | an address's tx history (sent or received), height-ordered; `fromHeight`/`toHeight`/`limit` |
+| `ng_getDifficulty` | current difficulty and block reward |
 | `net_getNetwork` | which network the node runs |
 
 ### State
@@ -104,6 +106,8 @@ Ungated — answerable even while the node is syncing.
 |---|---|
 | `ng_syncing` | whether the node is catching up, and its current tip height |
 | `ng_getPendingTxs` | the txs queued in this node's mempool (at most one per sender) |
+| `net_nodeInfo` | node self-description: peer id, wired protocol, network, version, peer count, listen addrs |
+| `net_peerCount` | number of known peers |
 
 ### Mining & admin
 
