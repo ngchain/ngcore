@@ -208,6 +208,19 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 		}
 	}
 
+	// snapshot the logs the branch ADDS below its new tip: a logs
+	// subscription replays them (the tip's own logs arrive via OnTipChanged,
+	// so stop one short of it to avoid a duplicate)
+	if newTip.GetHeight() > forkHeight+1 {
+		added, err := ngstate.CollectLogsTxn(txn, ngstate.LogFilter{
+			FromHeight: forkHeight + 1, ToHeight: newTip.GetHeight() - 1,
+		})
+		if err != nil {
+			return err
+		}
+		chain.reorgAdded = added
+	}
+
 	return nil
 }
 
@@ -220,6 +233,7 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 
 	// drop any logs a previously aborted reorg txn left behind (see ApplyBlock)
 	chain.reorgRemoved = nil
+	chain.reorgAdded = nil
 	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
@@ -241,8 +255,10 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 		return err
 	}
 
-	chain.notifyTipChanged()
+	// removed/added logs first, so a subscription sees the rollback before
+	// the new-head announcement (and its tip logs)
 	chain.notifyReorg()
+	chain.notifyTipChanged()
 
 	return nil
 }

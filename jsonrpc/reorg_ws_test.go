@@ -7,15 +7,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/c0mm4nd/rlp"
+
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/utils"
 )
 
-// sealBlockOn builds and seals an empty (coinbase-only) ZERONET block on the
-// given parent, so a test can grow a competing branch off an arbitrary fork
-// point. Its timestamp follows the parent by one second — competing blocks are
-// mined in-process, so they must stay within the future-drift tolerance.
-func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) *ngtypes.FullBlock {
+// sealBlockOn builds and seals a ZERONET block on the given parent, carrying
+// the coinbase plus any extra txs, so a test can grow a competing branch off
+// an arbitrary fork point. Its timestamp follows the parent by one second —
+// competing blocks are mined in-process, so they must stay within the
+// future-drift tolerance.
+func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, extra ...*ngtypes.FullTx) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -28,7 +31,7 @@ func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
 	}
-	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
+	if err := block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, extra...)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -46,9 +49,11 @@ func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	return nil
 }
 
-// TestRPCWebSocketLogsRemovedOnReorg drives the reorg path of the logs
-// subscription: a contract emit that gets orphaned by a heavier branch must
-// push the log again, this time marked removed, so an indexer rolls it back.
+// TestRPCWebSocketLogsRemovedOnReorg drives both sides of the logs
+// subscription reorg path. A heavier branch orphans a contract emit (pushed
+// again marked removed, so an indexer rolls it back) and, in a NON-tip block,
+// re-emits (pushed marked not-removed, so the indexer replays it — this
+// exercises the below-the-tip range that onTipChanged does not cover).
 func TestRPCWebSocketLogsRemovedOnReorg(t *testing.T) {
 	const contractWat = `
 (module
@@ -89,7 +94,25 @@ func TestRPCWebSocketLogsRemovedOnReorg(t *testing.T) {
 		t.Fatal("latest block is not a *FullBlock")
 	}
 
-	send("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"})
+	// build the transact tx that runs the contract, and keep a copy: the
+	// canonical chain mines it now, the competing branch reuses it (same
+	// height, same fork-point state, so it stays valid) to emit off-tip
+	var unsigned string
+	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
+		"to": addr.BS58(), "value": "0", "fee": "0.01",
+	}), &unsigned)
+	signedHex := localSign(t, key, unsigned)
+	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex})
+
+	rawTx, err := hex.DecodeString(signedHex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var transactTx ngtypes.FullTx
+	if err := rlp.DecodeBytes(rawTx, &transactTx); err != nil {
+		t.Fatal(err)
+	}
+
 	mineViaRPC(t, node, key) // runs main -> emits the "key" log
 
 	// drain the live emit notification (removed=false)
@@ -118,19 +141,26 @@ func TestRPCWebSocketLogsRemovedOnReorg(t *testing.T) {
 		t.Fatalf("live emit notification = {removed:%v topic:%q}, want {false key}", removed, topic)
 	}
 
-	// grow a heavier branch off the fork point: two empty blocks out-work the
-	// single emit block, forcing a reorg that orphans it
-	b1 := sealBlockOn(t, forkParent, key)
+	// grow a heavier branch off the fork point, mined by a DIFFERENT miner so
+	// its blocks never collide with the canonical ones: b1 carries the same
+	// transact (so it re-emits below the new tip), b2 is the empty tip that
+	// out-works the single canonical emit block, forcing the reorg
+	miner2, _ := ngtypes.GenerateKey()
+	b1 := sealBlockOn(t, forkParent, miner2, &transactTx)
 	if err := node.pow.Chain.ApplyBlock(b1); err != nil {
 		t.Fatalf("apply competing b1: %v", err)
 	}
-	b2 := sealBlockOn(t, b1, key)
+	b2 := sealBlockOn(t, b1, miner2)
 	if err := node.pow.Chain.ApplyBlock(b2); err != nil {
 		t.Fatalf("apply competing b2: %v", err)
 	}
 
-	// the reorg must push the orphaned emit log again, marked removed
+	// removed-before-added: first the orphaned emit rolls back, then the
+	// branch's off-tip re-emit replays
 	if removed, topic := readSub(); !removed || topic != "key" {
-		t.Fatalf("reorg notification = {removed:%v topic:%q}, want {true key}", removed, topic)
+		t.Fatalf("rollback notification = {removed:%v topic:%q}, want {true key}", removed, topic)
+	}
+	if removed, topic := readSub(); removed || topic != "key" {
+		t.Fatalf("replay notification = {removed:%v topic:%q}, want {false key}", removed, topic)
 	}
 }

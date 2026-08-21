@@ -25,11 +25,15 @@ type Chain struct {
 	// deprecates them
 	OnTipChanged func()
 
-	// OnReorg (optional) runs post-commit after a reorg with the logs that
-	// were in the orphaned blocks, so a logs subscription can notify them
-	// as removed. reorgRemoved carries them out of the write txn
-	OnReorg      func(removed []ngstate.Log)
+	// OnReorg (optional) runs post-commit after a reorg with the logs the
+	// orphaned blocks carried (removed) and the logs the branch installs
+	// below its new tip (added), so a logs subscription can roll the first
+	// back and replay the second. The new tip's own logs travel through
+	// OnTipChanged, so `added` stops one block short to avoid a duplicate.
+	// reorgRemoved / reorgAdded carry them out of the write txn
+	OnReorg      func(removed, added []ngstate.Log)
 	reorgRemoved []ngstate.Log
+	reorgAdded   []ngstate.Log
 }
 
 // notifyTipChanged fires the OnTipChanged hook when set
@@ -39,16 +43,17 @@ func (chain *Chain) notifyTipChanged() {
 	}
 }
 
-// notifyReorg fires the OnReorg hook with the logs orphaned by the last
-// reorg (gathered inside switchToBranchTxn), then clears them. Reorgs are
-// serialized by the write lock, so reorgRemoved is single-owner; the entry
-// points reset it before their txn, so an aborted reorg cannot leak stale
-// logs into a later fire
+// notifyReorg fires the OnReorg hook with the logs orphaned and re-added by
+// the last reorg (gathered inside switchToBranchTxn), then clears them.
+// Reorgs are serialized by the write lock, so the buffers are single-owner;
+// the entry points reset them before their txn, so an aborted reorg cannot
+// leak stale logs into a later fire
 func (chain *Chain) notifyReorg() {
-	if chain.OnReorg != nil && len(chain.reorgRemoved) > 0 {
-		chain.OnReorg(chain.reorgRemoved)
+	if chain.OnReorg != nil && (len(chain.reorgRemoved) > 0 || len(chain.reorgAdded) > 0) {
+		chain.OnReorg(chain.reorgRemoved, chain.reorgAdded)
 	}
 	chain.reorgRemoved = nil
+	chain.reorgAdded = nil
 }
 
 func Init(db *bbolt.DB, network ngtypes.Network, store *ngblocks.BlockStore, state *ngstate.State) *Chain {

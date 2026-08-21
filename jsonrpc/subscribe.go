@@ -296,26 +296,32 @@ func (h *subHub) onTipChanged() {
 	}
 }
 
-// onReorg pushes the logs orphaned by a reorg to matching subscribers,
-// marked removed, so an indexer can roll them back
-func (h *subHub) onReorg(removed []ngstate.Log) {
+// onReorg rolls a reorg out to matching logs subscribers: the orphaned
+// blocks' logs marked removed (so an indexer rolls them back), then the
+// logs the branch re-added below its new tip (the tip's own logs arrive
+// separately via onTipChanged)
+func (h *subHub) onReorg(removed, added []ngstate.Log) {
 	subs := h.snapshot(subLogs)
 	if len(subs) == 0 {
 		return
 	}
-	for _, lg := range removed {
-		for _, sub := range subs {
-			if sub.address != nil && !bytes.Equal(lg.Event.Contract, sub.address[:]) {
-				continue
+	emit := func(logs []ngstate.Log, wasRemoved bool) {
+		for _, lg := range logs {
+			for _, sub := range subs {
+				if sub.address != nil && !bytes.Equal(lg.Event.Contract, sub.address[:]) {
+					continue
+				}
+				if sub.topic != nil && lg.Event.Topic != *sub.topic {
+					continue
+				}
+				r := logToReply(lg)
+				r.Removed = wasRemoved
+				sub.sess.push(subNotification(sub.id, r))
 			}
-			if sub.topic != nil && lg.Event.Topic != *sub.topic {
-				continue
-			}
-			r := logToReply(lg)
-			r.Removed = true
-			sub.sess.push(subNotification(sub.id, r))
 		}
 	}
+	emit(removed, true)
+	emit(added, false)
 }
 
 // onNewTx pushes the hash of a tx that just entered the mempool

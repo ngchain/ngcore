@@ -66,10 +66,11 @@ func TestApplyBlockDropsStaleReorgLogs(t *testing.T) {
 	chain := newInternalTestChain(t)
 
 	fired := false
-	chain.OnReorg = func(removed []ngstate.Log) { fired = true }
+	chain.OnReorg = func(removed, added []ngstate.Log) { fired = true }
 
 	// simulate the residue of a reorg txn that gathered logs then aborted
 	chain.reorgRemoved = []ngstate.Log{{Height: 1, Event: ngstate.Event{Topic: "stale"}}}
+	chain.reorgAdded = []ngstate.Log{{Height: 1, Event: ngstate.Event{Topic: "stale"}}}
 
 	miner, _ := ngtypes.GenerateKey()
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
@@ -81,7 +82,7 @@ func TestApplyBlockDropsStaleReorgLogs(t *testing.T) {
 	if fired {
 		t.Fatal("fast-path block fired OnReorg with stale orphaned logs")
 	}
-	if chain.reorgRemoved != nil {
-		t.Fatalf("reorgRemoved not cleared: %+v", chain.reorgRemoved)
+	if chain.reorgRemoved != nil || chain.reorgAdded != nil {
+		t.Fatalf("reorg log buffers not cleared: removed=%+v added=%+v", chain.reorgRemoved, chain.reorgAdded)
 	}
 }

@@ -23,6 +23,7 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 	// drop any logs a previously aborted reorg txn left behind, so
 	// notifyReorg can only fire logs this call actually committed
 	chain.reorgRemoved = nil
+	chain.reorgAdded = nil
 	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 		txBucket := txn.Bucket(storage.TxBucketName)
@@ -138,8 +139,10 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 	}
 
 	if tipMoved {
-		chain.notifyTipChanged()
+		// removed/added logs first, so a subscription sees the rollback
+		// before the new-head announcement (and its tip logs)
 		chain.notifyReorg()
+		chain.notifyTipChanged()
 	}
 
 	return nil
