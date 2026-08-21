@@ -67,6 +67,10 @@ func delTxs(txBucket *bbolt.Bucket, txs ...*ngtypes.FullTx) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to unindex tx %x", hash)
 		}
+
+		if err := delTxAddrIndex(txBucket, txs[i]); err != nil {
+			return errors.Wrapf(err, "failed to unindex tx %x by address", hash)
+		}
 	}
 
 	return nil

@@ -70,6 +70,11 @@ func putTxs(txBucket *bbolt.Bucket, block *ngtypes.FullBlock) error {
 		if err != nil {
 			return err
 		}
+
+		// address -> tx account-history index
+		if err := putTxAddrIndex(txBucket, block.Txs[i]); err != nil {
+			return err
+		}
 	}
 
 	return nil

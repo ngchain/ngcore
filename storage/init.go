@@ -10,6 +10,11 @@ var (
 	// hash of the block containing it
 	TxBlockPrefix = []byte("blk:")
 
+	// AddrTxPrefix keys (inside the tx bucket) index the txs an address
+	// touches: atx: ‖ addr(32) ‖ heightLE(8) ‖ txHash(32) -> nil. A prefix
+	// cursor over an address yields its txs in height order (account history)
+	AddrTxPrefix = []byte("atx:")
+
 	// state buckets
 	// ContractBucketName maps an address to its contract slot
 	// (opened by the first commit — the address IS the namespace)

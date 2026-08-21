@@ -28,6 +28,20 @@ func (chain *Chain) GetTxByHash(hash []byte) (*ngtypes.FullTx, error) {
 	return tx, nil
 }
 
+// GetTxsByAddress returns the txs an address touched (as sender or
+// recipient), in height order, within [fromHeight, toHeight] and capped at
+// limit
+func (chain *Chain) GetTxsByAddress(addr ngtypes.Address, fromHeight, toHeight uint64, limit int) ([]*ngtypes.FullTx, error) {
+	var txs []*ngtypes.FullTx
+	err := chain.View(func(txn *bbolt.Tx) error {
+		var err error
+		txs, err = ngblocks.GetTxsByAddress(txn.Bucket(storage.TxBucketName), addr, fromHeight, toHeight, limit)
+		return err
+	})
+
+	return txs, err
+}
+
 // GetTxLocation resolves the block containing the tx via the tx index
 func (chain *Chain) GetTxLocation(txHash []byte) (blockHash []byte, height uint64, err error) {
 	err = chain.View(func(txn *bbolt.Tx) error {
