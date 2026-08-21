@@ -24,6 +24,12 @@ type Chain struct {
 	// pool hooks in here: its txs are height-locked, so any tip change
 	// deprecates them
 	OnTipChanged func()
+
+	// OnReorg (optional) runs post-commit after a reorg with the logs that
+	// were in the orphaned blocks, so a logs subscription can notify them
+	// as removed. reorgRemoved carries them out of the write txn
+	OnReorg      func(removed []ngstate.Log)
+	reorgRemoved []ngstate.Log
 }
 
 // notifyTipChanged fires the OnTipChanged hook when set
@@ -31,6 +37,16 @@ func (chain *Chain) notifyTipChanged() {
 	if chain.OnTipChanged != nil {
 		chain.OnTipChanged()
 	}
+}
+
+// notifyReorg fires the OnReorg hook with the logs orphaned by the last
+// reorg (gathered inside switchToBranchTxn), then clears them. Reorgs are
+// serialized by the write lock, so reorgRemoved is single-owner
+func (chain *Chain) notifyReorg() {
+	if chain.OnReorg != nil && len(chain.reorgRemoved) > 0 {
+		chain.OnReorg(chain.reorgRemoved)
+	}
+	chain.reorgRemoved = nil
 }
 
 func Init(db *bbolt.DB, network ngtypes.Network, store *ngblocks.BlockStore, state *ngstate.State) *Chain {

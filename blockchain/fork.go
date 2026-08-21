@@ -149,11 +149,23 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 	blockBucket := txn.Bucket(storage.BlockBucketName)
 	txBucket := txn.Bucket(storage.TxBucketName)
 
+	// snapshot the logs of the blocks about to be orphaned, BEFORE anything
+	// clears their receipts — a logs subscription notifies these as removed
+	forkHeight := branch[0].GetHeight() - 1
+	if oldTip, err := ngblocks.GetLatestHeight(blockBucket); err != nil {
+		return err
+	} else if oldTip > forkHeight {
+		removed, err := ngstate.CollectLogsTxn(txn, ngstate.LogFilter{FromHeight: forkHeight + 1, ToHeight: oldTip})
+		if err != nil {
+			return err
+		}
+		chain.reorgRemoved = removed
+	}
+
 	// try to unwind state to the fork point from the changesets BEFORE the
 	// block store switches (the unwind reads the old tip height). On an
 	// archive node this replaces the full replay-from-genesis with an
 	// O(reorg depth) revert; otherwise it reports false and we replay
-	forkHeight := branch[0].GetHeight() - 1
 	unwound, err := chain.State.UnwindToTxn(txn, forkHeight)
 	if err != nil {
 		return err
@@ -185,6 +197,9 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 
 		if !chain.State.Archive {
 			if err := ngstate.PruneReceiptsTxn(txn, newTip.GetHeight()); err != nil {
+				return err
+			}
+			if err := ngblocks.PruneAddrTxIndexTxn(txBucket, ngstate.ReceiptFloor(newTip.GetHeight())); err != nil {
 				return err
 			}
 		}
@@ -225,6 +240,7 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 	}
 
 	chain.notifyTipChanged()
+	chain.notifyReorg()
 
 	return nil
 }

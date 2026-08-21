@@ -55,9 +55,13 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 					return err
 				}
 
-				// archive nodes keep receipts so ng_getLogs reaches all history
+				// archive nodes keep receipts + account history for all of it;
+				// others bound both to the retention window
 				if !chain.State.Archive {
 					if err := ngstate.PruneReceiptsTxn(txn, block.GetHeight()); err != nil {
+						return err
+					}
+					if err := ngblocks.PruneAddrTxIndexTxn(txBucket, ngstate.ReceiptFloor(block.GetHeight())); err != nil {
 						return err
 					}
 				}
@@ -132,6 +136,7 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 
 	if tipMoved {
 		chain.notifyTipChanged()
+		chain.notifyReorg()
 	}
 
 	return nil
