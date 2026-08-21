@@ -201,3 +201,30 @@ func TestStateGetTxRuns(t *testing.T) {
 		t.Fatalf("unknown tx: runs=%v err=%v", runs, err)
 	}
 }
+
+// TestTraceCallMarshalJSON pins the rpc encoding of a trace frame: bs58
+// addresses, hex bytes
+func TestTraceCallMarshalJSON(t *testing.T) {
+	addr := testAddr(0xaa)
+	tc := TraceCall{Type: "transfer", Depth: 1, From: addr.Bytes(), To: addr.Bytes(), Value: []byte{0x01, 0x02}, Ok: true}
+	raw, err := utils.JSON.Marshal(tc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(raw)
+	for _, want := range []string{addr.String(), `"type":"transfer"`, `"depth":1`, `"ok":true`, "0102"} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("trace json misses %q: %s", want, s)
+		}
+	}
+}
+
+// TestReceiptRetainedFloorArchive: an archive node keeps every receipt, so
+// the floor is 0 (and it does not even touch the db)
+func TestReceiptRetainedFloorArchive(t *testing.T) {
+	state := &State{Network: ngtypes.ZERONET, Archive: true}
+	floor, err := state.ReceiptRetainedFloor()
+	if err != nil || floor != 0 {
+		t.Fatalf("archive floor = %d (%v), want 0", floor, err)
+	}
+}

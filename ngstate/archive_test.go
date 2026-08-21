@@ -8,6 +8,7 @@ import (
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
+	"github.com/ngchain/ngcore/utils"
 )
 
 // applyAt simulates one block apply at the given height with archive
@@ -109,22 +110,63 @@ func TestArchiveContractHistory(t *testing.T) {
 
 	addr := testAddr(0xB2)
 
+	// deploy source v1 at height 5, upgrade to v2 at height 7
 	applyAt(t, state, 5, func(txn *bbolt.Tx) {
-		_ = setContract(txn, state.cs, ngtypes.NewContract(addr, nil, nil))
+		_ = setContract(txn, state.cs, ngtypes.NewContract(addr, []byte("v1"), nil))
+	})
+	applyAt(t, state, 7, func(txn *bbolt.Tx) {
+		_ = setContract(txn, state.cs, ngtypes.NewContract(addr, []byte("v2"), nil))
 	})
 
 	_ = state.View(func(txn *bbolt.Tx) error {
 		if _, ok, _ := contractAtHeight(txn, addr, 4); ok {
 			t.Error("contract must not exist at height 4 (deployed at 5)")
 		}
-		if _, ok, _ := contractAtHeight(txn, addr, 5); !ok {
-			t.Error("contract must exist at height 5")
+		// heights 5..6 resolve the v1 pre-image (recorded at the height-7 upgrade)
+		if acc, ok, err := contractAtHeight(txn, addr, 5); err != nil || !ok || string(acc.Source) != "v1" {
+			t.Fatalf("contract@5 = ok:%v err:%v source:%q, want v1", ok, err, srcOf(acc))
 		}
-		if _, ok, _ := contractAtHeight(txn, addr, 9); !ok {
-			t.Error("contract must exist at height 9 (unchanged since 5)")
+		// the tip is v2
+		if acc, ok, err := contractAtHeight(txn, addr, 7); err != nil || !ok || string(acc.Source) != "v2" {
+			t.Fatalf("contract@7 = ok:%v err:%v source:%q, want v2", ok, err, srcOf(acc))
 		}
 		return nil
 	})
+}
+
+func srcOf(acc *ngtypes.Contract) string {
+	if acc == nil {
+		return ""
+	}
+	return string(acc.Source)
+}
+
+// TestChangesetRecordKey covers the key-registry changeset recorder: the
+// first reveal at a height is recorded, a re-record is a no-op, and a nil
+// recorder writes nothing
+func TestChangesetRecordKey(t *testing.T) {
+	db := newTestDB(t)
+	state := newTestState(t, db)
+	addr := testAddr(0xE1)
+
+	if err := state.Update(func(txn *bbolt.Tx) error {
+		cs := newChangeset(5)
+		cs.recordKey(txn, addr)
+		cs.recordKey(txn, addr) // first-write-wins: no-op
+
+		if txn.Bucket(storage.KeyChangeSetBucketName).Get(csKey(5, addr)) == nil {
+			t.Fatal("key reveal was not recorded")
+		}
+
+		var nilCS *changeset
+		nilCS.recordKey(txn, testAddr(0xE2))
+		if txn.Bucket(storage.KeyChangeSetBucketName).Get(csKey(5, testAddr(0xE2))) != nil {
+			t.Fatal("a nil recorder must record nothing")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestArchiveDisabledRejects pins the guard: a non-archive node refuses
@@ -161,4 +203,44 @@ func TestArchiveOffCapturesNothing(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+// TestChangesetCovers pins the coverage probe used by the read guard and
+// reorg unwind: a height with a recorded balance change is covered, the
+// next one is not
+func TestChangesetCovers(t *testing.T) {
+	db := newTestDB(t)
+	state := newTestState(t, db)
+	addr := testAddr(0xF0)
+
+	if err := state.Update(func(txn *bbolt.Tx) error {
+		newChangeset(5).recordBal(txn, addr)
+		if !changesetCovers(txn, 5) {
+			t.Error("height 5 must be covered")
+		}
+		if changesetCovers(txn, 6) {
+			t.Error("height 6 must not be covered")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestReceiptRetainedFloorPruned covers the non-archive floor: tip minus
+// the retention window
+func TestReceiptRetainedFloorPruned(t *testing.T) {
+	db := newTestDB(t)
+	state := newTestState(t, db) // Archive is false
+
+	if err := db.Update(func(txn *bbolt.Tx) error {
+		return txn.Bucket(storage.BlockBucketName).Put(storage.LatestHeightTag, utils.PackUint64LE(receiptRetention+40))
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	floor, err := state.ReceiptRetainedFloor()
+	if err != nil || floor != 40 {
+		t.Fatalf("prune floor = %d (%v), want 40", floor, err)
+	}
 }
