@@ -278,3 +278,30 @@ func TestPutNewTxFromLocal(t *testing.T) {
 		t.Fatalf("local tx on a wrong height: got %v, want ErrTxInvalidHeight", err)
 	}
 }
+
+// TestPoolListAndOnNewTx covers List (empty then populated) and the
+// OnNewTx hook firing on a successful add
+func TestPoolListAndOnNewTx(t *testing.T) {
+	env := newTestEnv(t)
+	next := env.chain.GetLatestBlockHeight() + 1
+
+	if len(env.pool.List()) != 0 {
+		t.Fatal("a fresh pool must list nothing")
+	}
+
+	var fired *ngtypes.FullTx
+	env.pool.OnNewTx = func(tx *ngtypes.FullTx) { fired = tx }
+
+	tx := transactTx(t, next, env.keyA, 1)
+	if err := env.pool.PutTx(tx); err != nil {
+		t.Fatal(err)
+	}
+
+	if fired == nil || !bytes.Equal(fired.GetHash(), tx.GetHash()) {
+		t.Fatal("OnNewTx did not fire for the queued tx")
+	}
+	list := env.pool.List()
+	if len(list) != 1 || !bytes.Equal(list[0].GetHash(), tx.GetHash()) {
+		t.Fatalf("List = %d txs, want the one queued", len(list))
+	}
+}
