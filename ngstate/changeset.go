@@ -2,6 +2,7 @@ package ngstate
 
 import (
 	"bytes"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,15 @@ func csKey(height uint64, addr ngtypes.Address) []byte {
 	return key
 }
 
-// histKey is addr-major: addr ‖ heightLE, so a prefix cursor yields an
-// address's change-heights in ascending order (point queries)
+// histKey is addr-major: addr ‖ heightBE. The height is BIG-endian so a
+// prefix cursor yields an address's change-heights in ascending NUMERIC
+// order — firstChangeHeightAfter seeks into this range and takes the first
+// hit, which is only the smallest height > target if the bytes sort like the
+// numbers (little-endian would interleave heights past 255).
 func histKey(addr ngtypes.Address, height uint64) []byte {
 	key := make([]byte, ngtypes.AddressSize+8)
 	copy(key[:ngtypes.AddressSize], addr[:])
-	copy(key[ngtypes.AddressSize:], utils.PackUint64LE(height))
+	binary.BigEndian.PutUint64(key[ngtypes.AddressSize:], height)
 	return key
 }
 
@@ -134,7 +138,7 @@ func firstChangeHeightAfter(txn *bbolt.Tx, histBucket []byte, addr ngtypes.Addre
 	if got != addr {
 		return 0, false
 	}
-	return utils.UnpackUint64LE(k[ngtypes.AddressSize:]), true
+	return binary.BigEndian.Uint64(k[ngtypes.AddressSize:]), true
 }
 
 // balanceAtHeight resolves addr's balance as of the given height: the

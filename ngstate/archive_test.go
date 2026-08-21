@@ -57,6 +57,37 @@ func TestArchiveBalanceHistory(t *testing.T) {
 	})
 }
 
+// TestArchiveBalanceHistoryAcross256 pins the height-key ordering: with
+// change-heights spanning the 256 boundary, the addr-major history index
+// must still resolve the first change AFTER a target height. A little-endian
+// height would interleave the keys and mis-resolve, silently returning the
+// current balance instead of the historical pre-image.
+func TestArchiveBalanceHistoryAcross256(t *testing.T) {
+	db := newTestDB(t)
+	state := newTestState(t, db)
+	state.Archive = true
+
+	addr := testAddr(0xB2)
+
+	// change balance at heights straddling the 1-byte boundary
+	applyAt(t, state, 1, func(txn *bbolt.Tx) { _ = setBalance(txn, state.cs, addr, big.NewInt(100)) })
+	applyAt(t, state, 200, func(txn *bbolt.Tx) { _ = setBalance(txn, state.cs, addr, big.NewInt(200)) })
+	applyAt(t, state, 260, func(txn *bbolt.Tx) { _ = setBalance(txn, state.cs, addr, big.NewInt(300)) })
+
+	// value AT h = pre-image at the first change strictly after h; the
+	// balance set at h1 (100) holds until h200 raises it, which holds until
+	// h260 raises it to 300
+	want := map[uint64]int64{0: 0, 1: 100, 150: 100, 199: 100, 200: 200, 250: 200, 259: 200, 260: 300, 300: 300}
+	_ = state.View(func(txn *bbolt.Tx) error {
+		for h, w := range want {
+			if got := balanceAtHeight(txn, addr, h); got.Int64() != w {
+				t.Errorf("balanceAtHeight(%d) = %s, want %d", h, got, w)
+			}
+		}
+		return nil
+	})
+}
+
 // TestArchiveUnwind pins the reorg primitive: reverting heights from the
 // tip restores each address to its pre-image and drops those heights'
 // changeset + index entries, leaving the state as if only the surviving

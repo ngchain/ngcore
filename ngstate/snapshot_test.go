@@ -9,7 +9,6 @@ import (
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/utils"
 )
 
 func testSheet(height uint64, hash []byte) *ngtypes.Sheet {
@@ -120,7 +119,7 @@ func TestStatePersistedSnapshots(t *testing.T) {
 
 	// a broken persisted record degrades to the genesis fallback
 	err = db.Update(func(txn *bbolt.Tx) error {
-		return txn.Bucket(storage.SnapshotBucketName).Put(utils.PackUint64LE(9), []byte{0xff})
+		return txn.Bucket(storage.SnapshotBucketName).Put(snapshotKey(9), []byte{0xff})
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -140,10 +139,10 @@ func TestStatePersistedSnapshots(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = db.View(func(txn *bbolt.Tx) error {
-		if raw := txn.Bucket(storage.SnapshotBucketName).Get(utils.PackUint64LE(5)); raw != nil {
+		if raw := txn.Bucket(storage.SnapshotBucketName).Get(snapshotKey(5)); raw != nil {
 			t.Fatal("the persisted snapshot below the retention floor survived")
 		}
-		if raw := txn.Bucket(storage.SnapshotBucketName).Get(utils.PackUint64LE(farHeight)); raw == nil {
+		if raw := txn.Bucket(storage.SnapshotBucketName).Get(snapshotKey(farHeight)); raw == nil {
 			t.Fatal("the fresh persisted snapshot is gone")
 		}
 		return nil

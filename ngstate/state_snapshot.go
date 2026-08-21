@@ -12,8 +12,16 @@ import (
 	"github.com/ngchain/ngcore/ngblocks"
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/utils"
 )
+
+// snapshotKey encodes a snapshot's height big-endian, so the persisted keys
+// sort in numeric height order (the retention prune and the nearest-older
+// lookup both walk the bucket in order)
+func snapshotKey(height uint64) []byte {
+	var k [8]byte
+	binary.BigEndian.PutUint64(k[:], height)
+	return k[:]
+}
 
 // var snapshot *atomic.Value
 
@@ -166,15 +174,17 @@ func (state *State) PutSnapshotTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 	if err != nil {
 		return err
 	}
-	if err := snapshotBucket.Put(utils.PackUint64LE(sheet.Height), raw); err != nil {
+	if err := snapshotBucket.Put(snapshotKey(sheet.Height), raw); err != nil {
 		return err
 	}
 
-	// prune persisted snapshots below the retention window
+	// prune persisted snapshots below the retention window. keys are
+	// big-endian, so First()->Next() walks heights in ascending order and
+	// the loop can stop at the first survivor
 	if sheet.Height > snapshotRetention*ngtypes.BlockCheckRound {
 		floor := sheet.Height - snapshotRetention*ngtypes.BlockCheckRound
 		c := snapshotBucket.Cursor()
-		for k, _ := c.First(); k != nil && binary.LittleEndian.Uint64(k) < floor; k, _ = c.Next() {
+		for k, _ := c.First(); k != nil && binary.BigEndian.Uint64(k) < floor; k, _ = c.Next() {
 			if err := c.Delete(); err != nil {
 				return err
 			}
@@ -201,13 +211,15 @@ func (state *State) GetSnapshotByHeight(height uint64) *ngtypes.Sheet {
 	_ = state.View(func(txn *bbolt.Tx) error {
 		snapshotBucket := txn.Bucket(storage.SnapshotBucketName)
 
-		raw := snapshotBucket.Get(utils.PackUint64LE(height))
+		raw := snapshotBucket.Get(snapshotKey(height))
 		if raw == nil {
 			// nearest older snapshot: better a conservative floor than
-			// an error (pre-persistence dbs, retention gaps)
+			// an error (pre-persistence dbs, retention gaps). big-endian
+			// keys iterate in height order, so the last one <= height is the
+			// nearest older
 			c := snapshotBucket.Cursor()
 			var candidate []byte
-			for k, v := c.First(); k != nil && binary.LittleEndian.Uint64(k) <= height; k, v = c.Next() {
+			for k, v := c.First(); k != nil && binary.BigEndian.Uint64(k) <= height; k, v = c.Next() {
 				candidate = v
 			}
 			raw = candidate
