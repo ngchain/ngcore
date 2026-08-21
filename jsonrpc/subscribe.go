@@ -161,11 +161,34 @@ func newSubHub(server *Server) *subHub {
 	return &subHub{server: server, subs: make(map[uint64]*subscription)}
 }
 
-// install wires the block, reorg and mempool event sources to the hub
+// install wires the block, reorg and mempool event sources to the hub. It
+// COMPOSES with any hook already registered — consensus installs pool.Reset
+// on OnTipChanged, so clobbering it would stop the mempool from deprecating
+// its height-locked txs on every tip change.
 func (h *subHub) install() {
-	h.server.pow.Chain.OnTipChanged = h.onTipChanged
-	h.server.pow.Chain.OnReorg = h.onReorg
-	h.server.pow.Pool.OnNewTx = h.onNewTx
+	prevTip := h.server.pow.Chain.OnTipChanged
+	h.server.pow.Chain.OnTipChanged = func() {
+		if prevTip != nil {
+			prevTip()
+		}
+		h.onTipChanged()
+	}
+
+	prevReorg := h.server.pow.Chain.OnReorg
+	h.server.pow.Chain.OnReorg = func(removed, added []ngstate.Log) {
+		if prevReorg != nil {
+			prevReorg(removed, added)
+		}
+		h.onReorg(removed, added)
+	}
+
+	prevNewTx := h.server.pow.Pool.OnNewTx
+	h.server.pow.Pool.OnNewTx = func(tx *ngtypes.FullTx) {
+		if prevNewTx != nil {
+			prevNewTx(tx)
+		}
+		h.onNewTx(tx)
+	}
 }
 
 type subscribeParams struct {
