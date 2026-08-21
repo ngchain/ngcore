@@ -39,6 +39,27 @@ func TestRPCNodeStatus(t *testing.T) {
 	}
 }
 
+// TestRPCObservabilityRejections sweeps the input-validation seams of the
+// new observability/node methods
+func TestRPCObservabilityRejections(t *testing.T) {
+	node := newRPCNode(t)
+
+	for _, c := range []struct {
+		name   string
+		method string
+		params any
+	}{
+		{"getLogs/bs58", "ng_getLogs", map[string]any{"fromHeight": 0, "address": "0OIl"}},
+		{"traceTransaction/hex", "ng_traceTransaction", map[string]any{"hash": "zz"}},
+		{"traceBlock/aboveTip", "ng_traceBlock", map[string]any{"height": uint64(99)}},
+		{"suggestFee/hex", "ng_suggestFee", map[string]any{"rawTx": "zz"}},
+	} {
+		if _, rpcErr := node.call(t, c.method, c.params); rpcErr == nil {
+			t.Errorf("%s: accepted %v, want a jsonrpc error", c.name, c.params)
+		}
+	}
+}
+
 // TestRPCPendingTxs pins ng_getPendingTxs: empty at first, then it lists a
 // broadcast-but-unmined tx
 func TestRPCPendingTxs(t *testing.T) {

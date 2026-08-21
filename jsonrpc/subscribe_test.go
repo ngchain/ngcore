@@ -1,6 +1,7 @@
 package jsonrpc_test
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -97,6 +98,96 @@ func TestRPCWebSocket(t *testing.T) {
 	resp = wsCall(t, conn, 3, "ng_unsubscribe", map[string]any{"id": subID})
 	if string(resp["result"]) != "true" {
 		t.Fatalf("unsubscribe = %s, want true", resp["result"])
+	}
+}
+
+// TestRPCWebSocketLogs drives the logs subscription with an address+topic
+// filter: a contract that emits must push a matching log over WS
+func TestRPCWebSocketLogs(t *testing.T) {
+	const contractWat = `
+(module
+  (import "log" "emit" (func $emit (param i32 i32 i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "keyval")
+  (func (export "main")
+    (drop (call $emit (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
+`
+	node := newRPCNode(t)
+	key, _ := ngtypes.GenerateKey()
+	addr := ngtypes.NewAddress(key)
+
+	conn := dialWS(t, node)
+	resp := wsCall(t, conn, 1, "ng_subscribe", map[string]any{
+		"type": "logs", "address": addr.BS58(), "topic": "key",
+	})
+	var subID string
+	if err := json.Unmarshal(resp["result"], &subID); err != nil || subID == "" {
+		t.Fatalf("logs subscribe = %s (%v)", resp["result"], err)
+	}
+
+	send := func(method string, params any) {
+		var unsigned string
+		decodeInto(t, node.mustCall(t, method, params), &unsigned)
+		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+	}
+	mineViaRPC(t, node, key)
+	send("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))})
+	mineViaRPC(t, node, key)
+	send("ng_genActivate", map[string]any{"fee": "0.05"})
+	mineViaRPC(t, node, key)
+	send("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"})
+	mineViaRPC(t, node, key) // runs main -> emits the "key" log
+
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	var notif struct {
+		Method string `json:"method"`
+		Params struct {
+			Result struct {
+				Contract string `json:"contract"`
+				Topic    string `json:"topic"`
+				Data     string `json:"data"`
+			} `json:"result"`
+		} `json:"params"`
+	}
+	for {
+		if err := conn.ReadJSON(&notif); err != nil {
+			t.Fatalf("ws logs read: %v", err)
+		}
+		if notif.Method == "ng_subscription" {
+			break
+		}
+	}
+	if notif.Params.Result.Topic != "key" || notif.Params.Result.Contract != addr.BS58() {
+		t.Fatalf("log notification = %+v", notif.Params.Result)
+	}
+}
+
+// TestRPCWebSocketErrors covers the subscribe/unsubscribe/dispatch error
+// paths over WS
+func TestRPCWebSocketErrors(t *testing.T) {
+	node := newRPCNode(t)
+	conn := dialWS(t, node)
+
+	hasError := func(resp map[string]json.RawMessage) bool { _, ok := resp["error"]; return ok }
+
+	if !hasError(wsCall(t, conn, 1, "ng_nope", nil)) {
+		t.Error("unknown method must error")
+	}
+	if !hasError(wsCall(t, conn, 2, "ng_subscribe", nil)) {
+		t.Error("subscribe without params must error")
+	}
+	if !hasError(wsCall(t, conn, 3, "ng_subscribe", map[string]any{"type": "bogus"})) {
+		t.Error("unknown subscription type must error")
+	}
+	if !hasError(wsCall(t, conn, 4, "ng_subscribe", map[string]any{"type": "logs", "address": "0OIl"})) {
+		t.Error("logs subscribe with a bad address must error")
+	}
+	if !hasError(wsCall(t, conn, 5, "ng_unsubscribe", map[string]any{"id": "zz"})) {
+		t.Error("unsubscribe with a non-numeric id must error")
+	}
+	// a decimal, unknown id: parses but returns false (exercises the decimal branch)
+	if resp := wsCall(t, conn, 6, "ng_unsubscribe", map[string]any{"id": "999"}); string(resp["result"]) != "false" {
+		t.Fatalf("unsubscribe unknown id = %s, want false", resp["result"])
 	}
 }
 
