@@ -178,6 +178,15 @@ func deleteReceiptsAboveTxn(txn *bbolt.Tx, height uint64) error {
 	return nil
 }
 
+// ReceiptFloor is the lowest height whose receipts (and the address index)
+// a non-archive node retains for a given tip
+func ReceiptFloor(tip uint64) uint64 {
+	if tip > receiptRetention {
+		return tip - receiptRetention
+	}
+	return 0
+}
+
 // PruneReceiptsTxn ages out receipts settled deeper than the retention
 // window; called at checkpoint maintenance so the bucket stays bounded
 func PruneReceiptsTxn(txn *bbolt.Tx, tipHeight uint64) error {
@@ -301,33 +310,46 @@ func (state *State) GetLogs(f LogFilter) ([]Log, error) {
 			}
 		}
 
-		for h := f.FromHeight; h <= f.ToHeight; h++ {
-			block, err := ngblocks.GetBlockByHeight(blockBucket, h)
-			if err != nil {
-				return err
-			}
-			for _, tx := range block.Txs {
-				txHash := tx.GetHash()
-				runs, err := GetTxRuns(txn, txHash)
-				if err != nil {
-					return err
-				}
-				for ri := range runs {
-					for li := range runs[ri].Events {
-						ev := runs[ri].Events[li]
-						if f.Address != nil && !bytes.Equal(ev.Contract, f.Address[:]) {
-							continue
-						}
-						if f.Topic != nil && ev.Topic != *f.Topic {
-							continue
-						}
-						out = append(out, Log{Height: h, TxHash: txHash, RunIndex: ri, LogIndex: li, Event: ev})
-					}
-				}
-			}
-		}
-		return nil
+		var e error
+		out, e = CollectLogsTxn(txn, f)
+		return e
 	})
 
 	return out, err
+}
+
+// CollectLogsTxn gathers the matching logs of blocks [FromHeight, ToHeight]
+// directly from a caller-held txn, without the range/retention guards — used
+// by GetLogs (after its guards) and by the reorg path to snapshot the logs of
+// blocks about to be orphaned, before their receipts are cleared
+func CollectLogsTxn(txn *bbolt.Tx, f LogFilter) ([]Log, error) {
+	blockBucket := txn.Bucket(storage.BlockBucketName)
+
+	var out []Log
+	for h := f.FromHeight; h <= f.ToHeight; h++ {
+		block, err := ngblocks.GetBlockByHeight(blockBucket, h)
+		if err != nil {
+			return nil, err
+		}
+		for _, tx := range block.Txs {
+			txHash := tx.GetHash()
+			runs, err := GetTxRuns(txn, txHash)
+			if err != nil {
+				return nil, err
+			}
+			for ri := range runs {
+				for li := range runs[ri].Events {
+					ev := runs[ri].Events[li]
+					if f.Address != nil && !bytes.Equal(ev.Contract, f.Address[:]) {
+						continue
+					}
+					if f.Topic != nil && ev.Topic != *f.Topic {
+						continue
+					}
+					out = append(out, Log{Height: h, TxHash: txHash, RunIndex: ri, LogIndex: li, Event: ev})
+				}
+			}
+		}
+	}
+	return out, nil
 }
