@@ -2,21 +2,27 @@ package ngblocks
 
 import (
 	"bytes"
+	"encoding/binary"
 
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
 	"github.com/ngchain/ngcore/storage"
-	"github.com/ngchain/ngcore/utils"
 )
 
 // addrTxKey builds the account-history index key inside the tx bucket:
-// atx: ‖ addr(32) ‖ heightLE(8) ‖ txHash(32)
+// atx: ‖ addr(32) ‖ heightBE(8) ‖ txHash(32). The height is BIG-endian on
+// purpose: bbolt orders keys bytewise, so big-endian makes the on-disk order
+// match numeric height order — which the range seek and iteration rely on
+// (little-endian would interleave heights once they exceed one byte).
 func addrTxKey(addr ngtypes.Address, height uint64, txHash []byte) []byte {
+	var h [8]byte
+	binary.BigEndian.PutUint64(h[:], height)
+
 	key := make([]byte, 0, len(storage.AddrTxPrefix)+ngtypes.AddressSize+8+len(txHash))
 	key = append(key, storage.AddrTxPrefix...)
 	key = append(key, addr[:]...)
-	key = append(key, utils.PackUint64LE(height)...)
+	key = append(key, h[:]...)
 	key = append(key, txHash...)
 	return key
 }
@@ -81,7 +87,7 @@ func GetTxsByAddress(txBucket *bbolt.Bucket, addr ngtypes.Address, fromHeight, t
 		if len(k) != len(storage.AddrTxPrefix)+ngtypes.AddressSize+8+32 {
 			continue
 		}
-		height := utils.UnpackUint64LE(k[len(storage.AddrTxPrefix)+ngtypes.AddressSize:])
+		height := binary.BigEndian.Uint64(k[len(storage.AddrTxPrefix)+ngtypes.AddressSize:])
 		if height > toHeight {
 			break
 		}
@@ -111,7 +117,7 @@ func PruneAddrTxIndexTxn(txBucket *bbolt.Bucket, floor uint64) error {
 		if len(k) != prefixLen+ngtypes.AddressSize+8+32 {
 			continue
 		}
-		height := utils.UnpackUint64LE(k[prefixLen+ngtypes.AddressSize:])
+		height := binary.BigEndian.Uint64(k[prefixLen+ngtypes.AddressSize:])
 		if height < floor {
 			if err := c.Delete(); err != nil {
 				return err

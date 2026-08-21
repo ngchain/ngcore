@@ -75,3 +75,65 @@ func TestAddrTxIndex(t *testing.T) {
 		t.Fatalf("after unindex recipient history = %d, want 0", len(got))
 	}
 }
+
+// TestAddrTxIndexHeightOrder crosses the 256 boundary, where a little-endian
+// height would interleave keys and break the range seek / height ordering:
+// with big-endian heights the index stays numerically ordered
+func TestAddrTxIndexHeightOrder(t *testing.T) {
+	db := newDB(t)
+	keyA := newKey(t)
+	addrA := ngtypes.NewAddress(keyA)
+	dest := ngtypes.NewAddress(newKey(t))
+
+	heights := []uint64{1, 100, 256, 300}
+	update(t, db, func(_, txBucket *bbolt.Bucket) error {
+		for _, h := range heights {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h, dest, big.NewInt(1), big.NewInt(1), nil, nil)
+			if err := tx.Signature(keyA); err != nil {
+				return err
+			}
+			raw, err := rlp.EncodeToBytes(tx)
+			if err != nil {
+				return err
+			}
+			if err := txBucket.Put(tx.GetHash(), raw); err != nil {
+				return err
+			}
+			if err := putTxAddrIndex(txBucket, tx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	got := func(from, to uint64) []uint64 {
+		var hs []uint64
+		if err := db.View(func(txn *bbolt.Tx) error {
+			out, err := GetTxsByAddress(txn.Bucket(storage.TxBucketName), addrA, from, to, 0)
+			for _, tx := range out {
+				hs = append(hs, tx.Height)
+			}
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return hs
+	}
+
+	eq := func(name string, want []uint64, from, to uint64) {
+		g := got(from, to)
+		if len(g) != len(want) {
+			t.Fatalf("%s = %v, want %v", name, g, want)
+		}
+		for i := range want {
+			if g[i] != want[i] {
+				t.Fatalf("%s = %v, want %v (order/height mismatch)", name, g, want)
+			}
+		}
+	}
+
+	eq("all", []uint64{1, 100, 256, 300}, 0, 0)
+	eq("fromHeight 2", []uint64{100, 256, 300}, 2, 0)
+	eq("toHeight 100", []uint64{1, 100}, 0, 100)
+	eq("range [100,256]", []uint64{100, 256}, 100, 256)
+}
