@@ -94,14 +94,19 @@ func (sm *SnapshotManager) GetSnapshotByHash(hash []byte) *ngtypes.Sheet {
 // the key registry. This is the full-state export snapshot sync AND
 // rpc-based forking (`getSheet` / `ngcore fork --rpc`) are built on.
 func DumpSheetTxn(network ngtypes.Network, txn *bbolt.Tx) (*ngtypes.Sheet, error) {
-	contracts := make([]*ngtypes.Contract, 0)
-	balances := make([]*ngtypes.Balance, 0)
-
-	blockBucket := txn.Bucket(storage.BlockBucketName)
-	latestBlock, err := ngblocks.GetLatestBlock(blockBucket)
+	latestBlock, err := ngblocks.GetLatestBlock(txn.Bucket(storage.BlockBucketName))
 	if err != nil {
 		return nil, err
 	}
+	return DumpSheetAt(network, txn, latestBlock.GetHeight(), latestBlock.GetHash())
+}
+
+// DumpSheetAt dumps the state buckets of the txn into a sheet tagged with
+// the given height/hash — for whole-state reconstructions whose db has no
+// block store (see ReconstructAt)
+func DumpSheetAt(network ngtypes.Network, txn *bbolt.Tx, height uint64, blockHash []byte) (*ngtypes.Sheet, error) {
+	contracts := make([]*ngtypes.Contract, 0)
+	balances := make([]*ngtypes.Balance, 0)
 
 	c := txn.Bucket(storage.ContractBucketName).Cursor()
 	for k, _ := c.First(); k != nil; k, _ = c.Next() {
@@ -134,7 +139,7 @@ func DumpSheetTxn(network ngtypes.Network, txn *bbolt.Tx) (*ngtypes.Sheet, error
 		keys = append(keys, row)
 	}
 
-	return ngtypes.NewSheet(network, latestBlock.GetHeight(), latestBlock.GetHash(), balances, contracts, keys), nil
+	return ngtypes.NewSheet(network, height, blockHash, balances, contracts, keys), nil
 }
 
 // GenerateSnapshotTxn captures the current state as the sheet of the
