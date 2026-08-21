@@ -37,6 +37,58 @@ type callContractResult struct {
 	Trace   []ngstate.TraceCall `json:"trace,omitempty"` // internal call/transfer tree of the dry-run
 }
 
+type getContractExportsParams struct {
+	Address string  `json:"address"`
+	Height  *uint64 `json:"height,omitempty"`
+}
+
+type contractExportReply struct {
+	Name     string `json:"name"`
+	Params   int    `json:"params"`
+	Results  int    `json:"results"`
+	Callable bool   `json:"callable"` // a transact tx can dispatch to it
+}
+
+// getContractExportsFunc lists a contract's exported functions (its "ABI"),
+// marking those a transact tx can call. Optional height reads a past version
+func (s *Server) getContractExportsFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getContractExportsParams
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	addr, err := ngtypes.NewAddressFromBS58(params.Address)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	var account *ngtypes.Contract
+	if params.Height != nil {
+		account, err = s.pow.State.GetContractAt(addr, *params.Height)
+	} else {
+		account, err = s.pow.State.GetContract(addr)
+	}
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	exports, err := ngstate.ContractExports(account.Source)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	out := make([]contractExportReply, len(exports))
+	for i, e := range exports {
+		out[i] = contractExportReply{Name: e.Name, Params: e.Params, Results: e.Results, Callable: e.Callable}
+	}
+
+	return reply(msg, out)
+}
+
 // callContractFunc dry-runs a contract's main against the CURRENT state:
 // the journal is never flushed, so nothing changes on chain — a free
 // preview of what a real transact tx would do

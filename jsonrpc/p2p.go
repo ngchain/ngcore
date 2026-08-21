@@ -14,6 +14,32 @@ type addPeerParams struct {
 	PeerMultiAddr string `json:"peerMultiAddr"`
 }
 
+type removePeerParams struct {
+	PeerID string `json:"peerId"`
+}
+
+// removePeerFunc drops all connections to a peer by its id
+func (s *Server) removePeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params removePeerParams
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	id, err := peer.Decode(params.PeerID)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	if err := s.pow.LocalNode.Network().ClosePeer(id); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return reply(msg, true)
+}
+
 func (s *Server) addPeerFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params addPeerParams
 

@@ -52,6 +52,7 @@ One rule set on every human-facing surface, in params and replies alike:
 | `ng_getBlockByHeight` / `ng_getBlockByHash` | block lookup |
 | `ng_getTxByHash` | tx lookup |
 | `ng_getTransactionsByAddress` | an address's tx history (sent or received), height-ordered; `fromHeight`/`toHeight`/`limit` |
+| `ng_getBlockTransactionCount` / `ng_getTransactionByBlockAndIndex` | block tx navigation by `height`\|`hash` (+ `index`) |
 | `ng_getDifficulty` | current difficulty and block reward |
 | `net_getNetwork` | which network the node runs |
 
@@ -62,15 +63,16 @@ One rule set on every human-facing surface, in params and replies alike:
 | `ng_getBalanceByAddress` | total / mature / locked balance of an address (optional `height`: total as of a past block, archive nodes) |
 | `ng_getContractInfo` | the full contract slot (owner, code, context) (optional `height`: the slot as of a past block, archive nodes) |
 | `ng_getContractStorage` | ONE contract storage value by raw key (hex); returns hex plus u64/u256 decodes — the targeted read for indexers and wallets (optional `height`: value as of a past block, archive nodes) |
-
-Historical (`height`) reads work by default — archive is the default
-startup mode. A node started with `--prune` answers them with an error
-rather than a wrong current value. See [archive.md](./archive.md).
+| `ng_getContractExports` | a contract's exported functions (its ABI), marking those a transact tx can call (optional `height`) |
 | `ng_getReceipt` | a tx's contract runs — outcome, gas, events (local, derived data) |
 | `ng_getLogs` | events in a block range (`fromHeight`/`toHeight`, optional `address` emitter and `topic` filters). Internal transactions — contract value transfers — surface automatically as `ng.transfer` logs (emitter = sender, data = to‖value). Archive nodes serve full history; others are bounded to the receipt-retention window |
 | `ng_traceTransaction` | a tx's internal call/transfer tree (the "internal transactions"): each run's `trace` is a pre-order list of `call`/`transfer` frames with `depth`, `from`, `to`, `method`, `value`, `input`. Kept even for a reverted run (a re-entrancy-blocked call shows as a frame with `ok:false`), showing where it failed |
 | `ng_traceBlock` | the traces of every tx in a block (`height`) that ran a contract |
 | `ng_callContract` | DRY-RUN a contract call against current state — the journal never flushes, a free preview of a transact; returns outcome, gas, `events` and the internal `trace` |
+
+Historical (`height`) reads work by default — archive is the default
+startup mode. A node started with `--prune` answers them with an error
+rather than a wrong current value. See [archive.md](./archive.md).
 
 ### Fork sources
 
@@ -79,7 +81,7 @@ What `ngcore fork --rpc` pulls from. Ordinary wallets never need these.
 | method | what it does |
 |---|---|
 | `ng_getHead` | light head info: network, height, block hash, timestamp |
-| `ng_getAddressState` | ONE address's state — balance + contract (code and storage) as hex RLP; the unit of **lazy** forking |
+| `ng_getAddressState` | ONE address's state — balance + contract (code and storage) as hex RLP; the unit of **lazy** forking (optional `height`: as of a past block, archive nodes) |
 | `ng_getSheet` | the whole state as one hex-RLP sheet (balances, contracts, key registry); the **eager** fork source |
 
 ### Tx composition
@@ -114,7 +116,7 @@ Ungated — answerable even while the node is syncing.
 | method | what it does |
 |---|---|
 | `ng_getWork` / `ng_submitWork` | the PoW mining loop |
-| `admin_addPeer` / `admin_getPeers` | peer management |
+| `admin_addPeer` / `admin_removePeer` / `admin_getPeers` | peer management |
 
 ## Fork-tool methods (`ngcore fork`)
 

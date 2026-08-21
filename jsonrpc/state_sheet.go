@@ -68,13 +68,26 @@ func (s *Server) getAddressStateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	balance, err := s.pow.State.GetTotalBalanceByAddress(addr)
-	if err != nil {
-		balance = big.NewInt(0)
+	// historical read (archive) when a height is given, else the tip
+	balance := big.NewInt(0)
+	var account *ngtypes.Contract
+	if params.Height != nil {
+		if bal, err := s.pow.State.GetBalanceByAddressAt(addr, *params.Height); err == nil {
+			balance = bal
+		} else {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		account, _ = s.pow.State.GetContractAt(addr, *params.Height)
+	} else {
+		if bal, err := s.pow.State.GetTotalBalanceByAddress(addr); err == nil {
+			balance = bal
+		}
+		account, _ = s.pow.State.GetContract(addr)
 	}
 
 	res := getAddressStateReply{Balance: balance.String()}
-	if account, err := s.pow.State.GetContract(addr); err == nil {
+	if account != nil {
 		rawAcc, err := rlp.EncodeToBytes(account)
 		if err != nil {
 			log.Error(err)

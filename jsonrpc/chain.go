@@ -117,6 +117,73 @@ func (s *Server) getTxsByAddressFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 	return reply(msg, getTxsByAddressReply{Count: len(txs), Txs: txs})
 }
 
+type blockRefParams struct {
+	Height *uint64 `json:"height"`
+	Hash   string  `json:"hash"`
+}
+
+// blockByRef resolves a block by height or hash (height wins if both given)
+func (s *Server) blockByRef(p blockRefParams) (*ngtypes.FullBlock, error) {
+	var (
+		block ngtypes.Block
+		err   error
+	)
+	if p.Height != nil {
+		block, err = s.pow.Chain.GetBlockByHeight(*p.Height)
+	} else {
+		hash, decErr := hex.DecodeString(p.Hash)
+		if decErr != nil {
+			return nil, decErr
+		}
+		block, err = s.pow.Chain.GetBlockByHash(hash)
+	}
+	if err != nil {
+		return nil, err
+	}
+	full, ok := block.(*ngtypes.FullBlock)
+	if !ok {
+		return nil, errors.New("block carries no txs")
+	}
+	return full, nil
+}
+
+func (s *Server) getBlockTransactionCountFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params blockRefParams
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	block, err := s.blockByRef(params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	return reply(msg, len(block.Txs))
+}
+
+type getTxByBlockAndIndexParams struct {
+	Height *uint64 `json:"height"`
+	Hash   string  `json:"hash"`
+	Index  int     `json:"index"`
+}
+
+func (s *Server) getTxByBlockAndIndexFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params getTxByBlockAndIndexParams
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	block, err := s.blockByRef(blockRefParams{Height: params.Height, Hash: params.Hash})
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	if params.Index < 0 || params.Index >= len(block.Txs) {
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, errors.Errorf("tx index %d out of range (block has %d)", params.Index, len(block.Txs))))
+	}
+	return reply(msg, block.Txs[params.Index])
+}
+
 type getTxByHashParams struct {
 	Hash string `json:"hash"`
 }

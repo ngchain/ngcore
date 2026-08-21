@@ -18,6 +18,7 @@ func registerHTTPHandler(s *Server) {
 		s.reg("net_nodeInfo", s.nodeInfoFunc)
 		s.reg("net_peerCount", s.peerCountFunc)
 		s.reg("admin_addPeer", s.addPeerFunc)
+		s.reg("admin_removePeer", s.removePeerFunc)
 		s.reg("admin_getPeers", s.getPeersFunc)
 	}
 
@@ -28,6 +29,8 @@ func registerHTTPHandler(s *Server) {
 	s.reg("ng_getBlockByHeight", s.getBlockByHeightFunc)
 	s.reg("ng_getBlockByHash", s.getBlockByHashFunc)
 	s.reg("ng_getTxByHash", s.getTxByHashFunc)
+	s.reg("ng_getBlockTransactionCount", s.getBlockTransactionCountFunc)
+	s.reg("ng_getTransactionByBlockAndIndex", s.getTxByBlockAndIndexFunc)
 	// account history: the txs an address sent or received
 	s.reg("ng_getTransactionsByAddress", s.requireSynced(s.getTxsByAddressFunc))
 
@@ -49,6 +52,8 @@ func registerHTTPHandler(s *Server) {
 	s.reg("ng_getContractInfo", s.requireSynced(s.getContractInfoFunc))
 	// targeted contract kv read for external tools (indexers, wallets)
 	s.reg("ng_getContractStorage", s.requireSynced(s.getContractStorageFunc))
+	// list a contract's callable exports (its ABI)
+	s.reg("ng_getContractExports", s.requireSynced(s.getContractExportsFunc))
 	s.reg("ng_getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
 	// fork-chain sources: getHead + getAddressState back LAZY rpc forking,
 	// getSheet the eager one-shot export
