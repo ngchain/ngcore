@@ -2,6 +2,7 @@ package ngp2p
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -46,10 +47,23 @@ func (localNode *LocalNode) peerManagerLoop(ctx context.Context) {
 }
 
 // redialKnownPeers dials the bootstrap nodes plus every peerstore entry
-// with known addresses which is not connected right now
+// with known addresses which is not connected right now. It WAITS for the
+// dials to finish so the shared dial context outlives them — spawning the
+// dials and returning immediately would let the deferred cancel abort them
 func (localNode *LocalNode) redialKnownPeers(ctx context.Context) {
 	dialCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+
+	var wg sync.WaitGroup
+	dial := func(pi peer.AddrInfo) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := localNode.Connect(dialCtx, pi); err != nil {
+				log.Debugf("failed to redial peer %s: %v", pi.ID, err)
+			}
+		}()
+	}
 
 	// bootstrap nodes first
 	if !localNode.P2PConfig.DisableConnectingBootstraps {
@@ -61,12 +75,7 @@ func (localNode *LocalNode) redialKnownPeers(ctx context.Context) {
 			if localNode.Network().Connectedness(pi.ID) == network.Connected {
 				continue
 			}
-
-			go func(pi peer.AddrInfo) {
-				if err := localNode.Connect(dialCtx, pi); err != nil {
-					log.Debugf("failed to redial bootstrap %s: %v", pi.ID, err)
-				}
-			}(*pi)
+			dial(*pi)
 		}
 	}
 
@@ -80,11 +89,8 @@ func (localNode *LocalNode) redialKnownPeers(ctx context.Context) {
 		if len(addrs) == 0 {
 			continue
 		}
-
-		go func(pi peer.AddrInfo) {
-			if err := localNode.Connect(dialCtx, pi); err != nil {
-				log.Debugf("failed to redial peer %s: %v", pi.ID, err)
-			}
-		}(peer.AddrInfo{ID: id, Addrs: addrs})
+		dial(peer.AddrInfo{ID: id, Addrs: addrs})
 	}
+
+	wg.Wait()
 }
