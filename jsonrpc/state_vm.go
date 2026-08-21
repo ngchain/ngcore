@@ -23,6 +23,34 @@ type callContractParams struct {
 	Entry string `json:"entry"`
 	// Extra is the raw args the contract reads through tx.get_extra
 	Extra string `json:"extra"`
+	// Height, when set, dry-runs against the state reconstructed as of that
+	// past block (isolated scratch db); nil uses the current state
+	Height *uint64 `json:"height,omitempty"`
+}
+
+// dryRunContract simulates a transact against `account` on the given txn's
+// state, filling result with the outcome, gas, events and trace
+func (s *Server) dryRunContract(txn *bbolt.Tx, account *ngtypes.Contract, height, blockTime uint64, value *big.Int, entry, extra string, result *callContractResult) error {
+	fakeTx := ngtypes.NewUnsignedTx(
+		s.pow.Network, ngtypes.TransactTx, height, account.Owner, value, big.NewInt(0),
+		ngtypes.EncodeCallData(entry, []byte(extra)),
+	)
+
+	vm, err := ngstate.NewVM(txn, account, fakeTx, blockTime)
+	if err != nil {
+		return err
+	}
+
+	gasUsed, runErr := vm.DryRun(vm.EntryFor(ngstate.VMEntryOnTx))
+	result.GasUsed = gasUsed
+	result.Trace = vm.Trace() // internal call/transfer tree, kept even on failure
+	if runErr != nil {
+		result.Error = runErr.Error()
+	} else {
+		result.Ok = true
+		result.Events = vm.Events()
+	}
+	return nil
 }
 
 // ngstate.Event / ngstate.ContractRun carry canonical MarshalJSON
@@ -113,40 +141,34 @@ func (s *Server) callContractFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRp
 	}
 
 	result := &callContractResult{}
+	if params.Height != nil {
+		// simulate against the state reconstructed at that past height
+		block, err := s.pow.Chain.GetBlockByHeight(*params.Height)
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		err = s.pow.State.ReconstructAt(*params.Height, func(txn *bbolt.Tx) error {
+			account, err := ngstate.GetContractTxn(txn, contractAddr)
+			if err != nil {
+				return err
+			}
+			return s.dryRunContract(txn, account, *params.Height+1, block.GetTimestamp(), value, params.Entry, params.Extra, result)
+		})
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		return reply(msg, result)
+	}
+
 	err = s.pow.State.View(func(txn *bbolt.Tx) error {
-		account, err := s.pow.State.GetContract(contractAddr)
+		account, err := ngstate.GetContractTxn(txn, contractAddr)
 		if err != nil {
 			return err
 		}
-
-		fakeTx := ngtypes.NewUnsignedTx(
-			s.pow.Network,
-			ngtypes.TransactTx,
-			s.pow.Chain.GetLatestBlockHeight()+1,
-			account.Owner,
-			value,
-			big.NewInt(0),
-			ngtypes.EncodeCallData(params.Entry, []byte(params.Extra)),
-		)
-
 		latest := s.pow.Chain.GetLatestBlock().(*ngtypes.FullBlock)
-
-		vm, err := ngstate.NewVM(txn, account, fakeTx, latest.BlockHeader.Timestamp)
-		if err != nil {
-			return err
-		}
-
-		gasUsed, runErr := vm.DryRun(vm.EntryFor(ngstate.VMEntryOnTx))
-		result.GasUsed = gasUsed
-		result.Trace = vm.Trace() // the internal call/transfer tree, kept even on failure
-		if runErr != nil {
-			result.Error = runErr.Error()
-		} else {
-			result.Ok = true
-			result.Events = vm.Events()
-		}
-
-		return nil
+		return s.dryRunContract(txn, account, latest.GetHeight()+1, latest.BlockHeader.Timestamp, value, params.Entry, params.Extra, result)
 	})
 	if err != nil {
 		log.Error(err)

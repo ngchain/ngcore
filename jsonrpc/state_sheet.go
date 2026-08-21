@@ -100,16 +100,53 @@ func (s *Server) getAddressStateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Jso
 	return reply(msg, res)
 }
 
+type getSheetParams struct {
+	// Height, when set, reconstructs the whole state as of that past block
+	// in an isolated scratch db (works on any node with the blocks; may be
+	// slow far from the tip). nil dumps the current state
+	Height *uint64 `json:"height,omitempty"`
+}
+
 func (s *Server) getSheetFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var sheet *ngtypes.Sheet
-	err := s.pow.State.View(func(txn *bbolt.Tx) error {
-		var err error
-		sheet, err = ngstate.DumpSheetTxn(s.pow.State.Network, txn)
-		return err
-	})
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	var params getSheetParams
+	if msg.Params != nil {
+		if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+	}
+
+	var (
+		sheet     *ngtypes.Sheet
+		timestamp uint64
+	)
+	if params.Height != nil {
+		block, err := s.pow.Chain.GetBlockByHeight(*params.Height)
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		timestamp = block.GetTimestamp()
+		err = s.pow.State.ReconstructAt(*params.Height, func(txn *bbolt.Tx) error {
+			var e error
+			sheet, e = ngstate.DumpSheetAt(s.pow.State.Network, txn, *params.Height, block.GetHash())
+			return e
+		})
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+	} else {
+		err := s.pow.State.View(func(txn *bbolt.Tx) error {
+			var e error
+			sheet, e = ngstate.DumpSheetTxn(s.pow.State.Network, txn)
+			return e
+		})
+		if err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+		timestamp = s.pow.Chain.GetLatestBlock().GetTimestamp()
 	}
 
 	rawSheet, err := rlp.EncodeToBytes(sheet)
@@ -122,7 +159,7 @@ func (s *Server) getSheetFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMes
 		Network:   uint8(sheet.Network),
 		Height:    sheet.Height,
 		BlockHash: hex.EncodeToString(sheet.BlockHash),
-		Timestamp: s.pow.Chain.GetLatestBlock().GetTimestamp(),
+		Timestamp: timestamp,
 		Sheet:     hex.EncodeToString(rawSheet),
 	})
 }

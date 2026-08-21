@@ -68,11 +68,16 @@ One rule set on every human-facing surface, in params and replies alike:
 | `ng_getLogs` | events in a block range (`fromHeight`/`toHeight`, optional `address` emitter and `topic` filters). Internal transactions — contract value transfers — surface automatically as `ng.transfer` logs (emitter = sender, data = to‖value). Archive nodes serve full history; others are bounded to the receipt-retention window |
 | `ng_traceTransaction` | a tx's internal call/transfer tree (the "internal transactions"): each run's `trace` is a pre-order list of `call`/`transfer` frames with `depth`, `from`, `to`, `method`, `value`, `input`. Kept even for a reverted run (a re-entrancy-blocked call shows as a frame with `ok:false`), showing where it failed |
 | `ng_traceBlock` | the traces of every tx in a block (`height`) that ran a contract |
-| `ng_callContract` | DRY-RUN a contract call against current state — the journal never flushes, a free preview of a transact; returns outcome, gas, `events` and the internal `trace` |
+| `ng_callContract` | DRY-RUN a contract call — the journal never flushes; returns outcome, gas, `events` and the internal `trace`. Optional `height`: simulate against the state reconstructed at a past block (isolated scratch db, no archive needed) |
 
-Historical (`height`) reads work by default — archive is the default
-startup mode. A node started with `--prune` answers them with an error
-rather than a wrong current value. See [archive.md](./archive.md).
+Historical (`height`) reads come in two flavours. The per-address reads
+(`ng_getBalanceByAddress`, `ng_getContractInfo`, `ng_getContractStorage`,
+`ng_getAddressState`) resolve from the changeset index and need **archive**
+(the default startup mode; `--prune` disables them). The whole-state reads
+(`ng_getSheet`, `ng_callContract`) instead **reconstruct** the state at the
+height in an isolated scratch db — they work on any node that still has the
+blocks (archive or not), at the cost of a replay that grows with distance
+from the tip. See [archive.md](./archive.md).
 
 ### Fork sources
 
@@ -82,7 +87,7 @@ What `ngcore fork --rpc` pulls from. Ordinary wallets never need these.
 |---|---|
 | `ng_getHead` | light head info: network, height, block hash, timestamp |
 | `ng_getAddressState` | ONE address's state — balance + contract (code and storage) as hex RLP; the unit of **lazy** forking (optional `height`: as of a past block, archive nodes) |
-| `ng_getSheet` | the whole state as one hex-RLP sheet (balances, contracts, key registry); the **eager** fork source |
+| `ng_getSheet` | the whole state as one hex-RLP sheet (balances, contracts, key registry); the **eager** fork source. Optional `height`: the full state as of a past block, reconstructed in an isolated scratch db (any node with the blocks; slower far from the tip) |
 
 ### Tx composition
 
