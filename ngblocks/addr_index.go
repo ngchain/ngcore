@@ -100,3 +100,23 @@ func GetTxsByAddress(txBucket *bbolt.Bucket, addr ngtypes.Address, fromHeight, t
 }
 
 const maxAddrTxLimit = 1000
+
+// PruneAddrTxIndexTxn drops account-history entries settled below floor —
+// called on non-archive nodes alongside the receipt prune, so the index
+// (like receipts) stays bounded instead of growing forever
+func PruneAddrTxIndexTxn(txBucket *bbolt.Bucket, floor uint64) error {
+	prefixLen := len(storage.AddrTxPrefix)
+	c := txBucket.Cursor()
+	for k, _ := c.Seek(storage.AddrTxPrefix); k != nil && bytes.HasPrefix(k, storage.AddrTxPrefix); k, _ = c.Next() {
+		if len(k) != prefixLen+ngtypes.AddressSize+8+32 {
+			continue
+		}
+		height := utils.UnpackUint64LE(k[prefixLen+ngtypes.AddressSize:])
+		if height < floor {
+			if err := c.Delete(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
