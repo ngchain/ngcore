@@ -1,6 +1,6 @@
 module github.com/ngchain/ngcore
 
-go 1.25.7
+go 1.25.13
 
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.5.0
@@ -13,7 +13,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-libp2p v0.49.0
-	github.com/libp2p/go-libp2p-kad-dht v0.42.1
+	github.com/libp2p/go-libp2p-kad-dht v0.42.2
 	github.com/libp2p/go-libp2p-pubsub v0.17.0
 	github.com/libp2p/go-msgio v0.3.0
 	github.com/mr-tron/base58 v1.3.0
