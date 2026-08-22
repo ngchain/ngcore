@@ -28,8 +28,8 @@ jobs:
             qemu: qemu-aarch64 -L /usr/aarch64-linux-gnu
             qemu_target: aarch64-linux-user
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
       - name: Install cross-compilation tools
@@ -66,7 +66,7 @@ jobs:
       # Move `ngcore` or `ngcore.exe` to dist folder
       - run: cp ngcore* dist
 
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: ngcore-${{ matrix.build }}
           path: dist
@@ -80,24 +80,12 @@ jobs:
     needs: [ build ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Download x86_64 macOS binaries
-        uses: actions/download-artifact@v1
-        with:
-          name: ngcore-x86_64-macos
-      - name: Download x86_64 Linux binaries
-        uses: actions/download-artifact@v1
-        with:
-          name: ngcore-x86_64-linux
-      - name: Download AArch64 Linux binaries
-        uses: actions/download-artifact@v1
-        with:
-          name: ngcore-aarch64-linux
-      - name: Download x86_64 Windows MinGW binaries
-        uses: actions/download-artifact@v1
-        with:
-          name: ngcore-x86_64-windows
+      # v4 downloads every run artifact into its own ngcore-<platform>/
+      # subfolder, which is the layout build-tarballs.sh expects
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
 
       # Assemble all the build artifacts into tarballs and zip archives.
       - name: Assemble tarballs
@@ -108,7 +96,7 @@ jobs:
           bash ./.github/tools/build-tarballs.sh aarch64-linux
       # Upload all assembled tarballs as an artifact of the github action run, so
       # that way even PRs can inspect the output.
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v4
         with:
           name: tarballs
           path: dist
