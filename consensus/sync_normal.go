@@ -34,6 +34,12 @@ func (mod *syncModule) doSync(record *RemoteRecord) error {
 			return err
 		}
 
+		// an empty reply means the remote cannot extend our tip (we are on a
+		// fork it will not serve from here) — stop instead of spinning
+		if len(chain) == 0 {
+			break
+		}
+
 		for i := 0; i < len(chain); i++ {
 			err = mod.pow.Chain.ApplyBlock(chain[i])
 			if err != nil {

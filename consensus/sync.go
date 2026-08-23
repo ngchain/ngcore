@@ -8,6 +8,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ngchain/ngcore/ngp2p"
+	"github.com/ngchain/ngcore/ngp2p/defaults"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -26,6 +27,11 @@ type syncModule struct {
 	storeMu sync.RWMutex
 	store   map[peer.ID]*RemoteRecord
 
+	// convergeBatchSize bounds how many local hashes are compared per
+	// converging round; defaults to defaults.MaxBlocks, overridable in tests
+	// so a deep fork can be exercised without mining thousands of blocks
+	convergeBatchSize uint64
+
 	*utils.Locker
 }
 
@@ -33,10 +39,11 @@ type syncModule struct {
 func newSyncModule(c ngtypes.Consensus, localNode *ngp2p.LocalNode) *syncModule {
 	pow := c.(*PoWork)
 	syncMod := &syncModule{
-		pow:       pow,
-		localNode: localNode,
-		storeMu:   sync.RWMutex{},
-		store:     make(map[peer.ID]*RemoteRecord),
+		pow:               pow,
+		localNode:         localNode,
+		storeMu:           sync.RWMutex{},
+		store:             make(map[peer.ID]*RemoteRecord),
+		convergeBatchSize: defaults.MaxBlocks,
 
 		Locker: utils.NewLocker(),
 	}

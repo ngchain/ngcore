@@ -602,8 +602,8 @@ func TestGetChainFetchByHeightsMissing(t *testing.T) {
 func TestGetChainConvergeWithSamepoint(t *testing.T) {
 	fx := newWiredFixture(t, 3)
 
-	// block1 is known to the server, the second hash is not: the server
-	// walks 1 block up from the samepoint
+	// block1 is the highest hash the server knows (the second is unknown):
+	// the server returns its chain from the samepoint+1 up to its tip
 	from := [][]byte{fx.blocks[1].GetHash(), bytes.Repeat([]byte{0xde}, 32)}
 
 	id, stream, err := fx.client.SendGetChain(fx.serverHost.ID(), from, packHeights(1, 2))
@@ -612,11 +612,11 @@ func TestGetChainConvergeWithSamepoint(t *testing.T) {
 	}
 
 	blocks := chainBlocks(t, mustReceive(t, id, stream))
-	if len(blocks) != 1 {
-		t.Fatalf("got %d blocks, want 1", len(blocks))
+	if len(blocks) != 2 {
+		t.Fatalf("got %d blocks, want 2 (heights 2..3)", len(blocks))
 	}
-	if blocks[0].GetHeight() != 2 {
-		t.Errorf("got block@%d, want block@2", blocks[0].GetHeight())
+	if blocks[0].GetHeight() != 2 || blocks[1].GetHeight() != 3 {
+		t.Errorf("got blocks @%d @%d, want @2 @3", blocks[0].GetHeight(), blocks[1].GetHeight())
 	}
 }
 
@@ -625,17 +625,17 @@ func TestGetChainConvergeNoSamepoint(t *testing.T) {
 
 	from := [][]byte{bytes.Repeat([]byte{0xde}, 32)}
 
+	// no common block in this batch: the server replies with an EMPTY chain
+	// so the requester walks further back (it must NOT return its own
+	// height-range blocks, whose parent the requester does not have)
 	id, stream, err := fx.client.SendGetChain(fx.serverHost.ID(), from, packHeights(0, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	blocks := chainBlocks(t, mustReceive(t, id, stream))
-	if len(blocks) != 2 {
-		t.Fatalf("got %d blocks, want 2", len(blocks))
-	}
-	if blocks[0].GetHeight() != 0 || blocks[1].GetHeight() != 1 {
-		t.Errorf("got blocks @%d @%d, want @0 @1", blocks[0].GetHeight(), blocks[1].GetHeight())
+	if len(blocks) != 0 {
+		t.Fatalf("got %d blocks, want 0 (empty = walk older)", len(blocks))
 	}
 }
 
@@ -644,21 +644,24 @@ func TestGetChainConvergeNoSamepointMissing(t *testing.T) {
 
 	from := [][]byte{bytes.Repeat([]byte{0xde}, 32)}
 
+	// no samepoint: the requested height range is irrelevant now — the server
+	// always replies empty to signal "walk older"
 	id, stream, err := fx.client.SendGetChain(fx.serverHost.ID(), from, packHeights(5, 6))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	msg := mustReceive(t, id, stream)
-	if msg.Header.Type != RejectMsg {
-		t.Fatalf("expected RejectMsg, got %s", msg.Header.Type)
+	blocks := chainBlocks(t, mustReceive(t, id, stream))
+	if len(blocks) != 0 {
+		t.Fatalf("got %d blocks, want 0 (empty = walk older)", len(blocks))
 	}
 }
 
 func TestGetChainConvergeMissingNext(t *testing.T) {
 	fx := newWiredFixture(t, 3)
 
-	// samepoint is the tip: the walk immediately runs off the chain
+	// samepoint is the tip: there is nothing above it, so the server replies
+	// with an empty chain (the requester is already at/above the samepoint)
 	from := [][]byte{fx.blocks[3].GetHash(), bytes.Repeat([]byte{0xde}, 32)}
 
 	id, stream, err := fx.client.SendGetChain(fx.serverHost.ID(), from, packHeights(0, 0))
@@ -666,9 +669,9 @@ func TestGetChainConvergeMissingNext(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	msg := mustReceive(t, id, stream)
-	if msg.Header.Type != RejectMsg {
-		t.Fatalf("expected RejectMsg, got %s", msg.Header.Type)
+	blocks := chainBlocks(t, mustReceive(t, id, stream))
+	if len(blocks) != 0 {
+		t.Fatalf("got %d blocks, want 0 (samepoint is the tip)", len(blocks))
 	}
 }
 
@@ -724,12 +727,11 @@ func TestGetChainFetchByHashUnreachableTo(t *testing.T) {
 	}
 }
 
-// TestGetChainConvergeEmptyReplyClosesStream documents today's behavior
-// for a converging request whose samepoint is the last known hash: the
-// server has nothing to send, sendChain refuses empty chains and the
-// stream is closed with NO reply at all (see the suspected-bug report:
-// the requester cannot distinguish this from a failure)
-func TestGetChainConvergeEmptyReplyClosesStream(t *testing.T) {
+// TestGetChainConvergeEmptyReplyIsExplicit pins the fix: a converging request
+// whose samepoint is the last known hash now gets an EXPLICIT empty chain
+// reply (not a bare stream close), so the requester can distinguish "nothing
+// above the samepoint" from a transport failure.
+func TestGetChainConvergeEmptyReplyIsExplicit(t *testing.T) {
 	fx := newWiredFixture(t, 2)
 
 	from := [][]byte{fx.blocks[2].GetHash()} // the tip itself, nothing above it
@@ -739,9 +741,9 @@ func TestGetChainConvergeEmptyReplyClosesStream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_ = stream.SetDeadline(time.Now().Add(10 * time.Second))
-	if _, err := ReceiveReply(id, stream); err == nil {
-		t.Fatal("expected an error (bare stream close), got a reply")
+	blocks := chainBlocks(t, mustReceive(t, id, stream))
+	if len(blocks) != 0 {
+		t.Fatalf("got %d blocks, want 0 (explicit empty reply)", len(blocks))
 	}
 }
 

@@ -9,13 +9,16 @@ import (
 
 // sendChain will send peer the specific vault's sendChain, which's len is not must be full BlockCheckRound num.
 func (w *Wired) sendChain(uuid []byte, stream network.Stream, blocks ...*ngtypes.FullBlock) bool {
+	// an empty chain is a valid reply: it means "nothing to give here" — the
+	// requester reads it as caught-up (doSync) or as "walk further back"
+	// (converging). Dropping it (as before) left the requester reading EOF.
 	if len(blocks) == 0 {
-		return false
+		log.Debugf("replying empty sendChain to %s. Message id: %x", stream.Conn().RemotePeer(), uuid)
+	} else {
+		log.Debugf("replying sendChain to %s. Message id: %x, from block@%d to %d",
+			stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight(), blocks[len(blocks)-1].GetHeight(),
+		)
 	}
-
-	log.Debugf("replying sendChain to %s. Message id: %x, from block@%d to %d",
-		stream.Conn().RemotePeer(), uuid, blocks[0].GetHeight(), blocks[len(blocks)-1].GetHeight(),
-	)
 
 	protoBlocks := make([]*ngtypes.FullBlock, len(blocks))
 	for i := 0; i < len(blocks); i++ {

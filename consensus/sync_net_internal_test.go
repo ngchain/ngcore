@@ -154,20 +154,13 @@ func TestDoConverging(t *testing.T) {
 		t.Fatalf("doConverging failed: %s", err)
 	}
 
-	// converging rewrites the diverged prefix; the remainder arrives
-	// through the normal sync
-	if h := local.Chain.GetLatestBlockHeight(); h != 1 {
-		t.Fatalf("height after converging = %d, want 1", h)
-	}
-	if !bytes.Equal(local.Chain.GetLatestBlockHash(), remoteChain[0].GetHash()) {
-		t.Fatal("the local fork block was not replaced by the remote block@1")
-	}
-
-	if err := mod.doSync(rec); err != nil {
-		t.Fatalf("doSync after converging failed: %s", err)
-	}
+	// converging now returns the remote's whole divergent branch (fork+1 up
+	// to its tip), so the local chain reaches the remote tip in one step
 	if h := local.Chain.GetLatestBlockHeight(); h != 3 {
-		t.Fatalf("height after converge+sync = %d, want 3", h)
+		t.Fatalf("height after converging = %d, want 3", h)
+	}
+	if !bytes.Equal(local.Chain.GetLatestBlockHash(), remoteChain[len(remoteChain)-1].GetHash()) {
+		t.Fatal("local tip was not switched to the remote tip after converging")
 	}
 }
 

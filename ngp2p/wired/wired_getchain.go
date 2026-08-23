@@ -127,58 +127,47 @@ func (w *Wired) onGetChain(stream network.Stream, msg *Message) {
 	if len(getChainPayload.To) == 16 {
 		// NOTE: in converging mode the requester's hashes may be entirely
 		// unknown here (that is the point of converging), so nothing is
-		// pre-fetched
-		var cur ngtypes.Block
-		var samepointIndex int
-		// do hashes check first
-		for samepointIndex < len(getChainPayload.From) {
-			_, err := w.chain.GetBlockByHash(getChainPayload.From[samepointIndex])
-			if err == nil {
-				// err == nil means found the samepoint
+		// pre-fetched. Requester hashes are ordered by ascending height.
+		//
+		// Find the HIGHEST-height hash we also have: that is the fork point.
+		// Searching from the top means a batch that straddles the fork point
+		// returns the divergent suffix (fork+1 ..), not the shared blocks
+		// below it (the old lowest-match search returned shared blocks and
+		// convergence stalled).
+		samepointIndex := -1
+		for i := len(getChainPayload.From) - 1; i >= 0; i-- {
+			if _, err := w.chain.GetBlockByHash(getChainPayload.From[i]); err == nil {
+				samepointIndex = i
 				break
 			}
-
-			samepointIndex++
 		}
 
-		if samepointIndex == len(getChainPayload.From) {
-			// not found samepoint, return nil
-			from := binary.LittleEndian.Uint64(getChainPayload.To[0:8])
-			to := binary.LittleEndian.Uint64(getChainPayload.To[8:16])
-			for blockHeight := from; blockHeight <= to; blockHeight++ {
-				cur, err = w.chain.GetBlockByHeight(blockHeight)
-				if err != nil {
-					err := errors.Wrapf(err, "chain lacks block@%d", blockHeight)
-					log.Debug(err)
-					w.sendReject(msg.Header.ID, stream, err)
-					return
-				}
-
-				blocks = append(blocks, cur.(*ngtypes.FullBlock))
-			}
-
-			w.sendChain(msg.Header.ID, stream, blocks...)
+		if samepointIndex == -1 {
+			// no common block in this batch: the fork point is OLDER than the
+			// requester's oldest hash here. Reply with an empty chain so the
+			// requester walks further back. (Returning our own blocks for the
+			// requested height range — as before — produced a branch whose
+			// parent the requester does not have, so it could never attach and
+			// a fork deeper than one batch never converged.)
+			w.sendChain(msg.Header.ID, stream)
 			return
 		}
 
-		// not include this point
-		cur, err = w.chain.GetBlockByHash(getChainPayload.From[samepointIndex])
+		// the fork point; return OUR chain from fork+1 up to a batch worth,
+		// so the reply attaches to a block the requester already stores
+		cur, err := w.chain.GetBlockByHash(getChainPayload.From[samepointIndex])
 		if err != nil {
 			w.sendReject(msg.Header.ID, stream, err)
 			return
 		}
 
-		for i := 0; i < len(getChainPayload.From)-1-samepointIndex; i++ {
-			blockHeight := cur.(*ngtypes.FullBlock).GetHeight() + 1
-			cur, err = w.chain.GetBlockByHeight(blockHeight)
+		for i := 0; i < defaults.MaxBlocks; i++ {
+			next, err := w.chain.GetBlockByHeight(cur.(*ngtypes.FullBlock).GetHeight() + 1)
 			if err != nil {
-				err := errors.Wrapf(err, "chain lacks block@%d", blockHeight)
-				log.Debug(err)
-				w.sendReject(msg.Header.ID, stream, err)
-				return
+				break // reached our tip
 			}
-
-			blocks = append(blocks, cur.(*ngtypes.FullBlock))
+			blocks = append(blocks, next.(*ngtypes.FullBlock))
+			cur = next
 		}
 	} else if len(getChainPayload.To) == 32 {
 		// fetch mode

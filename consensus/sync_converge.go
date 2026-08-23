@@ -70,52 +70,63 @@ func (mod *syncModule) getBlocksForConverging(record *RemoteRecord) ([]*ngtypes.
 	localHeight := mod.pow.Chain.GetLatestBlockHeight()
 	localOriginHeight := mod.pow.Chain.GetOriginBlock().GetHeight()
 
-	ptr := localHeight
+	// an origin-only chain has no fork to resolve: linear doSync handles it,
+	// so converging refuses (and the loop below would have nothing to compare)
+	if localHeight <= localOriginHeight {
+		return nil, errors.New("converging failed: local chain is origin-only")
+	}
 
-	// when the chainLen (the len of returned chain) is not equal to defaults.MaxBlocks, means it has reach the latest height
+	batchSize := mod.convergeBatchSize
+	if batchSize == 0 {
+		batchSize = defaults.MaxBlocks
+	}
+
+	// Walk local hashes backward in batches, asking the remote to locate the
+	// most recent block it ALSO has (the fork point) and return its chain from
+	// there up. When a batch has no common block, the fork point is older, so
+	// keep walking back — the previous code broke on the remote's
+	// non-attaching height-range reply, so a fork deeper than one batch never
+	// converged. The oldest batch INCLUDES the origin: if the fork point is
+	// the origin itself the remote finds it there; if even the origin does not
+	// match, the chains are genuinely unrelated.
+	to := localHeight
 	for {
-		if ptr <= localOriginHeight {
-			return nil, errors.New("converging failed: completely different chains")
+		var from uint64
+		if to <= localOriginHeight+batchSize {
+			from = localOriginHeight // last batch reaches the origin
+		} else {
+			from = to - batchSize + 1
 		}
 
-		blockHashes := make([][]byte, 0, defaults.MaxBlocks)
-		to := ptr
-		roundHashes := utils.MinUint64(defaults.MaxBlocks, ptr-localOriginHeight)
-		ptr -= roundHashes
-		from := ptr + 1
-
-		// get local hashes as params
+		blockHashes := make([][]byte, 0, to-from+1)
 		for h := from; h <= to; h++ {
 			b, err := mod.pow.Chain.GetBlockByHeight(h)
 			if err != nil {
-				// when gap is too large
 				return nil, err
 			}
-
 			blockHashes = append(blockHashes, b.GetHash())
 		}
 
-		// To == from+to means converging mode
+		// To == from‖to means converging mode
 		chain, err := mod.getRemoteChain(record.id, blockHashes, bytes.Join([][]byte{utils.PackUint64LE(from), utils.PackUint64LE(to)}, nil))
 		if err != nil {
 			return nil, err
 		}
-		if chain == nil {
-			// chain == nil means all hashes are matched
-			localChain := make([]*ngtypes.FullBlock, 0, defaults.MaxBlocks)
-			for i := range blockHashes {
-				block, err := mod.pow.Chain.GetBlockByHash(blockHashes[i])
-				if err != nil {
-					return nil, fmt.Errorf("failed on constructing local chain: %w", err)
-				}
-				localChain = append(localChain, block.(*ngtypes.FullBlock))
-			}
 
-			blocks = append(localChain, blocks...)
-		} else {
+		if len(chain) != 0 {
+			// the remote returned its chain from the common point + 1, which
+			// attaches to a block we already store: the divergent branch to
+			// switch to (doSync then extends it to the remote tip)
 			blocks = append(chain, blocks...)
 			break
 		}
+
+		// no common block in this batch. If we already reached the origin,
+		// the chains share nothing — give up. Otherwise walk further back.
+		if from <= localOriginHeight {
+			return nil, errors.New("converging failed: completely different chains")
+		}
+		to = from - 1
 	}
 
 	return blocks, nil
