@@ -97,6 +97,14 @@ func putBlock(blockBucket *bbolt.Bucket, hash []byte, block *ngtypes.FullBlock) 
 		return err
 	}
 
+	// a block that becomes canonical is no longer a prunable side block:
+	// clear any stale side mark left from when it first arrived out of order.
+	// otherwise PruneSideBlocks would later delete this canonical body and
+	// leave the height index dangling (the restart-time CheckHealth panic)
+	if err = blockBucket.Delete(sideBlockKey(hash)); err != nil {
+		return err
+	}
+
 	return nil
 }
 

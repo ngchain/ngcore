@@ -74,11 +74,23 @@ func PruneSideBlocks(blockBucket *bbolt.Bucket, belowHeight uint64) (pruned int,
 	victims := make([][]byte, 0)
 
 	for k, v := c.Seek(sideBlockPrefix); k != nil && bytes.HasPrefix(k, sideBlockPrefix); k, v = c.Next() {
-		if binary.LittleEndian.Uint64(v) < belowHeight {
-			hash := make([]byte, len(k)-len(sideBlockPrefix))
-			copy(hash, k[len(sideBlockPrefix):])
-			victims = append(victims, hash)
+		height := binary.LittleEndian.Uint64(v)
+		if height >= belowHeight {
+			continue
 		}
+
+		hash := make([]byte, len(k)-len(sideBlockPrefix))
+		copy(hash, k[len(sideBlockPrefix):])
+
+		// defensive: never delete a body still referenced by the canonical
+		// height index (a stale side mark on a promoted block would otherwise
+		// orphan the index). This also self-heals dbs written before putBlock
+		// learned to clear the side mark on promotion.
+		if canonical := blockBucket.Get(utils.PackUint64LE(height)); bytes.Equal(canonical, hash) {
+			continue
+		}
+
+		victims = append(victims, hash)
 	}
 
 	for _, hash := range victims {
