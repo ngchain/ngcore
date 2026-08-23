@@ -115,6 +115,15 @@ func (pow *PoWork) GetBlockTemplate(privateKey *ngtypes.PrivateKey) ngtypes.Bloc
 		newDiff,
 	)
 
+	// GHOST: reference recent orphaned blocks so their work counts toward
+	// this chain (folds uncle difficulty into fork choice). Must run before
+	// sealing — UnclesHash is part of the pow preimage.
+	if uncles, err := pow.Chain.CollectUncles(); err != nil {
+		log.Warnf("failed to collect uncles: %s", err)
+	} else {
+		newBlock.SetUncles(uncles)
+	}
+
 	genTx := CreateGenerateTx(pow.Network, privateKey, blockHeight, pow.MinerExtraData)
 	txs := pow.Pool.GetPack(blockHeight)
 	txsWithGen := append([]*ngtypes.FullTx{genTx}, txs...)
@@ -145,6 +154,13 @@ func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, 
 		currentBlockHash,
 		newDiff,
 	)
+
+	// GHOST: attach recent orphans as uncles before the miner seals
+	if uncles, err := pow.Chain.CollectUncles(); err != nil {
+		log.Warnf("failed to collect uncles: %s", err)
+	} else {
+		bareBlock.SetUncles(uncles)
+	}
 
 	txs = pow.Pool.GetPack(blockHeight)
 	// genTx := pow.createGenerateTx(privateKey, blockHeight, extraData)

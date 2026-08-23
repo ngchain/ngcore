@@ -53,6 +53,10 @@ func (chain *Chain) checkBlockTxn(txn *bbolt.Tx, block *ngtypes.FullBlock) error
 		}
 	}
 
+	if err := validateUncles(storeGetBlock(blockBucket), block); err != nil {
+		return errors.Wrapf(err, "failed on checking block uncles")
+	}
+
 	if err := ngstate.CheckBlockTxs(txn, block); err != nil {
 		return errors.Wrap(err, "bactivate txs are invalid")
 	}

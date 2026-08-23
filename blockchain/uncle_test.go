@@ -1,0 +1,134 @@
+package blockchain_test
+
+import (
+	"bytes"
+	"errors"
+	"math/big"
+	"testing"
+
+	"github.com/ngchain/ngcore/blockchain"
+	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
+)
+
+// mineBlockWithUncles seals a ZERONET block on parent that references the
+// given uncle headers. Uncles are attached BEFORE sealing, so the pow
+// covers the uncle commitment (as the miner path does).
+func mineBlockWithUncles(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, uncles []*ngtypes.BlockHeader) *ngtypes.FullBlock {
+	t.Helper()
+
+	height := parent.GetHeight() + 1
+	blockTime := ngtypes.GetGenesisTimestamp(ngtypes.ZERONET) + height*16
+	diff := ngtypes.GetNextDiff(height, blockTime, parent)
+	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(), diff)
+
+	block.SetUncles(uncles) // must precede sealing: UnclesHash is in the pow preimage
+
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
+		ngtypes.NewAddress(miner), ngtypes.GetBlockReward(height), big.NewInt(0), nil, nil)
+	if err := genTx.Signature(miner); err != nil {
+		t.Fatal(err)
+	}
+	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
+		t.Fatal(err)
+	}
+
+	for n := uint64(0); n < 1_000_000; n++ {
+		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
+			t.Fatal(err)
+		}
+		if block.CheckError() == nil {
+			return block
+		}
+	}
+	t.Fatal("failed to seal an uncle-carrying block")
+	return nil
+}
+
+// TestUncleAddsWorkAndWinsForkChoice is the core selfish-mining defense: a
+// branch that references an orphaned block as an uncle carries that block's
+// work, so it out-weighs an equal-length sibling that ignores the orphan and
+// wins the fork choice. Withholding therefore can no longer waste honest work.
+func TestUncleAddsWorkAndWinsForkChoice(t *testing.T) {
+	chain := newTestChain(t)
+	minerA, _ := ngtypes.GenerateKey()
+	minerB, _ := ngtypes.GenerateKey()
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+
+	b1 := mineBlock(t, genesis, minerA)
+	mustApply(t, chain, b1)
+	b2 := mineBlock(t, b1, minerA)
+	mustApply(t, chain, b2)
+
+	// an orphan at height 2 that forks off b1 and loses the tie to b2
+	orphan := mineLosingCompetitor(t, b1, b2)
+	mustApply(t, chain, orphan)
+	if !bytes.Equal(chain.GetLatestBlockHash(), b2.GetHash()) {
+		t.Fatal("the orphan should be a side block, tip must stay b2")
+	}
+
+	// a plain block on b2 (no uncle) takes the tip first
+	plain := mineBlock(t, b2, minerA)
+	mustApply(t, chain, plain)
+	if !bytes.Equal(chain.GetLatestBlockHash(), plain.GetHash()) {
+		t.Fatal("plain block should be the tip")
+	}
+
+	// a sibling on b2 that references the orphan as an uncle is heavier by
+	// exactly the orphan's difficulty, so it reorgs the plain block out
+	withUncle := mineBlockWithUncles(t, b2, minerB, []*ngtypes.BlockHeader{orphan.BlockHeader})
+	if err := chain.ApplyBlock(withUncle); err != nil {
+		t.Fatalf("uncle-carrying block rejected: %v", err)
+	}
+	if !bytes.Equal(chain.GetLatestBlockHash(), withUncle.GetHash()) {
+		t.Fatal("the uncle-carrying branch is heavier and must win the fork choice")
+	}
+}
+
+// TestUncleOutOfDepthRejected: an uncle whose fork point is deeper than
+// UncleMaxDepth generations back is rejected.
+func TestUncleOutOfDepthRejected(t *testing.T) {
+	chain := newTestChain(t)
+	miner, _ := ngtypes.GenerateKey()
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+
+	b1 := mineBlock(t, genesis, miner)
+	mustApply(t, chain, b1)
+	b2 := mineBlock(t, b1, miner)
+	mustApply(t, chain, b2)
+
+	orphan := mineLosingCompetitor(t, b1, b2) // height 2 side block
+	mustApply(t, chain, orphan)
+
+	// extend the canonical chain until referencing the height-2 orphan would
+	// exceed UncleMaxDepth
+	parent := b2
+	for parent.GetHeight() < orphan.GetHeight()+uint64(ngtypes.UncleMaxDepth)+1 {
+		parent = mineBlock(t, parent, miner)
+		mustApply(t, chain, parent)
+	}
+
+	bad := mineBlockWithUncles(t, parent, miner, []*ngtypes.BlockHeader{orphan.BlockHeader})
+	if err := chain.ApplyBlock(bad); !errors.Is(err, blockchain.ErrUncleInvalid) {
+		t.Fatalf("out-of-depth uncle: got %v, want ErrUncleInvalid", err)
+	}
+}
+
+// TestUncleOnChainAncestorRejected: a block cannot reference one of its own
+// canonical ancestors as an uncle (that work is already counted).
+func TestUncleOnChainAncestorRejected(t *testing.T) {
+	chain := newTestChain(t)
+	miner, _ := ngtypes.GenerateKey()
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+
+	b1 := mineBlock(t, genesis, miner)
+	mustApply(t, chain, b1)
+	b2 := mineBlock(t, b1, miner)
+	mustApply(t, chain, b2)
+
+	// b3 tries to claim its grandparent b1 (a canonical ancestor) as an uncle
+	bad := mineBlockWithUncles(t, b2, miner, []*ngtypes.BlockHeader{b1.BlockHeader})
+	if err := chain.ApplyBlock(bad); !errors.Is(err, blockchain.ErrUncleInvalid) {
+		t.Fatalf("on-chain-ancestor uncle: got %v, want ErrUncleInvalid", err)
+	}
+}

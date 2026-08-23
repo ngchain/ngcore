@@ -65,6 +65,32 @@ func PutSideBlock(blockBucket *bbolt.Bucket, block *ngtypes.FullBlock) error {
 	return blockBucket.Put(sideBlockKey(block.GetHash()), utils.PackUint64LE(block.GetHeight()))
 }
 
+// ListSideBlocksInRange returns the stored side blocks whose height is in
+// [minHeight, maxHeight] (inclusive). Used to gather uncle candidates for
+// a new block; the caller filters them down to the valid, unreferenced set.
+func ListSideBlocksInRange(blockBucket *bbolt.Bucket, minHeight, maxHeight uint64) ([]*ngtypes.FullBlock, error) {
+	c := blockBucket.Cursor()
+	out := make([]*ngtypes.FullBlock, 0)
+
+	for k, v := c.Seek(sideBlockPrefix); k != nil && bytes.HasPrefix(k, sideBlockPrefix); k, v = c.Next() {
+		height := binary.LittleEndian.Uint64(v)
+		if height < minHeight || height > maxHeight {
+			continue
+		}
+
+		hash := make([]byte, len(k)-len(sideBlockPrefix))
+		copy(hash, k[len(sideBlockPrefix):])
+
+		block, err := GetBlockByHash(blockBucket, hash)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, block)
+	}
+
+	return out, nil
+}
+
 // PruneSideBlocks garbage-collects the side blocks (and their work
 // entries) below the given height: below the finality line they can
 // never win a reorg anymore

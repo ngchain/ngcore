@@ -88,7 +88,7 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 				"orphan block@%d: unknown prev %x", block.GetHeight(), block.GetPrevHash())
 		}
 
-		if err := checkBranchBlock(block, prev); err != nil {
+		if err := checkBranchBlock(storeGetBlock(blockBucket), block, prev); err != nil {
 			return err
 		}
 

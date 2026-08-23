@@ -31,6 +31,13 @@ const (
 	TargetTime        = 4 * time.Second // fast blocks, but above global propagation delay to bound the orphan rate
 	BlockCheckRound   = 10              // do converge if fall behind one round
 
+	// MaxUncles caps how many uncle (GHOST) references a block may carry.
+	// UncleMaxDepth bounds how many generations back an uncle's fork point
+	// may be; it must stay below BlockCheckRound so the referenced side
+	// blocks still live above the finality/pruning line.
+	MaxUncles     = 2
+	UncleMaxDepth = 6
+
 	// TimestampDriftTolerance bounds how far (MILLISECONDS) a block
 	// timestamp may run ahead of the local clock. Block timestamps are
 	// unix-milliseconds so the 1s target is reachable from below

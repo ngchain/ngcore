@@ -2,8 +2,8 @@ package ngtypes
 
 import (
 	"bytes"
-	"encoding/binary"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/ngchain/astrobwt"
@@ -34,13 +34,19 @@ var (
 	ErrBlockTimestampInvalid = errors.New("invalid block timestamp")
 
 	ErrBlockNotSealed = errors.New("the block is not sealed")
+
+	// ErrBlockUnclesInvalid rejects a block whose uncle set breaks a
+	// context-free rule (bad commitment, over the cap, duplicated, or an
+	// uncle header that fails its own standalone pow/format check)
+	ErrBlockUnclesInvalid = errors.New("invalid block uncles")
 )
 
 // FullBlock is an implement of Block the base unit of the blockchain and the container of the txs, which
 // provides the safety assurance by the hashes in the header
 type FullBlock struct {
 	*BlockHeader
-	Txs []*FullTx
+	Txs    []*FullTx
+	Uncles []*BlockHeader
 }
 
 // NewBlock creates a new Block
@@ -55,10 +61,37 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 			TxTrieHash:    txTrieHash,
 			WitnessRoot:   witnessRoot,
 			Difficulty:    difficulty,
+			UnclesHash:    make([]byte, HashSize), // no uncles until SetUncles
 			Nonce:         nonce,
 		},
 		Txs: txs,
 	}
+}
+
+// CalcUnclesHash commits to a block's uncle headers: all-zero when there
+// are none, otherwise the keccak over the concatenated uncle hashes (in
+// the given order, which SetUncles fixes deterministically).
+func CalcUnclesHash(uncles []*BlockHeader) []byte {
+	if len(uncles) == 0 {
+		return make([]byte, HashSize)
+	}
+	buf := make([]byte, 0, len(uncles)*HashSize)
+	for _, u := range uncles {
+		buf = append(buf, u.GetHash()...)
+	}
+	return utils.KeccakSum256(buf)
+}
+
+// SetUncles attaches uncle headers to a bare/unsealing block and refreshes
+// the header commitment. It must run BEFORE sealing, since UnclesHash is
+// part of the pow preimage. Uncles are sorted by hash for a canonical,
+// grind-resistant order.
+func (x *FullBlock) SetUncles(uncles []*BlockHeader) {
+	sort.Slice(uncles, func(i, j int) bool {
+		return bytes.Compare(uncles[i].GetHash(), uncles[j].GetHash()) < 0
+	})
+	x.Uncles = uncles
+	x.BlockHeader.UnclesHash = CalcUnclesHash(uncles)
 }
 
 // CalcWitnessRoot commits the txs' signature envelopes in block
@@ -119,32 +152,7 @@ func (x *FullBlock) IsGenesis() bool {
 // GetPoWRawHeader will return a complete raw for block hash.
 // When nonce is not nil, the RawHeader will use the nonce param not the x.Nonce.
 func (x *FullBlock) GetPoWRawHeader(nonce []byte) []byte {
-	// lenRaw := NetSize +  // 1
-	//   HeightSize+        // 8
-	//   TimestampSize +    // +
-	//   HashSize +         // 32
-	//   HashSize +         // +
-	//   HashSize +         // +
-	//   DiffSize +         // +
-	//   NonceSize          // 8
-	//                      // = 153
-	raw := make([]byte, 153)
-
-	raw[0] = byte(x.BlockHeader.Network)
-	binary.LittleEndian.PutUint64(raw[1:], x.BlockHeader.Height)
-	binary.LittleEndian.PutUint64(raw[9:17], x.BlockHeader.Timestamp)
-	copy(raw[17:49], x.BlockHeader.PrevBlockHash)
-	copy(raw[49:81], x.BlockHeader.TxTrieHash)
-	copy(raw[81:113], x.BlockHeader.WitnessRoot)
-	copy(raw[113:145], utils.ReverseBytes(x.BlockHeader.Difficulty)) // uint256
-
-	if nonce == nil {
-		copy(raw[145:153], x.BlockHeader.Nonce)
-	} else {
-		copy(raw[145:153], nonce)
-	}
-
-	return raw
+	return x.BlockHeader.GetPoWRawHeader(nonce)
 }
 
 // PowHash will help you get the pow hash of block.
@@ -275,6 +283,33 @@ func (x *FullBlock) CheckError() error {
 	if !bytes.Equal(CalcWitnessRoot(x.Txs), x.BlockHeader.WitnessRoot) {
 		return errors.Wrapf(ErrBlockWitnessRootInvalid,
 			"block@%d's witness root does not match its txs", x.BlockHeader.Height)
+	}
+
+	// uncle commitment must match the carried uncle headers, and the set
+	// must be bounded, self-consistent and duplicate-free. Parentage,
+	// difficulty-for-slot and dedup-vs-chain are enforced in the chain layer.
+	if len(x.BlockHeader.UnclesHash) != HashSize {
+		return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d's UnclesHash length is incorrect", x.BlockHeader.Height)
+	}
+	if len(x.Uncles) > MaxUncles {
+		return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d carries %d uncles over the cap %d", x.BlockHeader.Height, len(x.Uncles), MaxUncles)
+	}
+	if !bytes.Equal(CalcUnclesHash(x.Uncles), x.BlockHeader.UnclesHash) {
+		return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d's uncle commitment does not match its uncles", x.BlockHeader.Height)
+	}
+	seenUncle := make(map[string]struct{}, len(x.Uncles))
+	for _, u := range x.Uncles {
+		if err := u.checkStandaloneError(); err != nil {
+			return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d has an invalid uncle: %s", x.BlockHeader.Height, err)
+		}
+		uh := string(u.GetHash())
+		if _, dup := seenUncle[uh]; dup {
+			return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d references uncle %x twice", x.BlockHeader.Height, u.GetHash())
+		}
+		seenUncle[uh] = struct{}{}
+		if bytes.Equal(u.GetHash(), x.BlockHeader.PrevBlockHash) {
+			return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d references its own parent as an uncle", x.BlockHeader.Height)
+		}
 	}
 
 	err := x.verifyNonce()

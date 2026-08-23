@@ -3,6 +3,7 @@ package blockchain
 import (
 	"bytes"
 	"math/big"
+	"sort"
 
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
@@ -23,7 +24,110 @@ var (
 	// rewrite blocks below the rolling finality line. Deep switches must
 	// go through the converging path, which ranks remote checkpoints
 	ErrReorgBeyondFinality = errors.New("fork point is below the finality line")
+
+	// ErrUncleInvalid rejects a block whose uncle references break a
+	// chain-context GHOST rule (wrong fork point, out of depth, on-chain,
+	// double-referenced, or a wrong slot difficulty)
+	ErrUncleInvalid = errors.New("invalid uncle reference")
 )
+
+// validateUncles enforces the GHOST rules against the block's OWN ancestor
+// chain, so the verdict is deterministic regardless of the current tip:
+//   - each uncle forks off one of this block's ancestors at uncle.Height-1,
+//     within [1, UncleMaxDepth] generations back;
+//   - the uncle is not itself on this block's chain;
+//   - the uncle's declared difficulty is correct for its slot and its
+//     timestamp is monotonic against its parent (real, right-sized work);
+//   - no uncle is referenced twice, nor by a recent ancestor.
+//
+// It runs BEFORE the block is weighed, so uncle work can never be counted
+// for an unvalidated uncle. The context-free part (commitment, cap,
+// standalone pow) is already done in FullBlock.CheckError.
+// getBlockFn resolves a block by hash. In the single-block apply paths it
+// reads the store; in the bulk branch-apply paths it also sees the
+// not-yet-stored branch blocks, so an uncle whose parent is earlier in the
+// same branch still resolves.
+type getBlockFn func(hash []byte) (*ngtypes.FullBlock, error)
+
+func storeGetBlock(blockBucket *bbolt.Bucket) getBlockFn {
+	return func(hash []byte) (*ngtypes.FullBlock, error) {
+		return ngblocks.GetBlockByHash(blockBucket, hash)
+	}
+}
+
+// branchGetBlock resolves within an in-flight branch first, then the store.
+func branchGetBlock(blockBucket *bbolt.Bucket, branch []*ngtypes.FullBlock) getBlockFn {
+	byHash := make(map[string]*ngtypes.FullBlock, len(branch))
+	for _, b := range branch {
+		byHash[string(b.GetHash())] = b
+	}
+	return func(hash []byte) (*ngtypes.FullBlock, error) {
+		if b, ok := byHash[string(hash)]; ok {
+			return b, nil
+		}
+		return ngblocks.GetBlockByHash(blockBucket, hash)
+	}
+}
+
+func validateUncles(getBlock getBlockFn, block *ngtypes.FullBlock) error {
+	if len(block.Uncles) == 0 {
+		return nil
+	}
+
+	// walk this block's ancestors deep enough to cover uncle parents and
+	// the dedup window; collect them by height and note what they referenced
+	ancestors := make(map[uint64]*ngtypes.FullBlock)
+	referenced := make(map[string]struct{})
+	lowest := uint64(0)
+	if block.GetHeight() > ngtypes.UncleMaxDepth+1 {
+		lowest = block.GetHeight() - (ngtypes.UncleMaxDepth + 1)
+	}
+	for cur := block; cur.GetHeight() > lowest; {
+		parent, err := getBlock(cur.GetPrevHash())
+		if err != nil {
+			return errors.Wrapf(err, "uncle check: block@%d chain is not connected", block.GetHeight())
+		}
+		ancestors[parent.GetHeight()] = parent
+		for _, u := range parent.Uncles {
+			referenced[string(u.GetHash())] = struct{}{}
+		}
+		cur = parent
+	}
+
+	for _, u := range block.Uncles {
+		depth := int64(block.GetHeight()) - int64(u.GetHeight())
+		if depth < 1 || depth > int64(ngtypes.UncleMaxDepth) {
+			return errors.Wrapf(ErrUncleInvalid, "uncle@%d is %d generations from block@%d (allowed 1..%d)",
+				u.GetHeight(), depth, block.GetHeight(), ngtypes.UncleMaxDepth)
+		}
+
+		uncleParent, ok := ancestors[u.GetHeight()-1]
+		if !ok || !bytes.Equal(uncleParent.GetHash(), u.GetPrevHash()) {
+			return errors.Wrapf(ErrUncleInvalid, "uncle@%d does not fork off block@%d's chain",
+				u.GetHeight(), block.GetHeight())
+		}
+
+		if onChain, ok := ancestors[u.GetHeight()]; ok && bytes.Equal(onChain.GetHash(), u.GetHash()) {
+			return errors.Wrapf(ErrUncleInvalid, "uncle@%d is an ancestor of block@%d", u.GetHeight(), block.GetHeight())
+		}
+
+		if _, dup := referenced[string(u.GetHash())]; dup {
+			return errors.Wrapf(ErrUncleInvalid, "uncle %x is already referenced by an ancestor", u.GetHash())
+		}
+		referenced[string(u.GetHash())] = struct{}{}
+
+		if u.GetTimestamp() <= uncleParent.GetTimestamp() {
+			return errors.Wrapf(ErrUncleInvalid, "uncle@%d timestamp is not monotonic", u.GetHeight())
+		}
+		correct := ngtypes.GetNextDiff(u.GetHeight(), u.GetTimestamp(), uncleParent)
+		if new(big.Int).SetBytes(u.Difficulty).Cmp(correct) != 0 {
+			return errors.Wrapf(ErrUncleInvalid, "uncle@%d declared difficulty %x is wrong for its slot (want %x)",
+				u.GetHeight(), u.Difficulty, correct)
+		}
+	}
+
+	return nil
+}
 
 // finalityHeight returns the height below which the canonical chain is
 // FINAL for gossip-driven reorgs: the last checkpoint strictly below the
@@ -36,10 +140,20 @@ func finalityHeight(tipHeight uint64) uint64 {
 	return (tipHeight - 1) / ngtypes.BlockCheckRound * ngtypes.BlockCheckRound
 }
 
-// workOf returns the pow work one block contributes to its chain:
-// its declared (and checked) difficulty
+// workOf returns the pow work one block contributes to its chain: its own
+// declared difficulty PLUS the difficulty of every uncle it references
+// (GHOST). Folding uncle work in is what neutralizes selfish mining — a
+// chain that absorbs orphaned honest work out-weighs one that ignores it,
+// so withholding no longer lets an attacker waste honest hashpower. Uncle
+// validity (parentage, slot difficulty, dedup) is enforced before a block
+// is ever weighed, and each block counts at most once (as a canonical
+// block or as an uncle), so there is no double counting.
 func workOf(block *ngtypes.FullBlock) *big.Int {
-	return new(big.Int).SetBytes(block.BlockHeader.Difficulty)
+	w := new(big.Int).SetBytes(block.BlockHeader.Difficulty)
+	for _, u := range block.Uncles {
+		w.Add(w, new(big.Int).SetBytes(u.Difficulty))
+	}
+	return w
 }
 
 // cumulativeWork resolves the total work of the chain ending at block,
@@ -126,10 +240,92 @@ func collectBranch(blockBucket *bbolt.Bucket, tip *ngtypes.FullBlock) ([]*ngtype
 	return branch, nil
 }
 
+// CollectUncles gathers up to MaxUncles valid, not-yet-referenced uncle
+// headers for a block that will extend the current canonical tip: recent
+// side blocks that fork off the canonical chain within UncleMaxDepth
+// generations and have not already been referenced by a recent ancestor.
+// Best-effort — it returns whatever eligible set it finds (possibly none).
+func (chain *Chain) CollectUncles() ([]*ngtypes.BlockHeader, error) {
+	uncles := make([]*ngtypes.BlockHeader, 0, ngtypes.MaxUncles)
+
+	err := chain.View(func(txn *bbolt.Tx) error {
+		blockBucket := txn.Bucket(storage.BlockBucketName)
+
+		tipHeight, err := ngblocks.GetLatestHeight(blockBucket)
+		if err != nil {
+			return err
+		}
+		nextHeight := tipHeight + 1
+		if nextHeight < 2 {
+			return nil // an uncle needs height >= 1 and a canonical parent below it
+		}
+
+		minH := uint64(1)
+		if nextHeight > ngtypes.UncleMaxDepth {
+			minH = nextHeight - ngtypes.UncleMaxDepth
+		}
+
+		// what the recent canonical ancestors already referenced (dedup window)
+		referenced := make(map[string]struct{})
+		lowest := uint64(0)
+		if nextHeight > ngtypes.UncleMaxDepth+1 {
+			lowest = nextHeight - (ngtypes.UncleMaxDepth + 1)
+		}
+		for h := tipHeight; h > lowest; h-- {
+			anc, err := ngblocks.GetBlockByHeight(blockBucket, h)
+			if err != nil {
+				return err
+			}
+			for _, u := range anc.Uncles {
+				referenced[string(u.GetHash())] = struct{}{}
+			}
+		}
+
+		candidates, err := ngblocks.ListSideBlocksInRange(blockBucket, minH, tipHeight)
+		if err != nil {
+			return err
+		}
+		sort.Slice(candidates, func(i, j int) bool {
+			return candidates[i].GetHeight() < candidates[j].GetHeight()
+		})
+
+		for _, c := range candidates {
+			if len(uncles) >= ngtypes.MaxUncles {
+				break
+			}
+			uh := c.GetHeight()
+
+			// must fork off the canonical chain at uh-1 ...
+			canonParent, err := ngblocks.GetBlockByHeight(blockBucket, uh-1)
+			if err != nil || !bytes.Equal(canonParent.GetHash(), c.GetPrevHash()) {
+				continue
+			}
+			// ... and must not itself be a canonical block
+			if canonHere, err := ngblocks.GetBlockByHeight(blockBucket, uh); err == nil &&
+				bytes.Equal(canonHere.GetHash(), c.GetHash()) {
+				continue
+			}
+			if _, dup := referenced[string(c.GetHash())]; dup {
+				continue
+			}
+
+			uncles = append(uncles, c.BlockHeader)
+			referenced[string(c.GetHash())] = struct{}{}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return uncles, nil
+}
+
 // checkBranchBlock validates a branch block against ITS OWN parent
-// (header + pow target); tx validity is enforced later by the state
-// replay inside the reorg txn
-func checkBranchBlock(block, prev *ngtypes.FullBlock) error {
+// (header + pow target + uncles); tx validity is enforced later by the
+// state replay inside the reorg txn
+func checkBranchBlock(getBlock getBlockFn, block, prev *ngtypes.FullBlock) error {
 	if err := block.CheckError(); err != nil {
 		return err
 	}
@@ -139,7 +335,11 @@ func checkBranchBlock(block, prev *ngtypes.FullBlock) error {
 		return ngblocks.ErrBranchDisconnected
 	}
 
-	return checkBlockTarget(block, prev)
+	if err := checkBlockTarget(block, prev); err != nil {
+		return err
+	}
+
+	return validateUncles(getBlock, block)
 }
 
 // switchToBranchTxn atomically rewrites the canonical chain to the branch
@@ -242,8 +442,9 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 			return errors.Wrap(err, "branch does not attach to any stored block")
 		}
 
+		getBlock := branchGetBlock(blockBucket, branch)
 		for _, block := range branch {
-			if err := checkBranchBlock(block, prev); err != nil {
+			if err := checkBranchBlock(getBlock, block, prev); err != nil {
 				return err
 			}
 			prev = block

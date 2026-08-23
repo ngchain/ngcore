@@ -51,8 +51,9 @@ func (chain *Chain) ApplySnapshot(blocks []*ngtypes.FullBlock, sheet *ngtypes.Sh
 			return errors.Wrap(err, "snapshot segment does not attach to any stored block")
 		}
 
+		getBlock := branchGetBlock(blockBucket, blocks)
 		for _, block := range blocks {
-			if err := checkBranchBlock(block, prev); err != nil {
+			if err := checkBranchBlock(getBlock, block, prev); err != nil {
 				return err
 			}
 			prev = block
