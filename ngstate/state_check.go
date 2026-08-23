@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -11,30 +12,94 @@ import (
 
 var ErrTxrBalanceInsufficient = errors.New("address balance is not sufficient for the tx")
 
-// CheckBlockTxs will check all requirements for txs in block
+// CheckBlockTxs will check all requirements for txs in block. This is the
+// universal validation gate: every path that applies state (fast import,
+// reorg unwind, full rebuild) runs it before crediting any balance.
 func CheckBlockTxs(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
+	// generates are validated as a SET (their order is not fixed): the one
+	// signed miner generate plus the unsigned uncle-reward generates
+	if err := checkBlockGenerates(txn, block); err != nil {
+		return err
+	}
+
 	for i := 0; i < len(block.Txs); i++ {
 		tx := block.Txs[i]
-		// check tx is signed
+		if tx.Type == ngtypes.GenerateTx {
+			continue // handled by checkBlockGenerates
+		}
+
 		if !tx.IsSigned() {
 			return ngtypes.ErrTxUnsigned
 		}
-
-		// check the tx's extra size is necessary
 		if len(tx.Extra) > ngtypes.TxMaxExtraSize {
 			return ngtypes.ErrTxExtraExcess
 		}
-
-		if tx.Type == ngtypes.GenerateTx {
-			if err := checkGenerate(txn, tx, block.GetHeight()); err != nil {
-				return err
-			}
-			continue
-		}
-
 		if err := CheckTx(txn, tx); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// checkBlockGenerates validates the block's generate txs as a set. Exactly
+// one SIGNED miner generate must pay header.Coinbase the block reward
+// (standard generate rules), and there must be exactly one UNSIGNED
+// uncle-reward generate per referenced uncle, paying that uncle's Coinbase
+// the depth-decayed UncleReward. They are matched as a multiset on
+// (recipient, amount) so two orphans from the same miner still pair up. No
+// other generate is allowed. This is what lets handleGenerate blindly mint.
+func checkBlockGenerates(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
+	height := block.GetHeight()
+
+	var primary *ngtypes.FullTx
+	uncleGens := make([]*ngtypes.FullTx, 0, len(block.Uncles))
+	for _, tx := range block.Txs {
+		if tx.Type != ngtypes.GenerateTx {
+			continue
+		}
+		if tx.IsSigned() {
+			if primary != nil {
+				return errors.Wrap(ngtypes.ErrRewardInvalid, "more than one signed miner generate")
+			}
+			primary = tx
+		} else {
+			uncleGens = append(uncleGens, tx)
+		}
+	}
+
+	if primary == nil {
+		return errors.Wrap(ngtypes.ErrRewardInvalid, "block has no signed miner generate")
+	}
+	if !bytes.Equal(primary.To[:], block.BlockHeader.Coinbase) {
+		return errors.Wrap(ngtypes.ErrRewardInvalid, "miner generate does not pay the header coinbase")
+	}
+	if err := primary.CheckGenerate(height, keyResolver(txn)); err != nil {
+		return err
+	}
+
+	if len(uncleGens) != len(block.Uncles) {
+		return errors.Wrapf(ngtypes.ErrRewardInvalid,
+			"%d uncle-reward generates for %d uncles", len(uncleGens), len(block.Uncles))
+	}
+	// expected (recipient||amount) multiset from the declared uncles; the
+	// 32-byte address prefix makes the concatenation unambiguous
+	want := make(map[string]int, len(block.Uncles))
+	for _, u := range block.Uncles {
+		want[string(u.Coinbase)+ngtypes.UncleReward(u.Height, height).String()]++
+	}
+	for _, g := range uncleGens {
+		if g.Fee.Sign() != 0 {
+			return errors.Wrap(ngtypes.ErrTxFeeInvalid, "uncle-reward generate fee must be zero")
+		}
+		if g.Height != height {
+			return errors.Wrap(ngtypes.ErrRewardInvalid, "uncle-reward generate height mismatch")
+		}
+		key := string(g.To[:]) + g.Value.String()
+		if want[key] == 0 {
+			return errors.Wrap(ngtypes.ErrRewardInvalid, "uncle-reward generate matches no uncle")
+		}
+		want[key]--
 	}
 
 	return nil

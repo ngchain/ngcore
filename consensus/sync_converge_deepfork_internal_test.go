@@ -17,6 +17,7 @@ func sealAtTime(t *testing.T, parent *ngtypes.FullBlock, key *ngtypes.PrivateKey
 	h := parent.GetHeight() + 1
 	b := ngtypes.NewBareBlock(ngtypes.ZERONET, h, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(h, blockTime, parent))
+	b.SetCoinbase(ngtypes.NewAddress(key))
 	gen := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, h,
 		ngtypes.NewAddress(key), ngtypes.GetBlockReward(h), big.NewInt(0), nil, nil)
 	if err := gen.Signature(key); err != nil {

@@ -33,10 +33,11 @@ const (
 
 	// MaxUncles caps how many uncle (GHOST) references a block may carry.
 	// UncleMaxDepth bounds how many generations back an uncle's fork point
-	// may be; it must stay below BlockCheckRound so the referenced side
-	// blocks still live above the finality/pruning line.
+	// may be. Side blocks are retained within this depth of the tip (see
+	// PruneSideBlocks callers) so a deep uncle is still referenceable; the
+	// uncle reward decays linearly to zero across this window.
 	MaxUncles     = 2
-	UncleMaxDepth = 6
+	UncleMaxDepth = 30
 
 	// TimestampDriftTolerance bounds how far (MILLISECONDS) a block
 	// timestamp may run ahead of the local clock. Block timestamps are

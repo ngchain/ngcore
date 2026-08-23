@@ -69,7 +69,7 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 						return err
 					}
 				}
-				pruned, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(block.GetHeight()))
+				pruned, err := ngblocks.PruneSideBlocks(blockBucket, sideBlockPruneHeight(block.GetHeight()))
 				if err != nil {
 					return err
 				}

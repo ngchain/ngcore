@@ -202,6 +202,9 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 	}
 
 	height := block.GetHeight()
+	// the miner writes its address into the header before sealing (part of
+	// the pow preimage); submitWork restores it from the generate recipient
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),
 		ngtypes.GetBlockReward(height),

@@ -150,6 +150,7 @@ func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) 
 
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),
@@ -285,6 +286,7 @@ func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),

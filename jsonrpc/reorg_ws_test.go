@@ -25,6 +25,7 @@ func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	blockTime := parent.GetTimestamp() + 1
 	diff := ngtypes.GetNextDiff(height, blockTime, parent)
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(), diff)
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner), ngtypes.GetBlockReward(height), big.NewInt(0), nil, nil)

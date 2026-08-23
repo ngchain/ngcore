@@ -60,6 +60,7 @@ func mineBlock(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 
 	diff := ngtypes.GetNextDiff(height, blockTime, parent)
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(), diff)
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),

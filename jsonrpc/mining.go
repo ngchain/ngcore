@@ -90,6 +90,11 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
+	// the miner sealed over its own coinbase (part of the pow preimage); the
+	// template carried none, so restore it from the submitted generate's
+	// recipient before reconstructing, or the nonce will not verify
+	block.SetCoinbase(genTx.To)
+
 	err = block.ToUnsealing(append([]*ngtypes.FullTx{&genTx}, txs...))
 	if err != nil {
 		log.Error(err)

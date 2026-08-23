@@ -61,11 +61,19 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 			TxTrieHash:    txTrieHash,
 			WitnessRoot:   witnessRoot,
 			Difficulty:    difficulty,
-			UnclesHash:    make([]byte, HashSize), // no uncles until SetUncles
+			Coinbase:      make([]byte, AddressSize), // set by SetCoinbase before sealing
+			UnclesHash:    make([]byte, HashSize),    // no uncles until SetUncles
 			Nonce:         nonce,
 		},
 		Txs: txs,
 	}
+}
+
+// SetCoinbase records the miner's address in the header. It must run
+// BEFORE sealing (Coinbase is part of the pow preimage) and must match the
+// recipient of the block's own generate tx.
+func (x *FullBlock) SetCoinbase(addr Address) {
+	x.BlockHeader.Coinbase = addr[:]
 }
 
 // CalcUnclesHash commits to a block's uncle headers: all-zero when there
@@ -161,7 +169,11 @@ func (x *FullBlock) PowHash() []byte {
 	return hash[:]
 }
 
-// ToUnsealing converts a bare block to an unsealing block
+// ToUnsealing converts a bare block to an unsealing block. The first tx is
+// the miner's (signed) generate; a block may additionally carry UNSIGNED
+// generate txs — the uncle rewards, one per referenced uncle — which are
+// validated as a set against the uncles by the state layer. Any further
+// SIGNED generate is rejected (only the miner signs one).
 func (x *FullBlock) ToUnsealing(txsWithGen []*FullTx) error {
 	if txsWithGen[0].Type != GenerateTx {
 		return ErrBlockNoGen
@@ -169,7 +181,12 @@ func (x *FullBlock) ToUnsealing(txsWithGen []*FullTx) error {
 
 	for i := 1; i < len(txsWithGen); i++ {
 		if txsWithGen[i].Type == GenerateTx {
-			return ErrBlockOnlyOneGen
+			// only the miner's own generate is signed; uncle-reward
+			// generates are system mints and must be unsigned
+			if txsWithGen[i].IsSigned() {
+				return ErrBlockOnlyOneGen
+			}
+			continue
 		}
 
 		if txsWithGen[i].Height != x.Height {
@@ -283,6 +300,10 @@ func (x *FullBlock) CheckError() error {
 	if !bytes.Equal(CalcWitnessRoot(x.Txs), x.BlockHeader.WitnessRoot) {
 		return errors.Wrapf(ErrBlockWitnessRootInvalid,
 			"block@%d's witness root does not match its txs", x.BlockHeader.Height)
+	}
+
+	if len(x.BlockHeader.Coinbase) != AddressSize {
+		return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d's Coinbase length is incorrect", x.BlockHeader.Height)
 	}
 
 	// uncle commitment must match the carried uncle headers, and the set

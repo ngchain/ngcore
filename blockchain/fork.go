@@ -140,6 +140,21 @@ func finalityHeight(tipHeight uint64) uint64 {
 	return (tipHeight - 1) / ngtypes.BlockCheckRound * ngtypes.BlockCheckRound
 }
 
+// sideBlockPruneHeight is the height below which side blocks may be dropped:
+// the lower of the reorg finality line and the uncle-retention line (tip -
+// UncleMaxDepth). Side blocks between the two are kept purely so a deep
+// uncle stays referenceable, even though they can no longer win a reorg.
+func sideBlockPruneHeight(tipHeight uint64) uint64 {
+	fh := finalityHeight(tipHeight)
+	if tipHeight <= ngtypes.UncleMaxDepth {
+		return 0
+	}
+	if keep := tipHeight - ngtypes.UncleMaxDepth; keep < fh {
+		return keep
+	}
+	return fh
+}
+
 // workOf returns the pow work one block contributes to its chain: its own
 // declared difficulty PLUS the difficulty of every uncle it references
 // (GHOST). Folding uncle work in is what neutralizes selfish mining — a
@@ -403,7 +418,7 @@ func (chain *Chain) switchToBranchTxn(txn *bbolt.Tx, branch []*ngtypes.FullBlock
 				return err
 			}
 		}
-		if _, err := ngblocks.PruneSideBlocks(blockBucket, finalityHeight(newTip.GetHeight())); err != nil {
+		if _, err := ngblocks.PruneSideBlocks(blockBucket, sideBlockPruneHeight(newTip.GetHeight())); err != nil {
 			return err
 		}
 	}

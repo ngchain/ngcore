@@ -35,6 +35,7 @@ func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),

@@ -119,13 +119,20 @@ func TestCheckBlockTxsBadNonGenerate(t *testing.T) {
 	priv, _ := ngtypes.GenerateKey()
 
 	err := db.View(func(txn *bbolt.Tx) error {
-		// signed but unfunded transact: passes the signature+extra gates in
-		// CheckBlockTxs, then fails inside CheckTx
+		// a valid miner generate (so the block passes the generate-set gate),
+		// then a signed but unfunded transact that fails inside CheckTx
+		minerAddr := ngtypes.NewAddress(priv)
+		gen := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, 1,
+			minerAddr, ngtypes.GetBlockReward(1), big.NewInt(0), nil, nil)
+		if err := gen.Signature(priv); err != nil {
+			return err
+		}
 		broke := signedTx(t, priv, ngtypes.TransactTx, testAddr(0x01), big.NewInt(1), big.NewInt(1), nil)
 		genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 		header := *genesis.BlockHeader
 		header.Height = 1
-		block := &ngtypes.FullBlock{BlockHeader: &header, Txs: []*ngtypes.FullTx{broke}}
+		header.Coinbase = minerAddr[:]
+		block := &ngtypes.FullBlock{BlockHeader: &header, Txs: []*ngtypes.FullTx{gen, broke}}
 		if err := CheckBlockTxs(txn, block); !errors.Is(err, ErrTxrBalanceInsufficient) {
 			t.Fatalf("CheckBlockTxs with an unfunded transact: got %v", err)
 		}

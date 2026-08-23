@@ -116,17 +116,25 @@ func (pow *PoWork) GetBlockTemplate(privateKey *ngtypes.PrivateKey) ngtypes.Bloc
 	)
 
 	// GHOST: reference recent orphaned blocks so their work counts toward
-	// this chain (folds uncle difficulty into fork choice). Must run before
-	// sealing — UnclesHash is part of the pow preimage.
+	// this chain (folds uncle difficulty into fork choice) and pays their
+	// miners. Must run before sealing — UnclesHash is part of the pow preimage.
+	var uncleRewards []*ngtypes.FullTx
 	if uncles, err := pow.Chain.CollectUncles(); err != nil {
 		log.Warnf("failed to collect uncles: %s", err)
 	} else {
 		newBlock.SetUncles(uncles)
+		uncleRewards = buildUncleRewardTxs(pow.Network, uncles, blockHeight)
 	}
+
+	// the miner address goes in the header so future nephews can pay it
+	newBlock.SetCoinbase(ngtypes.NewAddress(privateKey))
 
 	genTx := CreateGenerateTx(pow.Network, privateKey, blockHeight, pow.MinerExtraData)
 	txs := pow.Pool.GetPack(blockHeight)
-	txsWithGen := append([]*ngtypes.FullTx{genTx}, txs...)
+	txsWithGen := make([]*ngtypes.FullTx, 0, 1+len(uncleRewards)+len(txs))
+	txsWithGen = append(txsWithGen, genTx)
+	txsWithGen = append(txsWithGen, uncleRewards...)
+	txsWithGen = append(txsWithGen, txs...)
 
 	err := newBlock.ToUnsealing(txsWithGen)
 	if err != nil {
@@ -155,23 +163,20 @@ func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, 
 		newDiff,
 	)
 
-	// GHOST: attach recent orphans as uncles before the miner seals
+	// GHOST: attach recent orphans as uncles before the miner seals, and
+	// prepend the (unsigned) uncle-reward generates to the tx pack so the
+	// miner includes them ahead of the pool txs. The miner adds its own
+	// signed generate and sets the header Coinbase before sealing.
 	if uncles, err := pow.Chain.CollectUncles(); err != nil {
 		log.Warnf("failed to collect uncles: %s", err)
 	} else {
 		bareBlock.SetUncles(uncles)
+		uncleRewards := buildUncleRewardTxs(pow.Network, uncles, blockHeight)
+		txs = append(uncleRewards, pow.Pool.GetPack(blockHeight)...)
+		return
 	}
 
 	txs = pow.Pool.GetPack(blockHeight)
-	// genTx := pow.createGenerateTx(privateKey, blockHeight, extraData)
-
-	// txsWithGen := append([]*ngtypes.FullTx{genTx}, txs...)
-
-	// err := newBlock.ToUnsealing(txsWithGen)
-	// if err != nil {
-	// 	log.Error(err)
-	// }
-
 	return
 }
 

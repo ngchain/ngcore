@@ -76,11 +76,16 @@ func TestHandleTxsRefusals(t *testing.T) {
 			t.Fatalf("unknown type: got %v", err)
 		}
 
-		// an unsigned generate fails verification
+		// an unsigned generate is a trusted uncle-reward system mint at the
+		// state layer (block-level CheckBlockTxs is what binds it to a real
+		// uncle); HandleTxs credits it without a signature
 		unsignedGen := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, 1,
-			ngtypes.Address{}, big.NewInt(10), big.NewInt(0), nil, nil)
-		if err := state.HandleTxs(txn, 1, unsignedGen); err == nil {
-			t.Fatal("an unsigned generate must fail")
+			testAddr(0x09), big.NewInt(10), big.NewInt(0), nil, nil)
+		if err := state.HandleTxs(txn, 1, unsignedGen); err != nil {
+			t.Fatalf("unsigned uncle-reward generate should mint: %v", err)
+		}
+		if getBalance(txn, testAddr(0x09)).Cmp(big.NewInt(10)) != 0 {
+			t.Fatal("unsigned generate did not credit its recipient")
 		}
 
 		// spending from an empty address fails at the charge

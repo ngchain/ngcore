@@ -53,6 +53,7 @@ func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Pri
 
 	diff := ngtypes.GetNextDiff(height, blockTime, parent)
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(), diff)
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),
@@ -87,6 +88,7 @@ func mineBlockAt(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	height := parent.GetHeight() + 1
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
+	block.SetCoinbase(ngtypes.NewAddress(miner))
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),
@@ -405,9 +407,10 @@ func TestSideBlockPruning(t *testing.T) {
 		t.Fatal("side block should be stored")
 	}
 
-	// mine past the SECOND checkpoint: the finality line moves to 10 and
-	// the old side block becomes unreachable garbage
-	for parent.GetHeight() < 2*uint64(ngtypes.BlockCheckRound) {
+	// mine well past the uncle-retention window (UncleMaxDepth): side blocks
+	// are now kept within that depth of the tip for GHOST, so the height-2
+	// side block only becomes prunable once the tip clears depth+finality
+	for parent.GetHeight() < uint64(ngtypes.UncleMaxDepth)+2*uint64(ngtypes.BlockCheckRound) {
 		parent = mineBlock(t, parent, minerA)
 		if err := chain.ApplyBlock(parent); err != nil {
 			t.Fatalf("apply block@%d: %v", parent.GetHeight(), err)

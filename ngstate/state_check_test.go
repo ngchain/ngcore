@@ -44,6 +44,7 @@ func TestCheckBlockTxs(t *testing.T) {
 			genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 			header := *genesis.BlockHeader
 			header.Height = height
+			header.Coinbase = minerAddr[:] // the miner generate must pay this
 			return &ngtypes.FullBlock{BlockHeader: &header, Txs: txs}
 		}
 
@@ -59,17 +60,17 @@ func TestCheckBlockTxs(t *testing.T) {
 			t.Fatalf("valid block refused: %v", err)
 		}
 
-		// an unsigned tx is refused before anything else
+		// an unsigned (non-generate) tx is refused
 		unsigned := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
 			minerAddr, big.NewInt(1), big.NewInt(0), nil, nil)
-		if err := CheckBlockTxs(txn, blockAt(1, unsigned)); !errors.Is(err, ngtypes.ErrTxUnsigned) {
+		if err := CheckBlockTxs(txn, blockAt(1, gen, unsigned)); !errors.Is(err, ngtypes.ErrTxUnsigned) {
 			t.Fatalf("unsigned tx: got %v, want ErrTxUnsigned", err)
 		}
 
 		// an oversized extra is refused
 		fat := signedTx(t, userPriv, ngtypes.TransactTx, minerAddr,
 			big.NewInt(1), big.NewInt(0), make([]byte, ngtypes.TxMaxExtraSize+1))
-		if err := CheckBlockTxs(txn, blockAt(1, fat)); !errors.Is(err, ngtypes.ErrTxExtraExcess) {
+		if err := CheckBlockTxs(txn, blockAt(1, gen, fat)); !errors.Is(err, ngtypes.ErrTxExtraExcess) {
 			t.Fatalf("fat tx: got %v, want ErrTxExtraExcess", err)
 		}
 

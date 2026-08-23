@@ -27,6 +27,10 @@ type BlockHeader struct {
 	WitnessRoot   []byte // 32
 
 	Difficulty []byte // 32
+	// Coinbase is the miner's address. Uncles carry only their header, so
+	// the miner address must live in the header (and the pow preimage) for
+	// a nephew to pay the orphaned miner without carrying the uncle's body.
+	Coinbase []byte // 32
 	// UnclesHash commits to the block's uncle headers (GHOST). It is
 	// folded into the pow preimage so uncles cannot be swapped after
 	// sealing. All-zero when the block carries no uncles.
@@ -38,9 +42,9 @@ type BlockHeader struct {
 // fields. When nonce is non-nil it overrides the header's own Nonce.
 func (x *BlockHeader) GetPoWRawHeader(nonce []byte) []byte {
 	// Network(1) + Height(8) + Timestamp(8) + PrevBlockHash(32) +
-	// TxTrieHash(32) + WitnessRoot(32) + Difficulty(32) +
-	// UnclesHash(32) + Nonce(8) = 185
-	raw := make([]byte, 185)
+	// TxTrieHash(32) + WitnessRoot(32) + Difficulty(32) + Coinbase(32) +
+	// UnclesHash(32) + Nonce(8) = 217
+	raw := make([]byte, 217)
 
 	raw[0] = byte(x.Network)
 	binary.LittleEndian.PutUint64(raw[1:], x.Height)
@@ -49,12 +53,13 @@ func (x *BlockHeader) GetPoWRawHeader(nonce []byte) []byte {
 	copy(raw[49:81], x.TxTrieHash)
 	copy(raw[81:113], x.WitnessRoot)
 	copy(raw[113:145], utils.ReverseBytes(x.Difficulty)) // uint256
-	copy(raw[145:177], x.UnclesHash)
+	copy(raw[145:177], x.Coinbase)
+	copy(raw[177:209], x.UnclesHash)
 
 	if nonce == nil {
-		copy(raw[177:185], x.Nonce)
+		copy(raw[209:217], x.Nonce)
 	} else {
-		copy(raw[177:185], nonce)
+		copy(raw[209:217], nonce)
 	}
 
 	return raw
@@ -115,7 +120,8 @@ var ErrNotBlockHeader = errors.New("not a block header")
 // difficulty is correct for the uncle's slot is a chain-context check.
 func (x *BlockHeader) checkStandaloneError() error {
 	if len(x.PrevBlockHash) != HashSize || len(x.TxTrieHash) != HashSize ||
-		len(x.WitnessRoot) != HashSize || len(x.UnclesHash) != HashSize {
+		len(x.WitnessRoot) != HashSize || len(x.UnclesHash) != HashSize ||
+		len(x.Coinbase) != AddressSize {
 		return errors.New("uncle header has a malformed fixed-size field")
 	}
 	if len(x.Difficulty) == 0 || len(x.Difficulty) > DiffSize {
@@ -166,6 +172,9 @@ func (x *BlockHeader) Equals(other merkletree.Content) (bool, error) {
 		return false, nil
 	}
 	if !bytes.Equal(x.Difficulty, header.Difficulty) {
+		return false, nil
+	}
+	if !bytes.Equal(x.Coinbase, header.Coinbase) {
 		return false, nil
 	}
 	if !bytes.Equal(x.UnclesHash, header.UnclesHash) {

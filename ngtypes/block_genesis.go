@@ -26,6 +26,7 @@ func GetGenesisBlock(network Network) *FullBlock {
 			GetGenesisBlockNonce(network),
 			txs,
 		)
+		genesisBlock.SetCoinbase(GenesisAddress)
 		genesisBlock.GetHash()
 	}
 

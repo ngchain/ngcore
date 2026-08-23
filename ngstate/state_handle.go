@@ -59,12 +59,17 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 }
 
 func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.Verify(keyResolver(txn)); err != nil {
-		return err
-	}
+	// unsigned generates are uncle rewards: checkBlockGenerates already
+	// bound them (recipient + amount) to the block's uncle set, so there is
+	// no signer to verify — just mint to the orphaned miner
+	if len(tx.Sign) != 0 {
+		if err := tx.Verify(keyResolver(txn)); err != nil {
+			return err
+		}
 
-	if err := registerPubKey(txn, state.cs, tx); err != nil {
-		return err
+		if err := registerPubKey(txn, state.cs, tx); err != nil {
+			return err
+		}
 	}
 
 	balance := getBalance(txn, tx.To)
