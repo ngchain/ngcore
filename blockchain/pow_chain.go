@@ -110,8 +110,15 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 			return err
 		}
 
-		if blockWork.Cmp(tipWork) <= 0 {
-			log.Warnf("stored side block@%d %x (work %s <= tip %s), no reorg",
+		// fork choice: strictly heavier work wins. On EQUAL work, break the
+		// tie deterministically by the smaller tip hash — so every node
+		// converges on the same tip regardless of block arrival order. This
+		// removes the first-seen advantage a well-connected or selfish miner
+		// could exploit to split honest hash power, and prevents permanent
+		// same-height splits.
+		cmp := blockWork.Cmp(tipWork)
+		if cmp < 0 || (cmp == 0 && bytes.Compare(block.GetHash(), tip.GetHash()) >= 0) {
+			log.Warnf("stored side block@%d %x (work %s vs tip %s), no reorg",
 				block.GetHeight(), block.GetHash(), blockWork, tipWork)
 			return nil
 		}
