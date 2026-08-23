@@ -28,7 +28,7 @@ var (
 const (
 	// MinimumDifficulty is the minimum of pow minimumDifficulty because my laptop has 200 h/s, I believe you can either
 	minimumDifficulty = 200 << 4        // Target = MaxTarget / diff
-	TargetTime        = 1 * time.Second // aggressive fast-block design
+	TargetTime        = 4 * time.Second // fast blocks, but above global propagation delay to bound the orphan rate
 	BlockCheckRound   = 10              // do converge if fall behind one round
 
 	// TimestampDriftTolerance bounds how far (MILLISECONDS) a block

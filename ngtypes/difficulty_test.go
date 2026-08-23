@@ -32,21 +32,23 @@ func TestGetNextDiffRetargetsEveryBlock(t *testing.T) {
 	// boundaries — a NON-tail height must still track the interval
 	network := ngtypes.TESTNET
 	genesisTime := ngtypes.GetGenesisTimestamp(network)
-	start := new(big.Int).Mul(ngtypes.MinimumDiffOf(network), big.NewInt(4))
+	start := new(big.Int).Mul(ngtypes.MinimumDiffOf(network), big.NewInt(64))
+	targetMs := uint64(ngtypes.TargetTime / time.Millisecond)
 
-	parent := diffTestBlock(network, 5, genesisTime+5*16, start)
+	parentTs := genesisTime + 5*targetMs
+	parent := diffTestBlock(network, 5, parentTs, start)
 	if parent.IsTail() {
 		t.Fatal("height 5 must not be a tail with BlockCheckRound 10")
 	}
 
-	// a sub-target interval (16ms << 1000ms target) raises the diff
-	fast := ngtypes.GetNextDiff(6, genesisTime+5*16+16, parent)
+	// a sub-target interval (1ms << target) raises the diff
+	fast := ngtypes.GetNextDiff(6, parentTs+1, parent)
 	if fast.Cmp(start) <= 0 {
 		t.Fatalf("fast off-tail block did not raise diff: %s -> %s", start, fast)
 	}
 
-	// a slower-than-target interval lowers it
-	slow := ngtypes.GetNextDiff(6, genesisTime+5*16+5000, parent)
+	// a much-slower-than-target interval (20x target) lowers it
+	slow := ngtypes.GetNextDiff(6, parentTs+20*targetMs, parent)
 	if slow.Cmp(start) >= 0 {
 		t.Fatalf("slow off-tail block did not lower diff: %s -> %s", start, slow)
 	}
