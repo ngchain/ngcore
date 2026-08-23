@@ -23,14 +23,33 @@ type jsonBlock struct {
 
 	Txs []*FullTx `json:"txs"`
 
+	UnclesHash string      `json:"unclesHash"`
+	Uncles     []jsonUncle `json:"uncles,omitempty"`
+
 	// some helper fields
 	Hash    string `json:"hash,omitempty"`
 	PoWHash string `json:"powHash,omitempty"`
 	Txn     int    `json:"txn,omitempty"`
 }
 
+// jsonUncle is the read-only view of a referenced uncle header
+type jsonUncle struct {
+	Hash       string `json:"hash"`
+	Height     uint64 `json:"height"`
+	Difficulty string `json:"difficulty"`
+}
+
 // MarshalJSON encodes the Block into the json bytes
 func (x *FullBlock) MarshalJSON() ([]byte, error) {
+	var uncles []jsonUncle
+	for _, u := range x.Uncles {
+		uncles = append(uncles, jsonUncle{
+			Hash:       hex.EncodeToString(u.GetHash()),
+			Height:     u.Height,
+			Difficulty: new(big.Int).SetBytes(u.Difficulty).String(),
+		})
+	}
+
 	return utils.JSON.Marshal(jsonBlock{
 		Network:       x.BlockHeader.Network.String(),
 		Height:        x.BlockHeader.Height,
@@ -41,6 +60,9 @@ func (x *FullBlock) MarshalJSON() ([]byte, error) {
 		Difficulty:    new(big.Int).SetBytes(x.BlockHeader.Difficulty).String(),
 		Nonce:         hex.EncodeToString(x.BlockHeader.Nonce),
 		Txs:           x.Txs,
+
+		UnclesHash: hex.EncodeToString(x.BlockHeader.UnclesHash),
+		Uncles:     uncles,
 
 		Hash:    hex.EncodeToString(x.GetHash()),
 		PoWHash: hex.EncodeToString(x.PowHash()),
