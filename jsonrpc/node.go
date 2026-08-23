@@ -49,10 +49,15 @@ func (s *Server) peerCountFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 }
 
 type difficultyReply struct {
-	Height      uint64 `json:"height"`
-	Difficulty  string `json:"difficulty"`  // the tip's actual pow difficulty (decimal)
-	BlockReward string `json:"blockReward"` // the tip height's reward, raw units
-	NextReward  string `json:"nextReward"`  // the next height's reward, raw units
+	Height uint64 `json:"height"`
+	// Difficulty is the tip's DECLARED (consensus) difficulty — the network
+	// target every block at this height must meet. ActualDifficulty is the
+	// pow work the tip's winning nonce happened to achieve (>= Difficulty by
+	// luck); it swings block to block and is NOT the network difficulty.
+	Difficulty       string `json:"difficulty"`
+	ActualDifficulty string `json:"actualDifficulty"`
+	BlockReward      string `json:"blockReward"` // the tip height's reward, raw units
+	NextReward       string `json:"nextReward"`  // the next height's reward, raw units
 }
 
 // getDifficultyFunc exposes the chain's current difficulty and block
@@ -65,10 +70,11 @@ func (s *Server) getDifficultyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonR
 	height := tip.GetHeight()
 
 	return reply(msg, difficultyReply{
-		Height:      height,
-		Difficulty:  tip.GetActualDiff().String(),
-		BlockReward: ngtypes.GetBlockReward(height).String(),
-		NextReward:  ngtypes.GetBlockReward(height + 1).String(),
+		Height:           height,
+		Difficulty:       new(big.Int).SetBytes(tip.BlockHeader.Difficulty).String(),
+		ActualDifficulty: tip.GetActualDiff().String(),
+		BlockReward:      ngtypes.GetBlockReward(height).String(),
+		NextReward:       ngtypes.GetBlockReward(height + 1).String(),
 	})
 }
 
