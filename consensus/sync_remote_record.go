@@ -55,8 +55,14 @@ func (r *RemoteRecord) update(origin, latest uint64, checkpointHash, checkpointA
 	r.lastChatTime = time.Now().Unix()
 }
 
+// syncRetryCooldown is how long a peer is skipped after repeated sync/converge
+// failures. The old value (1h) was catastrophic on a 1s-block chain: a node
+// that momentarily failed stayed hours behind. Keep it short so a laggard
+// retries quickly; recordSuccess resets the failure counter entirely.
+const syncRetryCooldown = 15 * time.Second
+
 func (r *RemoteRecord) shouldSync(latestHeight uint64) bool {
-	if time.Now().Unix() < r.lastFailedTime+int64(60*60) {
+	if time.Now().Unix() < r.lastFailedTime+int64(syncRetryCooldown.Seconds()) {
 		return false
 	}
 
@@ -72,7 +78,7 @@ func (r *RemoteRecord) shouldSync(latestHeight uint64) bool {
 // Situation #2: remote height is higher than local, AND checkpoint is on same level, AND remote checkpoint takes more rank (with more ActualDiff)
 // TODO: add a cap for converging.
 func (r *RemoteRecord) shouldConverge(latestCheckPoint *ngtypes.FullBlock, latestHeight uint64) bool {
-	if time.Now().Unix() < r.lastFailedTime+int64(60*60) {
+	if time.Now().Unix() < r.lastFailedTime+int64(syncRetryCooldown.Seconds()) {
 		return false
 	}
 
@@ -100,4 +106,12 @@ func (r *RemoteRecord) recordFailure() {
 	if r.failureNum.Load() > 3 {
 		r.lastFailedTime = time.Now().Unix()
 	}
+}
+
+// recordSuccess clears the failure state so a peer that recovers is no longer
+// penalized by past failures (otherwise failureNum only ever grew, eventually
+// pinning every peer into the cooldown branch permanently)
+func (r *RemoteRecord) recordSuccess() {
+	r.failureNum.Store(0)
+	r.lastFailedTime = 0
 }

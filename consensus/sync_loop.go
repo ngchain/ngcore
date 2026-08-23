@@ -54,6 +54,7 @@ func (mod *syncModule) loop(ctx context.Context) {
 				if err != nil {
 					log.Warnf("do sync failed: %s, maybe require converging", err)
 				} else {
+					record.recordSuccess()
 					break
 				}
 			}
@@ -74,6 +75,7 @@ func (mod *syncModule) loop(ctx context.Context) {
 					log.Errorf("converging failed: %s", err)
 					record.recordFailure()
 				} else {
+					record.recordSuccess()
 					break
 				}
 			}
