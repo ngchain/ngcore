@@ -242,8 +242,13 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
 func (pow *PoWork) ImportBlock(b ngtypes.Block) error {
 	block := b.(*ngtypes.FullBlock)
 
+	// while a sync is running the chain is locked, so a gossiped block cannot
+	// be applied now — but dropping it isolates this node from fresh blocks.
+	// Park it instead; drainOrphansFromTip (run after the sync unlocks) retries
+	// it once its parent has landed.
 	if pow.SyncMod.Locker.IsActive() {
-		return errors.Wrap(ErrChainOnSyncing, "cannot import external block")
+		pow.orphans.add(block)
+		return nil
 	}
 
 	err := pow.Chain.ApplyBlock(block)

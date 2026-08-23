@@ -167,12 +167,16 @@ func TestImportBlockOrphanCascade(t *testing.T) {
 
 	pow := newTestNode(t, PoWorkConfig{DisableConnectingBootstraps: true})
 
-	// while the sync module is busy, gossip blocks must be refused
+	// while the sync module is busy, a gossip block is PARKED (not dropped),
+	// so the node isn't isolated from blocks arriving mid-sync
 	pow.SyncMod.Locker.Lock()
-	if err := pow.ImportBlock(a1); !errors.Is(err, ErrChainOnSyncing) {
-		t.Fatalf("ImportBlock while syncing = %v, want ErrChainOnSyncing", err)
+	if err := pow.ImportBlock(a1); err != nil {
+		t.Fatalf("ImportBlock while syncing should park (nil), got: %v", err)
 	}
 	pow.SyncMod.Locker.Unlock()
+	if pow.Chain.GetLatestBlockHeight() != 0 {
+		t.Fatal("a block parked during sync must not move the tip")
+	}
 
 	// out-of-order arrival: a2 and a3 get parked
 	if err := pow.ImportBlock(a2); err != nil {

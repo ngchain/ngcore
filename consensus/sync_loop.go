@@ -80,5 +80,10 @@ func (mod *syncModule) loop(ctx context.Context) {
 				}
 			}
 		}
+
+		// retry any gossip blocks that were parked while the chain was locked
+		// for syncing, so a node isn't isolated from blocks that arrived
+		// mid-sync (cheap no-op when nothing is parked)
+		mod.pow.importOrphanChildren(mod.pow.Chain.GetLatestBlockHash())
 	}
 }
