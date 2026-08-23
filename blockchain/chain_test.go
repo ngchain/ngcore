@@ -448,7 +448,7 @@ func TestBlockTimestampRules(t *testing.T) {
 
 	// far-future timestamp: rejected (for now). Sealed manually — the
 	// miner-side CheckError loop would refuse to build it
-	futureTime := uint64(time.Now().Unix()) + 3600
+	futureTime := uint64(time.Now().UnixMilli()) + uint64(time.Hour/time.Millisecond)
 	future := ngtypes.NewBareBlock(ngtypes.ZERONET, 2, futureTime, b1.GetHash(),
 		ngtypes.GetNextDiff(2, futureTime, b1))
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, 2,

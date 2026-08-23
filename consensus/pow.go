@@ -84,11 +84,11 @@ func InitPoWConsensus(db *bbolt.DB, chain *blockchain.Chain, pool *ngpool.TxPool
 	return pow
 }
 
-// templateBlockTime picks the mining timestamp: wall clock, but always
-// strictly after the parent so back-to-back templates within the same
-// second (the 1s block target makes this common) stay monotonic
+// templateBlockTime picks the mining timestamp in unix-MILLISECONDS, but
+// always strictly after the parent so back-to-back templates within the
+// same millisecond stay monotonic (the retarget reads this interval)
 func templateBlockTime(parent *ngtypes.FullBlock) uint64 {
-	blockTime := uint64(time.Now().Unix())
+	blockTime := uint64(time.Now().UnixMilli())
 	if blockTime <= parent.BlockHeader.Timestamp {
 		blockTime = parent.BlockHeader.Timestamp + 1
 	}

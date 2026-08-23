@@ -16,17 +16,17 @@ func TestTemplateBlockTime(t *testing.T) {
 
 	// the genesis timestamp lies in the past, so the template takes
 	// the wall clock
-	now := uint64(time.Now().Unix())
+	now := uint64(time.Now().UnixMilli())
 	got := templateBlockTime(genesis)
 	if got <= genesis.BlockHeader.Timestamp {
 		t.Fatalf("templateBlockTime = %d, not after the parent %d", got, genesis.BlockHeader.Timestamp)
 	}
-	if got < now || got > now+2 {
+	if got < now || got > now+2000 {
 		t.Fatalf("templateBlockTime = %d, want the wall clock ~%d", got, now)
 	}
 
 	// a parent already ahead of the wall clock forces parent+1
-	future := uint64(time.Now().Unix()) + 100
+	future := uint64(time.Now().UnixMilli()) + 100
 	parent := ngtypes.NewBareBlock(ngtypes.ZERONET, 1, future, genesis.GetHash(), big.NewInt(1))
 	if got := templateBlockTime(parent); got != future+1 {
 		t.Fatalf("templateBlockTime = %d, want parent+1 = %d", got, future+1)
@@ -144,7 +144,7 @@ func TestMinedNewBlock(t *testing.T) {
 	}
 
 	// a block detached from every stored block must be rejected
-	orphan := ngtypes.NewBareBlock(ngtypes.ZERONET, 5, uint64(time.Now().Unix()),
+	orphan := ngtypes.NewBareBlock(ngtypes.ZERONET, 5, uint64(time.Now().UnixMilli()),
 		bytes.Repeat([]byte{0xaa}, 32), big.NewInt(1))
 	if err := orphan.ToUnsealing([]*ngtypes.FullTx{CreateGenerateTx(ngtypes.ZERONET, key, 5, nil)}); err != nil {
 		t.Fatal(err)
@@ -190,7 +190,7 @@ func TestImportBlockOrphanCascade(t *testing.T) {
 	}
 
 	// a parked block that turns out invalid (height gap) is skipped
-	bad := ngtypes.NewBareBlock(ngtypes.ZERONET, 99, uint64(time.Now().Unix()), a2.GetHash(), big.NewInt(1))
+	bad := ngtypes.NewBareBlock(ngtypes.ZERONET, 99, uint64(time.Now().UnixMilli()), a2.GetHash(), big.NewInt(1))
 	if err := bad.ToUnsealing([]*ngtypes.FullTx{CreateGenerateTx(ngtypes.ZERONET, key, 99, nil)}); err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestImportBlockOrphanCascade(t *testing.T) {
 	}
 
 	// a non-orphan invalid block surfaces its error
-	detached := ngtypes.NewBareBlock(ngtypes.ZERONET, 99, uint64(time.Now().Unix()),
+	detached := ngtypes.NewBareBlock(ngtypes.ZERONET, 99, uint64(time.Now().UnixMilli()),
 		pow.Chain.GetOriginBlock().GetHash(), big.NewInt(1))
 	if err := detached.ToUnsealing([]*ngtypes.FullTx{CreateGenerateTx(ngtypes.ZERONET, key, 99, nil)}); err != nil {
 		t.Fatal(err)
@@ -223,7 +223,7 @@ func TestImportBlockOrphanCascade(t *testing.T) {
 
 	// a full orphan pool refuses to park and surfaces the orphan error
 	pow.orphans.count = maxOrphanBlocks
-	unknownParent := ngtypes.NewBareBlock(ngtypes.ZERONET, 7, uint64(time.Now().Unix()),
+	unknownParent := ngtypes.NewBareBlock(ngtypes.ZERONET, 7, uint64(time.Now().UnixMilli()),
 		bytes.Repeat([]byte{0xbb}, 32), big.NewInt(1))
 	if err := unknownParent.ToUnsealing([]*ngtypes.FullTx{CreateGenerateTx(ngtypes.ZERONET, key, 7, nil)}); err != nil {
 		t.Fatal(err)

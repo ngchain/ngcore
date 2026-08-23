@@ -250,7 +250,7 @@ func (x *FullBlock) CheckError() error {
 
 	// allow a small clock drift; a block rejected as futuristic becomes
 	// acceptable once the local clock catches up
-	if x.BlockHeader.Timestamp > uint64(time.Now().Unix())+TimestampDriftTolerance {
+	if x.BlockHeader.Timestamp > uint64(time.Now().UnixMilli())+TimestampDriftTolerance {
 		return errors.Wrapf(ErrBlockTimestampInvalid, "block%d's timestamp %d is too far in the future", x.BlockHeader.Height, x.BlockHeader.Timestamp)
 	}
 

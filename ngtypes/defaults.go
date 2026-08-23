@@ -31,9 +31,10 @@ const (
 	TargetTime        = 1 * time.Second // aggressive fast-block design
 	BlockCheckRound   = 10              // do converge if fall behind one round
 
-	// TimestampDriftTolerance bounds how far (seconds) a block timestamp
-	// may run ahead of the local clock
-	TimestampDriftTolerance = 15
+	// TimestampDriftTolerance bounds how far (MILLISECONDS) a block
+	// timestamp may run ahead of the local clock. Block timestamps are
+	// unix-milliseconds so the 1s target is reachable from below
+	TimestampDriftTolerance = uint64(15 * time.Second / time.Millisecond)
 
 	MatureRound  = 10                            // not mandatory required, can be modified by different daemons
 	MatureHeight = MatureRound * BlockCheckRound // just for calculating the immature balance
@@ -143,9 +144,9 @@ func GetGenesisBlockNonce(network Network) []byte {
 func GetGenesisTimestamp(network Network) uint64 {
 	switch network {
 	case ZERONET:
-		return uint64(time.Date(2020, time.October, 24, 0, 0, 0, 0, time.UTC).Unix())
+		return uint64(time.Date(2020, time.October, 24, 0, 0, 0, 0, time.UTC).UnixMilli())
 	case TESTNET:
-		return uint64(time.Date(2020, time.November, 11, 11, 11, 11, 11, time.UTC).Unix())
+		return uint64(time.Date(2020, time.November, 11, 11, 11, 11, 11, time.UTC).UnixMilli())
 	case MAINNET:
 		panic("not ready for mainnet")
 	default:

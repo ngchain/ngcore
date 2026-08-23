@@ -12,7 +12,7 @@ import (
 // fakeOrphan builds a distinct sealed-enough block for the pool (only
 // the header hashes matter to the orphan pool)
 func fakeOrphan(height uint64, prev byte) *ngtypes.FullBlock {
-	return ngtypes.NewBareBlock(ngtypes.ZERONET, height, uint64(time.Now().Unix()),
+	return ngtypes.NewBareBlock(ngtypes.ZERONET, height, uint64(time.Now().UnixMilli()),
 		bytes.Repeat([]byte{prev}, 32), big.NewInt(1))
 }
 

@@ -44,7 +44,7 @@ func sealAtTime(t *testing.T, parent *ngtypes.FullBlock, key *ngtypes.PrivateKey
 // the fix walks the batches back to the real fork point and returns the
 // attaching divergent branch.
 func TestDoConvergingDeepFork(t *testing.T) {
-	base := uint64(time.Now().Unix()) - 2000
+	base := uint64(time.Now().UnixMilli()) - 2000
 
 	remote := newTestNode(t, PoWorkConfig{DisableConnectingBootstraps: true})
 	local := newTestNode(t, PoWorkConfig{DisableConnectingBootstraps: true})

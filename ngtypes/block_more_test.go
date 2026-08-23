@@ -175,7 +175,7 @@ func TestCheckErrorRejects(t *testing.T) {
 
 	// a far-future timestamp
 	block = fresh()
-	block.BlockHeader.Timestamp = uint64(time.Now().Unix()) + TimestampDriftTolerance + 100
+	block.BlockHeader.Timestamp = uint64(time.Now().UnixMilli()) + TimestampDriftTolerance + 100
 	if err := block.CheckError(); !errors.Is(err, ErrBlockTimestampInvalid) {
 		t.Fatalf("want ErrBlockTimestampInvalid, got %v", err)
 	}
