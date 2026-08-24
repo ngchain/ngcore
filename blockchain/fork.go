@@ -155,20 +155,16 @@ func sideBlockPruneHeight(tipHeight uint64) uint64 {
 	return fh
 }
 
-// workOf returns the pow work one block contributes to its chain: its own
-// declared difficulty PLUS the difficulty of every uncle it references
-// (GHOST). Folding uncle work in is what neutralizes selfish mining — a
-// chain that absorbs orphaned honest work out-weighs one that ignores it,
-// so withholding no longer lets an attacker waste honest hashpower. Uncle
-// validity (parentage, slot difficulty, dedup) is enforced before a block
-// is ever weighed, and each block counts at most once (as a canonical
-// block or as an uncle), so there is no double counting.
+// workOf returns the pow work one block contributes to its chain: ONLY its
+// own declared difficulty. Uncle difficulty is deliberately NOT counted
+// here. Folding it in (an earlier attempt) is unsound: validateUncles only
+// proves an uncle is not on the nephew's OWN chain, so an attacker's fork
+// could reference the honest chain's blocks as uncles and count that work
+// on both chains, out-weighing honest with equal hashpower (a sub-50%
+// reorg). Ethereum's GHOST keeps uncles out of the total-difficulty
+// comparison for exactly this reason; uncles here are reward-only.
 func workOf(block *ngtypes.FullBlock) *big.Int {
-	w := new(big.Int).SetBytes(block.BlockHeader.Difficulty)
-	for _, u := range block.Uncles {
-		w.Add(w, new(big.Int).SetBytes(u.Difficulty))
-	}
-	return w
+	return new(big.Int).SetBytes(block.BlockHeader.Difficulty)
 }
 
 // cumulativeWork resolves the total work of the chain ending at block,

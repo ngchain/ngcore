@@ -54,11 +54,13 @@ func mineBlockWithUncles(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes
 	return nil
 }
 
-// TestUncleAddsWorkAndWinsForkChoice is the core selfish-mining defense: a
-// branch that references an orphaned block as an uncle carries that block's
-// work, so it out-weighs an equal-length sibling that ignores the orphan and
-// wins the fork choice. Withholding therefore can no longer waste honest work.
-func TestUncleAddsWorkAndWinsForkChoice(t *testing.T) {
+// TestUncleWorkDoesNotAffectForkChoice guards the fix for a sub-50% reorg:
+// uncle difficulty must NOT count toward fork-choice weight. If it did, a
+// block could out-weigh an equal-real-work sibling merely by referencing an
+// orphan (and an attacker could reference the honest chain's own blocks).
+// So a lower-hash plain block must still reorg out a higher-hash sibling
+// that carries an uncle — the tie-break, not the uncle, decides equal work.
+func TestUncleWorkDoesNotAffectForkChoice(t *testing.T) {
 	chain := newTestChain(t)
 	minerA, _ := ngtypes.GenerateKey()
 	minerB, _ := ngtypes.GenerateKey()
@@ -69,28 +71,25 @@ func TestUncleAddsWorkAndWinsForkChoice(t *testing.T) {
 	b2 := mineBlock(t, b1, minerA)
 	mustApply(t, chain, b2)
 
-	// an orphan at height 2 that forks off b1 and loses the tie to b2
 	orphan := mineLosingCompetitor(t, b1, b2)
 	mustApply(t, chain, orphan)
-	if !bytes.Equal(chain.GetLatestBlockHash(), b2.GetHash()) {
-		t.Fatal("the orphan should be a side block, tip must stay b2")
-	}
 
-	// a plain block on b2 (no uncle) takes the tip first
-	plain := mineBlock(t, b2, minerA)
-	mustApply(t, chain, plain)
-	if !bytes.Equal(chain.GetLatestBlockHash(), plain.GetHash()) {
-		t.Fatal("plain block should be the tip")
-	}
-
-	// a sibling on b2 that references the orphan as an uncle is heavier by
-	// exactly the orphan's difficulty, so it reorgs the plain block out
+	// an uncle-carrying block takes the tip first
 	withUncle := mineBlockWithUncles(t, b2, minerB, []*ngtypes.BlockHeader{orphan.BlockHeader})
-	if err := chain.ApplyBlock(withUncle); err != nil {
-		t.Fatalf("uncle-carrying block rejected: %v", err)
-	}
+	mustApply(t, chain, withUncle)
 	if !bytes.Equal(chain.GetLatestBlockHash(), withUncle.GetHash()) {
-		t.Fatal("the uncle-carrying branch is heavier and must win the fork choice")
+		t.Fatal("uncle-carrying block should be the tip")
+	}
+
+	// a plain sibling with a SMALLER hash and no uncle: equal real work, so
+	// the tie-break adopts it. If uncle work counted, withUncle would be
+	// heavier and this reorg would (wrongly) not happen.
+	plain := mineWinningCompetitor(t, b2, withUncle)
+	if err := chain.ApplyBlock(plain); err != nil {
+		t.Fatalf("plain competitor rejected: %v", err)
+	}
+	if !bytes.Equal(chain.GetLatestBlockHash(), plain.GetHash()) {
+		t.Fatal("uncle work must not out-weigh an equal-real-work, lower-hash sibling")
 	}
 }
 
