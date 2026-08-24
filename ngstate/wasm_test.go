@@ -762,7 +762,7 @@ func TestVMTxContext(t *testing.T) {
 		// the tx pays 77 to the contract's address (msg.value)
 		tx := fakeTransactTx(owner, big.NewInt(77))
 
-		vm, err := NewVM(txn, acc, tx, 1755264000) // block timestamp
+		vm, err := NewVM(txn, acc, tx, 1755264000_000) // block timestamp in unix-MILLISECONDS
 		if err != nil {
 			return err
 		}
@@ -776,6 +776,7 @@ func TestVMTxContext(t *testing.T) {
 		}
 
 		ts := reloaded.Context.Get("ts")
+		// get_timestamp exposes unix SECONDS (ms block time / 1000)
 		if len(ts) != 8 || binary.LittleEndian.Uint64(ts) != 1755264000 {
 			t.Fatalf("ts = %x, want LE(1755264000)", ts)
 		}

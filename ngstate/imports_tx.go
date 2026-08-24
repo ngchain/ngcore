@@ -55,8 +55,11 @@ func initTxImports(vm *VM) error {
 
 	err = vm.linker.DefineAdvancedFunc("tx", "get_timestamp", func(ins *wasman.Instance) interface{} {
 		return func() uint64 {
-			// the enclosing block's timestamp (unix seconds)
-			return vm.blockTime
+			// the enclosing block's timestamp in unix SECONDS: block
+			// timestamps are stored in milliseconds (for the difficulty
+			// retarget), but the contract ABI keeps the conventional
+			// second resolution so contract time math is unaffected
+			return vm.blockTime / 1000 // ms -> s
 		}
 	})
 	if err != nil {
