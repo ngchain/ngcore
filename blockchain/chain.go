@@ -1,6 +1,8 @@
 package blockchain
 
 import (
+	"sync"
+
 	logging "github.com/ngchain/zap-log"
 	"go.etcd.io/bbolt"
 
@@ -18,6 +20,14 @@ type Chain struct {
 	*ngstate.State
 
 	Network ngtypes.Network
+
+	// mu serializes the canonical-mutation entry points (ApplyBlock,
+	// SwitchToBranch, ApplySnapshot). bbolt already serializes the write
+	// TXN, but the reorg-log buffers below are read AFTER the txn commits,
+	// in the notify hooks, so the whole reset+txn+notify sequence must be
+	// single-owner — otherwise a concurrent applier (gossip vs RPC) can
+	// overwrite the buffers between commit and fire.
+	mu sync.Mutex
 
 	// OnTipChanged (optional) runs after the canonical tip moved — on
 	// block imports and reorgs, once the db txn has committed. The tx
@@ -45,9 +55,9 @@ func (chain *Chain) notifyTipChanged() {
 
 // notifyReorg fires the OnReorg hook with the logs orphaned and re-added by
 // the last reorg (gathered inside switchToBranchTxn), then clears them.
-// Reorgs are serialized by the write lock, so the buffers are single-owner;
-// the entry points reset them before their txn, so an aborted reorg cannot
-// leak stale logs into a later fire
+// Reorgs are serialized by chain.mu (held across the whole reset+txn+notify
+// sequence), so the buffers are single-owner; the entry points reset them
+// before their txn, so an aborted reorg cannot leak stale logs into a later fire
 func (chain *Chain) notifyReorg() {
 	if chain.OnReorg != nil && (len(chain.reorgRemoved) > 0 || len(chain.reorgAdded) > 0) {
 		chain.OnReorg(chain.reorgRemoved, chain.reorgAdded)

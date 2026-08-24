@@ -442,6 +442,9 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 		return ngblocks.ErrBranchEmpty
 	}
 
+	chain.mu.Lock()
+	defer chain.mu.Unlock()
+
 	// drop any logs a previously aborted reorg txn left behind (see ApplyBlock)
 	chain.reorgRemoved = nil
 	chain.reorgAdded = nil

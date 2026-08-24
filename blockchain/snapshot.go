@@ -32,6 +32,9 @@ func (chain *Chain) ApplySnapshot(blocks []*ngtypes.FullBlock, sheet *ngtypes.Sh
 		return ngblocks.ErrBranchEmpty
 	}
 
+	chain.mu.Lock()
+	defer chain.mu.Unlock()
+
 	tip := blocks[len(blocks)-1]
 
 	if sheet.Network != chain.Network ||

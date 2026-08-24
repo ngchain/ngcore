@@ -19,6 +19,9 @@ import (
 //     node reorgs onto it atomically (chain index + full state replay
 //     in one db txn — a failure rolls everything back)
 func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
+	chain.mu.Lock()
+	defer chain.mu.Unlock()
+
 	tipMoved := false
 	// drop any logs a previously aborted reorg txn left behind, so
 	// notifyReorg can only fire logs this call actually committed
