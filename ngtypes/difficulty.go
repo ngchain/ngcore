@@ -59,8 +59,15 @@ func GetNextDiff(blockHeight uint64, blockTime uint64, parentBlock *FullBlock) *
 	delta.Quo(delta, big.NewInt(2048*target))
 	diff.Add(diff, delta)
 
-	delta.Exp(big2, big.NewInt(int64(blockHeight)/100_000-2), nil)
-	diff.Add(diff, delta)
+	// slow height-driven difficulty bump (a mild bomb): 2^(height/100k - 2),
+	// which is meant to be ZERO until height 200000. Guard the exponent —
+	// big.Int.Exp(2, negativeOrZero, nil) returns 1, which would otherwise add
+	// a spurious +1 every block before the epoch (and dominate ZERONET's tiny
+	// difficulty), climbing 1,2,3,... regardless of hashrate.
+	if exp := int64(blockHeight)/100_000 - 2; exp >= 0 {
+		delta.Exp(big2, big.NewInt(exp), nil)
+		diff.Add(diff, delta)
+	}
 
 	minimum := MinimumDiffOf(parentBlock.BlockHeader.Network)
 	if diff.Cmp(minimum) < 0 {
