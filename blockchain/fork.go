@@ -29,6 +29,13 @@ var (
 	// chain-context GHOST rule (wrong fork point, out of depth, on-chain,
 	// double-referenced, or a wrong slot difficulty)
 	ErrUncleInvalid = errors.New("invalid uncle reference")
+
+	// ErrBranchNotHeavier rejects a converge switch to a branch that does not
+	// carry strictly more cumulative work than the current tip (equal work is
+	// resolved by the same smaller-hash tie-break as ApplyBlock). It keeps the
+	// converge path's fork choice identical to gossip's, so a remote cannot
+	// pull the node onto a lighter chain via a lucky checkpoint.
+	ErrBranchNotHeavier = errors.New("converge branch is not heavier than the tip")
 )
 
 // validateUncles enforces the GHOST rules against the block's OWN ancestor
@@ -451,17 +458,47 @@ func (chain *Chain) SwitchToBranch(branch []*ngtypes.FullBlock) error {
 	err := chain.Update(func(txn *bbolt.Tx) error {
 		blockBucket := txn.Bucket(storage.BlockBucketName)
 
-		prev, err := ngblocks.GetBlockByHash(blockBucket, branch[0].GetPrevHash())
+		forkParent, err := ngblocks.GetBlockByHash(blockBucket, branch[0].GetPrevHash())
 		if err != nil {
 			return errors.Wrap(err, "branch does not attach to any stored block")
 		}
 
 		getBlock := branchGetBlock(blockBucket, branch)
+		prev := forkParent
 		for _, block := range branch {
 			if err := checkBranchBlock(getBlock, block, prev); err != nil {
 				return err
 			}
 			prev = block
+		}
+
+		// converge switches only to a STRICTLY HEAVIER chain — the same fork
+		// choice ApplyBlock uses. shouldConverge is only a trigger heuristic
+		// (it ranks remotes by checkpoint luck, not cumulative work), so the
+		// real safety lives here: reject a branch that is lighter, or loses the
+		// equal-work tie-break, instead of switching onto a lighter chain.
+		base, err := cumulativeWork(blockBucket, forkParent)
+		if err != nil {
+			return err
+		}
+		branchWork := new(big.Int).Set(base)
+		for _, block := range branch {
+			branchWork.Add(branchWork, workOf(block))
+		}
+		tip, err := ngblocks.GetLatestBlock(blockBucket)
+		if err != nil {
+			return err
+		}
+		tipWork, err := cumulativeWork(blockBucket, tip)
+		if err != nil {
+			return err
+		}
+		newTip := branch[len(branch)-1]
+		if cmp := branchWork.Cmp(tipWork); cmp < 0 ||
+			(cmp == 0 && bytes.Compare(newTip.GetHash(), tip.GetHash()) >= 0) {
+			return errors.Wrapf(ErrBranchNotHeavier,
+				"converge branch tip@%d (work %s) vs local tip@%d (work %s)",
+				newTip.GetHeight(), branchWork, tip.GetHeight(), tipWork)
 		}
 
 		return chain.switchToBranchTxn(txn, branch)
