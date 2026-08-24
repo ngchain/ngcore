@@ -234,13 +234,22 @@ func TestForkResolutionViaBroadcast(t *testing.T) {
 	a2 := mineAndSubmit(t, nodeA, minerA)
 	waitTip(t, nodeB, a2.GetHash(), 10*time.Second)
 
-	// B mines a competing branch on the shared block
-	b2 := mineOn(t, shared, minerB)
+	// B mines a competing branch on the shared block. Force its hash HIGHER
+	// than a2's, so the deterministic equal-work tie-break keeps a2 (a
+	// lower-hash competitor would correctly win the tie — covered elsewhere).
+	var b2 *ngtypes.FullBlock
+	for {
+		minerB, _ = ngtypes.GenerateKey()
+		b2 = mineOn(t, shared, minerB)
+		if bytes.Compare(b2.GetHash(), a2.GetHash()) > 0 {
+			break
+		}
+	}
 	if err := nodeB.pow.MinedNewBlock(b2); err != nil {
 		t.Fatalf("submit fork block: %v", err)
 	}
 
-	// equal work: both nodes keep a2
+	// equal work: both nodes keep a2 (a2 has the smaller hash)
 	time.Sleep(2 * time.Second)
 	if !bytes.Equal(nodeA.chain.GetLatestBlockHash(), a2.GetHash()) {
 		t.Fatal("nodeA should keep a2 on equal work")
