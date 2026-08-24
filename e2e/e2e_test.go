@@ -748,6 +748,21 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 			t.Fatalf("mine tx type %d: %v", tx.Type, err)
 		}
 		waitTip(t, nodeA, b.GetHash(), 10*time.Second)
+
+		// the tip moved on nodeA, but OnTipChanged→Pool.Reset runs just after
+		// the tip becomes visible; wait for the mined tx to actually leave
+		// nodeA's pool before the next relay reuses the same (fee-0) sender,
+		// otherwise PutNewTxFromLocal races a not-yet-reset pool
+		poolCleared := time.Now().Add(5 * time.Second)
+		for {
+			if exists, _ := nodeA.pow.Pool.IsInPool(tx.GetHash()); !exists {
+				break
+			}
+			if time.Now().After(poolCleared) {
+				t.Fatalf("nodeA pool never cleared the mined tx type %d", tx.Type)
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
 		return tx
 	}
 
