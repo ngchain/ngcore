@@ -29,21 +29,25 @@ func GetNextDiff(blockHeight uint64, blockTime uint64, parentBlock *FullBlock) *
 	}
 
 	// ethereum-homestead style: diff += diff/2048 * clamp((target-d)/target).
-	// The interval d and the target are both in MILLISECONDS. This is the
-	// crux of the fix: with second-resolution timestamps a monotonic chain
-	// forces d >= 1s == target on every block, so the step was never
-	// positive and the difficulty decayed to — and pinned at — the floor
-	// no matter the hashrate. Millisecond timestamps let d fall on either
-	// side of the 1s target, so a faster-than-target block RAISES difficulty
+	// The interval d and the target are both in MILLISECONDS (target =
+	// TargetTime = 4000ms). This is the crux of the fix: with
+	// second-resolution timestamps a monotonic chain forces d >= 1s on every
+	// block, so against a sub-second target the step was never positive and
+	// difficulty decayed to — and pinned at — the floor no matter the
+	// hashrate. Millisecond timestamps let d fall on either side of the
+	// multi-second target, so a faster-than-target block RAISES difficulty
 	// and the retarget actually tracks hashpower.
 	target := int64(TargetTime / time.Millisecond)
 	if target < 1 {
 		target = 1
 	}
 	d := int64(blockTime) - int64(parentBlock.GetTimestamp())
-	// proportional step in [-99, +1] * diff/2048; scaling the numerator by
-	// target (instead of an integer d/target) keeps sub-target intervals
-	// from truncating to zero, so the step stays fine-grained at 1s blocks
+	// proportional step, clamped to [-99, +1] * diff/2048; scaling the
+	// numerator by target (instead of an integer d/target) keeps sub-target
+	// intervals from truncating to zero, so the step stays fine-grained.
+	// NOTE the clamp is asymmetric: up to +diff/2048 up, but down to
+	// -99*diff/2048 — a miner that stamps blocks far ahead (within the drift
+	// window) can push difficulty down faster than honest blocks pull it up.
 	factor := target - d
 	if factor > target {
 		factor = target
