@@ -9,10 +9,13 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// isReservedKey guards the "_"-prefixed context keys (e.g. the lock flag)
-// against contract access
+// isReservedKey guards the "_"-prefixed context keys (_deps, _refs, the lock
+// flag) against contract access. Those are all SHORT names; a contract
+// legitimately stores data keyed by a 32-byte address, and ~1/256 of
+// addresses start with '_' (0x5f) — so an address-LENGTH key is never
+// reserved, otherwise those addresses would be unusable as storage keys.
 func isReservedKey(key string) bool {
-	return strings.HasPrefix(key, "_")
+	return strings.HasPrefix(key, "_") && len(key) != ngtypes.AddressSize
 }
 
 // vmContext resolves the journaled context of the address executing
