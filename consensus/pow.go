@@ -209,7 +209,7 @@ func (pow *PoWork) eventLoop() {
 		for {
 			select {
 			case block := <-pow.LocalNode.OnBlock:
-				if err := pow.ImportBlock(block); err != nil {
+				if err := pow.safeImportBlock(block); err != nil {
 					log.Warnf("failed to put new block from p2p: %s", err)
 				}
 			case <-pow.ctx.Done():
@@ -258,6 +258,20 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
 	}
 
 	return nil
+}
+
+// safeImportBlock imports a gossiped (untrusted) block, converting any panic
+// during decode/validation into an error so a single malformed block from a
+// peer cannot crash the node (GetHash/GetUnsignedHash panic on rlp-encode
+// failure; this is the goroutine boundary that must contain that).
+func (pow *PoWork) safeImportBlock(b ngtypes.Block) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("recovered from panic while importing a p2p block: %v", r)
+			err = fmt.Errorf("panic importing p2p block: %v", r)
+		}
+	}()
+	return pow.ImportBlock(b)
 }
 
 func (pow *PoWork) ImportBlock(b ngtypes.Block) error {
