@@ -119,7 +119,10 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 
 	switch tx.Type {
 	case ngtypes.GenerateTx: // generate
-		panic("shouldnt check generate tx in this func")
+		// generates are validated as a block-level set (checkBlockGenerates);
+		// a stray generate here — e.g. one gossiped into the tx pool — is
+		// rejected, never panicked, so a peer cannot crash the node
+		return ngtypes.ErrTxTypeInvalid
 
 	case ngtypes.DestroyTx: // destroy
 		if err := checkDestroy(txn, tx); err != nil {

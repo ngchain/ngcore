@@ -213,8 +213,10 @@ func TestCheckTxPerType(t *testing.T) {
 	}
 }
 
-// TestCheckTxGeneratePanics: CheckTx must never be handed a generate tx
-func TestCheckTxGeneratePanics(t *testing.T) {
+// TestCheckTxRejectsGenerate: CheckTx must REJECT a stray generate tx (e.g.
+// one gossiped into the pool), not panic — a peer must not be able to crash
+// the node by broadcasting a generate.
+func TestCheckTxRejectsGenerate(t *testing.T) {
 	db := newTestDB(t)
 
 	priv, _ := ngtypes.GenerateKey()
@@ -222,12 +224,9 @@ func TestCheckTxGeneratePanics(t *testing.T) {
 		ngtypes.GetBlockReward(1), big.NewInt(0), nil)
 
 	err := db.View(func(txn *bbolt.Tx) error {
-		defer func() {
-			if recover() == nil {
-				t.Error("CheckTx(generate) must panic")
-			}
-		}()
-		_ = CheckTx(txn, gen)
+		if err := CheckTx(txn, gen); !errors.Is(err, ngtypes.ErrTxTypeInvalid) {
+			t.Errorf("CheckTx(generate) = %v, want ErrTxTypeInvalid (no panic)", err)
+		}
 		return nil
 	})
 	if err != nil {
