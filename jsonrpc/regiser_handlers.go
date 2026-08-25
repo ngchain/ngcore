@@ -39,6 +39,13 @@ func registerHTTPHandler(s *Server) {
 	// commit-reveal private mempool: the wallet submits the blind commitment
 	// here first, then reveals via ng_sendTx in a LATER block
 	s.reg("ng_sendCommitment", s.sendCommitmentFunc)
+	// ng_sendReveal hands a signed reveal to this node to RELAY: it holds it
+	// privately and re-submits it (retargeting the height, no re-sign) each
+	// block until it lands or its window closes — the wallet may go offline
+	s.reg("ng_sendReveal", s.sendRevealFunc)
+	// ng_sendPrivateTx is the one-call fire-and-forget flow: it gossips the
+	// commitment now and queues the reveal for relay
+	s.reg("ng_sendPrivateTx", s.sendPrivateTxFunc)
 	s.reg("ng_genTransaction", s.genTransactionFunc)
 	s.reg("ng_genDeploy", s.genDeployFunc)
 	// ng_genCommit is kept as a compatibility alias: a commit now deploys

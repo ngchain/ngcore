@@ -86,6 +86,93 @@ func (s *Server) sendCommitmentFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	return reply(msg, hex.EncodeToString(commit.Hash))
 }
 
+// sendRevealFunc hands a signed effect-tx reveal to this node to RELAY on the
+// sender's behalf: the node holds it privately and re-submits it (retargeting
+// its height, never re-signing — the effect-tx signature is height-independent)
+// on every tip movement, until the reveal lands or its commit window closes.
+// The wallet may go offline the moment it returns.
+func (s *Server) sendRevealFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendTxParams
+
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	raw, err := hex.DecodeString(params.RawTx)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	var reveal ngtypes.FullTx
+	if err := rlp.DecodeBytes(raw, &reveal); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	if err := s.pow.Pool.RelayReveal(&reveal); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	// the height-independent content hash identifies the reveal across the
+	// window (its txid changes with the height the relay finally lands it at)
+	return reply(msg, hex.EncodeToString(reveal.UnheightedHash()))
+}
+
+type sendPrivateTxParams struct {
+	RawCommitment string `json:"rawCommitment"`
+	RawReveal     string `json:"rawReveal"`
+}
+
+// sendPrivateTxFunc is the one-call fire-and-forget commit-reveal flow: it
+// gossips the blind commitment now (riding the next block) and queues the
+// signed reveal for the node to relay across the window. The wallet signs both
+// halves locally, submits them together, and need not stay online.
+func (s *Server) sendPrivateTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendPrivateTxParams
+
+	if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	commitRaw, err := hex.DecodeString(params.RawCommitment)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	var commit ngtypes.Commitment
+	if err := rlp.DecodeBytes(commitRaw, &commit); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	revealRaw, err := hex.DecodeString(params.RawReveal)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	var reveal ngtypes.FullTx
+	if err := rlp.DecodeBytes(revealRaw, &reveal); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	// gossip the blind commitment first, then queue the reveal to relay
+	if err := s.pow.Pool.PutNewCommitmentFromLocal(&commit); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+	if err := s.pow.Pool.RelayReveal(&reveal); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return reply(msg, hex.EncodeToString(commit.Hash))
+}
+
 type genTransactionParams struct {
 	To    string `json:"to"`    // bs58 address
 	Value string `json:"value"` // decimal NG ("1.5"); exact
