@@ -62,22 +62,39 @@ func DecodeCommitCode(extra []byte) ([]byte, error) {
 	}
 }
 
+// Reserved contract entry-export names. The protocol BINDS to these four
+// exports and calls them itself (the tx handler, the deploy hook, the UUPS
+// upgrade authorizer, the account-abstraction gate) — a contract never
+// dispatches to them as ordinary methods. The "ng:" namespace prefix keeps
+// them from colliding with a developer's own exported methods: a colon is
+// not a valid identifier character, so a plain `#[no_mangle] fn` (or an
+// `(export "...")` a dev writes for business logic) cannot emit one by
+// accident — these can only be declared with deliberate intent
+// (e.g. `#[export_name = "ng:validate"]`). ngstate mirrors these into its
+// VMEntryOn* constants; keep the two in lockstep.
+const (
+	EntryOnTx       = "ng:main"     // run on a transact tx (the default entry)
+	EntryOnActivate = "ng:init"     // run once when a deploy goes live
+	EntryOnUpgrade  = "ng:upgrade"  // must authorize a UUPS code replacement
+	EntryOnValidate = "ng:validate" // gates every tx FROM the account (AA)
+)
+
 // CallData is a contract call's payload: the export to run and its raw
 // argument bytes, RLP-encoded into a tx's Extra (and into the calldata a
 // contract hands to contract.call). ngcore dispatches by the export NAME
 // directly — a wasm module already has named exports, so there is no
 // eth-style 4-byte selector, and thus no selector-collision class to
-// guard against. An empty Method addresses the default "main" entry.
+// guard against. An empty Method addresses the default entry (EntryOnTx).
 type CallData struct {
 	Method string
 	Args   []byte
 }
 
-// EncodeCallData RLP-encodes a contract call payload into a tx extra. A
-// "main"/empty method plus empty args yields an empty extra — a bare
-// value transfer carries no calldata
+// EncodeCallData RLP-encodes a contract call payload into a tx extra. Naming
+// the default entry (EntryOnTx) or the empty method, both with empty args,
+// yields an empty extra — a bare value transfer carries no calldata
 func EncodeCallData(method string, args []byte) []byte {
-	if method == "main" {
+	if method == EntryOnTx {
 		method = "" // the default entry is addressed by the empty method
 	}
 	if method == "" && len(args) == 0 {

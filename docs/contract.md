@@ -20,7 +20,7 @@ as the readable notation for wasm — on chain lives the binary.
 |---|---|---|
 | deploy / edit | `CommitTx` | replace the whole module (only while unlocked); the first commit opens the slot |
 | activate | `ActivateTx` | validate + freeze the module, run the optional `init` export once, enable the vm |
-| execute | `TransactTx` | paying an address with an ACTIVE contract runs the export named in the calldata (`main` fallback) |
+| execute | `TransactTx` | paying an address with an ACTIVE contract runs the export named in the calldata (`ng:main` fallback) |
 | upgrade | `DeactivateTx` → `CommitTx` → `ActivateTx` | disable the vm, replace the module, re-activate |
 
 A `CommitTx`'s extra carries the WHOLE module — a full snapshot, like a
@@ -147,10 +147,11 @@ extra = rlp([method, args])
 ```
 
 The runtime runs the export named `method` (when it is a zero-arg export;
-the reserved `init` entry excluded), with `tx.get_extra` serving `args`.
-An empty/`main` method, an absent export, or an extra that is not a
-CallData falls back to `main`, which receives its args (the whole extra
-when the payload was not a CallData). `ng_callContract` (rpc dry-run)
+the reserved `ng:` hooks excluded), with `tx.get_extra` serving `args`.
+An empty method, a method naming a reserved hook, an absent export, or an
+extra that is not a CallData falls back to the default entry `ng:main`,
+which receives its args (the whole extra when the payload was not a
+CallData). `ng_callContract` (rpc dry-run)
 resolves the same way, so read-only methods like a `balance_of` export
 are directly callable off-chain.
 
@@ -271,10 +272,20 @@ Rule of thumb: **immutable by default, upgradeable by explicit proxy.**
 The protocol gives you the trustable primitive; upgrade policy is
 yours to compose, and its risks are yours to own.
 
-Exports a contract may provide:
+Exports a contract may provide. All four are protocol-bound hooks: the
+runtime calls them itself, so they live in the reserved `ng:` namespace
+(the colon is not an identifier character, so you cannot emit one from a
+plain `#[no_mangle] fn` by accident — you opt in deliberately, e.g. with
+`#[export_name = "ng:validate"]`). Every other export is an ordinary,
+freely-named method:
 
-- `main` — required to react to incoming transact txs
-- `init` — optional, runs once on `ActivateTx`
+- `ng:main` — required to react to incoming transact txs (the default entry)
+- `ng:init` — optional, runs once when a deploy goes live (and again after
+  an upgrade, as a migration hook)
+- `ng:upgrade` — a live contract MUST export this to authorize replacing
+  (or destroying) its own code, UUPS-style; no hook means immutable
+- `ng:validate` — optional account-abstraction gate; when present it runs
+  on EVERY tx the account sends and its trap/reject vetoes the tx
 
 Example — a complete on-chain contract:
 
@@ -283,7 +294,7 @@ Example — a complete on-chain contract:
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "keyval")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
 ```
 

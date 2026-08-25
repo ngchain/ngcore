@@ -61,7 +61,7 @@ const hostEdgeWat = `
   ;; 0..2 "zz", 2..4 "_r", 4..7 "bad", 7..10 "sum"
   (data (i32.const 0) "zz_rbadsum")
   ;; 512..544 stays all-zero: the zero address
-  (func (export "main")
+  (func (export "ng:main")
     (local $z i32) (local $bad i32)
     ;; --- log: oob pointers must be swallowed
     (call $dbg (i32.const 70000) (i32.const 4))
@@ -240,7 +240,7 @@ func TestKVReservedKeyTraps(t *testing.T) {
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "ok_r")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 2) (i32.const 0) (i32.const 1)))
     (drop (call $set (i32.const 2) (i32.const 2) (i32.const 0) (i32.const 1)))))
 `
@@ -250,7 +250,7 @@ func TestKVReservedKeyTraps(t *testing.T) {
   (import "kv" "del" (func $del (param i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "ok_r")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 2) (i32.const 0) (i32.const 1)))
     (drop (call $del (i32.const 2) (i32.const 2)))))
 `

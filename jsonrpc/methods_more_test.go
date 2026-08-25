@@ -14,7 +14,7 @@ import (
 // TestRPCGetContractExports pins the ABI introspection: a contract's
 // zero-arg exports are listed and marked callable
 func TestRPCGetContractExports(t *testing.T) {
-	const wat = `(module (memory 1) (func (export "main") nop) (func (export "ping") nop))`
+	const wat = `(module (memory 1) (func (export "ng:main") nop) (func (export "ping") nop))`
 	node := newRPCNode(t)
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
@@ -37,7 +37,7 @@ func TestRPCGetContractExports(t *testing.T) {
 	for _, e := range exports {
 		callable[e.Name] = e.Callable
 	}
-	if !callable["main"] || !callable["ping"] {
+	if !callable["ng:main"] || !callable["ping"] {
 		t.Fatalf("exports = %+v, want main+ping callable", exports)
 	}
 }

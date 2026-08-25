@@ -167,7 +167,7 @@ func TestHandleDeploySelfDep(t *testing.T) {
 			return err
 		}
 
-		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "main")))`
+		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "ng:main")))`
 		deploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
 			ngtypes.EncodeCommitCode(mustWat(selfWat)))
 		if err := state.handleDeploy(txn, deploy, 1, nil); !errors.Is(err, ErrDepSelf) {

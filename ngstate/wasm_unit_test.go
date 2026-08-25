@@ -164,7 +164,7 @@ func TestRunInstantiateFailure(t *testing.T) {
 	watSrc := `
 (module
   (import "nosuchhost" "f" (func $f))
-  (func (export "main") (call $f)))
+  (func (export "ng:main") (call $f)))
 `
 
 	err := db.Update(func(txn *bbolt.Tx) error {

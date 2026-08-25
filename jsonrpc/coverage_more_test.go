@@ -129,7 +129,7 @@ func TestCallContractNoEvents(t *testing.T) {
 	mineViaRPC(t, node, key)
 
 	// a contract that runs but emits no events
-	quietWasm := mustWat(`(module (func (export "main")))`)
+	quietWasm := mustWat(`(module (func (export "ng:main")))`)
 
 	var deployHex string
 	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{

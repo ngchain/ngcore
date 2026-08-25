@@ -74,7 +74,7 @@ func TestRPCArchiveContractHistory(t *testing.T) {
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "keyval")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
 `
 	node := newRPCNode(t)

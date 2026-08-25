@@ -14,7 +14,7 @@ import (
 // tx: a frozen account. The deploy that INSTALLS it is not gated (the slot is
 // not yet live with `validate` when runValidate runs), but any later tx from
 // the account is rejected as unauthorized.
-const validateFreezeWat = `(module (func (export "validate") unreachable))`
+const validateFreezeWat = `(module (func (export "ng:validate") unreachable))`
 
 // validateAllowlistWat permits a tx only when its recipient's first address
 // byte is 0xAA — a minimal allow-list, proving `validate` can inspect the tx
@@ -22,7 +22,7 @@ const validateFreezeWat = `(module (func (export "validate") unreachable))`
 const validateAllowlistWat = `(module
 	(import "tx" "get_to" (func $to (param i32) (result i32)))
 	(memory 1)
-	(func (export "validate")
+	(func (export "ng:validate")
 		(drop (call $to (i32.const 0)))
 		(if (i32.ne (i32.load8_u (i32.const 0)) (i32.const 0xaa))
 			(then unreachable))))`

@@ -298,15 +298,16 @@ func (vm *VM) serviceCall(ins *wasman.Instance, addrPtr, argsPtr, argsLen uint32
 }
 
 // resolveDynEntry decodes a calldata's RLP CallData and maps its Method
-// to a zero-arg export of the module (init excluded), falling back to
-// main — the same rule EntryFor uses for the outer tx
+// to a zero-arg export of the module (the reserved ng: hooks excluded),
+// falling back to main — the same rule EntryFor uses for the outer tx
 func resolveDynEntry(module *wasman.Module, calldata []byte) (entry string, args []byte) {
 	method, a, err := ngtypes.DecodeCallData(calldata)
 	if err != nil {
 		return VMEntryOnTx, calldata // not a call payload: whole calldata is main's args
 	}
-	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate {
-		return VMEntryOnTx, a
+	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate ||
+		method == VMEntryOnUpgrade || method == VMEntryOnValidate {
+		return VMEntryOnTx, a // reserved hooks are never dynamically callable
 	}
 
 	sig, ok := exportFuncSig(module, method)

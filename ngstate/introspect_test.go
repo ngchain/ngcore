@@ -12,8 +12,8 @@ func TestContractExports(t *testing.T) {
 	src := mustWat(`
 (module
   (memory 1)
-  (func (export "main") nop)
-  (func (export "init") nop)
+  (func (export "ng:main") nop)
+  (func (export "ng:init") nop)
   (func (export "add") (param i32)))
 `)
 	exports, err := ContractExports(src)
@@ -28,10 +28,10 @@ func TestContractExports(t *testing.T) {
 	if len(byName) != 3 {
 		t.Fatalf("exports = %+v, want 3", exports)
 	}
-	if !byName["main"].Callable {
+	if !byName["ng:main"].Callable {
 		t.Error("main (0-arg) must be callable")
 	}
-	if byName["init"].Callable {
+	if byName["ng:init"].Callable {
 		t.Error("init is reserved, must not be callable")
 	}
 	if byName["add"].Callable || byName["add"].Params != 1 {

@@ -332,13 +332,13 @@ func TestCheckDeployDeps(t *testing.T) {
 		}
 
 		// a module importing its OWN address
-		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "main")))`
+		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "ng:main")))`
 		if err := checkDeploy(txn, deploy(t, mustWat(selfWat))); !errors.Is(err, ErrDepSelf) {
 			t.Fatalf("self dep: got %v", err)
 		}
 
 		// an unknown dependency address
-		depWat := `(module (import "` + depAddr.String() + `" "f" (func $f)) (func (export "main")))`
+		depWat := `(module (import "` + depAddr.String() + `" "f" (func $f)) (func (export "ng:main")))`
 		if err := checkDeploy(txn, deploy(t, mustWat(depWat))); err == nil {
 			t.Fatal("unknown dep must be refused")
 		}

@@ -47,7 +47,7 @@ func TestReceiptMarshalJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	s = string(raw)
-	for _, want := range []string{addr.String(), `"entry":"main"`, `"error":"boom"`, `"gasUsed":42`} {
+	for _, want := range []string{addr.String(), `"entry":"ng:main"`, `"error":"boom"`, `"gasUsed":42`} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("run json misses %q: %s", want, s)
 		}

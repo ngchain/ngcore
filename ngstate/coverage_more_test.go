@@ -277,7 +277,7 @@ const hostHappyWat = `
   (memory 1)
   ;; 0..2 "kk"  2..5 "msg"
   (data (i32.const 0) "kkmsg")
-  (func (export "main")
+  (func (export "ng:main")
     ;; seed key "kk" then read its size back (present-key read)
     (drop (call $set (i32.const 0) (i32.const 2) (i32.const 0) (i32.const 2)))
     (drop (call $getsize (i32.const 0) (i32.const 2)))

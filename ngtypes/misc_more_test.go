@@ -20,15 +20,20 @@ func mustPanic(t *testing.T, name string, fn func()) {
 // ---- calldata ----
 
 func TestCallDataRoundTrip(t *testing.T) {
-	// the default entry (empty or "main") with no args is NO calldata
-	if len(EncodeCallData("", nil)) != 0 || len(EncodeCallData("main", nil)) != 0 {
-		t.Fatal("a bare main call must encode empty")
+	// the default entry (empty or the canonical EntryOnTx) with no args is
+	// NO calldata
+	if len(EncodeCallData("", nil)) != 0 || len(EncodeCallData(EntryOnTx, nil)) != 0 {
+		t.Fatal("a bare default-entry call must encode empty")
 	}
 
-	// "main" canonicalizes to the empty method
-	method, args, err := DecodeCallData(EncodeCallData("main", []byte{1, 2}))
+	// the canonical default-entry name canonicalizes to the empty method;
+	// note plain "main" is now an ORDINARY method name (no longer reserved)
+	method, args, err := DecodeCallData(EncodeCallData(EntryOnTx, []byte{1, 2}))
 	if err != nil || method != "" || !bytes.Equal(args, []byte{1, 2}) {
-		t.Fatalf("main call decode = %q, %x, %v", method, args, err)
+		t.Fatalf("default-entry call decode = %q, %x, %v", method, args, err)
+	}
+	if m, _, _ := DecodeCallData(EncodeCallData("main", []byte{1, 2})); m != "main" {
+		t.Fatalf("plain \"main\" must stay an ordinary method, got %q", m)
 	}
 
 	// a named export with args

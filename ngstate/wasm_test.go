@@ -27,7 +27,7 @@ const kvWat = `
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "keyval")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))))
 `
 
@@ -49,7 +49,7 @@ func transferWatTo(to ngtypes.Address) string {
   (import "coin" "transfer" (func $transfer (param i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "` + watBytes(to[:]) + `")
-  (func (export "main")
+  (func (export "ng:main")
     (i64.store (i32.const 64) (i64.const 10))
     (drop (call $transfer (i32.const 0) (i32.const 64)))))
 `
@@ -62,7 +62,7 @@ const burnWat = `
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "keyval")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))
     (loop $forever (br $forever))))
 `
@@ -72,7 +72,7 @@ const logWat = `
   (import "log" "debug" (func $debug (param i32 i32)))
   (memory 1)
   (data (i32.const 0) "hello")
-  (func (export "main")
+  (func (export "ng:main")
     (call $debug (i32.const 0) (i32.const 5))))
 `
 
@@ -317,13 +317,13 @@ func TestDeployFlow(t *testing.T) {
 // upgradeableWat exports the UUPS `upgrade` hook, so a live instance can
 // authorize replacing its own code
 const upgradeableWat = `(module
-	(func (export "upgrade"))
-	(func (export "main")))`
+	(func (export "ng:upgrade"))
+	(func (export "ng:main")))`
 
 // immutableWat exports no `upgrade` hook, so a live instance can never be
 // re-deployed
 const immutableWat = `(module
-	(func (export "main")))`
+	(func (export "ng:main")))`
 
 // TestDeployUpgrade covers the UUPS re-deploy: a live contract that exports
 // `upgrade` is upgraded wholesale (the hook runs, the code is replaced), and
@@ -463,7 +463,7 @@ const dexWat = `
   (func (export "double") (param i64) (result i64)
     (i64.mul (local.get 0) (i64.const 2)))
   ;; exports `+"`upgrade`"+` so the service can authorize its own destroy
-  (func (export "upgrade")))
+  (func (export "ng:upgrade")))
 `
 
 // leverageWatFor composes dex by its deployer address: it CALLS dex's
@@ -477,8 +477,8 @@ func leverageWatFor(dex ngtypes.Address) string {
   (memory 1)
   (data (i32.const 0) "num")
   ;; exports `+"`upgrade`"+` so it can authorize its own destroy
-  (func (export "upgrade"))
-  (func (export "main")
+  (func (export "ng:upgrade"))
+  (func (export "ng:main")
     (i64.store8 (i32.const 8) (call $double (i64.const 21)))
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 8) (i32.const 1)))))
 `
@@ -633,7 +633,7 @@ func tokenUserWatFor(token, self, dest ngtypes.Address) string {
   (memory 1)
   (data (i32.const 0) "` + watBytes(self[:]) + `")
   (data (i32.const 32) "` + watBytes(dest[:]) + `")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $bset (i32.const 1) (i32.const 0) (i32.const 32)))
     (call $mint (i64.const 100))
     (drop (call $bset (i32.const 1) (i32.const 32) (i32.const 32)))
@@ -724,7 +724,7 @@ const u256Wat = `
   (data (i32.const 0) "sum")
   (data (i32.const 32) "\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff")
   (data (i32.const 64) "\01")
-  (func (export "main")
+  (func (export "ng:main")
     (call $add256 (i32.const 96) (i32.const 32) (i32.const 64))
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 96) (i32.const 32)))))
 `
@@ -787,7 +787,7 @@ const txCtxWat = `
   (data (i32.const 0) "ts")
   (data (i32.const 2) "pd")
   (data (i32.const 4) "gs")
-  (func (export "main")
+  (func (export "ng:main")
     (i64.store (i32.const 16) (call $ts))
     (drop (call $set (i32.const 0) (i32.const 2) (i32.const 16) (i32.const 8)))
     (drop (call $set (i32.const 2) (i32.const 2) (i32.const 32) (call $paid (i32.const 32))))
@@ -871,7 +871,7 @@ const kvScanWat = `
   (func $put (param $kptr i32) (param $v i64)
     (i64.store (i32.const 96) (local.get $v))
     (drop (call $set (local.get $kptr) (i32.const 3) (i32.const 96) (i32.const 8))))
-  (func (export "main")
+  (func (export "ng:main")
     (local $i i32) (local $n i32) (local $sum i64)
     (call $put (i32.const 0) (i64.const 1))
     (call $put (i32.const 3) (i64.const 5))
@@ -933,7 +933,7 @@ const emitWat = `
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "transferdata1mint")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $emit (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 5)))
     (drop (call $emit (i32.const 13) (i32.const 4) (i32.const 0) (i32.const 0)))
     (drop (call $set (i32.const 0) (i32.const 8) (i32.const 8) (i32.const 5)))))
@@ -972,7 +972,7 @@ func bigCallerWatFor(vault ngtypes.Address) string {
   (memory 1)
   (data (i32.const 0) "got")
   (data (i32.const 32) "\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $bset (i32.const 0) (i32.const 32) (i32.const 32)))
     (call $deposit)
     (drop (call $bset (i32.const 0) (i32.const 32) (i32.const 32)))
@@ -1139,7 +1139,7 @@ func TestGasPricingTiers(t *testing.T) {
 	// pure computation baseline
 	pureWat := `
 (module
-  (func (export "main")
+  (func (export "ng:main")
     (local $i i32)
     (local.set $i (i32.const 100))
     (block $out (loop $l
@@ -1302,7 +1302,7 @@ const multiEntryWat = `
   (import "tx" "get_extra" (func $args (param i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "hitmainpingargs")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 4)))
     (drop (call $set (i32.const 11) (i32.const 4) (i32.const 64) (call $args (i32.const 64)))))
   (func (export "ping")
@@ -1350,7 +1350,7 @@ func TestCallDataDispatch(t *testing.T) {
 	}
 
 	// an explicit "main" method also routes to the default entry
-	acc = callWith(ngtypes.EncodeCallData("main", []byte("ab")))
+	acc = callWith(ngtypes.EncodeCallData("ng:main", []byte("ab")))
 	if got := string(acc.Context.Get("hit")); got != "main" {
 		t.Fatalf("hit = %q, want main", got)
 	}
@@ -1622,7 +1622,7 @@ const cryptoWat = `
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "okad")
-  (func (export "main")
+  (func (export "ng:main")
     (local $pklen i32) (local $siglen i32)
     ;; load args at 1024
     (drop (call $args (i32.const 1024)))
@@ -1673,7 +1673,7 @@ func TestCryptoHostFuncs(t *testing.T) {
 			putContract(t, txn, acc, 0)
 
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
-				contractAddr, nil, nil, ngtypes.EncodeCallData("main", args), nil)
+				contractAddr, nil, nil, ngtypes.EncodeCallData("ng:main", args), nil)
 
 			vm, err := NewVM(txn, acc, tx, 1)
 			if err != nil {
@@ -1817,7 +1817,7 @@ func TestDynamicServiceCall(t *testing.T) {
   (data (i32.const 0) "ok ")
   ;; RLP CallData{method:"ping", args:[]} = c6 84 70 69 6e 67 80
   (data (i32.const 600) "\c6\84\70\69\6e\67\80")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $args (i32.const 512)))
     ;; call target@512 with calldata = the 7-byte RLP payload @600
     (i32.store8 (i32.const 200) (call $call (i32.const 512) (i32.const 600) (i32.const 7)))

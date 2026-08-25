@@ -17,23 +17,28 @@ import (
 )
 
 const (
+	// The reserved protocol entry-export names live in ngtypes (the single
+	// source of truth); these mirror them so ngstate code reads naturally.
+	// All four carry the "ng:" namespace so a developer cannot collide with
+	// them by accident — see ngtypes.EntryOn* for the rationale.
+
 	// VMEntryOnTx is the contract export called when an active contract
-	// account receives a transact tx
-	VMEntryOnTx = "main"
+	// account receives a transact tx (the default entry)
+	VMEntryOnTx = ngtypes.EntryOnTx
 	// VMEntryOnActivate is the optional contract export called once when the
 	// account gets activated (contract deployment finished)
-	VMEntryOnActivate = "init"
+	VMEntryOnActivate = ngtypes.EntryOnActivate
 	// VMEntryOnUpgrade is the contract export a live contract MUST provide to
 	// authorize replacing its own code (UUPS). It runs during a re-deploy and
 	// is NOT tx-callable; a contract exporting no upgrade hook is immutable
-	VMEntryOnUpgrade = "upgrade"
+	VMEntryOnUpgrade = ngtypes.EntryOnUpgrade
 	// VMEntryOnValidate is the native account-abstraction hook: when an address
-	// has a live contract exporting `validate`, the protocol runs it to
+	// has a live contract exporting `ng:validate`, the protocol runs it to
 	// authorize every tx FROM that address (on top of the native signature) —
 	// the account programs its own policy (spend limits, freezes, rate limits,
 	// allow-lists, multi-factor). A trap/reject means the tx is unauthorized.
 	// It is NOT tx-callable; its inputs are the tx context (tx.* host fns).
-	VMEntryOnValidate = "validate"
+	VMEntryOnValidate = ngtypes.EntryOnValidate
 
 	// vmMaxToll bounds the wasm instruction count per contract call, so a
 	// malicious contract cannot stall the chain. Every node uses the same
@@ -338,10 +343,10 @@ func (vm *VM) charge(cost uint64) {
 
 // EntryFor resolves the entry to run. For the default transact entry the
 // tx extra is decoded as an RLP CallData{Method, Args}: a non-empty
-// Method naming a zero-arg export (the reserved init entry excluded)
-// runs that export with Args; an empty/"main" method, an absent export,
-// or an extra that is not a CallData all fall back to the default entry,
-// which sees the whole extra as its args
+// Method naming a zero-arg export (the reserved ng: hooks excluded) runs
+// that export with Args; an empty method, a method naming a reserved hook,
+// an absent export, or an extra that is not a CallData all fall back to the
+// default entry, which sees the whole extra as its args
 func (vm *VM) EntryFor(defaultEntry string) string {
 	if defaultEntry != VMEntryOnTx || len(vm.caller.Extra) == 0 {
 		return defaultEntry

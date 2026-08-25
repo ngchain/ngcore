@@ -16,7 +16,7 @@ func TestRPCTraceTransaction(t *testing.T) {
   (import "coin" "transfer" (func $transfer (param i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 64) "\01")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $transfer (i32.const 32) (i32.const 64)))))
 `
 	node := newRPCNode(t)

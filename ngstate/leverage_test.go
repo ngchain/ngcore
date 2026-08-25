@@ -178,7 +178,7 @@ func strategyWatFor(token, dex, lending ngtypes.Address) string {
   (memory 1)
   (data (i32.const 0) "` + watBytes(dex[:]) + `")
 
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $borrow (i64.const 100)))
     (drop (call $bset (i32.const 1) (i32.const 0) (i32.const 32)))
     (call $approve (i64.const 100))

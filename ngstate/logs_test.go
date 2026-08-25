@@ -17,7 +17,7 @@ const spoofWat = `
   (import "log" "emit" (func $emit (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "ng.transferok")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $emit (i32.const 0) (i32.const 11) (i32.const 0) (i32.const 0)))
     (drop (call $emit (i32.const 11) (i32.const 2) (i32.const 0) (i32.const 0)))))
 `

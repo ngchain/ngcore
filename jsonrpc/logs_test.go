@@ -23,7 +23,7 @@ func TestRPCGetLogs(t *testing.T) {
   (memory 1)
   (data (i32.const 0) "keyval")
   (data (i32.const 64) "\01")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))
     (drop (call $emit (i32.const 0) (i32.const 3) (i32.const 3) (i32.const 3)))
     (drop (call $transfer (i32.const 32) (i32.const 64)))))

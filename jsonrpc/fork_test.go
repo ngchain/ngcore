@@ -31,7 +31,7 @@ func TestRPCForkDataSources(t *testing.T) {
 	// real content: a balance, a contract slot and a registered key
 	mineViaRPC(t, node, key)
 
-	contractWasm := mustWat(`(module (func (export "main")))`)
+	contractWasm := mustWat(`(module (func (export "ng:main")))`)
 
 	var unsignedHex string
 	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{

@@ -39,7 +39,7 @@ func TestTraceInternalCalls(t *testing.T) {
   (memory 1)
   (data (i32.const 600) "\c6\84\70\69\6e\67\80")
   (data (i32.const 700) "\05")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $args (i32.const 512)))
     (drop (call $transfer (i32.const 800) (i32.const 700)))
     (drop (call $call (i32.const 512) (i32.const 600) (i32.const 7)))))
@@ -128,7 +128,7 @@ func TestTraceReentryBlocked(t *testing.T) {
   (import "address" "get_host" (func $host (param i32) (result i32)))
   (memory 1)
   (data (i32.const 600) "\c6\84\70\69\6e\67\80")
-  (func (export "main")
+  (func (export "ng:main")
     (drop (call $host (i32.const 512)))
     (drop (call $call (i32.const 512) (i32.const 600) (i32.const 7)))))
 `

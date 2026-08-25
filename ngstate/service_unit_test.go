@@ -81,7 +81,7 @@ func TestResolveDynEntry(t *testing.T) {
 	}
 
 	// the reserved init entry is not callable
-	entry, _ = resolveDynEntry(multi, ngtypes.EncodeCallData("init", nil))
+	entry, _ = resolveDynEntry(multi, ngtypes.EncodeCallData("ng:init", nil))
 	if entry != VMEntryOnTx {
 		t.Fatalf("init dispatch = %q", entry)
 	}
@@ -146,7 +146,7 @@ func TestServiceDepFailures(t *testing.T) {
 	callerWat := `
 (module
   (import "` + depAddr.String() + `" "f" (func $f))
-  (func (export "main") (call $f)))
+  (func (export "ng:main") (call $f)))
 `
 
 	err := db.Update(func(txn *bbolt.Tx) error {
@@ -208,7 +208,7 @@ func TestDepHelpers(t *testing.T) {
 (module
   (import "` + dep.String() + `" "a" (func $a))
   (import "` + dep.String() + `" "b" (func $b))
-  (func (export "main")))
+  (func (export "ng:main")))
 `
 	deps, err = extractContractDeps(mustWat(watSrc))
 	if err != nil {
@@ -224,7 +224,7 @@ func TestDepHelpers(t *testing.T) {
 		a := testAddr(byte(i + 1))
 		manyImports += `(import "` + a.String() + `" "f" (func))`
 	}
-	manyImports += `(func (export "main")))`
+	manyImports += `(func (export "ng:main")))`
 	if _, err := extractContractDeps(mustWat(manyImports)); !errors.Is(err, ErrDepLimit) {
 		t.Fatalf("dep cap: got %v", err)
 	}

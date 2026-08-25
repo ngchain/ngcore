@@ -220,7 +220,7 @@ func TestRPCCallContractFailure(t *testing.T) {
 
 	mineViaRPC(t, node, key)
 
-	trapWasm := mustWat(`(module (func (export "main") unreachable))`)
+	trapWasm := mustWat(`(module (func (export "ng:main") unreachable))`)
 
 	var unsignedHex string
 	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{
