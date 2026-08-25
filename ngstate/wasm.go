@@ -27,6 +27,13 @@ const (
 	// authorize replacing its own code (UUPS). It runs during a re-deploy and
 	// is NOT tx-callable; a contract exporting no upgrade hook is immutable
 	VMEntryOnUpgrade = "upgrade"
+	// VMEntryOnValidate is the native account-abstraction hook: when an address
+	// has a live contract exporting `validate`, the protocol runs it to
+	// authorize every tx FROM that address (on top of the native signature) —
+	// the account programs its own policy (spend limits, freezes, rate limits,
+	// allow-lists, multi-factor). A trap/reject means the tx is unauthorized.
+	// It is NOT tx-callable; its inputs are the tx context (tx.* host fns).
+	VMEntryOnValidate = "validate"
 
 	// vmMaxToll bounds the wasm instruction count per contract call, so a
 	// malicious contract cannot stall the chain. Every node uses the same
@@ -348,7 +355,7 @@ func (vm *VM) EntryFor(defaultEntry string) string {
 	// a decoded payload always feeds its Args to the entry that runs
 	vm.callArgs = args
 
-	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate || method == VMEntryOnUpgrade {
+	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate || method == VMEntryOnUpgrade || method == VMEntryOnValidate {
 		return defaultEntry // default entry (init/upgrade are not tx-callable)
 	}
 	if sig, ok := exportFuncSig(vm.module, method); !ok || len(sig.InputTypes) != 0 {

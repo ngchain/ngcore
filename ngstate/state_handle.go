@@ -34,11 +34,17 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 			if err := state.consumeReveal(txn, tx); err != nil {
 				return err
 			}
+			if err := state.runValidate(txn, tx, blockTime, gas); err != nil {
+				return err
+			}
 			if err := state.handleTransaction(txn, tx, blockTime, gas); err != nil {
 				return err
 			}
 		case ngtypes.DeployTx: // deploy / upgrade tx
 			if err := state.consumeReveal(txn, tx); err != nil {
+				return err
+			}
+			if err := state.runValidate(txn, tx, blockTime, gas); err != nil {
 				return err
 			}
 			if err := state.handleDeploy(txn, tx, blockTime, gas); err != nil {
@@ -87,6 +93,43 @@ func (state *State) consumeReveal(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 		return err
 	}
 	return consumeCommit(txn, h, hash)
+}
+
+// runValidate is the native account-abstraction gate. When the tx's From
+// address has a LIVE contract exporting `validate`, the protocol runs it to
+// authorize the tx ON TOP OF the native signature: the account programs its
+// own policy (spend limits, freezes, rate limits, allow-lists, multi-factor)
+// and the hook decides via the tx.* context whether to permit this tx.
+//
+// Unlike the `upgrade` hook (which soft-fails, keeping the tx valid), a
+// validate veto is a HARD failure: the tx — and thus the block carrying it —
+// is invalid, so a miner must exclude any tx its sender's policy rejects.
+// An account with no live `validate` export is unaffected: the native
+// signature alone authorizes it, exactly as before. The run draws from the
+// SAME deterministic block-gas budget as any other contract call, so every
+// replica reaches the identical verdict.
+func (state *State) runValidate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64, gas *blockGas) error {
+	from, err := tx.From()
+	if err != nil {
+		return err
+	}
+
+	account, err := getContract(txn, from)
+	if err != nil {
+		return nil // no contract slot: the native signature authorizes
+	}
+	if !account.IsActive() || len(account.Source) == 0 {
+		return nil // dormant/empty slot: no policy to enforce
+	}
+	if !contractHasExport(account.Source, VMEntryOnValidate) {
+		return nil // the account programs no policy
+	}
+
+	if ok := state.runContract(txn, from, tx, VMEntryOnValidate, blockTime, gas); !ok {
+		return errors.Wrapf(ErrTxUnauthorized, "sender %s policy rejected the tx", from)
+	}
+
+	return nil
 }
 
 func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {

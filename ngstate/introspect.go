@@ -13,7 +13,8 @@ type ContractExport struct {
 	Params  int
 	Results int
 	// Callable reports whether a transact tx can dispatch to this export:
-	// a zero-argument function export, excluding the reserved init entry
+	// a zero-argument function export, excluding the reserved protocol hooks
+	// (init / upgrade / validate)
 	Callable bool
 }
 
@@ -38,7 +39,7 @@ func ContractExports(source []byte) ([]ContractExport, error) {
 		if sig, ok := exportFuncSig(module, name); ok && sig != nil {
 			e.Params = len(sig.InputTypes)
 			e.Results = len(sig.ReturnTypes)
-			e.Callable = len(sig.InputTypes) == 0 && name != VMEntryOnActivate && name != VMEntryOnUpgrade
+			e.Callable = len(sig.InputTypes) == 0 && name != VMEntryOnActivate && name != VMEntryOnUpgrade && name != VMEntryOnValidate
 		}
 		out = append(out, e)
 	}

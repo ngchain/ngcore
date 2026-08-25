@@ -36,4 +36,10 @@ var (
 	// ErrNothingToDestroy occurs when an empty-code deploy (a destroy) targets
 	// an address that has no live contract slot
 	ErrNothingToDestroy = errors.New("empty deploy but no live contract to destroy")
+
+	// ErrTxUnauthorized occurs when the sender's account programs a native
+	// account-abstraction policy (a live contract exporting `validate`) and
+	// that policy vetoes the tx. Unlike a soft contract-run failure this is a
+	// HARD failure: the tx — and the block carrying it — is invalid
+	ErrTxUnauthorized = errors.New("account validate hook vetoed the tx")
 )
