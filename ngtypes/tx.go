@@ -160,7 +160,7 @@ func (x *FullTx) envelope(lookup PubKeyResolver) (scheme SigScheme, pubKey, sig 
 		if !HasRecovery(scheme) || len(body) != sigLen {
 			return 0, nil, nil, errors.Wrapf(ErrTxSignInvalid, "recover envelope is %d bytes", len(x.Sign))
 		}
-		pubKey = RecoverPubKey(scheme, x.GetUnsignedHash(), body)
+		pubKey = RecoverPubKey(scheme, x.SigningHash(), body)
 		if pubKey == nil {
 			return 0, nil, nil, errors.Wrap(ErrTxSignInvalid, "public key recovery failed")
 		}
@@ -225,7 +225,7 @@ func (x *FullTx) From() (Address, error) {
 		if !HasRecovery(scheme) || len(body) != sigLen {
 			return Address{}, ErrTxUnsigned
 		}
-		pubKey := RecoverPubKey(scheme, x.GetUnsignedHash(), body)
+		pubKey := RecoverPubKey(scheme, x.SigningHash(), body)
 		if pubKey == nil {
 			return Address{}, ErrTxUnsigned
 		}
@@ -257,7 +257,7 @@ func (x *FullTx) Verify(lookup PubKeyResolver) error {
 		return err
 	}
 
-	if !VerifyHashSig(scheme, pubKey, x.GetUnsignedHash(), sig) {
+	if !VerifyHashSig(scheme, pubKey, x.SigningHash(), sig) {
 		return ErrTxSignInvalid
 	}
 
@@ -308,9 +308,10 @@ func (x *FullTx) GetUnsignedHash() []byte {
 // UnheightedHash is the tx's content hash with its target Height (as well as
 // Sign and Salt) excluded. The private-mempool commitment binds THIS, not the
 // height: a committed reveal can therefore be broadcast at ANY height inside
-// the reveal window (re-signed per attempt) and still match its commitment.
-// That is what gives a reveal real liveness — a single miner censoring block
-// N+1 cannot kill it, since the same commitment is revealable at N+2 … N+W.
+// the reveal window and still match its commitment. That is what gives a reveal
+// real liveness — a single miner censoring block N+1 cannot kill it, since the
+// same commitment is revealable at N+2 … N+W. For effect txs it is ALSO the
+// SigningHash, so one signature covers the whole window (no re-sign per height).
 func (x *FullTx) UnheightedHash() []byte {
 	sign, salt, height := x.Sign, x.Salt, x.Height
 	x.Sign, x.Salt, x.Height = nil, nil, 0
@@ -321,6 +322,23 @@ func (x *FullTx) UnheightedHash() []byte {
 
 	x.Sign, x.Salt, x.Height = sign, salt, height
 	return utils.Hash256(raw)
+}
+
+// SigningHash is the digest a tx's signature covers. For EFFECT txs
+// (Transact/Deploy) it is the height-independent UnheightedHash, so a single
+// signed reveal is valid at ANY height inside its commitment's reveal window:
+// the wallet signs once and the node (or a relay) may retarget Height across
+// the window without a fresh signature. Height cannot be abused this way — the
+// commitment binds the content and is single-use, and an out-of-window height
+// simply fails checkReveal. Every other tx (notably Generate, whose reward is
+// height-bound) signs the height-inclusive GetUnsignedHash.
+func (x *FullTx) SigningHash() []byte {
+	switch x.Type {
+	case TransactTx, DeployTx:
+		return x.UnheightedHash()
+	default:
+		return x.GetUnsignedHash()
+	}
 }
 
 // CalculateHash feeds the merkle trie: the txid (unsigned hash)
@@ -440,7 +458,7 @@ func (x *FullTx) CheckDeploy(lookup PubKeyResolver) error {
 // form (which also registers the key on chain) otherwise
 func (x *FullTx) Signature(privateKey *PrivateKey) error {
 	x.Sign = nil
-	hash := x.GetUnsignedHash()
+	hash := x.SigningHash()
 
 	sig, err := privateKey.SignHash(hash)
 	if err != nil {
@@ -475,7 +493,7 @@ func (x *FullTx) SignatureCompact(privateKey *PrivateKey) error {
 	}
 
 	x.Sign = nil
-	hash := x.GetUnsignedHash()
+	hash := x.SigningHash()
 
 	sig, err := privateKey.SignHash(hash)
 	if err != nil {
