@@ -14,13 +14,13 @@ var ErrAddressLenInvalid = errors.New("address length is invalid")
 // preimage, so any future layout change cannot collide with this one
 const addressVersion = 0x01
 
-// Address is the keccak-256 hash of the owner's public key. The key
+// Address is the blake3 hash of the owner's public key. The key
 // itself only appears on chain inside a spending tx's signature,
 // which keeps unspent funds shielded and the ~900-byte post-quantum key
 // usable as a compact 32-byte address
 type Address [AddressSize]byte
 
-// AddressOfPubKey computes keccak256(version || scheme || pubkey):
+// AddressOfPubKey computes blake3(version || scheme || pubkey):
 // the scheme byte binds into the address, so keys of different
 // schemes can never alias
 func AddressOfPubKey(scheme SigScheme, pubKey []byte) Address {
@@ -30,7 +30,7 @@ func AddressOfPubKey(scheme SigScheme, pubKey []byte) Address {
 	preimage = append(preimage, addressVersion, byte(scheme))
 	preimage = append(preimage, pubKey...)
 
-	copy(addr[:], utils.KeccakSum256(preimage))
+	copy(addr[:], utils.Hash256(preimage))
 	return addr
 }
 

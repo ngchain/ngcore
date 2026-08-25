@@ -5,7 +5,9 @@ import (
 	"sort"
 
 	"github.com/cbergoon/merkletree"
-	"golang.org/x/crypto/sha3"
+	"hash"
+
+	"lukechampine.com/blake3"
 )
 
 // TxTrie is a fixed ordered tx container to get the trie root hash.
@@ -68,7 +70,7 @@ func (tt *TxTrie) TrieRoot() []byte {
 		mtc[i] = (*tt)[i]
 	}
 
-	trie, err := merkletree.NewTreeWithHashStrategy(mtc, sha3.NewLegacyKeccak256)
+	trie, err := merkletree.NewTreeWithHashStrategy(mtc, func() hash.Hash { return blake3.New(32, nil) })
 	if err != nil {
 		log.Error(err)
 	}

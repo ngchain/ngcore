@@ -2,7 +2,7 @@
 //
 // The chain knows two nouns only:
 //
-//   - Address: the 32-byte keccak hash of a public key — the identity,
+//   - Address: the 32-byte blake3 hash of a public key — the identity,
 //     the balance holder and the namespace. Addresses spend directly;
 //     nothing is registered.
 //   - Contract: the code slot an address may open under its own

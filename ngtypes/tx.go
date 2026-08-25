@@ -288,7 +288,7 @@ func (x *FullTx) GetUnsignedHash() []byte {
 	}
 
 	x.Sign = sign
-	return utils.KeccakSum256(raw)
+	return utils.Hash256(raw)
 }
 
 // CalculateHash feeds the merkle trie: the txid (unsigned hash)

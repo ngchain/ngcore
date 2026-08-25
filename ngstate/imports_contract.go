@@ -94,7 +94,7 @@ func initContractImports(vm *VM) error {
 		return err
 	}
 
-	// code_hash(addr_ptr, ptr) -> 32|0: write the 32-byte keccak-256 of the
+	// code_hash(addr_ptr, ptr) -> 32|0: write the 32-byte blake3 of the
 	// contract's code at addr (0 if none). Lets a caller pin the exact
 	// implementation it trusts — verify a dependency, or a proxy its impl —
 	// without reading the whole code back
@@ -109,9 +109,9 @@ func initContractImports(vm *VM) error {
 			if err != nil || len(acc.Source) == 0 {
 				return 0
 			}
-			// priced per byte hashed: keccak over up to the source cap
+			// priced per byte hashed: blake3 over up to the source cap
 			vm.charge(gasKVRead + uint64(len(acc.Source))/8)
-			l, err := cp(ins, ptr, utils.KeccakSum256(acc.Source))
+			l, err := cp(ins, ptr, utils.Hash256(acc.Source))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

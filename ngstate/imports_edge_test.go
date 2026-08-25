@@ -35,7 +35,7 @@ const hostEdgeWat = `
   (import "kv" "del" (func $del (param i32 i32) (result i32)))
   (import "coin" "get_balance" (func $bal (param i32 i32) (result i32)))
   (import "coin" "transfer" (func $xfer (param i32 i32) (result i32)))
-  (import "crypto" "keccak256" (func $keccak (param i32 i32 i32) (result i32)))
+  (import "crypto" "blake3" (func $keccak (param i32 i32 i32) (result i32)))
   (import "crypto" "verify" (func $verify (param i32 i32 i32 i32 i32 i32) (result i32)))
   (import "crypto" "addr_of" (func $addrof (param i32 i32 i32 i32) (result i32)))
   (import "address" "get_size" (func $asize (result i32)))

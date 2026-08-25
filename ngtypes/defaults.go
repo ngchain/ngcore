@@ -90,7 +90,7 @@ const (
 
 	// PrivSize is the length of one private key in bytes
 	PrivSize = 32
-	// AddressSize is the byte length of an Address: the keccak-256
+	// AddressSize is the byte length of an Address: the blake3
 	// hash of the owner's public key (see AddressOfPubKey). Hashing
 	// keeps public keys off chain until spend time and makes the large
 	// post-quantum keys usable as compact addresses

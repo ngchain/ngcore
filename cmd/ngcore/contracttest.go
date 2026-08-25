@@ -82,7 +82,7 @@ func runScenario(path string) error {
 	}
 	base := filepath.Dir(path)
 
-	// resolve every named address: contracts by keccak("contract:"+name),
+	// resolve every named address: contracts by blake3("contract:"+name),
 	// signers by their deterministic secp key's address
 	addrs := map[string]ngtypes.Address{}
 	keys := map[string]*ngtypes.PrivateKey{}
@@ -93,7 +93,7 @@ func runScenario(path string) error {
 		if k, ok := keys[name]; ok {
 			return k, addrs[name], nil
 		}
-		seed := utils.KeccakSum256([]byte("signer:" + name))
+		seed := utils.Hash256([]byte("signer:" + name))
 		k, err := ngtypes.NewKeyFromSeed(ngtypes.SchemeSecp256k1, seed)
 		if err != nil {
 			return nil, ngtypes.Address{}, err
@@ -249,7 +249,7 @@ func runScenario(path string) error {
 
 func namedAddr(s string) ngtypes.Address {
 	var a ngtypes.Address
-	copy(a[:], utils.KeccakSum256([]byte(s)))
+	copy(a[:], utils.Hash256([]byte(s)))
 	return a
 }
 

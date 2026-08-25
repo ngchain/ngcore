@@ -65,7 +65,7 @@ do not share linear memory.
 | `address` | get_host / get_caller — identity only |
 | `contract` | call (by runtime address) / is_active / get_code / get_code_size / code_hash |
 | `coin` | transfer / get_balance — native NG, fixed 32-byte LE amounts (full 256-bit; NG is 18-decimal) |
-| `crypto` | keccak256 / verify / addr_of |
+| `crypto` | blake3 / verify / addr_of |
 | `env` | buf_set / buf_get — cross-frame byte payloads; get_gas |
 | `log` | error / emit (events) |
 | `u128` / `u256` | 128/256-bit add/sub/mul/div/rem/cmp/shift + `mul_div`, `isqrt` |

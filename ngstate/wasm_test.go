@@ -1599,7 +1599,7 @@ func TestCryptoHostFuncs(t *testing.T) {
 	db := newTestDB(t)
 
 	signer, _ := ngtypes.GenerateSchemeKey(ngtypes.SchemeSecp256k1)
-	digest := utils.KeccakSum256([]byte("proposal: pay alice 5 NG"))
+	digest := utils.Hash256([]byte("proposal: pay alice 5 NG"))
 	sig, err := signer.SignHash(digest)
 	if err != nil {
 		t.Fatal(err)
@@ -1667,7 +1667,7 @@ func TestCryptoHostFuncs(t *testing.T) {
 func TestCodeDedup(t *testing.T) {
 	db := newTestDB(t)
 	code := mustWat(kvWat)
-	codeHash := utils.KeccakSum256(code)
+	codeHash := utils.Hash256(code)
 
 	refs := func(txn *bbolt.Tx) uint64 {
 		entry := txn.Bucket(storage.CodeBucketName).Get(codeHash)

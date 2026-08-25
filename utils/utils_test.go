@@ -175,23 +175,23 @@ func TestMinUint64(t *testing.T) {
 	}
 }
 
-func TestKeccakSum256(t *testing.T) {
+func TestHash256(t *testing.T) {
 	t.Parallel()
 
-	// legacy Keccak-256 (pre-NIST padding) well-known vectors
+	// BLAKE3-256 well-known vectors
 	tests := []struct {
 		in   []byte
 		want string
 	}{
-		{[]byte{}, "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"},
-		{[]byte("hello"), "1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8"},
-		{[]byte("abc"), "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"},
+		{[]byte{}, "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"},
+		{[]byte("hello"), "ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f"},
+		{[]byte("abc"), "6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85"},
 	}
 
 	for _, tt := range tests {
-		got := hex.EncodeToString(utils.KeccakSum256(tt.in))
+		got := hex.EncodeToString(utils.Hash256(tt.in))
 		if got != tt.want {
-			t.Errorf("KeccakSum256(%q) = %s, want %s", tt.in, got, tt.want)
+			t.Errorf("Hash256(%q) = %s, want %s", tt.in, got, tt.want)
 		}
 	}
 }

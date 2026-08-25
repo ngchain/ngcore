@@ -26,6 +26,7 @@ require (
 	go.etcd.io/bbolt v1.5.0
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.55.0
+	lukechampine.com/blake3 v1.4.1
 )
 
 require (
@@ -132,5 +133,4 @@ require (
 	golang.org/x/tools v0.49.0 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	lukechampine.com/blake3 v1.4.1 // indirect
 )

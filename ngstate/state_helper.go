@@ -15,7 +15,7 @@ import (
 )
 
 // storedContract is the on-disk shape of a contract slot: the code
-// lives ONCE in the code bucket, addressed by its keccak hash, so
+// lives ONCE in the code bucket, addressed by its blake3 hash, so
 // identical modules deployed by many addresses cost one copy. The slot
 // only references the hash
 type storedContract struct {
@@ -70,7 +70,7 @@ func contractExists(txn *bbolt.Tx, addr ngtypes.Address) bool {
 // just bumps its refcount) and any previously-referenced module is
 // released
 func setContract(txn *bbolt.Tx, rec *changeset, account *ngtypes.Contract) error {
-	newHash := utils.KeccakSum256(account.Source)
+	newHash := utils.Hash256(account.Source)
 
 	rec.recordContract(txn, account.Owner) // pre-image before overwrite (archive)
 

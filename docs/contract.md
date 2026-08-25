@@ -93,7 +93,7 @@ contract: call(addr_ptr, args_ptr, args_len) -> i32
          get_code_size(addr_ptr) -> i32
          get_code(addr_ptr, ptr) -> i32  ; the on-chain code bytes
          code_hash(addr_ptr, ptr) -> i32 ; 32-byte keccak of the code
-crypto:  keccak256(ptr, size, out) -> i32
+crypto:  blake3(ptr, size, out) -> i32
          verify(scheme, pk_ptr, pk_len, hash_ptr, sig_ptr, sig_len) -> i32
          addr_of(scheme, pk_ptr, pk_len, out) -> i32
 coin:    get_balance(addr_ptr, ptr) -> i32   ; fixed 32-byte LE amount

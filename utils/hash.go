@@ -1,13 +1,16 @@
 package utils
 
-import "golang.org/x/crypto/sha3"
+import "lukechampine.com/blake3"
 
-// KeccakSum256 hashes with the original Keccak-256 (the pre-NIST
-// padding, as used by the ethereum ecosystem), keeping addresses
-// friendly to existing crypto tooling
-func KeccakSum256(b []byte) []byte {
-	h := sha3.NewLegacyKeccak256()
-	h.Write(b)
+// Hash256 is the chain's 256-bit hash primitive: BLAKE3.
+//
+// A cryptographic hash is already post-quantum — Grover's algorithm gives
+// only a quadratic speedup, so a 256-bit digest keeps ~128-bit preimage
+// security against a quantum attacker (matching the ML-DSA-44 security
+// level). BLAKE3 preserves that guarantee while being substantially faster
+// and more parallel than the Keccak-256 it replaces.
+func Hash256(b []byte) []byte {
+	h := blake3.Sum256(b)
 
-	return h.Sum(nil)
+	return h[:]
 }

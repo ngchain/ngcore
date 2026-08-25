@@ -100,7 +100,7 @@ func (x *BlockHeader) CalculateHash() ([]byte, error) {
 		return nil, err
 	}
 
-	return utils.KeccakSum256(raw), nil
+	return utils.Hash256(raw), nil
 }
 
 func (x *BlockHeader) GetHash() []byte {

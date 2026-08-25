@@ -77,7 +77,7 @@ func (x *FullBlock) SetCoinbase(addr Address) {
 }
 
 // CalcUnclesHash commits to a block's uncle headers: all-zero when there
-// are none, otherwise the keccak over the concatenated uncle hashes (in
+// are none, otherwise the blake3 over the concatenated uncle hashes (in
 // the given order, which SetUncles fixes deterministically).
 func CalcUnclesHash(uncles []*BlockHeader) []byte {
 	if len(uncles) == 0 {
@@ -87,7 +87,7 @@ func CalcUnclesHash(uncles []*BlockHeader) []byte {
 	for _, u := range uncles {
 		buf = append(buf, u.GetHash()...)
 	}
-	return utils.KeccakSum256(buf)
+	return utils.Hash256(buf)
 }
 
 // SetUncles attaches uncle headers to a bare/unsealing block and refreshes
@@ -103,17 +103,17 @@ func (x *FullBlock) SetUncles(uncles []*BlockHeader) {
 }
 
 // CalcWitnessRoot commits the txs' signature envelopes in block
-// order: keccak over the per-tx keccak of the witness bytes. The
+// order: blake3 over the per-tx blake3 of the witness bytes. The
 // header carries it so witness data is immutable in the live chain,
 // yet REPLACEABLE for settled history (pruning, aggregate proofs)
 // without touching any txid
 func CalcWitnessRoot(txs []*FullTx) []byte {
 	buf := make([]byte, 0, len(txs)*HashSize)
 	for _, tx := range txs {
-		buf = append(buf, utils.KeccakSum256(tx.Sign)...)
+		buf = append(buf, utils.Hash256(tx.Sign)...)
 	}
 
-	return utils.KeccakSum256(buf)
+	return utils.Hash256(buf)
 }
 
 // NewBareBlock will return an unsealing block and
@@ -348,7 +348,7 @@ func (x *FullBlock) GetHash() []byte {
 		panic(err)
 	}
 
-	return utils.KeccakSum256(raw)
+	return utils.Hash256(raw)
 }
 
 func (x *FullBlock) Equals(other *FullBlock) (bool, error) {

@@ -10,21 +10,21 @@ import (
 // crypto host-op pricing: hashing is cheap per byte, signature
 // verification is priced near a coin transfer
 const (
-	gasKeccakBase    = 100
-	gasKeccakPerByte = 1
-	gasSigVerify     = 3000
+	gasHashBase    = 100
+	gasHashPerByte = 1
+	gasSigVerify   = 3000
 )
 
 // initCryptoImports binds the crypto module, giving contracts the
-// chain's own primitives: keccak-256 and per-scheme signature
+// chain's own primitives: blake3 and per-scheme signature
 // verification. This is what contract-level multisig builds on — a
 // proposal hashed on chain, off-chain-collected signatures verified
 // one by one inside the contract
 func initCryptoImports(vm *VM) error {
-	// keccak256(ptr, len, out) writes the 32-byte digest to out
-	err := vm.linker.DefineAdvancedFunc("crypto", "keccak256", func(ins *wasman.Instance) interface{} {
+	// blake3(ptr, len, out) writes the 32-byte digest to out
+	err := vm.linker.DefineAdvancedFunc("crypto", "blake3", func(ins *wasman.Instance) interface{} {
 		return func(ptr, size, out uint32) uint32 {
-			vm.charge(gasKeccakBase + gasKeccakPerByte*uint64(size))
+			vm.charge(gasHashBase + gasHashPerByte*uint64(size))
 
 			data, err := readMem(ins, ptr, size)
 			if err != nil {
@@ -32,7 +32,7 @@ func initCryptoImports(vm *VM) error {
 				return 0
 			}
 
-			l, err := cp(ins, out, utils.KeccakSum256(data))
+			l, err := cp(ins, out, utils.Hash256(data))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0
@@ -83,7 +83,7 @@ func initCryptoImports(vm *VM) error {
 	// against the revealed keys
 	err = vm.linker.DefineAdvancedFunc("crypto", "addr_of", func(ins *wasman.Instance) interface{} {
 		return func(scheme, pkPtr, pkLen, out uint32) uint32 {
-			vm.charge(gasKeccakBase + gasKeccakPerByte*uint64(pkLen))
+			vm.charge(gasHashBase + gasHashPerByte*uint64(pkLen))
 
 			pubKey, err := readMem(ins, pkPtr, pkLen)
 			if err != nil {

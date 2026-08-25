@@ -49,7 +49,7 @@ var forkLog = logging.Logger("fork")
 // Named identities: every dev address (dev0..devN, or dev_newAddress) and
 // every deployed contract registers under "@name"; RPC params accept
 // "@name" or a bs58 address anywhere an address is expected. Keys derive
-// deterministically from keccak("signer:"+name) — the SAME derivation
+// deterministically from blake3("signer:"+name) — the SAME derivation
 // contract-run uses, so scenarios and interactive debugging agree.
 type forkChain struct {
 	mu sync.Mutex
@@ -207,7 +207,7 @@ func runFork(c *cli.Context) error {
 	fmt.Printf("  rpc:    http://%s\n", c.String("listen"))
 	fmt.Printf("  db:     %s\n", d.dbPath)
 	fmt.Printf("  block:  height %d, time %d (+1s per sealed tx)\n\n", d.height, d.blockTime)
-	fmt.Printf("addresses (keys derive from keccak(\"signer:\"+name), same as contract-run):\n")
+	fmt.Printf("addresses (keys derive from blake3(\"signer:\"+name), same as contract-run):\n")
 	for i := 0; i < c.Int("addresses"); i++ {
 		name := fmt.Sprintf("dev%d", i)
 		fmt.Printf("  @%-6s %s  (%s raw)\n", name, d.names[name].String(), d.fund)
@@ -412,7 +412,7 @@ func (d *forkChain) newAddress(name string) (ngtypes.Address, error) {
 	if _, taken := d.names[name]; taken {
 		return d.names[name], nil
 	}
-	seed := utils.KeccakSum256([]byte("signer:" + name))
+	seed := utils.Hash256([]byte("signer:" + name))
 	key, err := ngtypes.NewKeyFromSeed(ngtypes.SchemeSecp256k1, seed)
 	if err != nil {
 		return ngtypes.Address{}, err
