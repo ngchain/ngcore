@@ -1,10 +1,13 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
+	"strings"
 
 	"github.com/c0mm4nd/go-jsonrpc2"
 	"github.com/c0mm4nd/go-jsonrpc2/jsonrpc2http"
@@ -70,9 +73,13 @@ var nameByScheme = map[ngtypes.SigScheme]string{
 	ngtypes.SchemeSLHDSA128: "slhdsa128",
 }
 
-// signAndSend takes an unsigned tx hex from a gen* method, signs it
-// LOCALLY (the key never leaves this machine) and broadcasts it
-func signAndSend(ctx *cli.Context, unsignedRaw []byte) error {
+// sealAndRelay takes an unsigned effect tx from a gen* method and drives the
+// whole fire-and-forget commit-reveal flow LOCALLY (the key never leaves this
+// machine): it salts and signs the reveal ONCE (the signature is
+// height-independent), builds and signs the blind commitment, and hands both
+// to the node in a single ng_sendPrivateTx. The node relays the reveal across
+// the window — this command returns immediately and the wallet may go offline.
+func sealAndRelay(ctx *cli.Context, unsignedRaw []byte) error {
 	var unsignedHex string
 	if err := utils.JSON.Unmarshal(unsignedRaw, &unsignedHex); err != nil {
 		return err
@@ -83,38 +90,113 @@ func signAndSend(ctx *cli.Context, unsignedRaw []byte) error {
 		return err
 	}
 
-	var tx ngtypes.FullTx
-	if err := rlp.DecodeBytes(rawTx, &tx); err != nil {
+	var reveal ngtypes.FullTx
+	if err := rlp.DecodeBytes(rawTx, &reveal); err != nil {
 		return err
 	}
+
+	// a fresh high-entropy salt: the private nonce that blinds the commitment
+	salt := make([]byte, 32)
+	if _, err := rand.Read(salt); err != nil {
+		return err
+	}
+	reveal.Salt = salt
 
 	key := keytools.ReadLocalKey(ctx.String("key"), ctx.String("password"))
-	if err := tx.Signature(key); err != nil {
+	// one height-independent signature covers the whole reveal window
+	if err := reveal.Signature(key); err != nil {
 		return err
 	}
 
-	signedRaw, err := rlp.EncodeToBytes(&tx)
+	// the commitment rides the next block; it binds blake3(UnheightedHash ‖ salt)
+	height, err := latestHeight(ctx)
+	if err != nil {
+		return err
+	}
+	commitFee, err := parseNG(ctx.String("commit-fee"))
+	if err != nil {
+		return err
+	}
+	preimage := append(append([]byte{}, reveal.UnheightedHash()...), salt...)
+	commit := ngtypes.NewCommitment(reveal.Network, height+1, utils.Hash256(preimage), commitFee)
+	if err := commit.Signature(key); err != nil {
+		return err
+	}
+
+	commitRaw, err := rlp.EncodeToBytes(commit)
+	if err != nil {
+		return err
+	}
+	revealRaw, err := rlp.EncodeToBytes(&reveal)
 	if err != nil {
 		return err
 	}
 
-	result, err := rpcCall(ctx.String("addr"), "ng_sendTx",
-		map[string]any{"rawTx": hex.EncodeToString(signedRaw)})
+	result, err := rpcCall(ctx.String("addr"), "ng_sendPrivateTx", map[string]any{
+		"rawCommitment": hex.EncodeToString(commitRaw),
+		"rawReveal":     hex.EncodeToString(revealRaw),
+	})
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("tx sent: %s\n", result)
+	fmt.Printf("committed %s\nthe node will relay the reveal over the next %d blocks; you can go offline\n",
+		strings.Trim(string(result), "\""), ngtypes.CommitWindow)
 	return nil
 }
 
-func genThenSend(ctx *cli.Context, method string, params map[string]any) error {
+func genThenSeal(ctx *cli.Context, method string, params map[string]any) error {
 	unsigned, err := rpcCall(ctx.String("addr"), method, params)
 	if err != nil {
 		return err
 	}
 
-	return signAndSend(ctx, unsigned)
+	return sealAndRelay(ctx, unsigned)
+}
+
+// latestHeight queries the daemon for the current tip height
+func latestHeight(ctx *cli.Context) (uint64, error) {
+	raw, err := rpcCall(ctx.String("addr"), "ng_getLatestBlockHeight", nil)
+	if err != nil {
+		return 0, err
+	}
+	var h uint64
+	if err := utils.JSON.Unmarshal(raw, &h); err != nil {
+		return 0, err
+	}
+	return h, nil
+}
+
+// parseNG converts an exact decimal NG string into base units (1 NG = 1e18),
+// rejecting more than 18 decimal places or a negative amount. Empty means zero.
+func parseNG(s string) (*big.Int, error) {
+	if s == "" {
+		return big.NewInt(0), nil
+	}
+	r, ok := new(big.Rat).SetString(s)
+	if !ok {
+		return nil, errors.Errorf("bad NG amount %q", s)
+	}
+	r.Mul(r, new(big.Rat).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
+	if !r.IsInt() {
+		return nil, errors.Errorf("NG amount %q has more than 18 decimal places", s)
+	}
+	n := r.Num()
+	if n.Sign() < 0 {
+		return nil, errors.Errorf("NG amount %q is negative", s)
+	}
+	return n, nil
+}
+
+// commitFeeFlag is the anti-spam fee paid for the blind commitment half of an
+// effect tx. It must clear the node's relay floor; the default comfortably
+// covers a typical commitment (including post-quantum-signed ones).
+func commitFeeFlag() cli.Flag {
+	return &cli.StringFlag{
+		Name:  "commit-fee",
+		Usage: "commitment fee in NG, decimal string (exact)",
+		Value: "0.001",
+	}
 }
 
 func ownAddress(ctx *cli.Context) ngtypes.Address {
@@ -211,16 +293,17 @@ func getCliToolsCommand() *cli.Command {
 			},
 			{
 				Name:        "send",
-				Description: "pay an address (optionally calling a contract entry)",
+				Description: "pay an address (optionally calling a contract entry); private by default via commit-reveal",
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "to", Required: true, Usage: "recipient bs58 address"},
 					&cli.StringFlag{Name: "value", Usage: "amount in NG, decimal string (exact)"},
 					&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"},
 					&cli.StringFlag{Name: "entry", Usage: "contract export to call (by name)"},
 					&cli.StringFlag{Name: "args", Usage: "hex args for the entry"},
+					commitFeeFlag(),
 				},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "ng_genTransaction", map[string]any{
+					return genThenSeal(ctx, "ng_genTransaction", map[string]any{
 						"to":    ctx.String("to"),
 						"value": ctx.String("value"),
 						"fee":   ctx.String("fee"),
@@ -235,13 +318,14 @@ func getCliToolsCommand() *cli.Command {
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "file", Required: true, Usage: "path to the compiled contract module (.wasm)"},
 					&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"},
+					commitFeeFlag(),
 				},
 				Action: func(ctx *cli.Context) error {
 					module, err := os.ReadFile(ctx.String("file"))
 					if err != nil {
 						return err
 					}
-					return genThenSend(ctx, "ng_genDeploy", map[string]any{
+					return genThenSeal(ctx, "ng_genDeploy", map[string]any{
 						"fee":  ctx.String("fee"),
 						"wasm": hex.EncodeToString(module),
 					})
@@ -250,10 +334,13 @@ func getCliToolsCommand() *cli.Command {
 			{
 				Name:        "destroy",
 				Description: "remove the own contract slot: an empty deploy, authorized by the contract's own `upgrade` hook",
-				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"},
+					commitFeeFlag(),
+				},
 				Action: func(ctx *cli.Context) error {
 					// destroy == deploy with no module (empty code)
-					return genThenSend(ctx, "ng_genDeploy", map[string]any{"fee": ctx.String("fee"), "wasm": ""})
+					return genThenSeal(ctx, "ng_genDeploy", map[string]any{"fee": ctx.String("fee"), "wasm": ""})
 				},
 			},
 			{
