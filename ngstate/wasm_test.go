@@ -240,7 +240,10 @@ func TestVMTollOverflowRollsBack(t *testing.T) {
 	}
 }
 
-func TestActivateDeactivateFlow(t *testing.T) {
+// TestDeployFlow: a deploy opens the slot and goes LIVE at once (no
+// separate activate step), charging the tx fee, and running the optional
+// `init` hook. A destroy then clears the live slot
+func TestDeployFlow(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -250,64 +253,58 @@ func TestActivateDeactivateFlow(t *testing.T) {
 	}
 	addr := ngtypes.NewAddress(priv)
 
+	// the module exports `upgrade`, so it can later authorize its own
+	// empty-code destroy
+	deployExtra := ngtypes.EncodeCommitCode(mustWat(upgradeableWat))
+
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(addr, mustWat(logWat), nil)
-		putContract(t, txn, acc, 100)
-
-		// lock the account: the vm becomes active, editing gets frozen
-		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-		if err := activateTx.Signature(priv); err != nil {
+		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1, ngtypes.Address{}, nil, big.NewInt(1), deployExtra, nil)
+		if err := deployTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleActivate(txn, activateTx, 1, nil); err != nil {
-			t.Fatalf("handleActivate: %v", err)
+
+		// an unfunded address cannot even pay the tx fee
+		if err := checkDeploy(txn, deployTx); err == nil {
+			t.Fatal("deploy without covering the fee must fail")
 		}
 
-		locked, err := getContract(txn, addr)
+		// funded: the deploy opens the slot LIVE at plain fee cost
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
+			return err
+		}
+		if err := checkDeploy(txn, deployTx); err != nil {
+			t.Fatalf("checkDeploy: %v", err)
+		}
+		if err := state.handleDeploy(txn, deployTx, 1, nil); err != nil {
+			t.Fatalf("handleDeploy: %v", err)
+		}
+
+		live, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}
-		if !locked.IsActive() {
-			t.Fatal("account should be locked")
+		if !live.IsActive() {
+			t.Fatal("a deployed contract must be live at once")
 		}
-		if got := getBalance(txn, addr); got.Int64() != 99 {
-			t.Fatalf("lock fee not charged, balance = %d", got.Int64())
+		if !bytes.Equal(live.Source, mustWat(upgradeableWat)) {
+			t.Fatal("deployed source mismatch")
 		}
-
-		// double lock must fail
-		if err := state.handleActivate(txn, activateTx, 1, nil); err == nil {
-			t.Fatal("locking a locked account should fail")
+		if got := getBalance(txn, addr); got.Cmp(big.NewInt(99)) != 0 {
+			t.Fatalf("deploy fee not burned, balance = %s", got)
 		}
 
-		// editing a locked account must fail
-		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-		if err := commitTx.Signature(priv); err != nil {
+		// a destroy is an empty-code deploy on the live slot, authorized by
+		// the contract's own `upgrade` hook — it clears the slot
+		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(nil), nil)
+		if err := destroyTx.Signature(priv); err != nil {
 			return err
 		}
-		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrContractActive) {
-			t.Fatalf("edit on locked account: got %v, want ErrContractActive", err)
+		if err := state.handleDeploy(txn, destroyTx, 1, nil); err != nil {
+			t.Fatalf("handleDeploy(destroy): %v", err)
 		}
-
-		// unlock reverts everything
-		deactivateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-		if err := deactivateTx.Signature(priv); err != nil {
-			return err
-		}
-		if err := state.handleDeactivate(txn, deactivateTx); err != nil {
-			t.Fatalf("handleDeactivate: %v", err)
-		}
-
-		unlocked, err := getContract(txn, addr)
-		if err != nil {
-			return err
-		}
-		if unlocked.IsActive() {
-			t.Fatal("account should be unlocked")
-		}
-
-		// double unlock must fail
-		if err := state.handleDeactivate(txn, deactivateTx); err == nil {
-			t.Fatal("unlocking an unlocked account should fail")
+		if _, err := getContract(txn, addr); err == nil {
+			t.Fatal("the slot must be gone after destroy")
 		}
 
 		return nil
@@ -317,10 +314,22 @@ func TestActivateDeactivateFlow(t *testing.T) {
 	}
 }
 
-// TestCommitFlow upgrades a contract with a minimal diff patch, and
-// covers the namespace purchase: the FIRST edit must carry the
-// one-time deploy fee on top of the tx fee
-func TestCommitFlow(t *testing.T) {
+// upgradeableWat exports the UUPS `upgrade` hook, so a live instance can
+// authorize replacing its own code
+const upgradeableWat = `(module
+	(func (export "upgrade"))
+	(func (export "main")))`
+
+// immutableWat exports no `upgrade` hook, so a live instance can never be
+// re-deployed
+const immutableWat = `(module
+	(func (export "main")))`
+
+// TestDeployUpgrade covers the UUPS re-deploy: a live contract that exports
+// `upgrade` is upgraded wholesale (the hook runs, the code is replaced), and
+// a live contract that exports no `upgrade` is immutable — a second deploy
+// is rejected with ErrImmutable
+func TestDeployUpgrade(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -330,76 +339,114 @@ func TestCommitFlow(t *testing.T) {
 	}
 	addr := ngtypes.NewAddress(priv)
 
-	baseWat := transferWatTo(testAddr(0xbb))
-	newWat := strings.Replace(baseWat, "i64.const 10", "i64.const 25", 1)
-
-	deployExtra := ngtypes.EncodeCommitCode(mustWat(baseWat))
-	patchExtra := ngtypes.EncodeCommitCode(mustWat(newWat))
+	deploy := func(t *testing.T, source []byte) *ngtypes.FullTx {
+		return signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(source))
+	}
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), deployExtra, nil)
-		if err := deployTx.Signature(priv); err != nil {
-			return err
-		}
-
-		// an unfunded address cannot even pay the tx fee
-		if err := checkCommit(txn, deployTx); err == nil {
-			t.Fatal("deploy without covering the fee must fail")
-		}
-
-		// funded: the first commit opens the slot at plain fee cost
 		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
-		if err := checkCommit(txn, deployTx); err != nil {
-			t.Fatalf("checkCommit deploy: %v", err)
+
+		// deploy the upgradeable module: goes live
+		first := deploy(t, mustWat(upgradeableWat))
+		if err := checkDeploy(txn, first); err != nil {
+			t.Fatalf("checkDeploy first: %v", err)
 		}
-		if err := state.handleCommit(txn, deployTx); err != nil {
-			t.Fatalf("handleCommit deploy: %v", err)
-		}
-		if got := getBalance(txn, addr); got.Cmp(big.NewInt(99)) != 0 {
-			t.Fatalf("deploy fee not burned, balance = %s", got)
+		if err := state.handleDeploy(txn, first, 1, nil); err != nil {
+			t.Fatalf("handleDeploy first: %v", err)
 		}
 
-		// the second commit replaces the module wholesale
-		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), patchExtra, nil)
-		if err := commitTx.Signature(priv); err != nil {
-			return err
+		// a second deploy upgrades it: the current code's `upgrade` hook
+		// authorizes replacing the module wholesale
+		second := deploy(t, mustWat(immutableWat))
+		if err := checkDeploy(txn, second); err != nil {
+			t.Fatalf("checkDeploy upgrade: %v", err)
 		}
-		if err := checkCommit(txn, commitTx); err != nil {
-			t.Fatalf("checkCommit patch: %v", err)
+		if err := state.handleDeploy(txn, second, 1, nil); err != nil {
+			t.Fatalf("handleDeploy upgrade: %v", err)
 		}
-		if err := state.handleCommit(txn, commitTx); err != nil {
-			t.Fatalf("handleCommit patch: %v", err)
-		}
-
 		reloaded, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}
-		if !bytes.Equal(reloaded.Source, mustWat(newWat)) {
-			t.Fatalf("contract not patched:\n%s", reloaded.Source)
+		if !bytes.Equal(reloaded.Source, mustWat(immutableWat)) {
+			t.Fatal("the upgrade did not replace the code")
 		}
-		if got := getBalance(txn, addr); got.Cmp(big.NewInt(98)) != 0 {
-			t.Fatalf("edit fee not charged, balance = %s", got)
-		}
-
-		// the new module must still compile and activate
-		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-		if err := activateTx.Signature(priv); err != nil {
-			return err
-		}
-		if err := state.handleActivate(txn, activateTx, 1, nil); err != nil {
-			t.Fatalf("handleActivate after edit: %v", err)
+		if !reloaded.IsActive() {
+			t.Fatal("the upgraded contract must stay live")
 		}
 
-		// committing to an ACTIVE slot is refused
-		activeCommit := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1, ngtypes.Address{}, nil, big.NewInt(1), deployExtra, nil)
-		if err := activeCommit.Signature(priv); err != nil {
+		// the code is now the immutable module: a further deploy is rejected
+		third := deploy(t, mustWat(upgradeableWat))
+		if err := checkDeploy(txn, third); !errors.Is(err, ErrImmutable) {
+			t.Fatalf("upgrade of an immutable contract: got %v, want ErrImmutable", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestDeployEmptyCodeDestroys covers the folded destroy: an empty-code
+// deploy on a LIVE slot is the destroy. A contract exporting `upgrade`
+// authorizes clearing its own slot; a contract exporting no `upgrade` is
+// immutable AND indestructible, so the empty-code deploy is rejected at
+// checkDeploy with ErrImmutable
+func TestDeployEmptyCodeDestroys(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+
+	priv, err := ngtypes.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ngtypes.NewAddress(priv)
+
+	deploy := func(t *testing.T, source []byte) *ngtypes.FullTx {
+		return signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(source))
+	}
+	destroy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1), destroyExtra())
+
+	err = db.Update(func(txn *bbolt.Tx) error {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
-		if err := checkCommit(txn, activeCommit); !errors.Is(err, ErrContractActive) {
-			t.Fatalf("commit on active slot: got %v", err)
+
+		// deploy a module that exports `upgrade`: the slot goes live
+		if err := state.handleDeploy(txn, deploy(t, mustWat(upgradeableWat)), 1, nil); err != nil {
+			t.Fatalf("handleDeploy upgradeable: %v", err)
+		}
+		if !contractExists(txn, addr) {
+			t.Fatal("the slot must be live after the deploy")
+		}
+
+		// an empty-code deploy on that live slot is the destroy: the slot is
+		// GONE
+		if err := checkDeploy(txn, destroy); err != nil {
+			t.Fatalf("checkDeploy(destroy) on an upgradeable live slot: %v", err)
+		}
+		if err := state.handleDeploy(txn, destroy, 1, nil); err != nil {
+			t.Fatalf("handleDeploy(destroy): %v", err)
+		}
+		if _, err := getContract(txn, addr); err == nil {
+			t.Fatal("getContract must fail after the destroy")
+		}
+		if contractExists(txn, addr) {
+			t.Fatal("the slot must be gone after the destroy")
+		}
+
+		// re-deploy a LIVE module that exports NO `upgrade` hook: it is
+		// immutable and indestructible — the empty-code deploy is rejected
+		if err := state.handleDeploy(txn, deploy(t, mustWat(immutableWat)), 1, nil); err != nil {
+			t.Fatalf("handleDeploy immutable: %v", err)
+		}
+		if err := checkDeploy(txn, destroy); !errors.Is(err, ErrImmutable) {
+			t.Fatalf("destroy of an immutable contract: got %v, want ErrImmutable", err)
 		}
 
 		return nil
@@ -414,7 +461,9 @@ func TestCommitFlow(t *testing.T) {
 const dexWat = `
 (module
   (func (export "double") (param i64) (result i64)
-    (i64.mul (local.get 0) (i64.const 2))))
+    (i64.mul (local.get 0) (i64.const 2)))
+  ;; exports `+"`upgrade`"+` so the service can authorize its own destroy
+  (func (export "upgrade")))
 `
 
 // leverageWatFor composes dex by its deployer address: it CALLS dex's
@@ -427,6 +476,8 @@ func leverageWatFor(dex ngtypes.Address) string {
   (import "kv" "set" (func $set (param i32 i32 i32 i32) (result i32)))
   (memory 1)
   (data (i32.const 0) "num")
+  ;; exports `+"`upgrade`"+` so it can authorize its own destroy
+  (func (export "upgrade"))
   (func (export "main")
     (i64.store8 (i32.const 8) (call $double (i64.const 21)))
     (drop (call $set (i32.const 0) (i32.const 3) (i32.const 8) (i32.const 1)))))
@@ -446,39 +497,45 @@ func TestContractModuleDeps(t *testing.T) {
 	levAddr := ngtypes.NewAddress(privLev)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		dex := ngtypes.NewContract(dexAddr, mustWat(dexWat), nil)
-		putContract(t, txn, dex, 100)
-		lev := ngtypes.NewContract(levAddr, mustWat(leverageWatFor(dexAddr)), nil)
-		putContract(t, txn, lev, 100)
+		if err := setBalance(txn, nil, dexAddr, big.NewInt(100)); err != nil {
+			return err
+		}
+		if err := setBalance(txn, nil, levAddr, big.NewInt(100)); err != nil {
+			return err
+		}
 
-		activateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
-				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
+		deployTx := func(priv *ngtypes.PrivateKey, source []byte) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1,
+				ngtypes.Address{}, nil, big.NewInt(1), ngtypes.EncodeCommitCode(source), nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
 			return tx
 		}
-		deactivateTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, 1,
-				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
+		// a destroy is an empty-code deploy: authorized by the target
+		// contract's own `upgrade` hook
+		destroyTx := func(priv *ngtypes.PrivateKey) *ngtypes.FullTx {
+			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1,
+				ngtypes.Address{}, nil, big.NewInt(1), ngtypes.EncodeCommitCode(nil), nil)
 			if err := tx.Signature(priv); err != nil {
 				t.Fatal(err)
 			}
 			return tx
 		}
 
-		// locking leverage before its dependency is active must fail
-		if err := state.handleActivate(txn, activateTx(privLev), 1, nil); err == nil {
-			t.Fatal("locking with an inactive dependency must fail")
+		levSource := mustWat(leverageWatFor(dexAddr))
+
+		// deploying leverage before its dependency is live must fail
+		if err := state.handleDeploy(txn, deployTx(privLev, levSource), 1, nil); err == nil {
+			t.Fatal("deploying with an inactive dependency must fail")
 		}
 
 		// dex first, then leverage: the reference gets pinned
-		if err := state.handleActivate(txn, activateTx(privDex), 1, nil); err != nil {
-			t.Fatalf("lock dex: %v", err)
+		if err := state.handleDeploy(txn, deployTx(privDex, mustWat(dexWat)), 1, nil); err != nil {
+			t.Fatalf("deploy dex: %v", err)
 		}
-		if err := state.handleActivate(txn, activateTx(privLev), 1, nil); err != nil {
-			t.Fatalf("lock leverage: %v", err)
+		if err := state.handleDeploy(txn, deployTx(privLev, levSource), 1, nil); err != nil {
+			t.Fatalf("deploy leverage: %v", err)
 		}
 
 		dexAcc, _ := getContract(txn, dexAddr)
@@ -486,9 +543,9 @@ func TestContractModuleDeps(t *testing.T) {
 			t.Fatalf("dex refcount = %d, want 1", getRefCount(dexAcc))
 		}
 
-		// the depended-on module can neither unlock nor be destroyed
-		if err := state.handleDeactivate(txn, deactivateTx(privDex)); !errors.Is(err, ErrContractRefdBy) {
-			t.Fatalf("unlock dex while referenced: got %v, want ErrContractRefdBy", err)
+		// the depended-on module cannot be destroyed while referenced
+		if err := state.handleDeploy(txn, destroyTx(privDex), 1, nil); !errors.Is(err, ErrContractRefdBy) {
+			t.Fatalf("destroy dex while referenced: got %v, want ErrContractRefdBy", err)
 		}
 
 		// linked execution: leverage's main calls dex's double and
@@ -512,16 +569,16 @@ func TestContractModuleDeps(t *testing.T) {
 			t.Fatal("dex state must stay untouched")
 		}
 
-		// release: unlock leverage, then dex frees up
-		if err := state.handleDeactivate(txn, deactivateTx(privLev)); err != nil {
-			t.Fatalf("unlock leverage: %v", err)
+		// release: destroying leverage frees dex's reference back to 0
+		if err := state.handleDeploy(txn, destroyTx(privLev), 1, nil); err != nil {
+			t.Fatalf("destroy leverage: %v", err)
 		}
 		dexAcc, _ = getContract(txn, dexAddr)
 		if getRefCount(dexAcc) != 0 {
 			t.Fatalf("dex refcount = %d after release, want 0", getRefCount(dexAcc))
 		}
-		if err := state.handleDeactivate(txn, deactivateTx(privDex)); err != nil {
-			t.Fatalf("unlock dex after release: %v", err)
+		if err := state.handleDeploy(txn, destroyTx(privDex), 1, nil); err != nil {
+			t.Fatalf("destroy dex after release: %v", err)
 		}
 
 		return nil
@@ -603,21 +660,10 @@ func TestServiceToken(t *testing.T) {
 		user := ngtypes.NewContract(userAddr, mustWat(tokenUserWatFor(tokenAddr, userAddr, dest)), nil)
 		putContract(t, txn, user, 100)
 
-		lock := func(priv *ngtypes.PrivateKey) error {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
-				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-			if err := tx.Signature(priv); err != nil {
-				t.Fatal(err)
-			}
-			return state.handleActivate(txn, tx, 1, nil)
-		}
-
-		if err := lock(privToken); err != nil {
-			t.Fatalf("lock token: %v", err)
-		}
-		if err := lock(privUser); err != nil {
-			t.Fatalf("lock token user: %v", err)
-		}
+		// deployment order follows the dependency DAG: the token service
+		// first, then its consumer (which pins the token)
+		activateInPlace(t, txn, state, tokenAddr)
+		activateInPlace(t, txn, state, userAddr)
 
 		// the service dependency pins the token like a library dep does
 		tokenAcc, _ := getContract(txn, tokenAddr)
@@ -1154,9 +1200,9 @@ func TestVMDryRun(t *testing.T) {
 	}
 }
 
-// TestDestroyRules: a slot cannot be destroyed while its contract is
-// active (locked) — downstream contracts may depend on it; after
-// unlock, destroy removes the slot (with its Context) entirely
+// TestDestroyRules: a slot cannot be destroyed while other contracts
+// still depend on it (refcount > 0); once unreferenced, destroy removes
+// the live slot (with its Context) entirely — there is no inactive state
 func TestDestroyRules(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
@@ -1168,27 +1214,33 @@ func TestDestroyRules(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(addr, mustWat(logWat), nil)
+		// the module exports `upgrade`, so once unreferenced it can authorize
+		// its own empty-code destroy
+		acc := ngtypes.NewContract(addr, mustWat(upgradeableWat), nil)
 		acc.SetActive(true)
+		setRefCount(acc, 1)
 		putContract(t, txn, acc, 100)
 
-		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
+		destroyTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(nil), nil)
 		if err := destroyTx.Signature(priv); err != nil {
 			return err
 		}
 
-		// locked: refused
-		if err := state.handleDestroy(txn, destroyTx); err == nil {
-			t.Fatal("destroying a locked account must fail")
+		// referenced: refused
+		if err := state.handleDeploy(txn, destroyTx, 1, nil); !errors.Is(err, ErrContractRefdBy) {
+			t.Fatalf("destroying a referenced slot: got %v, want ErrContractRefdBy", err)
 		}
 
-		// unlocked: destroy goes through and the slot is gone
-		acc.SetActive(false)
+		// drop the reference: destroy goes through even though the slot is
+		// live, and the slot is gone
+		acc.SetActive(true)
+		setRefCount(acc, 0)
 		if err := setContract(txn, nil, acc); err != nil {
 			return err
 		}
-		if err := state.handleDestroy(txn, destroyTx); err != nil {
-			t.Fatalf("destroy after unlocking: %v", err)
+		if err := state.handleDeploy(txn, destroyTx, 1, nil); err != nil {
+			t.Fatalf("destroy after dropping the reference: %v", err)
 		}
 		if _, err := getContract(txn, addr); err == nil {
 			t.Fatal("the slot (and its context) must be removed")
@@ -1201,7 +1253,7 @@ func TestDestroyRules(t *testing.T) {
 	}
 }
 
-func TestActivateRejectsBrokenContract(t *testing.T) {
+func TestDeployRejectsBrokenContract(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -1212,28 +1264,26 @@ func TestActivateRejectsBrokenContract(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err = db.Update(func(txn *bbolt.Tx) error {
-		// malformed wasm bytecode must not be activatable
-		acc := ngtypes.NewContract(addr, []byte{0x00, 0x61, 0x73, 0x6d, 0xde, 0xad, 0xbe, 0xef}, nil) // magic + garbage
-		putContract(t, txn, acc, 100)
-
-		activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1, ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-		if err := activateTx.Signature(priv); err != nil {
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
 			return err
 		}
 
-		if err := checkActivate(txn, activateTx); err == nil {
-			t.Fatal("checkActivate should reject a non-compiling contract")
-		}
-		if err := state.handleActivate(txn, activateTx, 1, nil); err == nil {
-			t.Fatal("handleActivate should reject a non-compiling contract")
-		}
-
-		reloaded, err := getContract(txn, addr)
-		if err != nil {
+		// malformed wasm bytecode must not be deployable — magic + garbage
+		broken := ngtypes.EncodeCommitCode([]byte{0x00, 0x61, 0x73, 0x6d, 0xde, 0xad, 0xbe, 0xef})
+		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1, ngtypes.Address{}, nil, big.NewInt(1), broken, nil)
+		if err := deployTx.Signature(priv); err != nil {
 			return err
 		}
-		if reloaded.IsActive() {
-			t.Fatal("account must stay unlocked after a failed lock")
+
+		if err := checkDeploy(txn, deployTx); err == nil {
+			t.Fatal("checkDeploy should reject a non-compiling contract")
+		}
+		if err := state.handleDeploy(txn, deployTx, 1, nil); err == nil {
+			t.Fatal("handleDeploy should reject a non-compiling contract")
+		}
+
+		if _, err := getContract(txn, addr); err == nil {
+			t.Fatal("no slot must be opened after a failed deploy")
 		}
 
 		return nil
@@ -1540,17 +1590,17 @@ func TestSourceSizeCap(t *testing.T) {
 			return err
 		}
 
-		commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1,
+		deployTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1,
 			ngtypes.Address{}, nil, big.NewInt(1), extra, nil)
-		if err := commitTx.Signature(priv); err != nil {
+		if err := deployTx.Signature(priv); err != nil {
 			return err
 		}
 
-		if err := checkCommit(txn, commitTx); !errors.Is(err, ErrSourceTooLarge) {
-			t.Fatalf("checkCommit: got %v, want ErrSourceTooLarge", err)
+		if err := checkDeploy(txn, deployTx); !errors.Is(err, ErrSourceTooLarge) {
+			t.Fatalf("checkDeploy: got %v, want ErrSourceTooLarge", err)
 		}
-		if err := state.handleCommit(txn, commitTx); !errors.Is(err, ErrSourceTooLarge) {
-			t.Fatalf("handleCommit: got %v, want ErrSourceTooLarge", err)
+		if err := state.handleDeploy(txn, deployTx, 1, nil); !errors.Is(err, ErrSourceTooLarge) {
+			t.Fatalf("handleDeploy: got %v, want ErrSourceTooLarge", err)
 		}
 
 		return nil

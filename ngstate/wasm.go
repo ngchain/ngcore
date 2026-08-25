@@ -23,6 +23,10 @@ const (
 	// VMEntryOnActivate is the optional contract export called once when the
 	// account gets activated (contract deployment finished)
 	VMEntryOnActivate = "init"
+	// VMEntryOnUpgrade is the contract export a live contract MUST provide to
+	// authorize replacing its own code (UUPS). It runs during a re-deploy and
+	// is NOT tx-callable; a contract exporting no upgrade hook is immutable
+	VMEntryOnUpgrade = "upgrade"
 
 	// vmMaxToll bounds the wasm instruction count per contract call, so a
 	// malicious contract cannot stall the chain. Every node uses the same
@@ -344,8 +348,8 @@ func (vm *VM) EntryFor(defaultEntry string) string {
 	// a decoded payload always feeds its Args to the entry that runs
 	vm.callArgs = args
 
-	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate {
-		return defaultEntry // default entry (init is not tx-callable)
+	if method == "" || method == VMEntryOnTx || method == VMEntryOnActivate || method == VMEntryOnUpgrade {
+		return defaultEntry // default entry (init/upgrade are not tx-callable)
 	}
 	if sig, ok := exportFuncSig(vm.module, method); !ok || len(sig.InputTypes) != 0 {
 		return defaultEntry // no such callable export: fall back to main with the args

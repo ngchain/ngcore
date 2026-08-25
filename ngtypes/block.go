@@ -35,6 +35,16 @@ var (
 
 	ErrBlockNotSealed = errors.New("the block is not sealed")
 
+	// ErrBlockDuplicateTx rejects a block that carries the same txid twice.
+	// Because a tx's id excludes its Salt, two reveals of the same content
+	// under different salts share an id; without this guard they would both
+	// apply — a self-funded double-execution. ErrBlockDuplicateCommit is the
+	// same guard for commitments (two identical hashes would double-charge).
+	ErrBlockDuplicateTx     = errors.New("block carries a duplicate txid")
+	ErrBlockDuplicateCommit = errors.New("block carries a duplicate commitment")
+	// ErrBlockCommitsExcess rejects a block with more commitments than allowed
+	ErrBlockCommitsExcess = errors.New("block carries too many commitments")
+
 	// ErrBlockUnclesInvalid rejects a block whose uncle set breaks a
 	// context-free rule (bad commitment, over the cap, duplicated, or an
 	// uncle header that fails its own standalone pow/format check)
@@ -47,6 +57,11 @@ type FullBlock struct {
 	*BlockHeader
 	Txs    []*FullTx
 	Uncles []*BlockHeader
+	// Commits are the blind commitments of the mandatory commit-reveal
+	// private mempool packed at this height. They are folded into the
+	// existing TxTrieHash (via ContentRoot), so the header/pow preimage is
+	// unchanged yet binds them too.
+	Commits []*Commitment `rlp:"optional"`
 }
 
 // NewBlock creates a new Block
@@ -102,15 +117,20 @@ func (x *FullBlock) SetUncles(uncles []*BlockHeader) {
 	x.BlockHeader.UnclesHash = CalcUnclesHash(uncles)
 }
 
-// CalcWitnessRoot commits the txs' signature envelopes in block
-// order: blake3 over the per-tx blake3 of the witness bytes. The
-// header carries it so witness data is immutable in the live chain,
-// yet REPLACEABLE for settled history (pruning, aggregate proofs)
-// without touching any txid
-func CalcWitnessRoot(txs []*FullTx) []byte {
-	buf := make([]byte, 0, len(txs)*HashSize)
+// CalcWitnessRoot commits the signature envelopes of a block's txs AND its
+// commitments, in order: blake3 over the per-item blake3 of the witness bytes.
+// The header carries it so witness data is immutable in the live chain, yet
+// REPLACEABLE for settled history (pruning, aggregate proofs) without touching
+// any txid. Covering the commitment sigs too closes the same malleability the
+// tx witness commitment closes — the content root excludes Sign, so without
+// this a committer could swap a commit's sig bytes under one header.
+func CalcWitnessRoot(txs []*FullTx, commits []*Commitment) []byte {
+	buf := make([]byte, 0, (len(txs)+len(commits))*HashSize)
 	for _, tx := range txs {
 		buf = append(buf, utils.Hash256(tx.Sign)...)
+	}
+	for _, commit := range commits {
+		buf = append(buf, utils.Hash256(commit.Sign)...)
 	}
 
 	return utils.Hash256(buf)
@@ -194,12 +214,24 @@ func (x *FullBlock) ToUnsealing(txsWithGen []*FullTx) error {
 		}
 	}
 
-	txTrie := NewTxTrie(txsWithGen)
-	x.BlockHeader.TxTrieHash = txTrie.TrieRoot()
-	x.BlockHeader.WitnessRoot = CalcWitnessRoot(txsWithGen)
-	x.Txs = txsWithGen
+	// canonicalize the tx order FIRST, then commit over it: the witness root
+	// must match CheckError's recomputation, which runs over the stored
+	// (sorted) x.Txs. NewTxTrie sorts in place, so txsWithGen and x.Txs share
+	// the one canonical order
+	x.Txs = NewTxTrie(txsWithGen)
+	// the content root covers BOTH the txs and this block's commitments,
+	// deterministically ordered; it lands in the existing TxTrieHash so the
+	// pow preimage binds commitments without any header change
+	x.BlockHeader.TxTrieHash = ContentRoot(x.Txs, x.Commits)
+	x.BlockHeader.WitnessRoot = CalcWitnessRoot(x.Txs, x.Commits)
 
 	return nil
+}
+
+// SetCommits attaches the block's commitments before sealing. They fold into
+// the content root computed by ToUnsealing, so this must run first.
+func (x *FullBlock) SetCommits(commits []*Commitment) {
+	x.Commits = commits
 }
 
 var (
@@ -250,6 +282,9 @@ func (x *FullBlock) CheckError() error {
 	if len(x.Txs) > MaxBlockTxCount {
 		return errors.Wrapf(ErrBlockTxsExcess, "%d txs exceed the cap %d", len(x.Txs), MaxBlockTxCount)
 	}
+	if len(x.Commits) > MaxBlockCommitCount {
+		return errors.Wrapf(ErrBlockCommitsExcess, "%d commitments exceed the cap %d", len(x.Commits), MaxBlockCommitCount)
+	}
 	if raw, err := rlp.EncodeToBytes(x); err != nil {
 		return err
 	} else if len(raw) > MaxBlockBytes {
@@ -283,13 +318,46 @@ func (x *FullBlock) CheckError() error {
 		return errors.Wrapf(ErrBlockNotSealed, "block@%d has not sealed with nonce", x.BlockHeader.Height)
 	}
 
-	txTrie := NewTxTrie(x.Txs)
-	if !bytes.Equal(txTrie.TrieRoot(), x.BlockHeader.TxTrieHash) {
+	// every commitment must be well-formed and self-consistent before it can
+	// count toward the content root (32B Hash, non-nil Fee, matching Height,
+	// verifying signature). The stateful checks (fee charge, reveal window)
+	// live in the state layer
+	for _, commit := range x.Commits {
+		if err := commit.CheckError(x.BlockHeader.Height, nil); err != nil {
+			return errors.Wrapf(err, "block@%d carries an invalid commitment", x.BlockHeader.Height)
+		}
+	}
+
+	// reject duplicates: two txs with the same id (a salt-varying double
+	// reveal) or two identical commitments would each be applied/charged twice
+	seenTx := make(map[string]struct{}, len(x.Txs))
+	for _, tx := range x.Txs {
+		if tx.Type == GenerateTx {
+			continue // generates are validated as a set, not by unique id
+		}
+		id := string(tx.GetHash())
+		if _, dup := seenTx[id]; dup {
+			return errors.Wrapf(ErrBlockDuplicateTx, "block@%d carries txid %x twice", x.BlockHeader.Height, tx.GetHash())
+		}
+		seenTx[id] = struct{}{}
+	}
+	seenCommit := make(map[string]struct{}, len(x.Commits))
+	for _, commit := range x.Commits {
+		id := string(commit.Hash)
+		if _, dup := seenCommit[id]; dup {
+			return errors.Wrapf(ErrBlockDuplicateCommit, "block@%d carries commitment %x twice", x.BlockHeader.Height, commit.Hash)
+		}
+		seenCommit[id] = struct{}{}
+	}
+
+	// the content root covers the txs AND the commitments, in one canonical
+	// hash-sorted order
+	if root := ContentRoot(x.Txs, x.Commits); !bytes.Equal(root, x.BlockHeader.TxTrieHash) {
 		return errors.Wrapf(
 			ErrBlockTxTrieHashInvalid,
-			"the tx merkle tree in block@%d is invalid: %x != %x",
+			"the content merkle tree in block@%d is invalid: %x != %x",
 			x.BlockHeader.Height,
-			txTrie.TrieRoot(),
+			root,
 			x.BlockHeader.TxTrieHash,
 		)
 	}
@@ -297,7 +365,7 @@ func (x *FullBlock) CheckError() error {
 	// the witness commitment pins the signature envelopes: without it,
 	// the same txids with different signature bytes would yield two
 	// different valid blocks under one header
-	if !bytes.Equal(CalcWitnessRoot(x.Txs), x.BlockHeader.WitnessRoot) {
+	if !bytes.Equal(CalcWitnessRoot(x.Txs, x.Commits), x.BlockHeader.WitnessRoot) {
 		return errors.Wrapf(ErrBlockWitnessRootInvalid,
 			"block@%d's witness root does not match its txs", x.BlockHeader.Height)
 	}

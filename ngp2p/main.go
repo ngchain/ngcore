@@ -97,7 +97,7 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 		ctx:       ctx,
 		cancel:    cancel,
 		Wired:     wired.NewWiredProtocol(localHost, config.Network, chain),
-		Broadcast: broadcast.NewBroadcastProtocol(localHost, config.Network, make(chan *ngtypes.FullBlock), make(chan *ngtypes.FullTx)),
+		Broadcast: broadcast.NewBroadcastProtocol(localHost, config.Network, make(chan *ngtypes.FullBlock), make(chan *ngtypes.FullTx), make(chan *ngtypes.Commitment)),
 	}
 
 	if !config.DisableDiscovery {

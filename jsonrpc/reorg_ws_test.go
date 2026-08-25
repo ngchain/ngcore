@@ -19,6 +19,13 @@ import (
 // competing blocks are mined in-process, so they must stay within the
 // future-drift tolerance.
 func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, extra ...*ngtypes.FullTx) *ngtypes.FullBlock {
+	return sealBlockOnAll(t, parent, miner, nil, extra...)
+}
+
+// sealBlockOnAll is sealBlockOn with blind commitments packed in too. The
+// commitments must be attached before ToUnsealing, which folds them into the
+// content root alongside the txs.
+func sealBlockOnAll(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, commits []*ngtypes.Commitment, extra ...*ngtypes.FullTx) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -32,9 +39,17 @@ func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
 	}
+	if len(commits) != 0 {
+		block.SetCommits(commits)
+	}
 	if err := block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, extra...)); err != nil {
 		t.Fatal(err)
 	}
+	// ToUnsealing computes the witness root over insertion order (gen first) but
+	// stores x.Txs hash-sorted; recompute over the canonical sorted order so a
+	// block whose packed reveal sorts ahead of the generate is not rejected as
+	// witness-invalid.
+	block.BlockHeader.WitnessRoot = ngtypes.CalcWitnessRoot(block.Txs, block.Commits)
 
 	var last error
 	for n := uint64(0); n < 2_000_000; n++ {
@@ -77,44 +92,68 @@ func TestRPCWebSocketLogsRemovedOnReorg(t *testing.T) {
 		t.Fatalf("logs subscribe = %s (%v)", resp["result"], err)
 	}
 
-	send := func(method string, params any) {
+	gen := func(method string, params any) string {
 		var unsigned string
 		decodeInto(t, node.mustCall(t, method, params), &unsigned)
-		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+		return unsigned
 	}
 	mineViaRPC(t, node, key) // fund
-	send("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))})
-	mineViaRPC(t, node, key)
-	send("ng_genActivate", map[string]any{"fee": "0.05"})
-	mineViaRPC(t, node, key)
+	commitReveal(t, node, key, gen("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))}))
+	mineViaRPC(t, node, key) // deploy goes live at once
 
-	// the tip after activation is the fork point: the emit block builds on it,
-	// the competing branch replaces it
+	// the tip after deployment is the fork point. The transact reveal must be
+	// blindly committed one block BELOW its own height, so both the canonical
+	// chain and the competing branch grow that commit block themselves off the
+	// fork point: a reorg only restores a consumed commitment by re-applying its
+	// recording block, so the commit has to live ABOVE the fork point on each
+	// branch (not be a shared ancestor).
 	forkParent, ok := node.pow.Chain.GetLatestBlock().(*ngtypes.FullBlock)
 	if !ok {
 		t.Fatal("latest block is not a *FullBlock")
 	}
+	commitHeight := forkParent.GetHeight() + 1
+	revealHeight := commitHeight + 1
 
-	// build the transact tx that runs the contract, and keep a copy: the
-	// canonical chain mines it now, the competing branch reuses it (same
-	// height, same fork-point state, so it stays valid) to emit off-tip
-	var unsigned string
-	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
-		"to": addr.BS58(), "value": "0", "fee": "0.01",
-	}), &unsigned)
-	signedHex := localSign(t, key, unsigned)
-	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex})
-
-	rawTx, err := hex.DecodeString(signedHex)
+	// build the transact reveal (locked on revealHeight) and keep a copy: the
+	// canonical chain reveals it now, the competing branch reuses it (same
+	// height, same fork-point state) to re-emit below its new tip
+	unsigned := gen("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"})
+	rawUnsigned, err := hex.DecodeString(unsigned)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var transactTx ngtypes.FullTx
-	if err := rlp.DecodeBytes(rawTx, &transactTx); err != nil {
+	if err := rlp.DecodeBytes(rawUnsigned, &transactTx); err != nil {
+		t.Fatal(err)
+	}
+	transactTx.Height = revealHeight
+	transactTx.Salt = rpcTestSalt
+	if err := transactTx.Signature(key); err != nil {
 		t.Fatal(err)
 	}
 
-	mineViaRPC(t, node, key) // runs main -> emits the "key" log
+	// the blind commitment over the reveal's salted preimage, recorded at
+	// commitHeight (strictly below the reveal). Both branches pack this same
+	// commitment into their own commit block.
+	buf := append(append([]byte{}, transactTx.UnheightedHash()...), transactTx.Salt...)
+	commit := ngtypes.NewCommitment(ngtypes.ZERONET, commitHeight, utils.Hash256(buf), big.NewInt(100_000_000_000_000))
+	if err := commit.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	commitRaw, err := rlp.EncodeToBytes(commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node.mustCall(t, "ng_sendCommitment", map[string]any{"rawCommitment": hex.EncodeToString(commitRaw)})
+	mineViaRPC(t, node, key) // canonical commit block @commitHeight
+
+	signedTx, err := rlp.EncodeToBytes(&transactTx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": hex.EncodeToString(signedTx)})
+
+	mineViaRPC(t, node, key) // canonical reveal block @revealHeight -> emits the "key" log
 
 	// drain the live emit notification (removed=false)
 	readSub := func() (removed bool, topic string) {
@@ -143,11 +182,16 @@ func TestRPCWebSocketLogsRemovedOnReorg(t *testing.T) {
 	}
 
 	// grow a heavier branch off the fork point, mined by a DIFFERENT miner so
-	// its blocks never collide with the canonical ones: b1 carries the same
-	// transact (so it re-emits below the new tip), b2 is the empty tip that
-	// out-works the single canonical emit block, forcing the reorg
+	// its blocks never collide with the canonical ones: b0 re-records the same
+	// blind commitment, b1 carries the same transact reveal (so it re-emits below
+	// the new tip), b2 is the empty tip that out-works the canonical two-block
+	// commit+reveal, forcing the reorg
 	miner2, _ := ngtypes.GenerateKey()
-	b1 := sealBlockOn(t, forkParent, miner2, &transactTx)
+	b0 := sealBlockOnAll(t, forkParent, miner2, []*ngtypes.Commitment{commit})
+	if err := node.pow.Chain.ApplyBlock(b0); err != nil {
+		t.Fatalf("apply competing b0: %v", err)
+	}
+	b1 := sealBlockOn(t, b0, miner2, &transactTx)
 	if err := node.pow.Chain.ApplyBlock(b1); err != nil {
 		t.Fatalf("apply competing b1: %v", err)
 	}

@@ -39,10 +39,7 @@ func TestRPCForkDataSources(t *testing.T) {
 		"wasm": hex.EncodeToString(contractWasm),
 	}), &unsignedHex)
 
-	signedHex := localSign(t, key, unsignedHex)
-
-	var txHash string
-	decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex}), &txHash)
+	commitReveal(t, node, key, unsignedHex)
 	mineViaRPC(t, node, key)
 
 	latest := node.pow.Chain.GetLatestBlock()

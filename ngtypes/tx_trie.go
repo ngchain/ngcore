@@ -59,21 +59,59 @@ func (tt *TxTrie) Contains(tx *FullTx) bool {
 	return false
 }
 
-// TrieRoot sort tx tire by trie tree and return the root hash.
+// TrieRoot sort tx tire by trie tree and return the root hash. It commits
+// only the txs; blocks fold in their commitments via ContentRoot.
 func (tt *TxTrie) TrieRoot() []byte {
 	if len(*tt) == 0 {
 		return make([]byte, HashSize)
 	}
 
-	mtc := make([]merkletree.Content, len(*tt))
+	contents := make([]merkletree.Content, len(*tt))
 	for i := range *tt {
-		mtc[i] = (*tt)[i]
+		contents[i] = (*tt)[i]
 	}
 
-	trie, err := merkletree.NewTreeWithHashStrategy(mtc, func() hash.Hash { return blake3.New(32, nil) })
+	return contentRoot(contents)
+}
+
+// contentRoot builds the merkle root over the given contents, deterministically
+// ordered by their CalculateHash bytes (so txs and commitments interleave into
+// one canonical order). An empty set is the zero hash.
+func contentRoot(contents []merkletree.Content) []byte {
+	if len(contents) == 0 {
+		return make([]byte, HashSize)
+	}
+
+	sort.Slice(contents, func(i, j int) bool {
+		hi, _ := contents[i].CalculateHash()
+		hj, _ := contents[j].CalculateHash()
+		return bytes.Compare(hi, hj) < 0
+	})
+
+	trie, err := merkletree.NewTreeWithHashStrategy(contents, func() hash.Hash { return blake3.New(32, nil) })
 	if err != nil {
 		log.Error(err)
 	}
 
 	return trie.MerkleRoot()
+}
+
+// ContentRoot returns the merkle root over BOTH a block's txs and its
+// commitments, folded into one canonical (hash-sorted) content set. The
+// existing TxTrieHash — already in the pow preimage — now binds commitments
+// too, so no header/preimage change is needed.
+func ContentRoot(txs []*FullTx, commits []*Commitment) []byte {
+	if len(txs) == 0 && len(commits) == 0 {
+		return make([]byte, HashSize)
+	}
+
+	contents := make([]merkletree.Content, 0, len(txs)+len(commits))
+	for i := range txs {
+		contents = append(contents, txs[i])
+	}
+	for i := range commits {
+		contents = append(contents, commits[i])
+	}
+
+	return contentRoot(contents)
 }

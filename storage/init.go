@@ -30,6 +30,21 @@ var (
 	// lets every later tx use the compact (key-less) envelope
 	KeyRegistryBucketName = []byte("addr:key")
 
+	// CommitBucketName holds the pending commitments of the mandatory
+	// commit-reveal private mempool. Key = heightLE(8) ‖ Hash(32) -> From(32).
+	// Height-keyed so a block-undo deletes a whole height's prefix and
+	// pruning drops entries below tip - CommitWindow. A reveal consumes
+	// (deletes) its matched commitment.
+	CommitBucketName = []byte("mempool:commit")
+
+	// CommitSpentBucketName journals commitments CONSUMED by reveals so a
+	// block-undo can restore them: Key = revealHeightLE(8) ‖ Hash(32) ->
+	// recordHeightLE(8) ‖ From(32). Without it, reverting a reveal block whose
+	// commitment was recorded in a still-canonical block below the fork point
+	// would lose that commitment (a reorged node would then reject a reveal a
+	// fresh-synced node accepts — a consensus split).
+	CommitSpentBucketName = []byte("mempool:commit-spent")
+
 	// SnapshotBucketName persists the checkpoint state sheets, so the
 	// mature-balance lookups survive restarts
 	SnapshotBucketName = []byte("snapshot")
@@ -78,6 +93,7 @@ func InitDB(db *bbolt.DB) {
 			BlockBucketName, TxBucketName,
 			ContractBucketName, CodeBucketName, Addr2BalBucketName,
 			KeyRegistryBucketName,
+			CommitBucketName, CommitSpentBucketName,
 			SnapshotBucketName, ReceiptBucketName,
 			BalChangeSetBucketName, ContractChangeSetBucketName, KeyChangeSetBucketName,
 			BalHistBucketName, ContractHistBucketName,

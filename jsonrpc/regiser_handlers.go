@@ -36,11 +36,14 @@ func registerHTTPHandler(s *Server) {
 
 	// state
 	s.reg("ng_sendTx", s.sendTxFunc)
-	s.reg("ng_genDestroy", s.genDestroyFunc)
+	// commit-reveal private mempool: the wallet submits the blind commitment
+	// here first, then reveals via ng_sendTx in a LATER block
+	s.reg("ng_sendCommitment", s.sendCommitmentFunc)
 	s.reg("ng_genTransaction", s.genTransactionFunc)
-	s.reg("ng_genCommit", s.genCommitFunc)
-	s.reg("ng_genActivate", s.genActivateFunc)
-	s.reg("ng_genDeactivate", s.genDeactivateFunc)
+	s.reg("ng_genDeploy", s.genDeployFunc)
+	// ng_genCommit is kept as a compatibility alias: a commit now deploys
+	// AND goes live in one op
+	s.reg("ng_genCommit", s.genDeployFunc)
 	s.reg("ng_callContract", s.callContractFunc)
 	s.reg("ng_getReceipt", s.getReceiptFunc)
 	// event/log query for indexers; internal transfers surface as ng.transfer

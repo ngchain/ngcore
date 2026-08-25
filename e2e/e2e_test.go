@@ -289,6 +289,14 @@ func TestForkResolutionViaBroadcast(t *testing.T) {
 // mineOnTxs is mineOn with extra (non-generate) txs packed in
 func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
 	t.Helper()
+	return mineOnAll(t, parent, miner, nil, txs...)
+}
+
+// mineOnAll is mineOn with extra txs AND blind commitments packed in. The
+// commitments must be set before ToUnsealing, which folds x.Commits into the
+// content root alongside the txs.
+func mineOnAll(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, commits []*ngtypes.Commitment, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
+	t.Helper()
 
 	height := parent.GetHeight() + 1
 	blockTime := ngtypes.GetGenesisTimestamp(ngtypes.ZERONET) + height*16
@@ -304,21 +312,62 @@ func mineOnTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 	if err := genTx.Signature(miner); err != nil {
 		t.Fatal(err)
 	}
+	// SetCommits must precede ToUnsealing: the content root covers both
+	if len(commits) != 0 {
+		block.SetCommits(commits)
+	}
 	if err := block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, txs...)); err != nil {
 		t.Fatal(err)
 	}
+	// ToUnsealing computes the witness root over the txs in insertion order but
+	// stores them hash-sorted (NewTxTrie sorts in place); when a packed tx sorts
+	// ahead of the generate tx the two orders diverge and CheckError's
+	// CalcWitnessRoot(x.Txs) (over the sorted txs) rejects the block. Recompute
+	// the witness root over the canonical sorted order before sealing so it is
+	// folded into the pow preimage consistently — exactly what peers re-validate.
+	block.BlockHeader.WitnessRoot = ngtypes.CalcWitnessRoot(block.Txs, block.Commits)
 
+	var lastErr error
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
-		if block.CheckError() == nil {
+		if lastErr = block.CheckError(); lastErr == nil {
 			return block
 		}
 	}
 
-	t.Fatal("failed to seal a ZERONET block")
+	t.Fatalf("failed to seal a ZERONET block: %v", lastErr)
 	return nil
+}
+
+// e2eSalt is the reveal nonce every effect tx in these tests carries.
+var e2eSalt = []byte("e2e-mempool-salt-0123456789")
+
+// revealTx sets the private-mempool Salt on an effect tx and signs it, turning
+// it into a valid reveal (its commitment must already be on chain).
+func revealTx(t *testing.T, tx *ngtypes.FullTx, key *ngtypes.PrivateKey) *ngtypes.FullTx {
+	t.Helper()
+
+	tx.Salt = e2eSalt
+	if err := tx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	return tx
+}
+
+// commitFor builds and signs the blind commitment for a reveal tx, to be
+// packed at commitHeight (which must be strictly earlier than the tx's own
+// reveal height). The commitment hash is blake3(tx.UnheightedHash() ‖ Salt).
+func commitFor(t *testing.T, tx *ngtypes.FullTx, key *ngtypes.PrivateKey, commitHeight uint64) *ngtypes.Commitment {
+	t.Helper()
+
+	hash := utils.Hash256(append(tx.UnheightedHash(), tx.Salt...))
+	commit := ngtypes.NewCommitment(ngtypes.ZERONET, commitHeight, hash, big.NewInt(0))
+	if err := commit.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	return commit
 }
 
 // TestTxPropagation covers the full tx lifecycle across the network:
@@ -337,14 +386,23 @@ func TestTxPropagation(t *testing.T) {
 	b2 := mineAndSubmit(t, nodeA, key)
 	waitTip(t, nodeB, b2.GetHash(), 10*time.Second)
 
-	// submit a transact tx on A: it must reach B's pool over the network
+	// build the transact reveal (locked to its reveal height 4) and its blind
+	// commitment, packed one block earlier at height 3
 	var dest ngtypes.Address
 	dest[0] = 0xee
-	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 3,
-		dest, big.NewInt(10), big.NewInt(1), nil, nil)
-	if err := tx.Signature(key); err != nil {
-		t.Fatal(err)
+	tx := revealTx(t, ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 4,
+		dest, big.NewInt(10), big.NewInt(1), nil, nil), key)
+	commit := commitFor(t, tx, key, 3)
+
+	// mine the commit-carrying block on A; both nodes record it at height 3,
+	// strictly before the reveal
+	b3 := mineOnAll(t, b2, key, []*ngtypes.Commitment{commit})
+	if err := nodeA.pow.MinedNewBlock(b3); err != nil {
+		t.Fatalf("submit commit block on nodeA: %v", err)
 	}
+	waitTip(t, nodeB, b3.GetHash(), 10*time.Second)
+
+	// now the reveal is pool-admissible: submit it on A, it must reach B's pool
 	if err := nodeA.pow.Pool.PutNewTxFromLocal(tx); err != nil {
 		t.Fatalf("submit tx on nodeA: %v", err)
 	}
@@ -361,15 +419,15 @@ func TestTxPropagation(t *testing.T) {
 	}
 
 	// B mines the pool pack; the block settles the tx on both nodes
-	pack := nodeB.pow.Pool.GetPack(3)
+	pack := nodeB.pow.Pool.GetPack(4)
 	if len(pack) != 1 {
 		t.Fatalf("nodeB pack size = %d, want 1", len(pack))
 	}
-	b3 := mineOnTxs(t, b2, key, pack...)
-	if err := nodeB.pow.MinedNewBlock(b3); err != nil {
+	b4 := mineOnTxs(t, b3, key, pack...)
+	if err := nodeB.pow.MinedNewBlock(b4); err != nil {
 		t.Fatalf("mine tx block on nodeB: %v", err)
 	}
-	waitTip(t, nodeA, b3.GetHash(), 10*time.Second)
+	waitTip(t, nodeA, b4.GetHash(), 10*time.Second)
 
 	for name, node := range map[string]*testNode{"A": nodeA, "B": nodeB} {
 		got, err := node.chain.State.GetTotalBalanceByAddress(dest)
@@ -380,7 +438,7 @@ func TestTxPropagation(t *testing.T) {
 			t.Fatalf("node%s: dest balance = %s, want 10", name, got)
 		}
 		// the mined block moved the tip: both pools must be empty now
-		if len(node.pow.Pool.GetPack(3)) != 0 {
+		if len(node.pow.Pool.GetPack(5)) != 0 {
 			t.Fatalf("node%s: pool must reset on the tip change", name)
 		}
 	}
@@ -516,9 +574,11 @@ func TestContractLifecycle(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
-	submit := func(txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
+	// mineNext mines a block on A's current tip carrying the given commits and
+	// txs, and waits for B to converge onto it
+	mineNext := func(commits []*ngtypes.Commitment, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
 		tip := nodeA.chain.GetLatestBlock().(*ngtypes.FullBlock)
-		b := mineOnTxs(t, tip, key, txs...)
+		b := mineOnAll(t, tip, key, commits, txs...)
 		if err := nodeA.pow.MinedNewBlock(b); err != nil {
 			t.Fatalf("submit block@%d: %v", b.GetHeight(), err)
 		}
@@ -526,34 +586,35 @@ func TestContractLifecycle(t *testing.T) {
 		return b
 	}
 
+	// commitReveal builds an effect tx locked to the NEXT-NEXT height, packs its
+	// blind commitment in the next block, then reveals & executes it in the block
+	// after — the mandatory commit-reveal split
+	commitReveal := func(build func(revealHeight uint64) *ngtypes.FullTx) *ngtypes.FullBlock {
+		commitHeight := nodeA.chain.GetLatestBlockHeight() + 1
+		revealHeight := commitHeight + 1
+		tx := revealTx(t, build(revealHeight), key)
+		commit := commitFor(t, tx, key, commitHeight)
+		mineNext([]*ngtypes.Commitment{commit})
+		return mineNext(nil, tx)
+	}
+
 	// fund the deployer: two block rewards cover the deploy fee + change
-	submit()
-	submit()
+	mineNext(nil)
+	mineNext(nil)
 
-	// deploy: the FIRST commit opens the address's slot
+	// deploy: opens the address's slot and goes live at once (compiles the
+	// module and enables the vm)
 	rawExtra := ngtypes.EncodeCommitCode(mustWat(contractWat))
-	commitTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 3,
-		ngtypes.Address{}, nil, big.NewInt(1), rawExtra, nil)
-	if err := commitTx.Signature(key); err != nil {
-		t.Fatal(err)
-	}
-	submit(commitTx)
-
-	// activate: lock compiles the text and enables the vm
-	activateTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 4,
-		ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-	if err := activateTx.Signature(key); err != nil {
-		t.Fatal(err)
-	}
-	submit(activateTx)
+	commitReveal(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, h,
+			ngtypes.Address{}, nil, big.NewInt(1), rawExtra, nil)
+	})
 
 	// trigger: a transact tx to the contract account runs `main`
-	transTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 5,
-		addr, big.NewInt(1), big.NewInt(1), nil, nil)
-	if err := transTx.Signature(key); err != nil {
-		t.Fatal(err)
-	}
-	submit(transTx)
+	commitReveal(func(h uint64) *ngtypes.FullTx {
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h,
+			addr, big.NewInt(1), big.NewInt(1), nil, nil)
+	})
 
 	// both nodes hold the identical contract state written by the vm
 	for name, node := range map[string]*testNode{"A": nodeA, "B": nodeB} {
@@ -658,9 +719,9 @@ func TestDeepForkConvergeViaSync(t *testing.T) {
 // mined there and settled on both — asserting the state effects and
 // the exact fee burns of the whole lifecycle:
 //
-//	Generate -> Transact(pay) -> Commit(deploy) -> Commit(patch) ->
-//	Activate(init) -> Transact(main+value) -> Transact(selector) ->
-//	Deactivate -> Commit(patch again) -> Destroy
+//	Generate -> Transact(pay) -> Deploy(init, live) ->
+//	Transact(main+value) -> Transact(selector) -> Deploy(upgrade) ->
+//	Transact(upgraded main) -> Destroy
 func TestAllTxVerbsViaNetwork(t *testing.T) {
 	// data layout: boot@0(4) hit@4(3) main@7(4) ping@11(4) paid@15(4) args@19(4)
 	const srcV1 = `
@@ -672,6 +733,8 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
   (data (i32.const 0) "boothitmainpingpaidargs")
   (func (export "init")
     (drop (call $set (i32.const 0) (i32.const 4) (i32.const 0) (i32.const 4))))
+  ;; the UUPS upgrade hook: its mere presence authorizes a re-deploy
+  (func (export "upgrade"))
   (func (export "main")
     (drop (call $set (i32.const 4) (i32.const 3) (i32.const 7) (i32.const 4)))
     (drop (call $set (i32.const 15) (i32.const 4) (i32.const 64) (call $paid (i32.const 64)))))
@@ -679,8 +742,9 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
     (drop (call $set (i32.const 4) (i32.const 3) (i32.const 11) (i32.const 4)))
     (drop (call $set (i32.const 19) (i32.const 4) (i32.const 64) (call $args (i32.const 64))))))
 `
-	srcV2 := strings.Replace(srcV1, "boothitmainping", "boothitMAINping", 1)
-	srcV3 := strings.Replace(srcV2, "boothitMAINping", "boothitM3INping", 1)
+	// srcV1 records "main" at hit; srcV3 is the upgraded module recording
+	// "M3IN" instead, still exporting upgrade so it too stays upgradeable
+	srcV3 := strings.Replace(srcV1, "boothitmainping", "boothitM3INping", 1)
 
 	nodeA := newNode(t)
 	nodeB := newNode(t)
@@ -704,9 +768,16 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	relay := func(build func(height uint64) *ngtypes.FullTx) *ngtypes.FullTx {
 		t.Helper()
 
-		next := nodeA.chain.GetLatestBlockHeight() + 1
-		tx := build(next)
+		// mandatory commit-reveal: the effect tx reveals one block after its
+		// blind commitment. commitHeight is the next block; the reveal is locked
+		// one higher (strictly later, the anti-same-block-reaction rule).
+		commitHeight := nodeA.chain.GetLatestBlockHeight() + 1
+		revealHeight := commitHeight + 1
+		tx := revealTx(t, build(revealHeight), deployer)
 		if keyOnChain {
+			// revealTx already full-signed it; re-sign compact once the key is
+			// registered on chain, re-carrying the same Salt
+			tx.Salt = e2eSalt
 			if err := tx.SignatureCompact(deployer); err != nil {
 				t.Fatal(err)
 			}
@@ -718,11 +789,19 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 				t.Fatalf("compact envelope size = %d, want %d", len(tx.Sign), wantLen)
 			}
 		} else {
-			if err := tx.Signature(deployer); err != nil {
-				t.Fatal(err)
-			}
 			keyOnChain = true
 		}
+
+		// first, land the blind commitment: B mines it at commitHeight and A
+		// converges, so the reveal is admissible into A's pool
+		commit := commitFor(t, tx, deployer, commitHeight)
+		cTip := nodeB.chain.GetLatestBlock().(*ngtypes.FullBlock)
+		cb := mineOnAll(t, cTip, minerB, []*ngtypes.Commitment{commit})
+		if err := nodeB.pow.MinedNewBlock(cb); err != nil {
+			t.Fatalf("mine commit block for tx type %d: %v", tx.Type, err)
+		}
+		waitTip(t, nodeA, cb.GetHash(), 10*time.Second)
+
 		if err := nodeA.pow.Pool.PutNewTxFromLocal(tx); err != nil {
 			t.Fatalf("submit %d tx: %v", tx.Type, err)
 		}
@@ -738,7 +817,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 		}
 
-		pack := nodeB.pow.Pool.GetPack(next)
+		pack := nodeB.pow.Pool.GetPack(revealHeight)
 		if len(pack) != 1 {
 			t.Fatalf("nodeB pack size = %d, want 1", len(pack))
 		}
@@ -787,11 +866,11 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		}
 	})
 
-	// Commit (deploy): the first commit opens the namespace at plain
-	// tx-fee cost
+	// Deploy: opens the namespace and goes LIVE at once, running init —
+	// no separate activate step
 	deployExtra := ngtypes.EncodeCommitCode(mustWat(srcV1))
 	relay(func(h uint64) *ngtypes.FullTx {
-		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, h,
 			ngtypes.Address{}, nil, nil, deployExtra, nil)
 	})
 	bothNodes(func(name string, node *testNode) {
@@ -799,33 +878,8 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		if err != nil {
 			t.Fatalf("node%s: deploy did not open the slot: %v", name, err)
 		}
-		if !bytes.Equal(c.Source, mustWat(srcV1)) || c.IsActive() {
-			t.Fatalf("node%s: unexpected slot state after deploy", name)
-		}
-	})
-
-	// Commit (patch): a minimal diff updates the source pre-activation
-	patchExtra := ngtypes.EncodeCommitCode(mustWat(srcV2))
-	relay(func(h uint64) *ngtypes.FullTx {
-		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
-			ngtypes.Address{}, nil, nil, patchExtra, nil)
-	})
-	bothNodes(func(name string, node *testNode) {
-		c, _ := node.chain.State.GetContract(addr)
-		if !bytes.Equal(c.Source, mustWat(srcV2)) {
-			t.Fatalf("node%s: patch commit did not apply", name)
-		}
-	})
-
-	// Activate: the vm goes live and init runs exactly here
-	relay(func(h uint64) *ngtypes.FullTx {
-		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, h,
-			ngtypes.Address{}, nil, nil, nil, nil)
-	})
-	bothNodes(func(name string, node *testNode) {
-		c, _ := node.chain.State.GetContract(addr)
-		if !c.IsActive() {
-			t.Fatalf("node%s: contract should be active", name)
+		if !bytes.Equal(c.Source, mustWat(srcV1)) || !c.IsActive() {
+			t.Fatalf("node%s: contract should be live after deploy", name)
 		}
 		if got := string(c.Context.Get("boot")); got != "boot" {
 			t.Fatalf("node%s: init did not run, boot=%q", name, got)
@@ -833,7 +887,7 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	})
 
 	// Transact (fallback): value + empty extra runs main, which
-	// records the patched marker and msg.value
+	// records the marker and msg.value
 	twoNG := new(big.Int).Mul(ngtypes.NG, big.NewInt(2))
 	relay(func(h uint64) *ngtypes.FullTx {
 		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h,
@@ -841,8 +895,8 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	})
 	bothNodes(func(name string, node *testNode) {
 		c, _ := node.chain.State.GetContract(addr)
-		if got := string(c.Context.Get("hit")); got != "MAIN" {
-			t.Fatalf("node%s: main hit = %q, want MAIN (patched code)", name, got)
+		if got := string(c.Context.Get("hit")); got != "main" {
+			t.Fatalf("node%s: main hit = %q, want main", name, got)
 		}
 		// get_paid writes a fixed 32-byte little-endian amount (the u256
 		// ABI money format); the contract stored all 32 bytes at "paid"
@@ -875,35 +929,39 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		}
 	})
 
-	// Deactivate: the vm goes off, the source reopens
+	// Deploy (upgrade): a second deploy replaces the code UUPS-style — the
+	// live contract's `upgrade` hook authorizes the swap, and the module
+	// stays live with init re-run as a migration
+	upgradeExtra := ngtypes.EncodeCommitCode(mustWat(srcV3))
 	relay(func(h uint64) *ngtypes.FullTx {
-		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeactivateTx, h,
-			ngtypes.Address{}, nil, nil, nil, nil)
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, h,
+			ngtypes.Address{}, nil, nil, upgradeExtra, nil)
 	})
 	bothNodes(func(name string, node *testNode) {
 		c, _ := node.chain.State.GetContract(addr)
-		if c.IsActive() {
-			t.Fatalf("node%s: contract should be inactive", name)
+		if !bytes.Equal(c.Source, mustWat(srcV3)) || !c.IsActive() {
+			t.Fatalf("node%s: upgrade did not replace the live code", name)
 		}
 	})
 
-	// Commit (after deactivation): the slot is editable again
-	patch3 := ngtypes.EncodeCommitCode(mustWat(srcV3))
+	// Transact after the upgrade: main now records the upgraded marker
 	relay(func(h uint64) *ngtypes.FullTx {
-		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, h,
-			ngtypes.Address{}, nil, nil, patch3, nil)
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h,
+			addr, nil, nil, nil, nil)
 	})
 	bothNodes(func(name string, node *testNode) {
 		c, _ := node.chain.State.GetContract(addr)
-		if !bytes.Equal(c.Source, mustWat(srcV3)) {
-			t.Fatalf("node%s: post-deactivation commit did not apply", name)
+		if got := string(c.Context.Get("hit")); got != "M3IN" {
+			t.Fatalf("node%s: upgraded main hit = %q, want M3IN", name, got)
 		}
 	})
 
-	// Destroy: the slot (source AND context) disappears
+	// Destroy: an empty-code deploy on the live slot, authorized by the
+	// contract's own `upgrade` hook — the slot (source AND context) disappears
+	destroyExtra := ngtypes.EncodeCommitCode(nil)
 	relay(func(h uint64) *ngtypes.FullTx {
-		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DestroyTx, h,
-			ngtypes.Address{}, nil, nil, nil, nil)
+		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, h,
+			ngtypes.Address{}, nil, nil, destroyExtra, nil)
 	})
 	bothNodes(func(name string, node *testNode) {
 		if _, err := node.chain.State.GetContract(addr); err == nil {

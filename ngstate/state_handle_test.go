@@ -12,8 +12,8 @@ import (
 )
 
 // TestHandleTxsFullLifecycle drives a whole contract lifecycle through
-// the block-level HandleTxs dispatcher: mine, deploy, activate,
-// transact, deactivate, destroy
+// the block-level HandleTxs dispatcher: mine, deploy (goes live at once),
+// transact, destroy
 func TestHandleTxsFullLifecycle(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
@@ -23,20 +23,23 @@ func TestHandleTxsFullLifecycle(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		gen := signedTx(t, priv, ngtypes.GenerateTx, addr, big.NewInt(1000), big.NewInt(0), nil)
-		commit := signedTx(t, priv, ngtypes.CommitTx, ngtypes.Address{}, nil, big.NewInt(1),
-			ngtypes.EncodeCommitCode(mustWat(kvWat)))
-		activate := signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
+		// the module exports `upgrade`, so its own empty-code deploy (the
+		// destroy) is authorized to clear the slot at the end
+		deploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(mustWat(upgradeableWat)))
 		pay := signedTx(t, priv, ngtypes.TransactTx, addr, big.NewInt(5), big.NewInt(1), nil)
-		deactivate := signedTx(t, priv, ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		destroy := signedTx(t, priv, ngtypes.DestroyTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
+		destroy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1), destroyExtra())
+		seedCommit(t, txn, priv, deploy)
+		seedCommit(t, txn, priv, pay)
+		seedCommit(t, txn, priv, destroy)
 
-		if err := state.HandleTxs(txn, 1, gen, commit, activate, pay, deactivate, destroy); err != nil {
+		if err := state.HandleTxs(txn, 1, gen, deploy, pay, destroy); err != nil {
 			t.Fatalf("HandleTxs lifecycle: %v", err)
 		}
 
-		// 1000 mined, fees burned on 5 txs, the 5-value round-tripped
-		if got := getBalance(txn, addr); got.Int64() != 995 {
-			t.Fatalf("final balance = %s, want 995", got)
+		// 1000 mined, fees burned on 3 txs, the 5-value round-tripped
+		if got := getBalance(txn, addr); got.Int64() != 997 {
+			t.Fatalf("final balance = %s, want 997", got)
 		}
 		// the slot was destroyed at the end
 		if _, err := getContract(txn, addr); err == nil {
@@ -88,37 +91,31 @@ func TestHandleTxsRefusals(t *testing.T) {
 			t.Fatal("unsigned generate did not credit its recipient")
 		}
 
-		// spending from an empty address fails at the charge
+		// spending from an empty address fails at the charge (its reveal
+		// commitment is seeded so it reaches the charge, not the reveal gate)
 		broke := signedTx(t, priv, ngtypes.TransactTx, testAddr(0x01), big.NewInt(10), big.NewInt(1), nil)
+		seedCommit(t, txn, priv, broke)
 		if err := state.HandleTxs(txn, 1, broke); !errors.Is(err, ErrTxrBalanceInsufficient) {
 			t.Fatalf("unfunded transact: got %v", err)
 		}
 
-		// destroying / deactivating with no slot fails
-		destroy := signedTx(t, priv, ngtypes.DestroyTx, ngtypes.Address{}, nil, big.NewInt(0), nil)
-		if err := state.handleDestroy(txn, destroy); err == nil {
-			t.Fatal("destroy without a slot must fail")
-		}
-		deactivate := signedTx(t, priv, ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(0), nil)
-		if err := state.handleDeactivate(txn, deactivate); err == nil {
-			t.Fatal("deactivate without a slot must fail")
-		}
-		activate := signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(0), nil)
-		if err := state.handleActivate(txn, activate, 1, nil); err == nil {
-			t.Fatal("activate without a slot must fail")
+		// an empty-code deploy (a destroy) with no live slot fails
+		destroy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(0), destroyExtra())
+		if err := state.handleDeploy(txn, destroy, 1, nil); !errors.Is(err, ErrNothingToDestroy) {
+			t.Fatalf("destroy without a slot: got %v, want ErrNothingToDestroy", err)
 		}
 
-		// a commit whose extra is not a commit payload fails
-		badCommit := signedTx(t, priv, ngtypes.CommitTx, ngtypes.Address{}, nil, big.NewInt(0), []byte{0xff})
-		if err := state.handleCommit(txn, badCommit); err == nil {
-			t.Fatal("a broken commit extra must fail")
+		// a deploy whose extra is not a deploy payload fails
+		badDeploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(0), []byte{0xff})
+		if err := state.handleDeploy(txn, badDeploy, 1, nil); err == nil {
+			t.Fatal("a broken deploy extra must fail")
 		}
 
-		// an unsigned commit fails its self check
-		unsignedCommit := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.CommitTx, 1,
+		// an unsigned deploy fails its self check
+		unsignedDeploy := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, 1,
 			ngtypes.Address{}, nil, big.NewInt(0), nil, nil)
-		if err := state.handleCommit(txn, unsignedCommit); err == nil {
-			t.Fatal("an unsigned commit must fail")
+		if err := state.handleDeploy(txn, unsignedDeploy, 1, nil); err == nil {
+			t.Fatal("an unsigned deploy must fail")
 		}
 
 		return nil
@@ -137,12 +134,12 @@ func TestHandleDestroyRefd(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(addr, mustWat(logWat), nil)
+		acc := activeContract(addr, mustWat(logWat))
 		setRefCount(acc, 1)
 		putContract(t, txn, acc, 100)
 
-		destroy := signedTx(t, priv, ngtypes.DestroyTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := state.handleDestroy(txn, destroy); !errors.Is(err, ErrContractRefdBy) {
+		destroy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1), destroyExtra())
+		if err := state.handleDeploy(txn, destroy, 1, nil); !errors.Is(err, ErrContractRefdBy) {
 			t.Fatalf("destroy refd slot: got %v", err)
 		}
 		if _, err := getContract(txn, addr); err != nil {
@@ -156,9 +153,9 @@ func TestHandleDestroyRefd(t *testing.T) {
 	}
 }
 
-// TestHandleActivateSelfDep: locking a contract which imports its own
+// TestHandleDeploySelfDep: deploying a module which imports its own
 // address is refused
-func TestHandleActivateSelfDep(t *testing.T) {
+func TestHandleDeploySelfDep(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
 
@@ -166,12 +163,15 @@ func TestHandleActivateSelfDep(t *testing.T) {
 	addr := ngtypes.NewAddress(priv)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "main")))`
-		putContract(t, txn, ngtypes.NewContract(addr, mustWat(selfWat), nil), 100)
+		if err := setBalance(txn, nil, addr, big.NewInt(100)); err != nil {
+			return err
+		}
 
-		activate := signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := state.handleActivate(txn, activate, 1, nil); !errors.Is(err, ErrDepSelf) {
-			t.Fatalf("self dep activate: got %v", err)
+		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "main")))`
+		deploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(mustWat(selfWat)))
+		if err := state.handleDeploy(txn, deploy, 1, nil); !errors.Is(err, ErrDepSelf) {
+			t.Fatalf("self dep deploy: got %v", err)
 		}
 
 		return nil

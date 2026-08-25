@@ -38,10 +38,28 @@ func ContractExports(source []byte) ([]ContractExport, error) {
 		if sig, ok := exportFuncSig(module, name); ok && sig != nil {
 			e.Params = len(sig.InputTypes)
 			e.Results = len(sig.ReturnTypes)
-			e.Callable = len(sig.InputTypes) == 0 && name != VMEntryOnActivate
+			e.Callable = len(sig.InputTypes) == 0 && name != VMEntryOnActivate && name != VMEntryOnUpgrade
 		}
 		out = append(out, e)
 	}
 
 	return out, nil
+}
+
+// contractHasExport reports whether the compiled contract module statically
+// exports a zero-argument function named name (used to check for the UUPS
+// `upgrade` hook without running the contract). A malformed source has no
+// exports.
+func contractHasExport(source []byte, name string) bool {
+	if len(source) == 0 {
+		return false
+	}
+
+	module, err := wasman.NewModule(config.ModuleConfig{}, bytes.NewReader(source))
+	if err != nil {
+		return false
+	}
+
+	sig, ok := exportFuncSig(module, name)
+	return ok && sig != nil && len(sig.InputTypes) == 0
 }

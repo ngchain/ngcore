@@ -54,7 +54,7 @@ func TestRPCSubmitWorkRejections(t *testing.T) {
 
 	// a non-generate tx in the gen slot: the block cannot unseal
 	var notGenHex string
-	decodeInto(t, node.mustCall(t, "ng_genActivate", map[string]any{"fee": "0"}), &notGenHex)
+	decodeInto(t, node.mustCall(t, "ng_genDeploy", map[string]any{"fee": "0", "wasm": ""}), &notGenHex)
 
 	for _, c := range []struct {
 		name   string

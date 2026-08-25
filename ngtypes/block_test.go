@@ -150,8 +150,8 @@ func TestWitnessSeparation(t *testing.T) {
 	if !bytes.Equal(compact.GetHash(), tx.GetHash()) {
 		t.Fatal("envelope form must not affect the txid")
 	}
-	full := ngtypes.CalcWitnessRoot([]*ngtypes.FullTx{tx})
-	comp := ngtypes.CalcWitnessRoot([]*ngtypes.FullTx{compact})
+	full := ngtypes.CalcWitnessRoot([]*ngtypes.FullTx{tx}, nil)
+	comp := ngtypes.CalcWitnessRoot([]*ngtypes.FullTx{compact}, nil)
 	if bytes.Equal(full, comp) {
 		t.Fatal("different witness bytes must yield different witness roots")
 	}
@@ -205,6 +205,51 @@ func TestWitnessSeparation(t *testing.T) {
 		t.Fatal("swapped witness bytes must invalidate the block")
 	} else if !errors.Is(err, ngtypes.ErrBlockWitnessRootInvalid) {
 		t.Fatalf("got %v, want ErrBlockWitnessRootInvalid", err)
+	}
+}
+
+// TestBlockDuplicateTxRejected: two txs with the same id (a salt-varying
+// double reveal) must fail CheckError, or they would both apply.
+func TestBlockDuplicateTxRejected(t *testing.T) {
+	key, _ := ngtypes.GenerateKey()
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+	height := uint64(1)
+	blockTime := ngtypes.GetGenesisTimestamp(ngtypes.ZERONET) + 16
+
+	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
+		ngtypes.NewAddress(key), ngtypes.GetBlockReward(height), big.NewInt(0), nil, nil)
+	if err := genTx.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+
+	effect := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
+		ngtypes.NewAddress(key), big.NewInt(1), big.NewInt(1), nil, nil)
+	effect.Salt = make([]byte, ngtypes.MinSaltSize)
+	if err := effect.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+
+	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, genesis.GetHash(),
+		ngtypes.GetNextDiff(height, blockTime, genesis))
+	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
+		t.Fatal(err)
+	}
+	for n := uint64(0); n < 1_000_000; n++ {
+		nonce := make([]byte, ngtypes.NonceSize)
+		binary.LittleEndian.PutUint64(nonce, n)
+		if err := block.ToSealed(nonce); err != nil {
+			t.Fatal(err)
+		}
+		if block.CheckError() == nil {
+			break
+		}
+	}
+
+	// inject the SAME effect tx twice: identical txid — the dedup guard fires
+	// before the content-root mismatch would
+	block.Txs = []*ngtypes.FullTx{genTx, effect, effect}
+	if err := block.CheckError(); !errors.Is(err, ngtypes.ErrBlockDuplicateTx) {
+		t.Fatalf("duplicate txid: got %v, want ErrBlockDuplicateTx", err)
 	}
 }
 

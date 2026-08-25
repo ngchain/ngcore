@@ -81,7 +81,8 @@ func TestRPCPendingTxs(t *testing.T) {
 		"value": "1",
 		"fee":   "0.01",
 	}), &unsigned)
-	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+	// commitReveal lands the commitment and leaves the reveal pending
+	commitReveal(t, node, key, unsigned)
 
 	var pending struct {
 		Count int `json:"count"`
@@ -141,8 +142,8 @@ func TestRPCGetTransactionsByAddress(t *testing.T) {
 	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
 		"to": destAddr.BS58(), "value": "1", "fee": "0.01",
 	}), &unsigned)
-	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
-	mineViaRPC(t, node, key) // block @2 carries the coinbase + the transfer
+	commitReveal(t, node, key, unsigned)
+	mineViaRPC(t, node, key) // the reveal block carries the coinbase + the transfer
 
 	// the sender touched the coinbase(s) and the transfer
 	var sender struct {

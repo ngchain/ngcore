@@ -10,17 +10,97 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// signedTx builds and signs a tx of the given type from priv
+// effectSalt is the fixed reveal nonce every test reveal uses; a single salt
+// keeps the derived commitment hash reproducible across a test's helpers.
+var effectSalt = []byte("ngstate-test-salt")
+
+// isEffectTx reports whether a tx type must go through commit-reveal
+func isEffectTx(txType ngtypes.TxType) bool {
+	switch txType {
+	case ngtypes.TransactTx, ngtypes.DeployTx:
+		return true
+	default:
+		return false
+	}
+}
+
+// destroyExtra is the commit extra of a destroy: a deploy carrying EMPTY
+// code. Applied to a live slot whose code exports `upgrade`, it removes the
+// contract; on a slotless address it fails with ErrNothingToDestroy.
+func destroyExtra() []byte {
+	return ngtypes.EncodeCommitCode(nil)
+}
+
+// signedTx builds and signs a tx of the given type from priv. Effect txs
+// (Transact/Deploy) are salted so they can be revealed; seed their
+// commitment on chain with seedCommit before applying/checking them.
 func signedTx(t *testing.T, priv *ngtypes.PrivateKey, txType ngtypes.TxType, to ngtypes.Address,
 	value, fee *big.Int, extra []byte,
 ) *ngtypes.FullTx {
 	t.Helper()
 
 	tx := ngtypes.NewTx(ngtypes.ZERONET, txType, 1, to, value, fee, extra, nil)
+	if isEffectTx(txType) {
+		tx.Salt = effectSalt
+	}
 	if err := tx.Signature(priv); err != nil {
 		t.Fatal(err)
 	}
 	return tx
+}
+
+// seedCommit records the commitment an effect tx reveals, at height 0 (in
+// window and strictly earlier than the reveal height 1), so checkReveal and
+// consumeReveal find it. A no-op for non-effect txs.
+func seedCommit(t *testing.T, txn *bbolt.Tx, priv *ngtypes.PrivateKey, tx *ngtypes.FullTx) {
+	t.Helper()
+
+	if !isEffectTx(tx.Type) {
+		return
+	}
+
+	from := ngtypes.NewAddress(priv)
+	if err := putCommit(txn, 0, revealHash(tx), from); err != nil {
+		t.Fatalf("seedCommit: %v", err)
+	}
+}
+
+// activeContract builds a live (deployed) contract slot for source, the
+// only contract state a caller ever sees now that there is no inactive step
+func activeContract(addr ngtypes.Address, source []byte) *ngtypes.Contract {
+	acc := ngtypes.NewContract(addr, source, nil)
+	acc.SetActive(true)
+	return acc
+}
+
+// activateInPlace brings an already-stored contract slot live and pins its
+// dependencies, mirroring the dep bookkeeping handleDeploy performs — but
+// on the slot as stored, so a pre-seeded context survives. Tests that seed
+// a contract's kv up front (fixtures) use this instead of a full deploy tx,
+// which would open a fresh empty slot.
+func activateInPlace(t *testing.T, txn *bbolt.Tx, state *State, addr ngtypes.Address) {
+	t.Helper()
+
+	slot, err := getContract(txn, addr)
+	if err != nil {
+		t.Fatalf("activateInPlace: %v", err)
+	}
+
+	deps, err := validateDeps(txn, addr, slot.Source)
+	if err != nil {
+		t.Fatalf("activateInPlace deps: %v", err)
+	}
+	if err := pinDeps(txn, state.cs, deps); err != nil {
+		t.Fatalf("activateInPlace pin: %v", err)
+	}
+
+	slot.SetActive(true)
+	if err := setContractDeps(slot, deps); err != nil {
+		t.Fatalf("activateInPlace setdeps: %v", err)
+	}
+	if err := setContract(txn, state.cs, slot); err != nil {
+		t.Fatalf("activateInPlace store: %v", err)
+	}
 }
 
 // TestCheckBlockTxs covers the block-level tx validation: the generate
@@ -55,6 +135,7 @@ func TestCheckBlockTxs(t *testing.T) {
 			return err
 		}
 		pay := signedTx(t, userPriv, ngtypes.TransactTx, minerAddr, big.NewInt(1), big.NewInt(1), nil)
+		seedCommit(t, txn, userPriv, pay)
 
 		if err := CheckBlockTxs(txn, blockAt(1, gen, pay)); err != nil {
 			t.Fatalf("valid block refused: %v", err)
@@ -67,7 +148,8 @@ func TestCheckBlockTxs(t *testing.T) {
 			t.Fatalf("unsigned tx: got %v, want ErrTxUnsigned", err)
 		}
 
-		// an oversized extra is refused
+		// an oversized extra is refused (the extra-size gate precedes the
+		// reveal check in CheckBlockTxs, so no commitment is needed)
 		fat := signedTx(t, userPriv, ngtypes.TransactTx, minerAddr,
 			big.NewInt(1), big.NewInt(0), make([]byte, ngtypes.TxMaxExtraSize+1))
 		if err := CheckBlockTxs(txn, blockAt(1, gen, fat)); !errors.Is(err, ngtypes.ErrTxExtraExcess) {
@@ -125,80 +207,74 @@ func TestCheckTxPerType(t *testing.T) {
 			t.Fatalf("odd type: got %v", err)
 		}
 
+		// an effect tx with no committed commitment is refused as a non-reveal
+		uncommitted := signedTx(t, priv, ngtypes.TransactTx, testAddr(0x01), big.NewInt(1), big.NewInt(1), nil)
+		if err := CheckTx(txn, uncommitted); !errors.Is(err, ErrTxNotCommitted) {
+			t.Fatalf("uncommitted reveal: got %v, want ErrTxNotCommitted", err)
+		}
+
 		// transact: fine when funded, refused when the balance misses
 		pay := signedTx(t, priv, ngtypes.TransactTx, testAddr(0x01), big.NewInt(1), big.NewInt(1), nil)
+		seedCommit(t, txn, priv, pay)
 		if err := CheckTx(txn, pay); err != nil {
 			t.Fatalf("funded transact: %v", err)
 		}
 		broke := signedTx(t, poorPriv, ngtypes.TransactTx, testAddr(0x01), big.NewInt(1), big.NewInt(1), nil)
+		seedCommit(t, txn, poorPriv, broke)
 		if err := CheckTx(txn, broke); !errors.Is(err, ErrTxrBalanceInsufficient) {
 			t.Fatalf("unfunded transact: got %v", err)
 		}
 
-		// destroy: no slot -> refused
-		destroy := signedTx(t, priv, ngtypes.DestroyTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := CheckTx(txn, destroy); err == nil {
-			t.Fatal("destroy without a slot must be refused")
+		// destroy is an empty-code deploy: no slot -> refused as nothing to
+		// destroy
+		destroy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1), destroyExtra())
+		seedCommit(t, txn, priv, destroy)
+		if err := CheckTx(txn, destroy); !errors.Is(err, ErrNothingToDestroy) {
+			t.Fatalf("destroy without a slot: got %v, want ErrNothingToDestroy", err)
 		}
 
-		// open an inactive slot: destroy and commit both check out
-		if err := setContract(txn, nil, ngtypes.NewContract(addr, mustWat(logWat), nil)); err != nil {
+		// deploy onto the empty slot checks out
+		deploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(mustWat(logWat)))
+		seedCommit(t, txn, priv, deploy)
+		if err := CheckTx(txn, deploy); err != nil {
+			t.Fatalf("deploy: %v", err)
+		}
+		// a deploy whose extra is not a deploy payload is refused
+		badDeploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1), []byte{0xff})
+		seedCommit(t, txn, priv, badDeploy)
+		if err := CheckTx(txn, badDeploy); err == nil {
+			t.Fatal("a broken deploy extra must be refused")
+		}
+
+		// open a LIVE slot whose code exports no `upgrade` hook: it is
+		// immutable AND indestructible — the empty-code destroy is refused
+		if err := setContract(txn, nil, activeContract(addr, mustWat(immutableWat))); err != nil {
+			return err
+		}
+		if err := CheckTx(txn, destroy); !errors.Is(err, ErrImmutable) {
+			t.Fatalf("destroy of an immutable contract: got %v, want ErrImmutable", err)
+		}
+		// re-deploying that immutable contract is refused for the same reason
+		if err := CheckTx(txn, deploy); !errors.Is(err, ErrImmutable) {
+			t.Fatalf("upgrade of an immutable contract: got %v, want ErrImmutable", err)
+		}
+
+		// swap in a LIVE slot whose code DOES export `upgrade`: the destroy
+		// now checks out (there is no inactive state)
+		if err := setContract(txn, nil, activeContract(addr, mustWat(upgradeableWat))); err != nil {
 			return err
 		}
 		if err := CheckTx(txn, destroy); err != nil {
-			t.Fatalf("destroy on an inactive slot: %v", err)
-		}
-		commit := signedTx(t, priv, ngtypes.CommitTx, ngtypes.Address{}, nil, big.NewInt(1),
-			ngtypes.EncodeCommitCode(mustWat(logWat)))
-		if err := CheckTx(txn, commit); err != nil {
-			t.Fatalf("commit: %v", err)
-		}
-		// a commit whose extra is not a commit payload is refused
-		badCommit := signedTx(t, priv, ngtypes.CommitTx, ngtypes.Address{}, nil, big.NewInt(1), []byte{0xff})
-		if err := CheckTx(txn, badCommit); err == nil {
-			t.Fatal("a broken commit extra must be refused")
+			t.Fatalf("destroy on an upgradeable live slot: %v", err)
 		}
 
-		// deactivate on an inactive slot is refused
-		deactivate := signedTx(t, priv, ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := CheckTx(txn, deactivate); !errors.Is(err, ErrContractNotActive) {
-			t.Fatalf("deactivate inactive: got %v", err)
-		}
-
-		// activate checks out on the inactive slot
-		activate := signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := CheckTx(txn, activate); err != nil {
-			t.Fatalf("activate: %v", err)
-		}
-
-		// flip the slot active: activate/destroy refused, deactivate fine
+		// a referenced slot cannot be destroyed
 		slot, err := getContract(txn, addr)
 		if err != nil {
 			return err
 		}
-		slot.SetActive(true)
-		if err := setContract(txn, nil, slot); err != nil {
-			return err
-		}
-		if err := CheckTx(txn, activate); !errors.Is(err, ErrContractActive) {
-			t.Fatalf("activate active: got %v", err)
-		}
-		if err := CheckTx(txn, destroy); !errors.Is(err, ErrContractActive) {
-			t.Fatalf("destroy active: got %v", err)
-		}
-		if err := CheckTx(txn, deactivate); err != nil {
-			t.Fatalf("deactivate active: %v", err)
-		}
-
-		// a referenced slot can be neither deactivated nor destroyed
 		setRefCount(slot, 2)
-		if err := setContract(txn, nil, slot); err != nil {
-			return err
-		}
-		if err := CheckTx(txn, deactivate); !errors.Is(err, ErrContractRefdBy) {
-			t.Fatalf("deactivate refd: got %v", err)
-		}
-		slot.SetActive(false)
 		if err := setContract(txn, nil, slot); err != nil {
 			return err
 		}
@@ -234,9 +310,10 @@ func TestCheckTxRejectsGenerate(t *testing.T) {
 	}
 }
 
-// TestCheckActivateDeps covers the dependency validation at lock time:
-// self-deps, unknown deps and inactive deps are all refused
-func TestCheckActivateDeps(t *testing.T) {
+// TestCheckDeployDeps covers the dependency validation at deploy time:
+// self-deps, unknown deps and inactive deps are all refused. The module
+// under validation is the one carried in the deploy tx's Extra
+func TestCheckDeployDeps(t *testing.T) {
 	db := newTestDB(t)
 
 	priv, _ := ngtypes.GenerateKey()
@@ -244,8 +321,9 @@ func TestCheckActivateDeps(t *testing.T) {
 	depPriv, _ := ngtypes.GenerateKey()
 	depAddr := ngtypes.NewAddress(depPriv)
 
-	activate := func(t *testing.T) *ngtypes.FullTx {
-		return signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
+	deploy := func(t *testing.T, source []byte) *ngtypes.FullTx {
+		return signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(source))
 	}
 
 	err := db.Update(func(txn *bbolt.Tx) error {
@@ -253,21 +331,15 @@ func TestCheckActivateDeps(t *testing.T) {
 			return err
 		}
 
-		// a contract importing its OWN address
+		// a module importing its OWN address
 		selfWat := `(module (import "` + addr.String() + `" "f" (func $f)) (func (export "main")))`
-		if err := setContract(txn, nil, ngtypes.NewContract(addr, mustWat(selfWat), nil)); err != nil {
-			return err
-		}
-		if err := checkActivate(txn, activate(t)); !errors.Is(err, ErrDepSelf) {
+		if err := checkDeploy(txn, deploy(t, mustWat(selfWat))); !errors.Is(err, ErrDepSelf) {
 			t.Fatalf("self dep: got %v", err)
 		}
 
 		// an unknown dependency address
 		depWat := `(module (import "` + depAddr.String() + `" "f" (func $f)) (func (export "main")))`
-		if err := setContract(txn, nil, ngtypes.NewContract(addr, mustWat(depWat), nil)); err != nil {
-			return err
-		}
-		if err := checkActivate(txn, activate(t)); err == nil {
+		if err := checkDeploy(txn, deploy(t, mustWat(depWat))); err == nil {
 			t.Fatal("unknown dep must be refused")
 		}
 
@@ -276,11 +348,11 @@ func TestCheckActivateDeps(t *testing.T) {
 		if err := setContract(txn, nil, ngtypes.NewContract(depAddr, mustWat(depWatSrc), nil)); err != nil {
 			return err
 		}
-		if err := checkActivate(txn, activate(t)); !errors.Is(err, ErrDepNotActive) {
+		if err := checkDeploy(txn, deploy(t, mustWat(depWat))); !errors.Is(err, ErrDepNotActive) {
 			t.Fatalf("inactive dep: got %v", err)
 		}
 
-		// the dependency activates: the check passes
+		// the dependency goes live: the check passes
 		dep, err := getContract(txn, depAddr)
 		if err != nil {
 			return err
@@ -289,8 +361,8 @@ func TestCheckActivateDeps(t *testing.T) {
 		if err := setContract(txn, nil, dep); err != nil {
 			return err
 		}
-		if err := checkActivate(txn, activate(t)); err != nil {
-			t.Fatalf("activate with a live dep: %v", err)
+		if err := checkDeploy(txn, deploy(t, mustWat(depWat))); err != nil {
+			t.Fatalf("deploy with a live dep: %v", err)
 		}
 
 		return nil

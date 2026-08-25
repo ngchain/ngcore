@@ -33,3 +33,7 @@ func GetBroadcastBlockTopic(network ngtypes.Network) string {
 func GetBroadcastTxTopic(network ngtypes.Network) string {
 	return "/ngp2p/broadcast/tx/" + getGenesisBlockHash(network) + protocolVersion
 }
+
+func GetBroadcastCommitTopic(network ngtypes.Network) string {
+	return "/ngp2p/broadcast/commit/" + getGenesisBlockHash(network) + protocolVersion
+}

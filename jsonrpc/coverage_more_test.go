@@ -131,22 +131,12 @@ func TestCallContractNoEvents(t *testing.T) {
 	// a contract that runs but emits no events
 	quietWasm := mustWat(`(module (func (export "main")))`)
 
-	signAndMine := func(unsignedHex string) {
-		t.Helper()
-		signedHex := localSign(t, key, unsignedHex)
-		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex})
-		mineViaRPC(t, node, key)
-	}
-
-	var commitHex string
+	var deployHex string
 	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{
 		"fee": "0.05", "wasm": hex.EncodeToString(quietWasm),
-	}), &commitHex)
-	signAndMine(commitHex)
-
-	var activateHex string
-	decodeInto(t, node.mustCall(t, "ng_genActivate", map[string]any{"fee": "0.05"}), &activateHex)
-	signAndMine(activateHex)
+	}), &deployHex)
+	commitReveal(t, node, key, deployHex) // deploy goes live at once
+	mineViaRPC(t, node, key)
 
 	var dryRun struct {
 		Ok     bool `json:"ok"`
@@ -163,30 +153,30 @@ func TestCallContractNoEvents(t *testing.T) {
 	}
 }
 
-// TestCallContractNewVMFails deploys a slot whose source is NOT valid wasm
-// (a commit stores the source verbatim; validation only happens at
-// activate). callContract can still find the slot, but building the vm
-// fails — the rpc surfaces that as an error
-func TestCallContractNewVMFails(t *testing.T) {
+// TestDeployRejectsInvalidWasm: a deploy carrying source that is NOT valid
+// wasm is rejected — the deploy path compiles the module, so the tx is
+// refused already at pool admission (CheckTx) and no slot is ever opened
+func TestDeployRejectsInvalidWasm(t *testing.T) {
 	node := newRPCNode(t)
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
 	mineViaRPC(t, node, key)
 
-	// commit invalid wasm bytes: the commit path never compiles, so the
-	// bogus source lands in the slot
-	var commitHex string
+	// a deploy of invalid wasm bytes: the deploy path compiles the module,
+	// so the tx does not even enter the pool
+	var deployHex string
 	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{
 		"fee": "0.05", "wasm": hex.EncodeToString([]byte{0x00, 0x61, 0x73, 0x6d, 0xde, 0xad}),
-	}), &commitHex)
-	signedHex := localSign(t, key, commitHex)
-	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex})
-	mineViaRPC(t, node, key)
+	}), &deployHex)
+	signedHex := localSign(t, key, deployHex)
+	if _, rpcErr := node.call(t, "ng_sendTx", map[string]any{"rawTx": signedHex}); rpcErr == nil {
+		t.Fatal("sending a deploy of invalid wasm must be rejected")
+	}
 
-	// the slot exists (getContractInfo succeeds) but the vm cannot be built
+	// no slot was opened: callContract on the missing contract fails
 	if _, rpcErr := node.call(t, "ng_callContract", map[string]any{"contract": addr.BS58()}); rpcErr == nil {
-		t.Fatal("callContract on an uncompilable slot must fail at NewVM")
+		t.Fatal("callContract on a slot that never deployed must fail")
 	}
 }
 
@@ -227,9 +217,7 @@ func TestGetReceiptBrokenRecord(t *testing.T) {
 	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
 		"to": ngtypes.NewAddress(key).BS58(), "value": "1", "fee": "0.01",
 	}), &unsignedHex)
-	signedHex := localSign(t, key, unsignedHex)
-	var txHash string
-	decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex}), &txHash)
+	txHash := commitReveal(t, node, key, unsignedHex)
 	mineViaRPC(t, node, key)
 
 	rawHash, err := hex.DecodeString(txHash)

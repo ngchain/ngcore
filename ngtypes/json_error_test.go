@@ -58,7 +58,7 @@ func TestBlockUnmarshalJSONErrors(t *testing.T) {
 }
 
 func TestTxUnmarshalJSONErrors(t *testing.T) {
-	valid := `{"network":"ZERONET","type":3,"height":1,"to":"` + GenesisAddressBase58 +
+	valid := `{"network":"ZERONET","type":2,"height":1,"to":"` + GenesisAddressBase58 +
 		`","value":1,"fee":0,"extra":"","sign":""}`
 	var tx FullTx
 	if err := json.Unmarshal([]byte(valid), &tx); err != nil {

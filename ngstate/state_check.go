@@ -8,6 +8,7 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/utils"
 )
 
 var ErrTxrBalanceInsufficient = errors.New("address balance is not sufficient for the tx")
@@ -124,28 +125,19 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 		// rejected, never panicked, so a peer cannot crash the node
 		return ngtypes.ErrTxTypeInvalid
 
-	case ngtypes.DestroyTx: // destroy
-		if err := checkDestroy(txn, tx); err != nil {
+	case ngtypes.TransactTx: // transact
+		if err := checkReveal(txn, tx); err != nil {
 			return err
 		}
-
-	case ngtypes.TransactTx: // transact
 		if err := checkTransaction(txn, tx); err != nil {
 			return err
 		}
 
-	case ngtypes.CommitTx: // edit
-		if err := checkCommit(txn, tx); err != nil {
+	case ngtypes.DeployTx: // deploy / upgrade
+		if err := checkReveal(txn, tx); err != nil {
 			return err
 		}
-
-	case ngtypes.ActivateTx: // lock
-		if err := checkActivate(txn, tx); err != nil {
-			return err
-		}
-
-	case ngtypes.DeactivateTx: // unlock
-		if err := checkDeactivate(txn, tx); err != nil {
+		if err := checkDeploy(txn, tx); err != nil {
 			return err
 		}
 
@@ -154,6 +146,51 @@ func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 	}
 
 	return nil
+}
+
+// checkReveal enforces the mandatory commit-reveal rule: an effect tx
+// (Transact/Deploy/Destroy) is valid ONLY if it carries a non-empty Salt AND
+// there is an UNREVEALED commitment on chain whose value-From matches the
+// tx's From and whose Hash == blake3(tx.UnheightedHash() ‖ tx.Salt),
+// recorded at some height h with revealHeight-CommitWindow <= h <
+// revealHeight (STRICTLY earlier — the anti-same-block-reaction rule). The
+// reveal height is the tx's own height-lock. GenerateTx is exempt (never
+// reaches here). CheckTx runs against current committed state, so a reveal is
+// only pool-admissible after its commitment is already on chain.
+func checkReveal(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
+	if tx.Height == 0 {
+		return nil // genesis txs bypass every tx check
+	}
+	if len(tx.Salt) == 0 {
+		return errors.Wrap(ErrTxNotCommitted, "effect tx carries no salt")
+	}
+	if len(tx.Salt) < ngtypes.MinSaltSize {
+		return errors.Wrapf(ErrSaltTooShort, "salt is %d bytes, need >= %d", len(tx.Salt), ngtypes.MinSaltSize)
+	}
+
+	from, err := tx.From()
+	if err != nil {
+		return err
+	}
+
+	hash := revealHash(tx)
+	if _, ok := findCommit(txn, from, hash, tx.Height); !ok {
+		return errors.Wrapf(ErrTxNotCommitted,
+			"no in-window unrevealed commitment for %s revealing at height %d", from, tx.Height)
+	}
+
+	return nil
+}
+
+// revealHash is the commitment preimage of a reveal tx: blake3 over the tx's
+// height-independent content hash concatenated with its Salt. Excluding the
+// target height lets the same commitment be revealed at any height in the
+// window, so a censoring miner cannot pin a reveal to one block.
+func revealHash(tx *ngtypes.FullTx) []byte {
+	buf := make([]byte, 0, ngtypes.HashSize+len(tx.Salt))
+	buf = append(buf, tx.UnheightedHash()...)
+	buf = append(buf, tx.Salt...)
+	return utils.Hash256(buf)
 }
 
 // checkGenerate checks the generate tx
@@ -176,33 +213,6 @@ func fromWithBalance(txn *bbolt.Tx, tx *ngtypes.FullTx, expense *big.Int) (ngtyp
 	return from, nil
 }
 
-// checkDestroy checks destroy tx: the From address clears its own slot,
-// which must exist, be inactive and unreferenced
-func checkDestroy(txn *bbolt.Tx, destroyTx *ngtypes.FullTx) error {
-	if err := destroyTx.CheckDestroy(keyResolver(txn)); err != nil {
-		return err
-	}
-
-	from, err := fromWithBalance(txn, destroyTx, destroyTx.TotalExpenditure())
-	if err != nil {
-		return err
-	}
-
-	slot, err := getContract(txn, from)
-	if err != nil {
-		return err
-	}
-
-	if slot.IsActive() {
-		return ErrContractActive
-	}
-	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
-	}
-
-	return nil
-}
-
 // checkTransaction checks normal transaction tx
 func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 	if err := transactionTx.CheckTransaction(keyResolver(txn)); err != nil {
@@ -214,25 +224,23 @@ func checkTransaction(txn *bbolt.Tx, transactionTx *ngtypes.FullTx) error {
 	return err
 }
 
-// checkCommit checks commit tx: a dry-run of the whole patch
-// application; the first commit on an address opens its contract slot
-func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
-	if err := commitTx.CheckCommit(keyResolver(txn)); err != nil {
+// checkDeploy checks a deploy tx (a dry-run of the whole deploy/upgrade):
+// the module carried in Extra must decode, fit the size cap, compile, and
+// every declared dependency must be a live contract. An EMPTY slot deploys
+// the module and goes live at once; a LIVE slot is upgraded UUPS-style —
+// the CURRENT code must export the `upgrade` hook or the tx is rejected as
+// targeting an immutable contract
+func checkDeploy(txn *bbolt.Tx, deployTx *ngtypes.FullTx) error {
+	if err := deployTx.CheckDeploy(keyResolver(txn)); err != nil {
 		return err
 	}
 
-	from, err := fromWithBalance(txn, commitTx, commitTx.TotalExpenditure())
+	from, err := fromWithBalance(txn, deployTx, deployTx.TotalExpenditure())
 	if err != nil {
 		return err
 	}
 
-	slot, err := getContract(txn, from)
-	if err == nil && slot.IsActive() {
-		// an active contract is immutable
-		return ErrContractActive
-	}
-
-	newSource, err := ngtypes.DecodeCommitCode(commitTx.Extra)
+	newSource, err := ngtypes.DecodeCommitCode(deployTx.Extra)
 	if err != nil {
 		return err
 	}
@@ -241,80 +249,51 @@ func checkCommit(txn *bbolt.Tx, commitTx *ngtypes.FullTx) error {
 			len(newSource), ngtypes.MaxContractSourceSize)
 	}
 
-	return nil
-}
-
-// checkActivate checks activate tx
-func checkActivate(txn *bbolt.Tx, activateTx *ngtypes.FullTx) error {
-	if err := activateTx.CheckActivate(keyResolver(txn)); err != nil {
-		return err
-	}
-
-	from, err := fromWithBalance(txn, activateTx, activateTx.TotalExpenditure())
-	if err != nil {
-		return err
-	}
-
 	slot, err := getContract(txn, from)
+	isLive := err == nil && slot.IsActive() && len(slot.Source) != 0
+
+	// EMPTY code -> DESTROY: only a live slot can be destroyed, its current
+	// code must opt in via `upgrade` (else immutable & indestructible), and it
+	// must be unreferenced
+	if len(newSource) == 0 {
+		if !isLive {
+			return ErrNothingToDestroy
+		}
+		if !contractHasExport(slot.Source, VMEntryOnUpgrade) {
+			return ErrImmutable
+		}
+		if refs := getRefCount(slot); refs > 0 {
+			return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
+		}
+		return nil
+	}
+
+	// the new module must compile and every declared dependency must be a
+	// live contract (checked at deploy AND at upgrade time)
+	if _, err := LoadContractWasm(newSource); err != nil {
+		return err
+	}
+	deps, err := extractContractDeps(newSource)
 	if err != nil {
 		return err
 	}
-
-	if slot.IsActive() {
-		return ErrContractActive
-	}
-
-	// activating turns the vm on, so the contract text must compile and
-	// every declared module dependency must be an active contract
-	if len(slot.Source) != 0 {
-		if _, err := LoadContractWasm(slot.Source); err != nil {
-			return err
+	for _, depAddr := range deps {
+		if depAddr.Equals(from) {
+			return ErrDepSelf
 		}
-
-		deps, err := extractContractDeps(slot.Source)
+		depAcc, err := getContract(txn, depAddr)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
 		}
-		for _, depAddr := range deps {
-			if depAddr.Equals(from) {
-				return ErrDepSelf
-			}
-			depAcc, err := getContract(txn, depAddr)
-			if err != nil {
-				return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
-			}
-			if !depAcc.IsActive() || len(depAcc.Source) == 0 {
-				return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
-			}
+		if !depAcc.IsActive() || len(depAcc.Source) == 0 {
+			return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
 		}
 	}
 
-	return nil
-}
-
-// checkDeactivate checks unactivate tx
-func checkDeactivate(txn *bbolt.Tx, deactivateTx *ngtypes.FullTx) error {
-	if err := deactivateTx.CheckDeactivate(keyResolver(txn)); err != nil {
-		return err
-	}
-
-	from, err := fromWithBalance(txn, deactivateTx, deactivateTx.TotalExpenditure())
-	if err != nil {
-		return err
-	}
-
-	slot, err := getContract(txn, from)
-	if err != nil {
-		return err
-	}
-
-	if !slot.IsActive() {
-		return ErrContractNotActive
-	}
-
-	// a depended-on module cannot deactivate
-	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
+	// a live slot can only be upgraded if its CURRENT code opts in via an
+	// `upgrade` export; otherwise the contract is immutable
+	if isLive && !contractHasExport(slot.Source, VMEntryOnUpgrade) {
+		return ErrImmutable
 	}
 
 	return nil

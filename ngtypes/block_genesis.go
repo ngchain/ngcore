@@ -21,7 +21,7 @@ func GetGenesisBlock(network Network) *FullBlock {
 
 			make([]byte, HashSize),
 			txTrie.TrieRoot(),
-			CalcWitnessRoot(txs),
+			CalcWitnessRoot(txs, nil),
 			MinimumDiffOf(network).Bytes(), // this is a number, dont put any padding on
 			GetGenesisBlockNonce(network),
 			txs,

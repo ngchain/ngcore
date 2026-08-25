@@ -32,18 +32,16 @@ func TestRPCGetLogs(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
-	send := func(method string, params any) {
+	gen := func(method string, params any) string {
 		var unsigned string
 		decodeInto(t, node.mustCall(t, method, params), &unsigned)
-		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+		return unsigned
 	}
 
 	mineViaRPC(t, node, key) // fund the deployer
-	send("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))})
-	mineViaRPC(t, node, key)
-	send("ng_genActivate", map[string]any{"fee": "0.05"})
-	mineViaRPC(t, node, key)
-	send("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"})
+	commitReveal(t, node, key, gen("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))}))
+	mineViaRPC(t, node, key) // deploy goes live at once
+	commitReveal(t, node, key, gen("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"}))
 	mineViaRPC(t, node, key) // runs main -> emits both logs
 
 	type log struct {

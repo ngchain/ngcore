@@ -23,20 +23,16 @@ func TestRPCTraceTransaction(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
-	send := func(method string, params any) string {
+	gen := func(method string, params any) string {
 		var unsigned string
 		decodeInto(t, node.mustCall(t, method, params), &unsigned)
-		var txHash string
-		decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)}), &txHash)
-		return txHash
+		return unsigned
 	}
 
 	mineViaRPC(t, node, key)
-	send("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))})
-	mineViaRPC(t, node, key)
-	send("ng_genActivate", map[string]any{"fee": "0.05"})
-	mineViaRPC(t, node, key)
-	txHash := send("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"})
+	commitReveal(t, node, key, gen("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))}))
+	mineViaRPC(t, node, key) // deploy goes live at once
+	txHash := commitReveal(t, node, key, gen("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"}))
 	mineViaRPC(t, node, key) // runs main -> internal transfer
 
 	var trace struct {

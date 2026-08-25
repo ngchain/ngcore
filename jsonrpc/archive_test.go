@@ -87,23 +87,21 @@ func TestRPCArchiveContractHistory(t *testing.T) {
 		decodeInto(t, node.mustCall(t, "ng_getLatestBlockHeight", nil), &h)
 		return h
 	}
-	send := func(method string, params any) {
+	gen := func(method string, params any) string {
 		var unsigned string
 		decodeInto(t, node.mustCall(t, method, params), &unsigned)
-		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+		return unsigned
 	}
 	h := func(x uint64) *uint64 { return &x }
 
 	mineViaRPC(t, node, key) // fund the deployer
 	hBeforeCommit := latest()
 
-	send("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))})
-	mineViaRPC(t, node, key)
-	send("ng_genActivate", map[string]any{"fee": "0.05"})
-	mineViaRPC(t, node, key)
+	commitReveal(t, node, key, gen("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))}))
+	mineViaRPC(t, node, key) // deploy goes live at once
 	hBeforeRun := latest()
 
-	send("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"})
+	commitReveal(t, node, key, gen("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"}))
 	mineViaRPC(t, node, key) // runs main -> sets key=val
 
 	keyHex := hex.EncodeToString([]byte("key"))

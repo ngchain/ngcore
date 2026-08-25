@@ -63,6 +63,32 @@ const (
 	// MaxContractSourceSize caps a contract's source text: activation
 	// compiles it inside block validation, so its cost must be bounded
 	MaxContractSourceSize = 256 << 10
+
+	// CommitWindow is the reveal window (in blocks) of the mandatory
+	// commit-reveal private mempool: an effect tx reveals a commitment that
+	// was recorded at some height h with revealHeight-CommitWindow <= h <
+	// revealHeight. A commitment unrevealed within the window is pruned (the
+	// committer forfeited its commit fee at commit time).
+	//
+	// Kept deliberately SMALL: the window is exactly the "commit-many /
+	// reveal-one" straddle's look-ahead (an attacker pre-commits candidates,
+	// watches reveals, then reveals only the profitable one within the
+	// window). W-1 blocks of look-ahead; 3 trims it hard while leaving a few
+	// blocks of slack for a reveal to survive a censoring miner.
+	CommitWindow uint64 = 3
+
+	// MaxBlockCommitCount caps how many commitments one block may carry — a
+	// consensus bound (mirrors MaxBlockTxCount) so cheap commits cannot bloat
+	// a block without limit.
+	MaxBlockCommitCount = MaxBlockTxCount
+
+	// MinSaltSize is the minimum reveal-nonce length (128 bits). The salt is
+	// the ONLY entropy hiding a commitment's content from a targeted preimage
+	// grind: if the tx content is guessable (a known recipient/amount), an
+	// attacker who sees c = blake3(unsignedHash ‖ salt) can brute-force a short
+	// salt during the window and front-run. A weak-salt reveal is rejected, so
+	// grinding it yields only a tx that can never execute.
+	MinSaltSize = 16
 )
 
 // PoW variables

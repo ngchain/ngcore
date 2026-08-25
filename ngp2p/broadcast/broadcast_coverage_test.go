@@ -32,7 +32,7 @@ func TestListenerContinuesOnSubError(t *testing.T) {
 	}
 
 	b := NewBroadcastProtocol(h, ngtypes.ZERONET,
-		make(chan *ngtypes.FullBlock, 1), make(chan *ngtypes.FullTx, 1))
+		make(chan *ngtypes.FullBlock, 1), make(chan *ngtypes.FullTx, 1), make(chan *ngtypes.Commitment, 1))
 
 	// start the listeners, then cancel the subscriptions WITHOUT cancelling
 	// b.ctx: sub.Next returns an error and the loop hits the log+continue path

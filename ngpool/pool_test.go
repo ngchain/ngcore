@@ -21,10 +21,37 @@ import (
 // testEnv boots a chain with two funded, registered accounts:
 // account 500 owned by keyA and account 600 owned by keyB
 type testEnv struct {
+	db    *bbolt.DB
 	chain *blockchain.Chain
 	pool  *ngpool.TxPool
 	keyA  *ngtypes.PrivateKey
 	keyB  *ngtypes.PrivateKey
+}
+
+// poolTestSalt is the fixed reveal nonce these tests use
+var poolTestSalt = []byte("ngpool-test-salt")
+
+// commitOnChain records the commitment a reveal tx needs, in the commit
+// bucket at the current tip height (in window and strictly earlier than the
+// reveal's next-block height), so PutTx's CheckTx admits the reveal.
+func commitOnChain(t *testing.T, env *testEnv, owner *ngtypes.PrivateKey, tx *ngtypes.FullTx) {
+	t.Helper()
+
+	from := ngtypes.NewAddress(owner)
+	buf := append(append([]byte{}, tx.UnheightedHash()...), tx.Salt...)
+	hash := utils.Hash256(buf)
+
+	tip := env.chain.GetLatestBlockHeight()
+	key := make([]byte, 8+ngtypes.HashSize)
+	copy(key[:8], utils.PackUint64LE(tip))
+	copy(key[8:], hash)
+
+	err := env.db.Update(func(txn *bbolt.Tx) error {
+		return txn.Bucket(storage.CommitBucketName).Put(key, from[:])
+	})
+	if err != nil {
+		t.Fatalf("commitOnChain: %v", err)
+	}
 }
 
 func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
@@ -93,18 +120,26 @@ func newTestEnv(t *testing.T) *testEnv {
 		}
 	}
 
-	return &testEnv{chain: chain, pool: pool, keyA: keyA, keyB: keyB}
+	return &testEnv{db: db, chain: chain, pool: pool, keyA: keyA, keyB: keyB}
 }
 
-// transactTx builds a signed transact tx from the owner's address
-func transactTx(t *testing.T, height uint64, owner *ngtypes.PrivateKey, fee int64) *ngtypes.FullTx {
+// transactTx builds a signed transact (reveal) tx from the owner's address
+// and, when it is locked on the next block, seeds its commitment on chain so
+// PutTx admits it. Wrong-height txs skip the commit (they are rejected at the
+// height gate before the reveal check).
+func transactTx(t *testing.T, env *testEnv, height uint64, owner *ngtypes.PrivateKey, fee int64) *ngtypes.FullTx {
 	t.Helper()
 
 	dest := testAddr()
 	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
 		dest, big.NewInt(10), big.NewInt(fee), nil, nil)
+	tx.Salt = poolTestSalt
 	if err := tx.Signature(owner); err != nil {
 		t.Fatal(err)
+	}
+
+	if height == env.chain.GetLatestBlockHeight()+1 {
+		commitOnChain(t, env, owner, tx)
 	}
 	return tx
 }
@@ -120,12 +155,12 @@ func TestPutTxHeightGating(t *testing.T) {
 	next := env.chain.GetLatestBlockHeight() + 1 // 5
 
 	// the next block's height is the only admissible lock
-	if err := env.pool.PutTx(transactTx(t, next, env.keyA, 1)); err != nil {
+	if err := env.pool.PutTx(transactTx(t, env, next, env.keyA, 1)); err != nil {
 		t.Fatalf("tx locked on the next height rejected: %v", err)
 	}
 
 	for _, h := range []uint64{next - 1, next + 1} {
-		err := env.pool.PutTx(transactTx(t, h, env.keyB, 1))
+		err := env.pool.PutTx(transactTx(t, env, h, env.keyB, 1))
 		if !errors.Is(err, ngpool.ErrTxInvalidHeight) {
 			t.Fatalf("tx locked on height %d: got %v, want ErrTxInvalidHeight", h, err)
 		}
@@ -136,8 +171,8 @@ func TestPutTxReplacementByFee(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	cheap := transactTx(t, next, env.keyA, 1)
-	rich := transactTx(t, next, env.keyA, 5)
+	cheap := transactTx(t, env, next, env.keyA, 1)
+	rich := transactTx(t, env, next, env.keyA, 5)
 
 	if err := env.pool.PutTx(cheap); err != nil {
 		t.Fatal(err)
@@ -163,8 +198,8 @@ func TestGetPackFeeSelection(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	txA := transactTx(t, next, env.keyA, 1) // cheap
-	txB := transactTx(t, next, env.keyB, 9) // rich
+	txA := transactTx(t, env, next, env.keyA, 1) // cheap
+	txB := transactTx(t, env, next, env.keyB, 9) // rich
 
 	if err := env.pool.PutTx(txA); err != nil {
 		t.Fatal(err)
@@ -193,8 +228,8 @@ func TestPoolCapacityEviction(t *testing.T) {
 	env.pool.MaxSize = 1
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	cheap := transactTx(t, next, env.keyA, 1)
-	rich := transactTx(t, next, env.keyB, 9)
+	cheap := transactTx(t, env, next, env.keyA, 1)
+	rich := transactTx(t, env, next, env.keyB, 9)
 
 	if err := env.pool.PutTx(cheap); err != nil {
 		t.Fatal(err)
@@ -220,7 +255,7 @@ func TestPoolResetOnTipChange(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	if err := env.pool.PutTx(transactTx(t, next, env.keyA, 1)); err != nil {
+	if err := env.pool.PutTx(transactTx(t, env, next, env.keyA, 1)); err != nil {
 		t.Fatal(err)
 	}
 	if len(env.pool.GetPack(next)) != 1 {
@@ -245,13 +280,13 @@ func TestRelayFeeFloor(t *testing.T) {
 	env.pool.MinFeePerByte = big.NewInt(1000)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	cheap := transactTx(t, next, env.keyA, 1)
+	cheap := transactTx(t, env, next, env.keyA, 1)
 	if err := env.pool.PutTx(cheap); !errors.Is(err, ngpool.ErrTxFeeBelowFloor) {
 		t.Fatalf("got %v, want ErrTxFeeBelowFloor", err)
 	}
 
 	// pay comfortably above the floor (fee = 1000 * 10KB covers any envelope)
-	rich := transactTx(t, next, env.keyA, 10_000_000)
+	rich := transactTx(t, env, next, env.keyA, 10_000_000)
 	if err := env.pool.PutTx(rich); err != nil {
 		t.Fatalf("floor-clearing tx refused: %v", err)
 	}

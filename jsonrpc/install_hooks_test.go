@@ -17,12 +17,13 @@ func TestRPCPoolResetHookSurvivesInstall(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	mineViaRPC(t, node, key) // fund key
 
-	// queue a tx in the mempool
+	// queue a tx in the mempool: commitReveal lands the commitment and
+	// leaves the reveal pending (locked on the next height)
 	var unsigned string
 	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
 		"to": ngtypes.NewAddress(key).BS58(), "value": "1", "fee": "0.01",
 	}), &unsigned)
-	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+	commitReveal(t, node, key, unsigned)
 
 	pendingCount := func() int {
 		var reply struct {

@@ -1,6 +1,7 @@
 package ngstate
 
 import (
+	"math/big"
 	"sync"
 
 	logging "github.com/ngchain/zap-log"
@@ -136,6 +137,7 @@ func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) err
 		storage.ContractBucketName,
 		storage.CodeBucketName,
 		storage.KeyRegistryBucketName,
+		storage.CommitBucketName, storage.CommitSpentBucketName,
 		// the sheet jumps the state to its height with NO changesets below
 		// it; drop any stale changeset/index entries from the pre-snapshot
 		// chain so the coverage-based read guard treats sub-sheet heights as
@@ -169,6 +171,7 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 		storage.ContractBucketName,
 		storage.CodeBucketName,
 		storage.KeyRegistryBucketName,
+		storage.CommitBucketName, storage.CommitSpentBucketName,
 		storage.ReceiptBucketName, // receipts regenerate with the replay
 		// changesets/indices regenerate too: the replay re-applies every
 		// block through Upgrade, which re-records them from scratch
@@ -326,9 +329,50 @@ func (state *State) Upgrade(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 		defer func() { state.cs = nil }()
 	}
 
+	// apply this block's blind commitments FIRST (charge each committer's
+	// fee, record heightLE‖Hash -> From), so a reveal in a LATER block can
+	// find them. Genesis (height 0) carries none
+	if err := state.handleCommits(txn, block); err != nil {
+		return err
+	}
+
 	err := state.HandleTxs(txn, block.BlockHeader.Timestamp, block.Txs...)
 	if err != nil {
 		return err
+	}
+
+	// drop commitments unrevealed past the reveal window: the committer
+	// forfeited its commit fee at commit time
+	pruneCommits(txn, block.GetHeight())
+
+	return nil
+}
+
+// handleCommits applies a block's commitments: each must verify and its
+// committer must afford the fee, which is charged and recorded under the
+// block height. Fails the block if any commitment is unaffordable or invalid.
+func (state *State) handleCommits(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
+	for _, commit := range block.Commits {
+		if err := commit.Verify(keyResolver(txn)); err != nil {
+			return err
+		}
+
+		from, err := commit.From()
+		if err != nil {
+			return err
+		}
+
+		balance := getBalance(txn, from)
+		if balance.Cmp(commit.Fee) < 0 {
+			return errors.Wrapf(ErrCommitUnaffordable, "%s owes commit fee %s", from, commit.Fee)
+		}
+		if err := setBalance(txn, state.cs, from, new(big.Int).Sub(balance, commit.Fee)); err != nil {
+			return err
+		}
+
+		if err := putCommit(txn, commit.Height, commit.Hash, from); err != nil {
+			return err
+		}
 	}
 
 	return nil

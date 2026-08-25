@@ -14,7 +14,7 @@ import (
 )
 
 // unsignedTx builds an UNSIGNED tx of the given type, so the per-type
-// self checks (CheckDestroy/CheckActivate/...) fail before any state is
+// self checks (CheckDeploy/...) fail before any state is
 // consulted
 func unsignedTx(txType ngtypes.TxType, to ngtypes.Address, value, fee *big.Int, extra []byte) *ngtypes.FullTx {
 	return ngtypes.NewTx(ngtypes.ZERONET, txType, 1, to, value, fee, extra, nil)
@@ -27,18 +27,15 @@ func TestCheckPerTypeSelfCheckFails(t *testing.T) {
 	db := newTestDB(t)
 
 	err := db.View(func(txn *bbolt.Tx) error {
-		if err := checkDestroy(txn, unsignedTx(ngtypes.DestroyTx, ngtypes.Address{}, nil, big.NewInt(1), nil)); err == nil {
-			t.Fatal("checkDestroy must reject an unsigned tx")
+		// an empty-code deploy (a destroy) is still a deploy: its self check
+		// rejects the unsigned tx before any state is consulted
+		if err := checkDeploy(txn, unsignedTx(ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			destroyExtra())); err == nil {
+			t.Fatal("checkDeploy must reject an unsigned empty-code (destroy) tx")
 		}
-		if err := checkCommit(txn, unsignedTx(ngtypes.CommitTx, ngtypes.Address{}, nil, big.NewInt(1),
+		if err := checkDeploy(txn, unsignedTx(ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
 			ngtypes.EncodeCommitCode(mustWat(logWat)))); err == nil {
-			t.Fatal("checkCommit must reject an unsigned tx")
-		}
-		if err := checkActivate(txn, unsignedTx(ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)); err == nil {
-			t.Fatal("checkActivate must reject an unsigned tx")
-		}
-		if err := checkDeactivate(txn, unsignedTx(ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)); err == nil {
-			t.Fatal("checkDeactivate must reject an unsigned tx")
+			t.Fatal("checkDeploy must reject an unsigned tx")
 		}
 		if err := checkTransaction(txn, unsignedTx(ngtypes.TransactTx, testAddr(0x01), big.NewInt(1), big.NewInt(1), nil)); err == nil {
 			t.Fatal("checkTransaction must reject an unsigned tx")
@@ -50,9 +47,9 @@ func TestCheckPerTypeSelfCheckFails(t *testing.T) {
 	}
 }
 
-// TestCheckPerTypeNoSlot: a signed, funded destroy/activate/deactivate
-// against an address with NO contract slot fails at the getContract step
-// (a branch the "unsigned" refusals above never reach)
+// TestCheckPerTypeNoSlot: a signed, funded empty-code deploy (a destroy)
+// against an address with NO live contract slot fails as nothing to
+// destroy (a branch the "unsigned" refusals above never reach)
 func TestCheckPerTypeNoSlot(t *testing.T) {
 	db := newTestDB(t)
 
@@ -64,17 +61,9 @@ func TestCheckPerTypeNoSlot(t *testing.T) {
 			return err
 		}
 
-		destroy := signedTx(t, priv, ngtypes.DestroyTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := checkDestroy(txn, destroy); err == nil {
-			t.Fatal("checkDestroy on a slotless address must fail")
-		}
-		activate := signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := checkActivate(txn, activate); err == nil {
-			t.Fatal("checkActivate on a slotless address must fail")
-		}
-		deactivate := signedTx(t, priv, ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := checkDeactivate(txn, deactivate); err == nil {
-			t.Fatal("checkDeactivate on a slotless address must fail")
+		destroy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1), destroyExtra())
+		if err := checkDeploy(txn, destroy); !errors.Is(err, ErrNothingToDestroy) {
+			t.Fatalf("destroy on a slotless address: got %v, want ErrNothingToDestroy", err)
 		}
 		return nil
 	})
@@ -83,26 +72,18 @@ func TestCheckPerTypeNoSlot(t *testing.T) {
 	}
 }
 
-// TestCheckPerTypeUnfunded: a signed but UNFUNDED activate/deactivate/
-// commit fails at fromWithBalance (the expense exceeds the zero balance)
+// TestCheckPerTypeUnfunded: a signed but UNFUNDED deploy fails at
+// fromWithBalance (the expense exceeds the zero balance)
 func TestCheckPerTypeUnfunded(t *testing.T) {
 	db := newTestDB(t)
 
 	priv, _ := ngtypes.GenerateKey()
 
 	err := db.View(func(txn *bbolt.Tx) error {
-		activate := signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := checkActivate(txn, activate); !errors.Is(err, ErrTxrBalanceInsufficient) {
-			t.Fatalf("unfunded activate: got %v", err)
-		}
-		deactivate := signedTx(t, priv, ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		if err := checkDeactivate(txn, deactivate); !errors.Is(err, ErrTxrBalanceInsufficient) {
-			t.Fatalf("unfunded deactivate: got %v", err)
-		}
-		commit := signedTx(t, priv, ngtypes.CommitTx, ngtypes.Address{}, nil, big.NewInt(1),
+		deploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
 			ngtypes.EncodeCommitCode(mustWat(logWat)))
-		if err := checkCommit(txn, commit); !errors.Is(err, ErrTxrBalanceInsufficient) {
-			t.Fatalf("unfunded commit: got %v", err)
+		if err := checkDeploy(txn, deploy); !errors.Is(err, ErrTxrBalanceInsufficient) {
+			t.Fatalf("unfunded deploy: got %v", err)
 		}
 		return nil
 	})
@@ -118,9 +99,10 @@ func TestCheckBlockTxsBadNonGenerate(t *testing.T) {
 
 	priv, _ := ngtypes.GenerateKey()
 
-	err := db.View(func(txn *bbolt.Tx) error {
+	err := db.Update(func(txn *bbolt.Tx) error {
 		// a valid miner generate (so the block passes the generate-set gate),
-		// then a signed but unfunded transact that fails inside CheckTx
+		// then a signed but unfunded transact that fails inside CheckTx. The
+		// reveal's commitment is seeded so the tx reaches the balance check
 		minerAddr := ngtypes.NewAddress(priv)
 		gen := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, 1,
 			minerAddr, ngtypes.GetBlockReward(1), big.NewInt(0), nil, nil)
@@ -128,6 +110,7 @@ func TestCheckBlockTxsBadNonGenerate(t *testing.T) {
 			return err
 		}
 		broke := signedTx(t, priv, ngtypes.TransactTx, testAddr(0x01), big.NewInt(1), big.NewInt(1), nil)
+		seedCommit(t, txn, priv, broke)
 		genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
 		header := *genesis.BlockHeader
 		header.Height = 1
@@ -150,11 +133,9 @@ func TestHandlePerTypeSelfCheckFails(t *testing.T) {
 	state := &State{Network: ngtypes.ZERONET}
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := state.handleActivate(txn, unsignedTx(ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil), 1, nil); err == nil {
-			t.Fatal("handleActivate must reject an unsigned tx")
-		}
-		if err := state.handleDeactivate(txn, unsignedTx(ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)); err == nil {
-			t.Fatal("handleDeactivate must reject an unsigned tx")
+		if err := state.handleDeploy(txn, unsignedTx(ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(mustWat(logWat))), 1, nil); err == nil {
+			t.Fatal("handleDeploy must reject an unsigned tx")
 		}
 		return nil
 	})
@@ -164,8 +145,8 @@ func TestHandlePerTypeSelfCheckFails(t *testing.T) {
 }
 
 // TestHandleTxsDispatch drives EACH tx-type branch of HandleTxs so the
-// per-type dispatch arms (destroy, commit, activate, deactivate) are
-// exercised through the top-level entry point
+// per-type dispatch arms (destroy, deploy) are exercised through the
+// top-level entry point
 func TestHandleTxsDispatch(t *testing.T) {
 	db := newTestDB(t)
 	state := &State{Network: ngtypes.ZERONET}
@@ -175,14 +156,16 @@ func TestHandleTxsDispatch(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		gen := signedTx(t, priv, ngtypes.GenerateTx, addr, big.NewInt(1000), big.NewInt(0), nil)
-		commit := signedTx(t, priv, ngtypes.CommitTx, ngtypes.Address{}, nil, big.NewInt(1),
-			ngtypes.EncodeCommitCode(mustWat(logWat)))
-		activate := signedTx(t, priv, ngtypes.ActivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		deactivate := signedTx(t, priv, ngtypes.DeactivateTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
-		destroy := signedTx(t, priv, ngtypes.DestroyTx, ngtypes.Address{}, nil, big.NewInt(1), nil)
+		// the deployed module exports `upgrade`, so the empty-code deploy
+		// (the destroy) is authorized to clear its own slot
+		deploy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1),
+			ngtypes.EncodeCommitCode(mustWat(upgradeableWat)))
+		destroy := signedTx(t, priv, ngtypes.DeployTx, ngtypes.Address{}, nil, big.NewInt(1), destroyExtra())
+		seedCommit(t, txn, priv, deploy)
+		seedCommit(t, txn, priv, destroy)
 
 		// one HandleTxs call routing through every non-transact arm
-		if err := state.HandleTxs(txn, 1, gen, commit, activate, deactivate, destroy); err != nil {
+		if err := state.HandleTxs(txn, 1, gen, deploy, destroy); err != nil {
 			t.Fatalf("HandleTxs dispatch: %v", err)
 		}
 		if _, err := getContract(txn, addr); err == nil {

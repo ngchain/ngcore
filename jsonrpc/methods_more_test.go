@@ -24,7 +24,7 @@ func TestRPCGetContractExports(t *testing.T) {
 	decodeInto(t, node.mustCall(t, "ng_genCommit", map[string]any{
 		"fee": "0.05", "wasm": hex.EncodeToString(mustWat(wat)),
 	}), &unsigned)
-	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+	commitReveal(t, node, key, unsigned)
 	mineViaRPC(t, node, key)
 
 	var exports []struct {

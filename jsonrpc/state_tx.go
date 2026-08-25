@@ -46,6 +46,46 @@ func (s *Server) sendTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessa
 	return reply(msg, hex.EncodeToString(tx.GetHash()))
 }
 
+type sendCommitmentParams struct {
+	RawCommitment string `json:"rawCommitment"`
+}
+
+// sendCommitmentFunc pools and broadcasts a signed commitment: the blind half
+// of the mandatory commit-reveal flow. The wallet signs a Commitment over
+// blake3(revealTx.UnheightedHash() ‖ salt) and submits it here; once it is on
+// chain, the matching reveal tx (carrying the same Salt) becomes admissible
+// via ng_sendTx in a LATER block.
+func (s *Server) sendCommitmentFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+	var params sendCommitmentParams
+
+	err := utils.JSON.Unmarshal(*msg.Params, &params)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	signedRaw, err := hex.DecodeString(params.RawCommitment)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	var commit ngtypes.Commitment
+	err = rlp.DecodeBytes(signedRaw, &commit)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	err = s.pow.Pool.PutNewCommitmentFromLocal(&commit)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	return reply(msg, hex.EncodeToString(commit.Hash))
+}
+
 type genTransactionParams struct {
 	To    string `json:"to"`    // bs58 address
 	Value string `json:"value"` // decimal NG ("1.5"); exact
@@ -108,60 +148,16 @@ func (s *Server) genTransactionFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.Json
 	return reply(msg, hex.EncodeToString(rawTx))
 }
 
-type genDestroyParams struct {
-	Fee   string `json:"fee"`   // decimal NG; exact
-	Extra string `json:"extra"` // optional hex payload
-}
-
-func (s *Server) genDestroyFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genDestroyParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	fee, err := ngAmount(params.Fee)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	extra, err := hex.DecodeString(params.Extra)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	tx := ngtypes.NewUnsignedTx(
-		s.pow.Network,
-		ngtypes.DestroyTx,
-		s.pow.Chain.GetLatestBlockHeight()+1,
-		ngtypes.Address{},
-		nil,
-		fee,
-		extra,
-	)
-
-	rawTx, err := rlp.EncodeToBytes(tx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return reply(msg, hex.EncodeToString(rawTx))
-}
-
 type genCommitParams struct {
 	Fee  string `json:"fee"`  // decimal NG; exact
 	Wasm string `json:"wasm"` // hex of the compiled contract module
 }
 
-// genCommitFunc composes an unsigned commit tx carrying the WHOLE
-// compiled module (compressed). The first commit on an address opens
-// its contract slot; later commits replace the code wholesale — a
-// snapshot, not a diff, since compiled wasm relayouts on any change
-func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
+// genDeployFunc composes an unsigned deploy tx carrying the WHOLE
+// compiled module (compressed). The first deploy on an address opens its
+// contract slot and goes LIVE at once; a later deploy replaces the code
+// wholesale, UUPS-style (the current code must export `upgrade`)
+func (s *Server) genDeployFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params genCommitParams
 	err := utils.JSON.Unmarshal(*msg.Params, &params)
 	if err != nil {
@@ -175,40 +171,7 @@ func (s *Server) genCommitFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMe
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	return s.buildSimpleTx(msg, ngtypes.CommitTx, params.Fee, ngtypes.EncodeCommitCode(module))
-}
-
-type genActivateParams struct {
-	Fee string `json:"fee"` // decimal NG; exact
-}
-
-// genActivateFunc composes an unsigned activate tx (the From address locks its own
-// contract slot)
-func (s *Server) genActivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genActivateParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return s.buildSimpleTx(msg, ngtypes.ActivateTx, params.Fee, nil)
-}
-
-type genDeactivateParams struct {
-	Fee string `json:"fee"` // decimal NG; exact
-}
-
-// genDeactivateFunc composes an unsigned unactivate tx
-func (s *Server) genDeactivateFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	var params genDeactivateParams
-	err := utils.JSON.Unmarshal(*msg.Params, &params)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	return s.buildSimpleTx(msg, ngtypes.DeactivateTx, params.Fee, nil)
+	return s.buildSimpleTx(msg, ngtypes.DeployTx, params.Fee, ngtypes.EncodeCommitCode(module))
 }
 
 // buildSimpleTx composes an unsigned from-only tx of the given type

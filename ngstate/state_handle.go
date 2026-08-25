@@ -30,24 +30,18 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 			if err := state.handleGenerate(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.DestroyTx:
-			if err := state.handleDestroy(txn, tx); err != nil {
+		case ngtypes.TransactTx:
+			if err := state.consumeReveal(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.TransactTx:
 			if err := state.handleTransaction(txn, tx, blockTime, gas); err != nil {
 				return err
 			}
-		case ngtypes.CommitTx: // commit tx
-			if err := state.handleCommit(txn, tx); err != nil {
+		case ngtypes.DeployTx: // deploy / upgrade tx
+			if err := state.consumeReveal(txn, tx); err != nil {
 				return err
 			}
-		case ngtypes.ActivateTx:
-			if err := state.handleActivate(txn, tx, blockTime, gas); err != nil {
-				return err
-			}
-		case ngtypes.DeactivateTx:
-			if err := state.handleDeactivate(txn, tx); err != nil {
+			if err := state.handleDeploy(txn, tx, blockTime, gas); err != nil {
 				return err
 			}
 		default:
@@ -56,6 +50,43 @@ func (state *State) HandleTxs(txn *bbolt.Tx, blockTime uint64, txs ...*ngtypes.F
 	}
 
 	return nil
+}
+
+// consumeReveal spends the commitment an effect tx reveals: it re-derives the
+// commitment hash, locates the in-window unrevealed commitment (matched on
+// From and Hash, recorded strictly earlier than this reveal), and deletes it.
+// A missing match fails the block — CheckBlockTxs/checkReveal must have passed
+// first, so this only fires on an inconsistent apply. Genesis (height 0) is
+// exempt: its txs bypass every tx check.
+func (state *State) consumeReveal(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
+	if tx.Height == 0 {
+		return nil
+	}
+	// the authoritative gate at block-apply: an under-entropy salt is rejected
+	// here too, so an adversarial block cannot bypass the pool-side check
+	if len(tx.Salt) < ngtypes.MinSaltSize {
+		return errors.Wrapf(ErrSaltTooShort, "salt is %d bytes, need >= %d", len(tx.Salt), ngtypes.MinSaltSize)
+	}
+
+	from, err := tx.From()
+	if err != nil {
+		return err
+	}
+
+	hash := revealHash(tx)
+	h, ok := findCommit(txn, from, hash, tx.Height)
+	if !ok {
+		return errors.Wrapf(ErrTxNotCommitted,
+			"no in-window unrevealed commitment for %s revealing at height %d", from, tx.Height)
+	}
+
+	// journal the consumption at the reveal's height BEFORE deleting, so a
+	// block-undo of this reveal restores the commitment (its recording block
+	// may stay canonical below the reorg's fork point)
+	if err := journalConsumed(txn, tx.Height, h, hash, from); err != nil {
+		return err
+	}
+	return consumeCommit(txn, h, hash)
 }
 
 func (state *State) handleGenerate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
@@ -110,29 +141,6 @@ func chargeFrom(txn *bbolt.Tx, rec *changeset, tx *ngtypes.FullTx, expense *big.
 	return from, nil
 }
 
-// handleDestroy removes the sender's own contract slot entirely (contract
-// text AND context); the slot must be inactive and unreferenced
-func (state *State) handleDestroy(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	from, err := chargeFrom(txn, state.cs, tx, tx.Fee)
-	if err != nil {
-		return err
-	}
-
-	slot, err := getContract(txn, from)
-	if err != nil {
-		return err
-	}
-
-	if slot.IsActive() {
-		return ErrContractActive
-	}
-	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
-	}
-
-	return delContract(txn, state.cs, from)
-}
-
 func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64, gas *blockGas) (err error) {
 	if _, err := chargeFrom(txn, state.cs, tx, tx.TotalExpenditure()); err != nil {
 		return err
@@ -150,28 +158,24 @@ func (state *State) handleTransaction(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTi
 	return nil
 }
 
-// handleCommit applies a whole patch (CommitExtra hunks) onto the
-// sender's contract slot atomically; the first commit OPENS the slot
-func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.CheckCommit(keyResolver(txn)); err != nil {
+// handleDeploy deploys or upgrades the sender's own contract slot from the
+// whole compiled module carried in Extra (UUPS lifecycle in one op):
+//
+//   - EMPTY slot -> deploy: compile, pin the live dependencies, open the
+//     slot LIVE, and run the optional `init` hook once (merges the old
+//     commit+activate).
+//   - LIVE slot -> upgrade: run the current contract's `upgrade` hook; if
+//     it traps the code is kept and the failed run is recorded (soft fail,
+//     the tx stays valid and the fee is paid). On success the old deps are
+//     released, the new deps pinned, the code replaced in place (still
+//     live), and `init` re-run as a migration hook.
+func (state *State) handleDeploy(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64, gas *blockGas) (err error) {
+	if err := tx.CheckDeploy(keyResolver(txn)); err != nil {
 		return err
 	}
 
-	from, err := tx.From()
+	from, err := chargeFrom(txn, state.cs, tx, tx.TotalExpenditure())
 	if err != nil {
-		return err
-	}
-
-	slot, err := getContract(txn, from)
-	if err != nil { // no slot yet: this commit opens the namespace
-		slot = ngtypes.NewContract(from, nil, nil)
-	}
-
-	if slot.IsActive() {
-		return ErrContractActive
-	}
-
-	if _, err := chargeFrom(txn, state.cs, tx, tx.TotalExpenditure()); err != nil {
 		return err
 	}
 
@@ -183,107 +187,123 @@ func (state *State) handleCommit(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) 
 		return errors.Wrapf(ErrSourceTooLarge, "%d bytes exceed the cap %d",
 			len(newSource), ngtypes.MaxContractSourceSize)
 	}
+
+	slot, hasSlot := getContract(txn, from)
+	isLive := hasSlot == nil && slot.IsActive() && len(slot.Source) != 0
+
+	// EMPTY code on a LIVE slot -> DESTROY: the contract authorizes its own
+	// removal through the SAME `upgrade` hook (it sees the empty proposed code
+	// via the tx). Refused while other contracts still depend on it.
+	if len(newSource) == 0 {
+		if !isLive {
+			return ErrNothingToDestroy
+		}
+		if refs := getRefCount(slot); refs > 0 {
+			return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
+		}
+		if ok := state.runContract(txn, from, tx, VMEntryOnUpgrade, blockTime, gas); !ok {
+			return nil // the hook rejected the destroy — soft-fail, slot kept
+		}
+		if err := releaseContractDeps(txn, state.cs, slot); err != nil {
+			return err
+		}
+		return delContract(txn, state.cs, from)
+	}
+
+	// the module must compile before it can go live
+	if _, err := LoadContractWasm(newSource); err != nil {
+		return err
+	}
+
+	// resolve and validate the new module's live dependencies
+	newDeps, err := validateDeps(txn, from, newSource)
+	if err != nil {
+		return err
+	}
+
+	if isLive {
+		// LIVE slot -> UUPS upgrade: the current code authorizes the swap.
+		// A trapped upgrade hook soft-fails: the code is NOT replaced, the
+		// failed run is recorded, the tx stays valid (fee already paid)
+		if ok := state.runContract(txn, from, tx, VMEntryOnUpgrade, blockTime, gas); !ok {
+			return nil
+		}
+
+		// release the references the OLD code held on its dependencies
+		if err := releaseContractDeps(txn, state.cs, slot); err != nil {
+			return err
+		}
+	} else {
+		// EMPTY slot -> deploy: open the namespace
+		slot = ngtypes.NewContract(from, nil, nil)
+	}
+
+	// pin the references the NEW code holds on its dependencies
+	if err := pinDeps(txn, state.cs, newDeps); err != nil {
+		return err
+	}
+
 	slot.Source = newSource
-
-	return setContract(txn, state.cs, slot)
-}
-
-// handleActivate freezes the From address's contract: the body becomes immutable
-// and the vm gets active. The optional `init` export runs once here
-func (state *State) handleActivate(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime uint64, gas *blockGas) (err error) {
-	if err := tx.CheckActivate(keyResolver(txn)); err != nil {
-		return err
-	}
-
-	from, err := chargeFrom(txn, state.cs, tx, tx.Fee)
-	if err != nil {
-		return err
-	}
-
-	slot, err := getContract(txn, from)
-	if err != nil {
-		return err
-	}
-
-	if slot.IsActive() {
-		return ErrContractActive
-	}
-
-	// activating turns the vm on, so the contract text must compile
-	if len(slot.Source) != 0 {
-		if _, err := LoadContractWasm(slot.Source); err != nil {
-			return err
-		}
-	}
-
-	// module dependencies: every imported contract must be active, and
-	// each dependee gets a reference pinned until this contract deactivates
-	deps, err := extractContractDeps(slot.Source)
-	if err != nil {
-		return err
-	}
-	for _, depAddr := range deps {
-		if depAddr.Equals(from) {
-			return ErrDepSelf
-		}
-
-		depAcc, err := getContract(txn, depAddr)
-		if err != nil {
-			return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
-		}
-		if !depAcc.IsActive() || len(depAcc.Source) == 0 {
-			return errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
-		}
-
-		setRefCount(depAcc, getRefCount(depAcc)+1)
-		if err := setContract(txn, state.cs, depAcc); err != nil {
-			return err
-		}
-	}
-
 	slot.SetActive(true)
-	if err := setContractDeps(slot, deps); err != nil {
+	if err := setContractDeps(slot, newDeps); err != nil {
+		return err
+	}
+	if err := setContract(txn, state.cs, slot); err != nil {
 		return err
 	}
 
-	err = setContract(txn, state.cs, slot)
-	if err != nil {
-		return err
-	}
-
+	// the optional `init` hook runs once on deploy, and again as a migration
+	// hook after an upgrade
 	state.runContract(txn, from, tx, VMEntryOnActivate, blockTime, gas)
 
 	return nil
 }
 
-// handleDeactivate disables the vm of the From address's contract and makes the
-// body editable again
-func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err error) {
-	if err := tx.CheckDeactivate(keyResolver(txn)); err != nil {
-		return err
-	}
-
-	from, err := chargeFrom(txn, state.cs, tx, tx.Fee)
+// validateDeps resolves the module dependencies imported by source: each
+// must be a live contract and not the deployer itself
+func validateDeps(txn *bbolt.Tx, from ngtypes.Address, source []byte) ([]ngtypes.Address, error) {
+	deps, err := extractContractDeps(source)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	for _, depAddr := range deps {
+		if depAddr.Equals(from) {
+			return nil, ErrDepSelf
+		}
+
+		depAcc, err := getContract(txn, depAddr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unknown dependency contract %s", depAddr)
+		}
+		if !depAcc.IsActive() || len(depAcc.Source) == 0 {
+			return nil, errors.Wrapf(ErrDepNotActive, "contract %s", depAddr)
+		}
 	}
 
-	slot, err := getContract(txn, from)
-	if err != nil {
-		return err
+	return deps, nil
+}
+
+// pinDeps bumps the refcount of each dependency by one, keeping it alive
+// while this contract links against it
+func pinDeps(txn *bbolt.Tx, cs *changeset, deps []ngtypes.Address) error {
+	for _, depAddr := range deps {
+		depAcc, err := getContract(txn, depAddr)
+		if err != nil {
+			return errors.Wrapf(err, "unknown dependency contract %s", depAddr)
+		}
+
+		setRefCount(depAcc, getRefCount(depAcc)+1)
+		if err := setContract(txn, cs, depAcc); err != nil {
+			return err
+		}
 	}
 
-	if !slot.IsActive() {
-		return ErrContractNotActive
-	}
+	return nil
+}
 
-	// a depended-on module cannot deactivate: its dependents would lose
-	// the code they link against
-	if refs := getRefCount(slot); refs > 0 {
-		return errors.Wrapf(ErrContractRefdBy, "%d dependent contract(s)", refs)
-	}
-
-	// release the references this contract held on its dependencies
+// releaseContractDeps drops the references a contract held on its recorded
+// dependencies by one each
+func releaseContractDeps(txn *bbolt.Tx, cs *changeset, slot *ngtypes.Contract) error {
 	deps, err := getContractDeps(slot)
 	if err != nil {
 		return err
@@ -295,32 +315,29 @@ func (state *State) handleDeactivate(txn *bbolt.Tx, tx *ngtypes.FullTx) (err err
 		}
 		if refs := getRefCount(depAcc); refs > 0 {
 			setRefCount(depAcc, refs-1)
-			if err := setContract(txn, state.cs, depAcc); err != nil {
+			if err := setContract(txn, cs, depAcc); err != nil {
 				return err
 			}
 		}
 	}
 
-	slot.SetActive(false)
-	if err := setContractDeps(slot, nil); err != nil {
-		return err
-	}
-
-	return setContract(txn, state.cs, slot)
+	return nil
 }
 
 // runContract executes the entry export of the address's contract, if
 // its slot is locked and has one. A contract failure is final for this
 // call (its journal is dropped) but NEVER fails the tx itself: every
-// node hits the same result, so consensus is kept
-func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, entry string, blockTime uint64, gas *blockGas) {
+// node hits the same result, so consensus is kept. It reports whether the
+// entry ran to completion, which the deploy path uses to gate a UUPS
+// upgrade on the `upgrade` hook succeeding
+func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes.FullTx, entry string, blockTime uint64, gas *blockGas) bool {
 	account, err := getContract(txn, addr)
 	if err != nil {
-		return // no contract slot on this address
+		return false // no contract slot on this address
 	}
 
 	if !account.IsActive() || len(account.Source) == 0 {
-		return
+		return false
 	}
 
 	run := ContractRun{Contract: addr.Bytes(), Entry: entry}
@@ -330,7 +347,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 	if gas != nil && gas.remaining == 0 {
 		run.Error = "block gas budget exhausted"
 		recordRun(txn, tx, run)
-		return
+		return false
 	}
 
 	vm, err := NewVM(txn, account, tx, blockTime)
@@ -338,7 +355,7 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 		log.Errorf("failed to build the vm for %s: %v", addr, err)
 		run.Error = err.Error()
 		recordRun(txn, tx, run)
-		return
+		return false
 	}
 	vm.cs = state.cs // capture the journal flush's pre-images (archive)
 
@@ -363,18 +380,20 @@ func (state *State) runContract(txn *bbolt.Tx, addr ngtypes.Address, tx *ngtypes
 	}
 	if err != nil {
 		if IsExportMissing(err) && entry != VMEntryOnTx {
-			return // optional entry (e.g. init) is absent — no run to record
+			return false // optional entry (e.g. init) is absent — no run to record
 		}
 
 		log.Errorf("contract call %s on %s failed: %v", entry, addr, err)
 		run.Error = err.Error()
 		recordRun(txn, tx, run)
-		return
+		return false
 	}
 
 	run.Ok = true
 	run.Events = vm.Events()
 	recordRun(txn, tx, run)
+
+	return true
 }
 
 // recordRun appends the run to the tx's local receipt; receipt failures

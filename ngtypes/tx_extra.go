@@ -13,7 +13,7 @@ import (
 
 var ErrCommitExtraInvalid = errors.New("malformed commit extra payload")
 
-// A CommitTx's extra carries the WHOLE contract module — a full
+// A DeployTx's extra carries the WHOLE contract module — a full
 // snapshot, like a git commit stores a blob, not a diff. Diffing made
 // sense when contracts were hand-written text; compiled wasm relayouts
 // entirely on any change, so a "patch" would be as big as the module.

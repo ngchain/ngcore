@@ -6,12 +6,11 @@
 //     the balance holder and the namespace. Addresses spend directly;
 //     nothing is registered.
 //   - Contract: the code slot an address may open under its own
-//     namespace (the first CommitTx against the empty base opens it).
-//     Its Source is plain wat text, changed by committing diff hunks,
-//     frozen and executed while active.
+//     namespace (a DeployTx against the empty base opens it). Its Source
+//     is a compiled wasm module, replaced wholesale by a later DeployTx
+//     (UUPS upgrade), and live from the moment it is deployed.
 //
 // Tx verbs: Generate (mining reward), Transact (pay addresses and
-// trigger their active contracts), Commit (change your contract
-// source), Activate / Deactivate (turn the vm on / off), Destroy
-// (remove your slot).
+// trigger their live contracts), Deploy (deploy your contract, or upgrade
+// it UUPS-style), Destroy (remove your slot).
 package ngtypes

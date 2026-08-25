@@ -230,8 +230,8 @@ func getCliToolsCommand() *cli.Command {
 				},
 			},
 			{
-				Name:        "commit",
-				Description: "commit a compiled wasm module onto the own contract slot: the node diffs it against the on-chain binary and carries the minimal patch (the first commit deploys)",
+				Name:        "deploy",
+				Description: "deploy a compiled wasm module onto the own contract slot and go live at once (a later deploy upgrades it UUPS-style)",
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "file", Required: true, Usage: "path to the compiled contract module (.wasm)"},
 					&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"},
@@ -241,34 +241,19 @@ func getCliToolsCommand() *cli.Command {
 					if err != nil {
 						return err
 					}
-					return genThenSend(ctx, "ng_genCommit", map[string]any{
+					return genThenSend(ctx, "ng_genDeploy", map[string]any{
 						"fee":  ctx.String("fee"),
 						"wasm": hex.EncodeToString(module),
 					})
 				},
 			},
 			{
-				Name:        "activate",
-				Description: "freeze the own contract source and turn its vm on (runs init once)",
-				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
-				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "ng_genActivate", map[string]any{"fee": ctx.String("fee")})
-				},
-			},
-			{
-				Name:        "deactivate",
-				Description: "turn the own contract vm off and reopen the source for commits",
-				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
-				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "ng_genDeactivate", map[string]any{"fee": ctx.String("fee")})
-				},
-			},
-			{
 				Name:        "destroy",
-				Description: "remove the own contract slot (source AND storage)",
+				Description: "remove the own contract slot: an empty deploy, authorized by the contract's own `upgrade` hook",
 				Flags:       []cli.Flag{&cli.StringFlag{Name: "fee", Usage: "tx fee in NG, decimal string (exact)"}},
 				Action: func(ctx *cli.Context) error {
-					return genThenSend(ctx, "ng_genDestroy", map[string]any{"fee": ctx.String("fee")})
+					// destroy == deploy with no module (empty code)
+					return genThenSend(ctx, "ng_genDeploy", map[string]any{"fee": ctx.String("fee"), "wasm": ""})
 				},
 			},
 			{

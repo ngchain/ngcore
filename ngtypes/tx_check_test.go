@@ -76,10 +76,7 @@ func TestCheckNoTransferTypes(t *testing.T) {
 		txType TxType
 		run    check
 	}{
-		"destroy":    {DestroyTx, func(tx *FullTx) error { return tx.CheckDestroy(nil) }},
-		"commit":     {CommitTx, func(tx *FullTx) error { return tx.CheckCommit(nil) }},
-		"activate":   {ActivateTx, func(tx *FullTx) error { return tx.CheckActivate(nil) }},
-		"deactivate": {DeactivateTx, func(tx *FullTx) error { return tx.CheckDeactivate(nil) }},
+		"deploy": {DeployTx, func(tx *FullTx) error { return tx.CheckDeploy(nil) }},
 	}
 
 	for name, c := range cases {
@@ -109,8 +106,7 @@ func TestCheckNoTransferTypes(t *testing.T) {
 
 	// nil receivers
 	var nilTx *FullTx
-	if nilTx.CheckDestroy(nil) == nil || nilTx.CheckCommit(nil) == nil ||
-		nilTx.CheckActivate(nil) == nil || nilTx.CheckDeactivate(nil) == nil ||
+	if nilTx.CheckDeploy(nil) == nil ||
 		nilTx.CheckTransaction(nil) == nil {
 		t.Fatal("nil txs must be rejected")
 	}

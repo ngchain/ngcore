@@ -241,4 +241,10 @@ func unwindHeightTxn(txn *bbolt.Tx, h uint64) {
 	// the key registry is append-only: a recorded reveal means the entry
 	// did not exist before, so unwinding just drops it (no history index)
 	revertDomain(txn, storage.KeyChangeSetBucketName, storage.KeyRegistryBucketName, nil, h)
+	// commit store, two directions: drop the commitments RECORDED at h, and
+	// re-put the commitments CONSUMED by reveals at h — their own recording
+	// block may stay canonical below the fork point, so re-applying the branch
+	// would not otherwise restore them
+	deleteCommitsAtHeight(txn, h)
+	restoreConsumedAtHeight(txn, h)
 }

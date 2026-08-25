@@ -125,17 +125,15 @@ func TestRPCWebSocketLogs(t *testing.T) {
 		t.Fatalf("logs subscribe = %s (%v)", resp["result"], err)
 	}
 
-	send := func(method string, params any) {
+	gen := func(method string, params any) string {
 		var unsigned string
 		decodeInto(t, node.mustCall(t, method, params), &unsigned)
-		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+		return unsigned
 	}
 	mineViaRPC(t, node, key)
-	send("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))})
-	mineViaRPC(t, node, key)
-	send("ng_genActivate", map[string]any{"fee": "0.05"})
-	mineViaRPC(t, node, key)
-	send("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"})
+	commitReveal(t, node, key, gen("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))}))
+	mineViaRPC(t, node, key) // deploy goes live at once
+	commitReveal(t, node, key, gen("ng_genTransaction", map[string]any{"to": addr.BS58(), "value": "0", "fee": "0.01"}))
 	mineViaRPC(t, node, key) // runs main -> emits the "key" log
 
 	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
@@ -203,12 +201,14 @@ func TestRPCWebSocketPendingTxs(t *testing.T) {
 	var subID string
 	_ = json.Unmarshal(resp["result"], &subID)
 
-	// compose + sign + broadcast a tx over HTTP
+	// compose + broadcast a tx over HTTP: commitReveal lands the commitment
+	// (not a pool tx, so it pushes nothing) and submits the reveal, which is
+	// the FullTx that enters the mempool and fires the pendingTxs push
 	var unsigned string
 	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
 		"to": ngtypes.NewAddress(key).BS58(), "value": "1", "fee": "0.01",
 	}), &unsigned)
-	node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+	commitReveal(t, node, key, unsigned)
 
 	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	var notif struct {

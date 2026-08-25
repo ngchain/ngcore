@@ -18,17 +18,21 @@ type TxType uint8
 const (
 	InvalidTx TxType = iota
 	GenerateTx
-	DestroyTx
 
 	TransactTx
 
-	// CommitTx commits a change set (diff hunks) onto the sender's
-	// contract slot, like a git commit onto the sender's namespace.
-	// The FIRST commit (against the empty base) creates the slot
-	CommitTx
-
-	ActivateTx   // freeze the contract: no more commits, and the vm gets active
-	DeactivateTx // disable the vm, and enable committing again
+	// DeployTx carries a compiled wasm module in its Extra and governs a
+	// contract's WHOLE lifecycle in one op, UUPS-style, by the module and the
+	// slot state:
+	//   - empty slot + code -> deploy: compile, go live, run `init` once
+	//   - live  slot + code -> upgrade: the contract's OWN `upgrade` hook must
+	//     authorize replacing its code
+	//   - live  slot + EMPTY code -> destroy: the `upgrade` hook authorizes
+	//     removal (refused while others still depend on it)
+	// A contract that exports no `upgrade` is therefore permanently immutable
+	// AND indestructible. A deployed contract is live immediately — there is
+	// no activate/deactivate, and no separate destroy op.
+	DeployTx
 )
 
 // FullTx is the basic implement of Tx (transaction, or operation)
@@ -42,6 +46,12 @@ type FullTx struct {
 
 	Extra []byte
 	Sign  []byte `rlp:"optional"`
+	// Salt is the reveal nonce of a private (commit-reveal) tx. It is
+	// carried on the wire but excluded from the content hash (like Sign),
+	// so a tx's id is salt-independent; a Commitment first commits
+	// blake3(UnheightedHash ‖ Salt) blind, and this effect tx reveals it
+	// later. Empty on the genesis/coinbase path.
+	Salt []byte `rlp:"optional"`
 }
 
 // NewTx is the default constructor for ngtypes.Tx
@@ -280,14 +290,36 @@ func (x *FullTx) GetHash() []byte {
 // GetUnsignedHash mainly for signing and verifying.
 // The returned hash is sha3_256(tx_without_sign)
 func (x *FullTx) GetUnsignedHash() []byte {
-	sign := x.Sign
-	x.Sign = nil
+	// exclude BOTH Sign and Salt from the content hash: Salt is the private
+	// (commit-reveal) nonce, so a tx's id and signature are salt-independent
+	// and the commitment blake3(UnheightedHash ‖ Salt) binds content and
+	// nonce separately
+	sign, salt := x.Sign, x.Salt
+	x.Sign, x.Salt = nil, nil
 	raw, err := rlp.EncodeToBytes(x)
 	if err != nil {
 		panic(err)
 	}
 
-	x.Sign = sign
+	x.Sign, x.Salt = sign, salt
+	return utils.Hash256(raw)
+}
+
+// UnheightedHash is the tx's content hash with its target Height (as well as
+// Sign and Salt) excluded. The private-mempool commitment binds THIS, not the
+// height: a committed reveal can therefore be broadcast at ANY height inside
+// the reveal window (re-signed per attempt) and still match its commitment.
+// That is what gives a reveal real liveness — a single miner censoring block
+// N+1 cannot kill it, since the same commitment is revealable at N+2 … N+W.
+func (x *FullTx) UnheightedHash() []byte {
+	sign, salt, height := x.Sign, x.Salt, x.Height
+	x.Sign, x.Salt, x.Height = nil, nil, 0
+	raw, err := rlp.EncodeToBytes(x)
+	if err != nil {
+		panic(err)
+	}
+
+	x.Sign, x.Salt, x.Height = sign, salt, height
 	return utils.Hash256(raw)
 }
 
@@ -362,20 +394,6 @@ func (x *FullTx) CheckGenerate(blockHeight uint64, lookup PubKeyResolver) error 
 	return nil
 }
 
-// CheckDestroy does a self check for destroy tx: the From address clears its
-// own contract slot
-func (x *FullTx) CheckDestroy(lookup PubKeyResolver) error {
-	if x == nil {
-		return ErrTxNoHeader
-	}
-
-	if err := x.checkNoTransfer("destroy"); err != nil {
-		return err
-	}
-
-	return x.Verify(lookup)
-}
-
 // checkNoTransfer refuses a To address or value on tx types which
 // only act on the From address's own slot
 func (x *FullTx) checkNoTransfer(verb string) error {
@@ -403,40 +421,14 @@ func (x *FullTx) CheckTransaction(lookup PubKeyResolver) error {
 	return x.Verify(lookup)
 }
 
-// CheckCommit does a self check for commit tx: the From address patches its own
-// contract slot
-func (x *FullTx) CheckCommit(lookup PubKeyResolver) error {
+// CheckDeploy does a self check for a deploy tx: the From address deploys or
+// upgrades its own contract slot, carrying the module in Extra and no transfer
+func (x *FullTx) CheckDeploy(lookup PubKeyResolver) error {
 	if x == nil {
 		return ErrTxNoHeader
 	}
 
-	if err := x.checkNoTransfer("commit"); err != nil {
-		return err
-	}
-
-	return x.Verify(lookup)
-}
-
-// CheckActivate does a self check for activate tx
-func (x *FullTx) CheckActivate(lookup PubKeyResolver) error {
-	if x == nil {
-		return ErrTxNoHeader
-	}
-
-	if err := x.checkNoTransfer("activate"); err != nil {
-		return err
-	}
-
-	return x.Verify(lookup)
-}
-
-// CheckDeactivate does a self check for unactivate tx
-func (x *FullTx) CheckDeactivate(lookup PubKeyResolver) error {
-	if x == nil {
-		return ErrTxNoHeader
-	}
-
-	if err := x.checkNoTransfer("deactivate"); err != nil {
+	if err := x.checkNoTransfer("deploy"); err != nil {
 		return err
 	}
 

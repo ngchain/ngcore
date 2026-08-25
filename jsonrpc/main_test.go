@@ -176,6 +176,60 @@ func localSign(t *testing.T, key *ngtypes.PrivateKey, unsignedHex string) string
 	return hex.EncodeToString(signed)
 }
 
+// rpcTestSalt is the fixed reveal nonce these tests use
+var rpcTestSalt = []byte("jsonrpc-test-salt")
+
+// commitReveal drives the mandatory commit-reveal flow for an unsigned effect
+// tx from a gen* method: it re-locks the reveal two blocks ahead (salted +
+// signed), commits blake3(reveal.UnheightedHash ‖ salt) in the next block
+// (mined here), then submits the reveal (now locked on the new next block).
+// The caller mines the reveal's own block afterward. Returns the reveal's hash.
+func commitReveal(t *testing.T, node *rpcNode, key *ngtypes.PrivateKey, unsignedHex string) string {
+	t.Helper()
+
+	raw, err := hex.DecodeString(unsignedHex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reveal ngtypes.FullTx
+	if err := rlp.DecodeBytes(raw, &reveal); err != nil {
+		t.Fatal(err)
+	}
+
+	tip := node.pow.Chain.GetLatestBlockHeight()
+	// the reveal lands two blocks ahead: the commit rides tip+1, the reveal
+	// tip+2 (strictly later than its commit — the anti-same-block rule)
+	reveal.Height = tip + 2
+	reveal.Salt = rpcTestSalt
+	if err := reveal.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+
+	// build + sign the commitment over the reveal's salted preimage; the
+	// commit fee must clear the relay floor (MinFeePerByte * wire size)
+	buf := append(append([]byte{}, reveal.UnheightedHash()...), reveal.Salt...)
+	commit := ngtypes.NewCommitment(ngtypes.ZERONET, tip+1, utils.Hash256(buf), big.NewInt(100_000_000_000_000))
+	if err := commit.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	commitRaw, err := rlp.EncodeToBytes(commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node.mustCall(t, "ng_sendCommitment", map[string]any{"rawCommitment": hex.EncodeToString(commitRaw)})
+
+	// mine the commit into tip+1, so the reveal (locked on tip+2) is admissible
+	mineViaRPC(t, node, key)
+
+	signed, err := rlp.EncodeToBytes(&reveal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var txHash string
+	decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": hex.EncodeToString(signed)}), &txHash)
+	return txHash
+}
+
 func bs58Key(key *ngtypes.PrivateKey) string {
 	return base58.FastBase58Encoding(key.Serialize())
 }
@@ -216,6 +270,19 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 	if err := block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, txs...)); err != nil {
 		t.Fatal(err)
 	}
+	// ToUnsealing computes the witness root over the txs in INSERTION order
+	// (gen first) but stores x.Txs hash-sorted (NewTxTrie sorts in place);
+	// CheckError recomputes the root over the sorted x.Txs, so recompute it here
+	// to match — otherwise a block whose reveal tx sorts before the generate is
+	// rejected as witness-invalid.
+	block.BlockHeader.WitnessRoot = ngtypes.CalcWitnessRoot(block.Txs, block.Commits)
+
+	// ng_submitWork rebuilds the block from the raw template (gen first) and does
+	// NOT recompute the witness root, so it only round-trips when the generate
+	// already sorts first. When a packed reveal sorts ahead of it, land the fully
+	// sealed block directly via MinedNewBlock (the same import path submitWork
+	// ends in) so the recomputed witness root survives.
+	genSortsFirst := len(block.Txs) == 0 || bytes.Equal(block.Txs[0].GetHash(), genTx.GetHash())
 
 	for n := uint64(0); n < 1_000_000; n++ {
 		nonce := utils.PackUint64LE(n)
@@ -223,11 +290,15 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
-			node.mustCall(t, "ng_submitWork", map[string]any{
-				"id":    work.WorkID,
-				"nonce": hex.EncodeToString(nonce),
-				"gen":   utils.HexRLPEncode(genTx),
-			})
+			if genSortsFirst {
+				node.mustCall(t, "ng_submitWork", map[string]any{
+					"id":    work.WorkID,
+					"nonce": hex.EncodeToString(nonce),
+					"gen":   utils.HexRLPEncode(genTx),
+				})
+			} else if err := node.pow.MinedNewBlock(&block); err != nil {
+				t.Fatalf("MinedNewBlock: %v", err)
+			}
 			return
 		}
 	}
@@ -397,33 +468,6 @@ func TestRPCContractLifecycle(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
-	// signAndSend takes an unsigned tx from a gen* method, signs it
-	// LOCALLY (keys never travel to the node) and broadcasts the signed
-	// bytes; returns the tx hash
-	signAndSend := func(unsignedHex string) string {
-		t.Helper()
-
-		raw, err := hex.DecodeString(unsignedHex)
-		if err != nil {
-			t.Fatal(err)
-		}
-		var tx ngtypes.FullTx
-		if err := rlp.DecodeBytes(raw, &tx); err != nil {
-			t.Fatal(err)
-		}
-		if err := tx.Signature(key); err != nil {
-			t.Fatal(err)
-		}
-		signed, err := rlp.EncodeToBytes(&tx)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var txHash string
-		decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": hex.EncodeToString(signed)}), &txHash)
-		return txHash
-	}
-
 	genResult := func(method string, params any) string {
 		t.Helper()
 
@@ -435,10 +479,10 @@ func TestRPCContractLifecycle(t *testing.T) {
 	// fund the deployer
 	mineViaRPC(t, node, key)
 
-	// deploy: the first commit opens the address's contract slot,
-	// carrying the compiled wasm module (client compiles locally)
+	// deploy: the deploy opens the address's contract slot and goes live at
+	// once, carrying the compiled wasm module (client compiles locally)
 	contractWasm := hex.EncodeToString(mustWat(contractWat))
-	signAndSend(genResult("ng_genCommit", map[string]any{
+	commitReveal(t, node, key, genResult("ng_genCommit", map[string]any{
 		"fee":  "0.05",
 		"wasm": contractWasm,
 	}))
@@ -455,12 +499,8 @@ func TestRPCContractLifecycle(t *testing.T) {
 		t.Fatalf("slot owner = %s, want %s", account.Owner, addr.BS58())
 	}
 	if account.Source != contractWasm {
-		t.Fatal("getContractInfo source mismatch after the commit tx")
+		t.Fatal("getContractInfo source mismatch after the deploy tx")
 	}
-
-	// activate: the From address locks its own slot
-	signAndSend(genResult("ng_genActivate", map[string]any{"fee": "0.05"}))
-	mineViaRPC(t, node, key)
 
 	// dry-run by address: nothing lands on chain, but the simulated
 	// run reports success, gas and events
@@ -494,7 +534,7 @@ func TestRPCContractLifecycle(t *testing.T) {
 	}
 
 	// trigger for real: a transact tx to the contract address runs main
-	txHash := signAndSend(genResult("ng_genTransaction", map[string]any{
+	txHash := commitReveal(t, node, key, genResult("ng_genTransaction", map[string]any{
 		"to":    addr.BS58(),
 		"value": "0",
 		"fee":   "0.01",

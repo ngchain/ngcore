@@ -73,18 +73,17 @@ func TestRPCCallContractAtHeight(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
-	send := func(method string, params any) {
+	gen := func(method string, params any) string {
 		var unsigned string
 		decodeInto(t, node.mustCall(t, method, params), &unsigned)
-		node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": localSign(t, key, unsigned)})
+		return unsigned
 	}
 	mineViaRPC(t, node, key) // @1 fund
-	send("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))})
-	mineViaRPC(t, node, key) // @2 commit
-	send("ng_genActivate", map[string]any{"fee": "0.05"})
-	mineViaRPC(t, node, key) // @3 activate
+	// commitReveal mines the commit (@2), the reveal lands on @3
+	commitReveal(t, node, key, gen("ng_genCommit", map[string]any{"fee": "0.05", "wasm": hex.EncodeToString(mustWat(contractWat))}))
+	mineViaRPC(t, node, key) // @3 deploy goes live
 
-	// at height 3 the contract is active: the dry-run runs and emits "key"
+	// at height 3 the contract is live: the dry-run runs and emits "key"
 	var run struct {
 		Ok     bool `json:"ok"`
 		Events []struct {

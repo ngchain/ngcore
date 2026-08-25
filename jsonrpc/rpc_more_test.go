@@ -1,7 +1,6 @@
 package jsonrpc_test
 
 import (
-	"bytes"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -12,52 +11,42 @@ import (
 	"github.com/ngchain/ngcore/utils"
 )
 
-// TestRPCGenDestroyDeactivate pins the two unsigned-tx composers that
-// have no other coverage: the raw hex(RLP) reply must decode back into
-// a tx of the right type, height, fee and extra
-func TestRPCGenDestroyDeactivate(t *testing.T) {
+// TestRPCGenDeploy pins the unsigned-tx composer that has no other
+// coverage: the raw hex(RLP) reply must decode back into a tx of the
+// right type, height, fee and extra. An empty wasm is the DESTROY form —
+// a deploy carrying the empty-code commit
+func TestRPCGenDeploy(t *testing.T) {
 	node := newRPCNode(t)
 	nextHeight := node.pow.Chain.GetLatestBlockHeight() + 1
 
+	// an empty wasm composes the destroy: a deploy whose Extra is the
+	// empty-code commit
 	var destroyHex string
-	decodeInto(t, node.mustCall(t, "ng_genDestroy", map[string]any{
-		"fee":   "0.01",
-		"extra": "beef",
+	decodeInto(t, node.mustCall(t, "ng_genDeploy", map[string]any{
+		"fee":  "0.01",
+		"wasm": "",
 	}), &destroyHex)
 
 	var destroy ngtypes.FullTx
 	if err := utils.HexRLPDecode(destroyHex, &destroy); err != nil {
-		t.Fatalf("genDestroy reply does not RLP-decode: %v", err)
+		t.Fatalf("genDeploy reply does not RLP-decode: %v", err)
 	}
-	if destroy.Type != ngtypes.DestroyTx {
-		t.Fatalf("genDestroy type = %d, want DestroyTx", destroy.Type)
+	if destroy.Type != ngtypes.DeployTx {
+		t.Fatalf("genDeploy type = %d, want DeployTx", destroy.Type)
 	}
 	if destroy.Height != nextHeight {
-		t.Fatalf("genDestroy height = %d, want %d", destroy.Height, nextHeight)
+		t.Fatalf("genDeploy height = %d, want %d", destroy.Height, nextHeight)
 	}
 	// fee "0.01" NG = 10^16 raw units, exactly
 	if want := new(big.Int).Exp(big.NewInt(10), big.NewInt(16), nil); destroy.Fee.Cmp(want) != 0 {
-		t.Fatalf("genDestroy fee = %s, want %s", destroy.Fee, want)
+		t.Fatalf("genDeploy fee = %s, want %s", destroy.Fee, want)
 	}
-	if !bytes.Equal(destroy.Extra, []byte{0xbe, 0xef}) {
-		t.Fatalf("genDestroy extra = %x, want beef", destroy.Extra)
+	// the empty-code commit decodes back to an empty module
+	if code, err := ngtypes.DecodeCommitCode(destroy.Extra); err != nil || len(code) != 0 {
+		t.Fatalf("genDeploy(empty wasm) extra = %x (code %x, err %v), want empty-code commit", destroy.Extra, code, err)
 	}
 	if destroy.IsSigned() {
-		t.Fatal("genDestroy must return an UNSIGNED tx")
-	}
-
-	var deactivateHex string
-	decodeInto(t, node.mustCall(t, "ng_genDeactivate", map[string]any{"fee": "0.02"}), &deactivateHex)
-
-	var deactivate ngtypes.FullTx
-	if err := utils.HexRLPDecode(deactivateHex, &deactivate); err != nil {
-		t.Fatalf("genDeactivate reply does not RLP-decode: %v", err)
-	}
-	if deactivate.Type != ngtypes.DeactivateTx {
-		t.Fatalf("genDeactivate type = %d, want DeactivateTx", deactivate.Type)
-	}
-	if deactivate.Height != nextHeight {
-		t.Fatalf("genDeactivate height = %d, want %d", deactivate.Height, nextHeight)
+		t.Fatal("genDeploy must return an UNSIGNED tx")
 	}
 }
 
@@ -72,7 +61,7 @@ func TestRPCParamRejections(t *testing.T) {
 
 	// a structurally valid unsigned tx for the semantic-failure cases
 	var unsignedHex string
-	decodeInto(t, node.mustCall(t, "ng_genActivate", map[string]any{"fee": "0"}), &unsignedHex)
+	decodeInto(t, node.mustCall(t, "ng_genDeploy", map[string]any{"fee": "0", "wasm": ""}), &unsignedHex)
 
 	shortKey := base58.FastBase58Encoding([]byte{1, 2, 3}) // valid bs58, invalid key
 
@@ -88,9 +77,7 @@ func TestRPCParamRejections(t *testing.T) {
 		{"sendTx/params", "ng_sendTx", []int{1}},
 		{"genTransaction/params", "ng_genTransaction", []int{1}},
 		{"genCommit/params", "ng_genCommit", []int{1}},
-		{"genActivate/params", "ng_genActivate", []int{1}},
-		{"genDeactivate/params", "ng_genDeactivate", []int{1}},
-		{"genDestroy/params", "ng_genDestroy", []int{1}},
+		{"genDeploy/params", "ng_genDeploy", []int{1}},
 		{"callContract/params", "ng_callContract", []int{1}},
 		{"getReceipt/params", "ng_getReceipt", []int{1}},
 		{"getContractInfo/params", "ng_getContractInfo", []int{1}},
@@ -108,7 +95,7 @@ func TestRPCParamRejections(t *testing.T) {
 		{"getContractStorage/hex", "ng_getContractStorage",
 			map[string]any{"address": validAddr, "key": "zz"}},
 		{"genCommit/hex", "ng_genCommit", map[string]any{"fee": "0", "wasm": "zz"}},
-		{"genDestroy/hex", "ng_genDestroy", map[string]any{"fee": "0", "extra": "zz"}},
+		{"genDeploy/hex", "ng_genDeploy", map[string]any{"fee": "0", "wasm": "zz"}},
 		{"genTransaction/hex", "ng_genTransaction",
 			map[string]any{"to": validAddr, "value": "0", "fee": "0", "extra": "zz"}},
 
@@ -129,9 +116,7 @@ func TestRPCParamRejections(t *testing.T) {
 			map[string]any{"to": validAddr, "value": "abc", "fee": "0"}},
 		{"genTransaction/fee", "ng_genTransaction",
 			map[string]any{"to": validAddr, "value": "0", "fee": "-1"}},
-		{"genDestroy/fee", "ng_genDestroy", map[string]any{"fee": "abc"}},
-		{"genActivate/fee", "ng_genActivate", map[string]any{"fee": "abc"}},
-		{"genDeactivate/fee", "ng_genDeactivate", map[string]any{"fee": "abc"}},
+		{"genDeploy/fee", "ng_genDeploy", map[string]any{"fee": "abc", "wasm": ""}},
 		{"genCommit/fee", "ng_genCommit", map[string]any{"fee": "abc", "wasm": ""}},
 		{"callContract/value", "ng_callContract",
 			map[string]any{"contract": validAddr, "value": "abc"}},
@@ -177,10 +162,8 @@ func TestRPCTxInPool(t *testing.T) {
 		"fee":   "0.01",
 	}), &unsignedHex)
 
-	signedHex := localSign(t, key, unsignedHex)
-
-	var txHash string
-	decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex}), &txHash)
+	// commitReveal lands the commitment and leaves the reveal pending
+	txHash := commitReveal(t, node, key, unsignedHex)
 
 	var reply struct {
 		OnChain       bool            `json:"onChain"`
@@ -245,10 +228,7 @@ func TestRPCCallContractFailure(t *testing.T) {
 		"wasm": hex.EncodeToString(trapWasm),
 	}), &unsignedHex)
 
-	signedHex := localSign(t, key, unsignedHex)
-
-	var txHash string
-	decodeInto(t, node.mustCall(t, "ng_sendTx", map[string]any{"rawTx": signedHex}), &txHash)
+	commitReveal(t, node, key, unsignedHex)
 	mineViaRPC(t, node, key)
 
 	var dryRun struct {

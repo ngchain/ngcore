@@ -21,13 +21,18 @@ import (
 // transactTxV is transactTx with a chosen value: the txid hashes the tx
 // WITHOUT its signature envelope, so same-content txs from different
 // signers collide on the hash — a distinct value keeps txids apart
-func transactTxV(t *testing.T, height uint64, owner *ngtypes.PrivateKey, value, fee int64) *ngtypes.FullTx {
+func transactTxV(t *testing.T, env *testEnv, height uint64, owner *ngtypes.PrivateKey, value, fee int64) *ngtypes.FullTx {
 	t.Helper()
 
 	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
 		testAddr(), big.NewInt(value), big.NewInt(fee), nil, nil)
+	tx.Salt = poolTestSalt
 	if err := tx.Signature(owner); err != nil {
 		t.Fatal(err)
+	}
+
+	if height == env.chain.GetLatestBlockHeight()+1 {
+		commitOnChain(t, env, owner, tx)
 	}
 	return tx
 }
@@ -59,7 +64,7 @@ func TestIsInPool(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	tx := transactTx(t, next, env.keyA, 1)
+	tx := transactTx(t, env, next, env.keyA, 1)
 
 	// empty pool knows nothing
 	if exists, got := env.pool.IsInPool(tx.GetHash()); exists || got != nil {
@@ -94,12 +99,15 @@ func TestPutTxRejectsMalformed(t *testing.T) {
 		t.Fatalf("unsigned tx: got %v, want ErrTxSignInvalid", err)
 	}
 
-	// a signed tx spending beyond the balance must be rejected
+	// a signed tx spending beyond the balance must be rejected (its reveal
+	// commitment is seeded so it reaches the balance check, not the reveal gate)
 	tooRich := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, next,
 		testAddr(), new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1), nil, nil)
+	tooRich.Salt = poolTestSalt
 	if err := tooRich.Signature(env.keyA); err != nil {
 		t.Fatal(err)
 	}
+	commitOnChain(t, env, env.keyA, tooRich)
 	if err := env.pool.PutTx(tooRich); !errors.Is(err, ngstate.ErrTxrBalanceInsufficient) {
 		t.Fatalf("overspending tx: got %v, want ErrTxrBalanceInsufficient", err)
 	}
@@ -114,11 +122,11 @@ func TestPutNewTxFromRemote(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	if err := env.pool.PutNewTxFromRemote(transactTx(t, next, env.keyA, 1)); err != nil {
+	if err := env.pool.PutNewTxFromRemote(transactTx(t, env, next, env.keyA, 1)); err != nil {
 		t.Fatalf("valid remote tx rejected: %v", err)
 	}
 
-	err := env.pool.PutNewTxFromRemote(transactTx(t, next+1, env.keyB, 1))
+	err := env.pool.PutNewTxFromRemote(transactTx(t, env, next+1, env.keyB, 1))
 	if !errors.Is(err, ngpool.ErrTxInvalidHeight) {
 		t.Fatalf("remote tx on a wrong height: got %v, want ErrTxInvalidHeight", err)
 	}
@@ -139,10 +147,10 @@ func TestEvictionTieBreak(t *testing.T) {
 	env.pool.MaxSize = 3
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	txA := transactTxV(t, next, env.keyA, 10, 2) // safe: not the cheapest
-	txB := transactTxV(t, next, env.keyB, 11, 1) // tied cheapest
-	txC := transactTxV(t, next, keyC, 12, 1)     // tied cheapest
-	txD := transactTxV(t, next, keyD, 13, 9)     // the outbidding newcomer
+	txA := transactTxV(t, env, next, env.keyA, 10, 2) // safe: not the cheapest
+	txB := transactTxV(t, env, next, env.keyB, 11, 1) // tied cheapest
+	txC := transactTxV(t, env, next, keyC, 12, 1)     // tied cheapest
+	txD := transactTxV(t, env, next, keyD, 13, 9)     // the outbidding newcomer
 
 	addrB := ngtypes.NewAddress(env.keyB)
 	addrC := ngtypes.NewAddress(keyC)
@@ -186,10 +194,10 @@ func TestGetPackOrderAndTies(t *testing.T) {
 	next := env.chain.GetLatestBlockHeight() + 1
 
 	txs := []*ngtypes.FullTx{
-		transactTxV(t, next, env.keyA, 10, 9),
-		transactTxV(t, next, env.keyB, 11, 5),
-		transactTxV(t, next, extra[0], 12, 5), // ties with keyB's fee
-		transactTxV(t, next, extra[1], 13, 1),
+		transactTxV(t, env, next, env.keyA, 10, 9),
+		transactTxV(t, env, next, env.keyB, 11, 5),
+		transactTxV(t, env, next, extra[0], 12, 5), // ties with keyB's fee
+		transactTxV(t, env, next, extra[1], 13, 1),
 	}
 	for _, tx := range txs {
 		if err := env.pool.PutTx(tx); err != nil {
@@ -265,7 +273,8 @@ func TestPutNewTxFromLocal(t *testing.T) {
 
 	next := chain.GetLatestBlockHeight() + 1
 
-	tx := transactTx(t, next, key, 1)
+	env := &testEnv{db: db, chain: chain, pool: pool, keyA: key}
+	tx := transactTx(t, env, next, key, 1)
 	if err := pool.PutNewTxFromLocal(tx); err != nil {
 		t.Fatalf("valid local tx rejected: %v", err)
 	}
@@ -273,7 +282,7 @@ func TestPutNewTxFromLocal(t *testing.T) {
 		t.Fatal("local tx must land in the pool")
 	}
 
-	err = pool.PutNewTxFromLocal(transactTx(t, next+1, key, 1))
+	err = pool.PutNewTxFromLocal(transactTx(t, env, next+1, key, 1))
 	if !errors.Is(err, ngpool.ErrTxInvalidHeight) {
 		t.Fatalf("local tx on a wrong height: got %v, want ErrTxInvalidHeight", err)
 	}
@@ -292,7 +301,7 @@ func TestPoolListAndOnNewTx(t *testing.T) {
 	var fired *ngtypes.FullTx
 	env.pool.OnNewTx = func(tx *ngtypes.FullTx) { fired = tx }
 
-	tx := transactTx(t, next, env.keyA, 1)
+	tx := transactTx(t, env, next, env.keyA, 1)
 	if err := env.pool.PutTx(tx); err != nil {
 		t.Fatal(err)
 	}

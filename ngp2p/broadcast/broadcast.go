@@ -22,16 +22,18 @@ type Broadcast struct {
 	topics        map[string]*pubsub.Topic
 	subscriptions map[string]*pubsub.Subscription
 
-	blockTopic string
-	txTopic    string
+	blockTopic  string
+	txTopic     string
+	commitTopic string
 
-	OnBlock chan *ngtypes.FullBlock
-	OnTx    chan *ngtypes.FullTx
+	OnBlock  chan *ngtypes.FullBlock
+	OnTx     chan *ngtypes.FullTx
+	OnCommit chan *ngtypes.Commitment
 }
 
 var log = logging.Logger("bcast")
 
-func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan *ngtypes.FullBlock, txCh chan *ngtypes.FullTx) *Broadcast {
+func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan *ngtypes.FullBlock, txCh chan *ngtypes.FullTx, commitCh chan *ngtypes.Commitment) *Broadcast {
 	var err error
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -45,11 +47,13 @@ func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan 
 		topics:        make(map[string]*pubsub.Topic),
 		subscriptions: make(map[string]*pubsub.Subscription),
 
-		blockTopic: defaults.GetBroadcastBlockTopic(network),
-		txTopic:    defaults.GetBroadcastTxTopic(network),
+		blockTopic:  defaults.GetBroadcastBlockTopic(network),
+		txTopic:     defaults.GetBroadcastTxTopic(network),
+		commitTopic: defaults.GetBroadcastCommitTopic(network),
 
-		OnBlock: blockCh,
-		OnTx:    txCh,
+		OnBlock:  blockCh,
+		OnTx:     txCh,
+		OnCommit: commitCh,
 	}
 
 	b.PubSub, err = pubsub.NewFloodSub(ctx, node)
@@ -65,6 +69,9 @@ func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan 
 		panic(err)
 	}
 	if err := b.PubSub.RegisterTopicValidator(b.txTopic, b.validateTxMsg); err != nil {
+		panic(err)
+	}
+	if err := b.PubSub.RegisterTopicValidator(b.commitTopic, b.validateCommitMsg); err != nil {
 		panic(err)
 	}
 
@@ -88,12 +95,23 @@ func NewBroadcastProtocol(node core.Host, network ngtypes.Network, blockCh chan 
 		panic(err)
 	}
 
+	b.topics[b.commitTopic], err = b.PubSub.Join(b.commitTopic)
+	if err != nil {
+		panic(err)
+	}
+
+	b.subscriptions[b.commitTopic], err = b.topics[b.commitTopic].Subscribe()
+	if err != nil {
+		panic(err)
+	}
+
 	return b
 }
 
 func (b *Broadcast) GoServe() {
 	go b.blockListener(b.subscriptions[b.blockTopic])
 	go b.txListener(b.subscriptions[b.txTopic])
+	go b.commitListener(b.subscriptions[b.commitTopic])
 }
 
 func (b *Broadcast) blockListener(sub *pubsub.Subscription) {
@@ -123,6 +141,21 @@ func (b *Broadcast) txListener(sub *pubsub.Subscription) {
 		}
 
 		go b.onBroadcastTx(msg)
+	}
+}
+
+func (b *Broadcast) commitListener(sub *pubsub.Subscription) {
+	for {
+		msg, err := sub.Next(b.ctx)
+		if err != nil {
+			if b.ctx.Err() != nil {
+				return // shutting down
+			}
+			log.Error(err)
+			continue
+		}
+
+		go b.onBroadcastCommitment(msg)
 	}
 }
 

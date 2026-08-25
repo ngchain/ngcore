@@ -136,6 +136,10 @@ func (pow *PoWork) GetBlockTemplate(privateKey *ngtypes.PrivateKey) ngtypes.Bloc
 	txsWithGen = append(txsWithGen, uncleRewards...)
 	txsWithGen = append(txsWithGen, txs...)
 
+	// the blind commitments ride the block's Commits list; ToUnsealing folds
+	// them into the content root alongside the txs
+	newBlock.SetCommits(pow.Pool.GetCommitPack(blockHeight))
+
 	err := newBlock.ToUnsealing(txsWithGen)
 	if err != nil {
 		log.Error(err)
@@ -167,6 +171,10 @@ func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, 
 	// prepend the (unsigned) uncle-reward generates to the tx pack so the
 	// miner includes them ahead of the pool txs. The miner adds its own
 	// signed generate and sets the header Coinbase before sealing.
+	// the blind commitments ride the template so the miner seals over the
+	// content root that folds them in
+	bareBlock.SetCommits(pow.Pool.GetCommitPack(blockHeight))
+
 	if uncles, err := pow.Chain.CollectUncles(); err != nil {
 		log.Warnf("failed to collect uncles: %s", err)
 	} else {
@@ -224,6 +232,19 @@ func (pow *PoWork) eventLoop() {
 			case tx := <-pow.LocalNode.OnTx:
 				if err := pow.Pool.PutTx(tx); err != nil {
 					log.Warnf("failed to put new tx from p2p network: %s", err)
+				}
+			case <-pow.ctx.Done():
+				return
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case commit := <-pow.LocalNode.OnCommit:
+				if err := pow.Pool.PutNewCommitmentFromRemote(commit); err != nil {
+					log.Warnf("failed to put new commitment from p2p network: %s", err)
 				}
 			case <-pow.ctx.Done():
 				return

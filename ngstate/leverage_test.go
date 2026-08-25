@@ -2,7 +2,6 @@ package ngstate
 
 import (
 	"encoding/binary"
-	"math/big"
 	"testing"
 
 	"go.etcd.io/bbolt"
@@ -224,22 +223,11 @@ func TestLeverageShowcase(t *testing.T) {
 		leverage := ngtypes.NewContract(addrD, mustWat(strategyWatFor(addrA, addrB, addrC)), nil)
 		putContract(t, txn, leverage, 100)
 
-		lock := func(priv *ngtypes.PrivateKey, who string) {
-			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.ActivateTx, 1,
-				ngtypes.Address{}, nil, big.NewInt(1), nil, nil)
-			if err := tx.Signature(priv); err != nil {
-				t.Fatal(err)
-			}
-			if err := state.handleActivate(txn, tx, 1, nil); err != nil {
-				t.Fatalf("lock %s: %v", who, err)
-			}
-		}
-
 		// activation order follows the dependency DAG
-		lock(privA, "usdt")
-		lock(privB, "dex")
-		lock(privC, "lending")
-		lock(privD, "leverage")
+		activateInPlace(t, txn, state, addrA)
+		activateInPlace(t, txn, state, addrB)
+		activateInPlace(t, txn, state, addrC)
+		activateInPlace(t, txn, state, addrD)
 
 		// the reference ledger across projects:
 		// usdt <- dex, lending, leverage; dex <- leverage; lending <- leverage
@@ -280,12 +268,13 @@ func TestLeverageShowcase(t *testing.T) {
 		}
 
 		// native NG moved from the dex pool to the strategist
-		// (each deployer paid a 1-coin lock fee on activation)
-		if got := getBalance(txn, addrB); got.Int64() != 1000-1-50 {
-			t.Fatalf("dex NG = %d, want 949", got.Int64())
+		// (activateInPlace charges no fee, so the balances move by the swap
+		// amount only)
+		if got := getBalance(txn, addrB); got.Int64() != 1000-50 {
+			t.Fatalf("dex NG = %d, want 950", got.Int64())
 		}
-		if got := getBalance(txn, addrD); got.Int64() != 100-1+50 {
-			t.Fatalf("leverage NG = %d, want 149", got.Int64())
+		if got := getBalance(txn, addrD); got.Int64() != 100+50 {
+			t.Fatalf("leverage NG = %d, want 150", got.Int64())
 		}
 
 		return nil

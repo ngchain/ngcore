@@ -538,9 +538,9 @@ func (d *forkChain) rpcNewAddress(params []byte) (interface{}, error) {
 	return map[string]string{"name": "@" + p.Name, "address": addr.String()}, nil
 }
 
-// rpcDeploy commits + activates wasm code under a FRESH named address
-// (a contract lives at its deployer's address), through the real
-// CommitTx/ActivateTx lifecycle
+// rpcDeploy deploys wasm code under a FRESH named address (a contract
+// lives at its deployer's address), through a single real DeployTx that
+// opens the slot and goes live at once
 func (d *forkChain) rpcDeploy(params []byte) (interface{}, error) {
 	var p struct {
 		Name string `json:"name"`
@@ -575,26 +575,17 @@ func (d *forkChain) rpcDeploy(params []byte) (interface{}, error) {
 	}
 	key := d.keys[p.Name]
 
-	commit := ngtypes.NewTx(d.network, ngtypes.CommitTx, d.height, ngtypes.Address{},
+	deploy := ngtypes.NewTx(d.network, ngtypes.DeployTx, d.height, ngtypes.Address{},
 		nil, big.NewInt(1), ngtypes.EncodeCommitCode(code), nil)
-	if err := commit.Signature(key); err != nil {
+	if err := deploy.Signature(key); err != nil {
 		return nil, err
 	}
-	if err := d.seal(0, commit); err != nil {
-		return nil, fmt.Errorf("commit: %w", err)
-	}
-
-	activate := ngtypes.NewTx(d.network, ngtypes.ActivateTx, d.height, ngtypes.Address{},
-		nil, big.NewInt(1), nil, nil)
-	if err := activate.Signature(key); err != nil {
-		return nil, err
-	}
-	if err := d.seal(0, activate); err != nil {
-		return nil, fmt.Errorf("activate: %w", err)
+	if err := d.seal(0, deploy); err != nil {
+		return nil, fmt.Errorf("deploy: %w", err)
 	}
 
 	// init's receipt (if the contract exports init)
-	runs, _ := d.state.GetTxRuns(activate.GetHash())
+	runs, _ := d.state.GetTxRuns(deploy.GetHash())
 
 	return map[string]interface{}{
 		"name": "@" + p.Name, "address": addr.String(),

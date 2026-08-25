@@ -91,7 +91,7 @@ func newBroadcast(t *testing.T, mn mocknet.Mocknet) *Broadcast {
 	}
 
 	b := NewBroadcastProtocol(h, ngtypes.ZERONET,
-		make(chan *ngtypes.FullBlock, 8), make(chan *ngtypes.FullTx, 8))
+		make(chan *ngtypes.FullBlock, 8), make(chan *ngtypes.FullTx, 8), make(chan *ngtypes.Commitment, 8))
 	t.Cleanup(b.Close)
 
 	return b
