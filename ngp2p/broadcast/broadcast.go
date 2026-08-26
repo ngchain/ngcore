@@ -29,6 +29,13 @@ type Broadcast struct {
 	OnBlock  chan *ngtypes.FullBlock
 	OnTx     chan *ngtypes.FullTx
 	OnCommit chan *ngtypes.Commitment
+
+	// OnTxSeen / OnCommitSeen, when set, fire from the pubsub validators
+	// for every VALID tx / commitment observed in the flood (including our
+	// own publishes). The dandelion router uses them as its "fluff seen"
+	// signal to cancel stem fail-safe timers. Must be fast and non-blocking.
+	OnTxSeen     func(txHash []byte)
+	OnCommitSeen func(commitUnsignedHash []byte)
 }
 
 var log = logging.Logger("bcast")

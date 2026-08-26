@@ -56,10 +56,24 @@ func (b *Broadcast) validateTxMsg(_ context.Context, _ peer.ID, msg *pubsub.Mess
 
 	if tx.IsCompactEnvelope() {
 		// stateful: the pool verifies against the key registry
+		b.notifyTxSeen(&tx)
 		return true
 	}
 
-	return tx.Verify(nil) == nil
+	if tx.Verify(nil) != nil {
+		return false
+	}
+
+	b.notifyTxSeen(&tx)
+	return true
+}
+
+// notifyTxSeen feeds the dandelion router's fluff-seen set: only txs that
+// passed the validator (and thus actually relay) count as fluffed.
+func (b *Broadcast) notifyTxSeen(tx *ngtypes.FullTx) {
+	if b.OnTxSeen != nil {
+		b.OnTxSeen(tx.GetHash())
+	}
 }
 
 // maxCommitWireSize bounds a gossiped commitment: a 32B hash plus the biggest
@@ -86,8 +100,22 @@ func (b *Broadcast) validateCommitMsg(_ context.Context, _ peer.ID, msg *pubsub.
 
 	if len(commit.Sign) > 0 && commit.Sign[0] == 0x02 {
 		// compact envelope: the pool verifies against the key registry
+		b.notifyCommitSeen(&commit)
 		return true
 	}
 
-	return commit.Verify(nil) == nil
+	if commit.Verify(nil) != nil {
+		return false
+	}
+
+	b.notifyCommitSeen(&commit)
+	return true
+}
+
+// notifyCommitSeen is notifyTxSeen for commitments, keyed by the unsigned
+// hash (unique per commitment content).
+func (b *Broadcast) notifyCommitSeen(commit *ngtypes.Commitment) {
+	if b.OnCommitSeen != nil {
+		b.OnCommitSeen(commit.GetUnsignedHash())
+	}
 }

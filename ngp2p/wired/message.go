@@ -30,6 +30,10 @@ func (mt MsgType) String() string {
 		return "PongMsg"
 	case RejectMsg:
 		return "RejectMsg"
+	case StemTxMsg:
+		return "StemTxMsg"
+	case StemCommitMsg:
+		return "StemCommitMsg"
 	default:
 		return fmt.Sprintf("UnknownMsg: %d", mt)
 	}
@@ -40,6 +44,14 @@ const (
 	ChainMsg
 	GetSheetMsg
 	SheetMsg
+)
+
+// Dandelion++ stem-phase messages: a tx / commitment relayed hop-by-hop
+// over a direct wired stream (the anonymity phase) instead of the public
+// flood. Fire-and-forget: no reply is expected.
+const (
+	StemTxMsg MsgType = iota + 0x20
+	StemCommitMsg
 )
 
 type ChainType uint8

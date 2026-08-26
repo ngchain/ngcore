@@ -7,6 +7,7 @@ import (
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	yamux "github.com/libp2p/go-libp2p/p2p/muxer/yamux"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
@@ -34,6 +35,10 @@ type LocalNode struct {
 
 	*wired.Wired
 	*broadcast.Broadcast
+
+	// Dandelion is the stem/fluff router for locally-submitted txs and
+	// commitments (nil when disabled: submissions flood directly)
+	Dandelion *DandelionRouter
 }
 
 type P2PConfig struct {
@@ -48,6 +53,11 @@ type P2PConfig struct {
 	MinPeers int
 	// ReconnectInterval is the peer manager's check cadence (0 = 15s)
 	ReconnectInterval time.Duration
+
+	// DisableDandelion turns off the Dandelion++ stem phase: local
+	// submissions flood immediately over pubsub, exactly the pre-dandelion
+	// behavior (default false = network-origin privacy on)
+	DisableDandelion bool
 }
 
 // InitLocalNode creates a new node with its implemented protocols.
@@ -100,11 +110,50 @@ func InitLocalNode(chain *blockchain.Chain, config P2PConfig) *LocalNode {
 		Broadcast: broadcast.NewBroadcastProtocol(localHost, config.Network, make(chan *ngtypes.FullBlock), make(chan *ngtypes.FullTx), make(chan *ngtypes.Commitment)),
 	}
 
+	if !config.DisableDandelion {
+		// the dandelion router sits between the pool and the two transports:
+		// stem = one signed wired stream to this epoch's successor,
+		// fluff = the normal pubsub flood. The pubsub validators feed the
+		// fluff-seen set that cancels the stem fail-safes.
+		dandelion := NewDandelionRouter(
+			func() []peer.ID { return localNode.Host.Network().Peers() },
+			localNode.Wired.SendStemTx,
+			localNode.Wired.SendStemCommit,
+			localNode.Broadcast.BroadcastTx,
+			localNode.Broadcast.BroadcastCommitment,
+		)
+		localNode.Dandelion = dandelion
+		localNode.Wired.OnStemTx = dandelion.RelayTx
+		localNode.Wired.OnStemCommit = dandelion.RelayCommit
+		localNode.Broadcast.OnTxSeen = dandelion.SeenTx
+		localNode.Broadcast.OnCommitSeen = dandelion.SeenCommit
+	}
+
 	if !config.DisableDiscovery {
 		activeDHT(ctx, p2pDHT, localNode, config.DisableConnectingBootstraps)
 	}
 
 	return localNode
+}
+
+// RouteTx propagates a locally-submitted tx: through the dandelion
+// stem/fluff router when enabled, or the plain pubsub flood when not.
+func (localNode *LocalNode) RouteTx(tx *ngtypes.FullTx) error {
+	if localNode.Dandelion != nil {
+		return localNode.Dandelion.OriginateTx(tx)
+	}
+
+	return localNode.BroadcastTx(tx)
+}
+
+// RouteCommitment propagates a locally-submitted blind commitment,
+// mirroring RouteTx.
+func (localNode *LocalNode) RouteCommitment(commit *ngtypes.Commitment) error {
+	if localNode.Dandelion != nil {
+		return localNode.Dandelion.OriginateCommit(commit)
+	}
+
+	return localNode.BroadcastCommitment(commit)
 }
 
 func (localNode *LocalNode) GoServe() {
@@ -120,6 +169,9 @@ func (localNode *LocalNode) GoServe() {
 // Broadcast, keeping *LocalNode a valid host.Host
 func (localNode *LocalNode) Close() error {
 	localNode.cancel()
+	if localNode.Dandelion != nil {
+		localNode.Dandelion.Close()
+	}
 	localNode.Broadcast.Close()
 
 	return localNode.Host.Close()

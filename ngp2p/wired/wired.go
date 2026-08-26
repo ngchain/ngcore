@@ -23,6 +23,13 @@ type Wired struct {
 	protocolID protocol.ID
 
 	chain *blockchain.Chain
+
+	// OnStemTx / OnStemCommit, when set, receive validated Dandelion++
+	// stem-phase items together with the remaining TTL. They keep ngp2p
+	// decoupled from the pool: the wired layer never touches the mempool,
+	// the registered router decides to stem onward or to fluff.
+	OnStemTx     func(tx *ngtypes.FullTx, ttl uint8)
+	OnStemCommit func(commit *ngtypes.Commitment, ttl uint8)
 }
 
 func NewWiredProtocol(host core.Host, network ngtypes.Network, chain *blockchain.Chain) *Wired {
@@ -79,6 +86,10 @@ func (w *Wired) handleStream(stream network.Stream) {
 		w.onGetChain(stream, &msg)
 	case GetSheetMsg:
 		w.onGetSheet(stream, &msg)
+	case StemTxMsg:
+		w.onStemTx(stream, &msg)
+	case StemCommitMsg:
+		w.onStemCommit(stream, &msg)
 	default:
 		w.sendReject(msg.Header.ID, stream, ErrMsgTypeInvalid)
 	}
