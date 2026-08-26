@@ -55,6 +55,13 @@ func (chain *Chain) ApplyBlock(block *ngtypes.FullBlock) error {
 				return err
 			}
 
+			// the header commits to the post-state root: re-derive it from the
+			// applied state and reject a mismatch INSIDE this write txn (rolls
+			// the apply back), so a block whose StateRoot lies never lands
+			if err := ngstate.CheckStateRoot(txn, block.BlockHeader.StateRoot); err != nil {
+				return err
+			}
+
 			// checkpoint tips get a servable state snapshot, and the
 			// side blocks below the new finality line get reclaimed
 			if block.IsHead() {
