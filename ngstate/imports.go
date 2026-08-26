@@ -9,8 +9,9 @@ import (
 // initBuiltInImports binds all host modules to the contract linker:
 // log, address (identity), coin, kv, tx, env (buf slots + gas), crypto,
 // and contract (dynamic call + introspection). The wideint u128/u256
-// modules come from wasman itself (EnableWideInt). The full host ABI is
-// documented in docs/contract.md — one canonical listing, kept there.
+// modules come from wasman itself (EnableWideInt). The host ABI is
+// specified at paper.ngchain.org; the imports_*.go files here are the
+// canonical implementation.
 func (vm *VM) initBuiltInImports() error {
 	for _, init := range []func(*VM) error{
 		initLogImports,

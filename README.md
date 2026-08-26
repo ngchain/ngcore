@@ -1,87 +1,47 @@
 <h1> <img src="./resources/ng_16x16.png" >core</h1>
 
-ngcore is the Go implementation of **ngchain**: a proof-of-work chain
-built around two nouns and six verbs, designed by subtraction.
+ngcore is the Go implementation of **ngchain**: a post-quantum,
+account-based proof-of-work chain with a private-by-default mempool and a
+programmable, WebAssembly contract layer — designed by subtraction.
 
-## The whole model in one paragraph
+> 📄 **The full protocol specification lives at
+> [paper.ngchain.org](https://paper.ngchain.org).** This README is a short
+> orientation and a build/run guide; the paper is authoritative for every
+> consensus rule, byte layout and constant.
 
-An **Address** (32-byte keccak hash of a public key) is the identity,
-the balance holder and the namespace — nothing is registered, any key
-spends directly. A **Contract** is the code slot an address may open
-under its own namespace: a compiled WebAssembly module (any language
-that targets wasm), committed whole like a git blob, frozen and
-executed while active. That's the entire ontology.
+## The model in one paragraph
 
-## Six tx verbs
+An **Address** (32 bytes, the BLAKE3 hash of a public key under its scheme)
+is the identity, the balance holder and the namespace — nothing is
+registered, any key spends directly. A **Contract** is the compiled
+WebAssembly module an address may open under its own namespace. Three
+transaction operations act on this: `Generate` (the mining reward),
+`Transact` (pay an address and run its contract), and `Deploy` (create,
+upgrade UUPS-style, or destroy the sender's own contract). That is the whole
+ontology.
 
-| Verb | Effect |
-|---|---|
-| `Generate` | the mining reward |
-| `Transact` | pay an address; runs its active contract (the call routes to the export named in the payload, `main` is the fallback) |
-| `Commit` | replace the own contract module (deflate snapshot); the first commit opens the slot |
-| `Activate` | validate + freeze the module, turn the vm on (runs `init` once) |
-| `Deactivate` | turn the vm off, reopen the module for commits |
-| `Destroy` | remove the own slot entirely |
+## What's distinctive
 
-Every tx is `{Network, Type, Height, To, Value, Fee, Extra, Sign}` —
-the sender is derived from the signature envelope, fees are burned.
+- **Post-quantum by construction** — a BLAKE3-256 content hash and four
+  account signature schemes: secp256k1 plus the post-quantum FN-DSA, ML-DSA
+  and SLH-DSA. Keys reveal their public key once (auto-registered), later
+  spends carry only `From ‖ sig`.
+- **A private mempool, by default** — every effect tx is the reveal half of a
+  mandatory commit–reveal, so contents stay hidden from miners until the
+  committing block is sealed. Both halves are relayed by the node, so a
+  wallet sends one call and may go offline.
+- **UUPS contracts** — deploy / upgrade / destroy are one operation; upgrade
+  logic lives in the contract (`ng:upgrade`), and a contract with no such hook
+  is immutable.
+- **Native account abstraction** — an account installs an `ng:validate` hook
+  the protocol runs on every one of its txs (spend limits, freezes,
+  allow-lists), on top of the native signature.
+- **Reserved `ng:` hooks** — `ng:main` / `ng:init` / `ng:upgrade` /
+  `ng:validate` are protocol-bound; every other export is an ordinary method.
 
-## Signatures: a menu, not a monoculture
-
-Keys derive from a 32-byte seed under a per-key scheme:
-
-| Scheme | Envelope | Role |
-|---|---|---|
-| secp256k1 (default) | **67 B** (key recovery, eth parity) | classical efficiency |
-| FN-DSA-512 | 700 B compact | the small post-quantum option |
-| ML-DSA-44 | 2.5 KB compact | the finalized FIPS 204 pick |
-| SLH-DSA-128s | 7.9 KB | hash-based, assumption-minimal, SNARK-friendliest |
-
-Post-quantum keys reveal their public key once (auto-registered on
-chain); later spends carry only `From ‖ sig`. Quantum migration is a
-per-key wallet choice, not a hard fork.
-
-**Witness separation**: txids hash the unsigned tx; a header-level
-witness root commits the signature envelopes. Settled history can
-later drop or replace its signatures (pruning, LaBRADOR-style
-aggregate proofs) without touching a single txid.
-
-## Contracts
-
-On-chain code is a compiled wasm module, validated at commit and
-activation and deduplicated by code hash. Contracts compose by CALLING
-one another: a contract imports another by its `<deployer address>` (or
-calls one at runtime via `contract.call`), and the callee always runs on
-its OWN state (tokens, pools) with re-entry guarded and
-statically-declared dependees reference-pinned. Execution is journaled
-(all-or-nothing), gas-tiered (state writes cost orders of magnitude more
-than arithmetic), and receipts with events stay local — never consensus
-data. Money crosses the contract ABI as fixed 32-byte little-endian
-u256, so an 18-decimal native coin and token amounts share one format.
-
-Tooling: `ngcore contract-run` executes JSON test scenarios against the
-real VM (batch/CI), and `ngcore fork --rpc <node>` forks a RUNNING chain
-lazily — state fetched per address on first touch — into an instant-seal
-local copy for interactive debugging (anvil-style, with receipts,
-dry-run, time travel and snapshot/revert).
-
-## Docs
-
-- [docs/contract.md](docs/contract.md) — the contract model: lifecycle,
-  host ABI, dispatch, dependencies, upgrades
-- [docs/implementation.md](docs/implementation.md) — the VM internals:
-  module cache, gas, wideint, metered JIT, fork tooling
-- [docs/rpc.md](docs/rpc.md) — the JSON-RPC method reference (node +
-  fork tool)
-- [docs/positioning.md](docs/positioning.md) — the design rationale
-
-## Consensus
-
-- CPU PoW (AstroBWT), 1s target blocks, cumulative-work fork choice
-- atomic reorgs: chain switch + full state replay in ONE db txn
-- rolling finality every 10 blocks; orphan pool; side-block pruning
-- consensus caps: 512 txs / 8 MiB per block; witness root enforced
-- keccak-256 for every chain hash; genesis carries no premine
+See the paper for consensus (astrobwt PoW, cumulative-work fork choice,
+GHOST uncles), the two block roots (content + witness), and the full contract
+VM and host ABI.
 
 ## Quick start
 
@@ -91,20 +51,30 @@ go build -o ngcore ./cmd/ngcore
 # a throwaway local chain
 ./ngcore --zeronet --in-mem
 
-# wallet (keys stay local; only signed txs travel)
+# wallet — keys stay local; only signed txs travel
 ./ngcore cli key --new --scheme secp256k1
 ./ngcore cli status
 ./ngcore cli balance
-./ngcore cli send --to <bs58> --value 1.5 --fee 0.0001
-./ngcore cli commit --file contract.wasm --fee 0.0001   # first commit deploys
-./ngcore cli activate --fee 0.0001
-./ngcore cli call --contract <bs58> --entry balance_of
+
+# send / deploy are private by default: the node relays the commit-reveal,
+# so these return immediately and land over the next few blocks
+./ngcore cli send   --to <bs58> --value 1.5 --fee 0.0001
+./ngcore cli deploy --file contract.wasm --fee 0.0001   # first deploy goes live
+./ngcore cli call   --contract <bs58> --entry balance_of
 
 # fork a running chain for contract debugging (lazy, anvil-style)
 ./ngcore fork --rpc http://127.0.0.1:52521   # serves its own rpc on :52525
 ```
 
+## Docs
+
+- **[paper.ngchain.org](https://paper.ngchain.org)** — the protocol
+  specification (consensus, state, transactions, the private mempool, the
+  contract VM, account abstraction, and a security/threat-model section)
+- [docs/rpc.md](docs/rpc.md) — the JSON-RPC method reference (node + fork
+  tool); the source of truth is the registry in `jsonrpc/`
+
 ## Status
 
-Experimental. Consensus formats change freely between versions and
-dev chains restart; MAINNET parameters are intentionally undefined.
+Experimental. Consensus formats change freely between versions and dev
+chains restart; MAINNET parameters are intentionally undefined.

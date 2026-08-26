@@ -1,5 +1,10 @@
 # ngcore JSON-RPC Reference
 
+> This is a practical method reference. For the **protocol** — the private
+> mempool, tx model, contract VM and consensus these methods expose — see the
+> specification at [paper.ngchain.org](https://paper.ngchain.org). The source
+> of truth for the method set is the registry in `jsonrpc/regiser_handlers.go`.
+
 Two servers speak JSON-RPC 2.0 over HTTP POST:
 
 - the **node** (`ngcore --rpc-port ...`) — the full chain;
@@ -96,12 +101,19 @@ wallet. There is deliberately no `ng_signTx`: the node never sees a
 private key. The cli signs the encoded unsigned tx locally and only the
 signed bytes reach `ng_sendTx`.
 
+Effect txs (`Transact`/`Deploy`) are **private by default**: each is the reveal
+half of a mandatory commit–reveal, so the wallet submits a blind commitment plus
+a signed reveal and the node relays both across the window until they land. The
+cli's `send`/`deploy`/`destroy` drive this in one call.
+
 | method | what it does |
 |---|---|
 | `ng_genTransaction` | unsigned pay/call tx; `value`/`fee` are decimal-NG strings (optional `entry` = export name + hex args) |
-| `ng_genCommit` | unsigned commit carrying a whole contract module |
-| `ng_genActivate` / `ng_genDeactivate` / `ng_genDestroy` | unsigned lifecycle txs |
-| `ng_sendTx` | broadcast a signed tx |
+| `ng_genDeploy` | unsigned deploy tx carrying a whole contract module; empty module = destroy (UUPS, authorized by the contract's own `ng:upgrade`). `ng_genCommit` is a compatibility alias |
+| `ng_sendTx` | broadcast a signed tx (an effect tx is admissible only as the reveal of a prior on-chain commitment) |
+| `ng_sendCommitment` | pool + gossip a signed blind commitment |
+| `ng_sendReveal` | hand a signed reveal to this node to relay (retargeted per block, no re-signing) until it lands |
+| `ng_sendPrivateTx` | one-call fire-and-forget: relay a commitment and its reveal together |
 | `ng_suggestFee` | this node's relay fee floor (`minFeePerByte`, decimal raw units); pass a `rawTx` to get the exact `minFee` that tx must carry |
 | `ng_publicKeyToAddress` | derive the bs58 address of a public key |
 
@@ -136,7 +148,7 @@ Byte parts (`args`, `key`) use the same DSL as `contract-run`:
 |---|---|---|
 | `dev_addresses` | — | the named identities and their balances |
 | `dev_newAddress` | `name` | derive + prefund a deterministic identity (keccak("signer:"+name)) |
-| `dev_deploy` | `name`, `path`\|`wasm` | real Commit+Activate of a module under a fresh address, registered as `@name` |
+| `dev_deploy` | `name`, `path`\|`wasm` | deploy a module under a fresh address (goes live at once), registered as `@name` |
 | `dev_call` | `to`, `by`, `method`, `args`, `value?`, `at?`, `dry?` | sealed signed transact; returns the receipt (gas, events, per-run status). `dry:true` executes then rolls back; `at:` sets the block time |
 | `dev_kv` | `contract`, `key` | read contract storage (hex + u64/u256 decodes) |
 | `dev_balance` | `who` | native balance |
