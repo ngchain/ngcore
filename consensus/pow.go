@@ -146,6 +146,17 @@ func (pow *PoWork) GetBlockTemplate(privateKey *ngtypes.PrivateKey) ngtypes.Bloc
 		log.Error(err)
 	}
 
+	// the header commits to the POST-state root, which depends on this block's
+	// own contents (incl. the miner's generate), so it must be sealed into the
+	// preimage BEFORE pow. DryApplyRoot applies the fully-assembled candidate
+	// in a throwaway txn and rolls back, returning the root it would produce.
+	root, err := ngstate.DryApplyRoot(pow.State, newBlock)
+	if err != nil {
+		log.Errorf("failed to compute the template state root: %s", err)
+	} else {
+		newBlock.BlockHeader.StateRoot = root
+	}
+
 	return newBlock
 }
 
@@ -187,6 +198,34 @@ func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, 
 
 	txs = pow.Pool.GetPack(blockHeight)
 	return
+}
+
+// AssembleWork folds the miner's own (signed) generate tx into a fresh
+// template and returns a FULLY-ASSEMBLED unsealing block with its post-state
+// StateRoot sealed into the header — everything but the nonce. The StateRoot
+// is part of the pow preimage and depends on this block's contents (incl. this
+// very generate), so getWork must set it here, before the external miner
+// grinds; ng_submitWork then only carries the found nonce. The block's
+// Coinbase is taken from the generate's recipient, matching the internal path.
+func (pow *PoWork) AssembleWork(gen *ngtypes.FullTx) (*ngtypes.FullBlock, error) {
+	bareBlock, txs := pow.GetBareBlockTemplateWithTxs()
+
+	// the miner sealed over its own coinbase (part of the pow preimage); take
+	// it from the submitted generate's recipient, matching submitWork's old
+	// reconstruction
+	bareBlock.SetCoinbase(gen.To)
+
+	if err := bareBlock.ToUnsealing(append([]*ngtypes.FullTx{gen}, txs...)); err != nil {
+		return nil, err
+	}
+
+	root, err := ngstate.DryApplyRoot(pow.State, bareBlock)
+	if err != nil {
+		return nil, err
+	}
+	bareBlock.BlockHeader.StateRoot = root
+
+	return bareBlock, nil
 }
 
 // GetChain returns the chain of the PoW consensus.
