@@ -35,7 +35,13 @@ type BlockHeader struct {
 	// folded into the pow preimage so uncles cannot be swapped after
 	// sealing. All-zero when the block carries no uncles.
 	UnclesHash []byte // 32
-	Nonce      []byte `rlp:"tail"` // 8
+	// StateRoot commits to the POST-state root: the consensus-state SMT
+	// root AFTER this block's txs+commits are applied. Folded into the pow
+	// preimage, so a miner must compute the correct root before sealing and
+	// every node re-derives and checks it on apply. 32 bytes on every block
+	// including genesis.
+	StateRoot []byte // 32
+	Nonce     []byte `rlp:"tail"` // 8
 }
 
 // GetPoWRawHeader builds the fixed-size pow preimage from the header
@@ -43,8 +49,8 @@ type BlockHeader struct {
 func (x *BlockHeader) GetPoWRawHeader(nonce []byte) []byte {
 	// Network(1) + Height(8) + Timestamp(8) + PrevBlockHash(32) +
 	// TxTrieHash(32) + WitnessRoot(32) + Difficulty(32) + Coinbase(32) +
-	// UnclesHash(32) + Nonce(8) = 217
-	raw := make([]byte, 217)
+	// UnclesHash(32) + StateRoot(32) + Nonce(8) = 249
+	raw := make([]byte, 249)
 
 	raw[0] = byte(x.Network)
 	binary.LittleEndian.PutUint64(raw[1:], x.Height)
@@ -55,11 +61,12 @@ func (x *BlockHeader) GetPoWRawHeader(nonce []byte) []byte {
 	copy(raw[113:145], utils.ReverseBytes(x.Difficulty)) // uint256
 	copy(raw[145:177], x.Coinbase)
 	copy(raw[177:209], x.UnclesHash)
+	copy(raw[209:241], x.StateRoot)
 
 	if nonce == nil {
-		copy(raw[209:217], x.Nonce)
+		copy(raw[241:249], x.Nonce)
 	} else {
-		copy(raw[209:217], nonce)
+		copy(raw[241:249], nonce)
 	}
 
 	return raw
@@ -121,7 +128,7 @@ var ErrNotBlockHeader = errors.New("not a block header")
 func (x *BlockHeader) checkStandaloneError() error {
 	if len(x.PrevBlockHash) != HashSize || len(x.TxTrieHash) != HashSize ||
 		len(x.WitnessRoot) != HashSize || len(x.UnclesHash) != HashSize ||
-		len(x.Coinbase) != AddressSize {
+		len(x.StateRoot) != HashSize || len(x.Coinbase) != AddressSize {
 		return errors.New("uncle header has a malformed fixed-size field")
 	}
 	if len(x.Difficulty) == 0 || len(x.Difficulty) > DiffSize {
@@ -178,6 +185,9 @@ func (x *BlockHeader) Equals(other merkletree.Content) (bool, error) {
 		return false, nil
 	}
 	if !bytes.Equal(x.UnclesHash, header.UnclesHash) {
+		return false, nil
+	}
+	if !bytes.Equal(x.StateRoot, header.StateRoot) {
 		return false, nil
 	}
 	if !bytes.Equal(x.Nonce, header.Nonce) {

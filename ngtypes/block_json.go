@@ -17,6 +17,7 @@ type jsonBlock struct {
 	PrevBlockHash string `json:"prevBlockHash"`
 	TxTrieHash    string `json:"txTrieHash"`
 	WitnessRoot   string `json:"subTrieHash"`
+	StateRoot     string `json:"stateRoot"`
 
 	Difficulty string `json:"difficulty"`
 	Nonce      string `json:"nonce"`
@@ -57,6 +58,7 @@ func (x *FullBlock) MarshalJSON() ([]byte, error) {
 		PrevBlockHash: hex.EncodeToString(x.BlockHeader.PrevBlockHash),
 		TxTrieHash:    hex.EncodeToString(x.BlockHeader.TxTrieHash),
 		WitnessRoot:   hex.EncodeToString(x.BlockHeader.WitnessRoot),
+		StateRoot:     hex.EncodeToString(x.BlockHeader.StateRoot),
 		Difficulty:    new(big.Int).SetBytes(x.BlockHeader.Difficulty).String(),
 		Nonce:         hex.EncodeToString(x.BlockHeader.Nonce),
 		Txs:           x.Txs,
@@ -93,6 +95,10 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	stateRoot, err := hex.DecodeString(b.StateRoot)
+	if err != nil {
+		return err
+	}
 	bigDifficulty, ok := new(big.Int).SetString(b.Difficulty, 10)
 	if !ok {
 		return ErrInvalidDiff
@@ -119,6 +125,11 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 		nonce,
 		b.Txs,
 	)
+	// NewBlock zeroes StateRoot; carry the decoded one so a round-trip
+	// preserves the committed post-state root (empty stays zero-length)
+	if len(stateRoot) > 0 {
+		x.BlockHeader.StateRoot = stateRoot
+	}
 
 	// err = x.verifyNonce()
 	// if err != nil {

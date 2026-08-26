@@ -49,6 +49,11 @@ var (
 	// context-free rule (bad commitment, over the cap, duplicated, or an
 	// uncle header that fails its own standalone pow/format check)
 	ErrBlockUnclesInvalid = errors.New("invalid block uncles")
+
+	// ErrBlockStateRootInvalid rejects a header whose committed post-state
+	// root is malformed (wrong length) or, at the state layer, does not
+	// match the root produced by applying the block
+	ErrBlockStateRootInvalid = errors.New("invalid block state root")
 )
 
 // FullBlock is an implement of Block the base unit of the blockchain and the container of the txs, which
@@ -78,6 +83,7 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 			Difficulty:    difficulty,
 			Coinbase:      make([]byte, AddressSize), // set by SetCoinbase before sealing
 			UnclesHash:    make([]byte, HashSize),    // no uncles until SetUncles
+			StateRoot:     make([]byte, HashSize),    // set to the post-state root before sealing
 			Nonce:         nonce,
 		},
 		Txs: txs,
@@ -380,6 +386,14 @@ func (x *FullBlock) CheckError() error {
 	if len(x.BlockHeader.UnclesHash) != HashSize {
 		return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d's UnclesHash length is incorrect", x.BlockHeader.Height)
 	}
+
+	// the post-state commitment must be a full 32-byte root on every block,
+	// genesis included; the match against the applied state is a stateful
+	// check the chain layer runs after State.Upgrade
+	if len(x.BlockHeader.StateRoot) != HashSize {
+		return errors.Wrapf(ErrBlockStateRootInvalid, "block@%d's StateRoot length is incorrect", x.BlockHeader.Height)
+	}
+
 	if len(x.Uncles) > MaxUncles {
 		return errors.Wrapf(ErrBlockUnclesInvalid, "block@%d carries %d uncles over the cap %d", x.BlockHeader.Height, len(x.Uncles), MaxUncles)
 	}
