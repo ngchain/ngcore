@@ -79,21 +79,26 @@ func (pool *TxPool) RelayCommit(commit *ngtypes.Commitment) error {
 func (pool *TxPool) relayCommits() {
 	next := pool.chain.GetLatestBlockHeight() + 1
 
+	type pendingCommit struct {
+		from   ngtypes.Address
+		commit *ngtypes.Commitment
+	}
 	pool.Lock()
-	templates := make([]*ngtypes.Commitment, 0, len(pool.commitQueue))
+	templates := make([]pendingCommit, 0, len(pool.commitQueue))
 	for from, q := range pool.commitQueue {
 		if next > q.expireAt {
 			delete(pool.commitQueue, from)
 			continue
 		}
-		templates = append(templates, q.commit)
+		templates = append(templates, pendingCommit{from: from, commit: q.commit})
 	}
 	pool.Unlock()
 
-	for _, tmpl := range templates {
+	for _, pc := range templates {
+		tmpl := pc.commit
 		landed := false
 		_ = pool.db.View(func(txn *bbolt.Tx) error {
-			landed = ngstate.CommitOnChain(txn, tmpl.Hash, next)
+			landed = ngstate.CommitOnChain(txn, pc.from, tmpl.Hash, next)
 			return nil
 		})
 		if landed {

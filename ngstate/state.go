@@ -357,16 +357,17 @@ func (state *State) handleCommits(txn *bbolt.Tx, block *ngtypes.FullBlock) error
 			return err
 		}
 
-		// single-inclusion (consensus): reject a commitment whose hash is
-		// already pending on chain, so a re-heighted duplicate cannot double-
-		// charge its committer
-		if commitHashPending(txn, commit.Hash, commit.Height) {
-			return errors.Wrapf(ErrCommitDuplicate, "%x already pending", commit.Hash)
-		}
-
 		from, err := commit.From()
 		if err != nil {
 			return err
+		}
+
+		// single-inclusion (consensus): reject this committer's own commitment
+		// if already pending on chain, so a re-heighted duplicate cannot double-
+		// charge them. Keyed on (from, hash): a copycat reusing the public blind
+		// hash has a different From and is neither blocked nor blocking.
+		if commitFromPending(txn, from, commit.Hash, commit.Height) {
+			return errors.Wrapf(ErrCommitDuplicate, "%s already committed %x", from, commit.Hash)
 		}
 
 		balance := getBalance(txn, from)

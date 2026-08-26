@@ -37,6 +37,12 @@ func (pool *TxPool) GetPack(height uint64) ngtypes.TxTrie {
 		}
 	})
 
+	// dedup by txid: two reveals with IDENTICAL content (same To/Value/Fee/
+	// Extra) but different signers share a txid (the id excludes Sign), and the
+	// block layer rejects a block carrying one twice — so never assemble an
+	// invalid block from such a pair. Sorted fee-desc: keep the highest-fee one.
+	txs = dedupByKey(txs, func(tx *ngtypes.FullTx) string { return string(tx.GetHash()) })
+
 	if len(txs) > MaxTxsPerPack {
 		txs = txs[:MaxTxsPerPack]
 	}
@@ -69,9 +75,32 @@ func (pool *TxPool) GetCommitPack(height uint64) []*ngtypes.Commitment {
 		}
 	})
 
+	// dedup by Hash: the block layer keys commitments by height+hash and rejects
+	// a block carrying the same hash twice, so an attacker who copies a victim's
+	// PUBLIC blind hash (with their own signature) must never make us assemble an
+	// invalid block. Sorted fee-desc: keep the highest-fee one per hash.
+	commits = dedupByKey(commits, func(c *ngtypes.Commitment) string { return string(c.Hash) })
+
 	if len(commits) > MaxTxsPerPack {
 		commits = commits[:MaxTxsPerPack]
 	}
 
 	return commits
+}
+
+// dedupByKey keeps the first element per key (the input is pre-sorted so the
+// first is the one to keep), preserving order. Used to strip pack entries that
+// would collide under the block layer's identity (txid / commit hash).
+func dedupByKey[T any](items []T, key func(T) string) []T {
+	seen := make(map[string]struct{}, len(items))
+	out := items[:0]
+	for _, it := range items {
+		k := key(it)
+		if _, dup := seen[k]; dup {
+			continue
+		}
+		seen[k] = struct{}{}
+		out = append(out, it)
+	}
+	return out
 }

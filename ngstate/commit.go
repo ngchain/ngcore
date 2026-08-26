@@ -20,15 +20,16 @@ func CheckCommitment(txn *bbolt.Tx, commit *ngtypes.Commitment, height uint64) e
 		return err
 	}
 
-	// single-inclusion: a commitment hash already pending on chain cannot be
-	// re-heighted and charged again
-	if commitHashPending(txn, commit.Hash, height) {
-		return errors.Wrapf(ErrCommitDuplicate, "%x already pending", commit.Hash)
-	}
-
 	from, err := commit.From()
 	if err != nil {
 		return err
+	}
+
+	// single-inclusion: this committer's own commitment, already pending on
+	// chain, cannot be re-heighted and charged again. Keyed on (from, hash) so a
+	// copycat that reuses the public blind hash neither blocks nor is blocked.
+	if commitFromPending(txn, from, commit.Hash, height) {
+		return errors.Wrapf(ErrCommitDuplicate, "%s already committed %x", from, commit.Hash)
 	}
 
 	if getBalance(txn, from).Cmp(commit.Fee) < 0 {
@@ -80,16 +81,23 @@ func consumeCommit(txn *bbolt.Tx, height uint64, hash []byte) error {
 	return txn.Bucket(storage.CommitBucketName).Delete(commitKey(height, hash))
 }
 
-// commitHashPending reports whether a commitment with this hash is already
-// recorded (unspent) on chain at some height below `height`, within the window.
-// It is the cross-block de-duplication guard: a commitment now signs a
-// height-INDEPENDENT digest (so a node may relay it to a later block), which
-// would otherwise let the same signed commitment be re-heighted and re-included
-// at several heights, charging its committer the fee each time. Making a pending
-// duplicate invalid caps every commitment at ONE on-chain inclusion. A
-// commitment consumed by a reveal is gone from the bucket, so re-committing the
-// same content after it was revealed stays allowed.
-func commitHashPending(txn *bbolt.Tx, hash []byte, height uint64) bool {
+// commitFromPending reports whether the SAME committer (from) already has a
+// commitment with this hash recorded (unspent) on chain below `height`, within
+// the window. It is the cross-block de-duplication guard: a commitment now signs
+// a height-INDEPENDENT digest (so a node may relay it to a later block), which
+// would otherwise let the SAME signed commitment be re-heighted and re-included
+// at several heights, charging its committer the fee each time. Making the
+// committer's own re-heighted duplicate invalid caps their commitment at ONE
+// on-chain inclusion.
+//
+// It deliberately keys on (from, hash), NOT hash alone. A commitment's blind
+// hash is PUBLIC in gossip and attacker-choosable; a third party that copies it
+// signs with a DIFFERENT From, so it must neither block this committer nor be
+// blocked by them — their reveals match by (from, hash) independently
+// (findCommit). Keying on hash alone would let a copycat commitment censor the
+// victim's real one. A commitment consumed by a reveal is gone from the bucket,
+// so re-committing the same content after it was revealed stays allowed.
+func commitFromPending(txn *bbolt.Tx, from ngtypes.Address, hash []byte, height uint64) bool {
 	bucket := txn.Bucket(storage.CommitBucketName)
 
 	// scan one past the window so an as-yet-unpruned pending commit is still seen
@@ -98,18 +106,19 @@ func commitHashPending(txn *bbolt.Tx, hash []byte, height uint64) bool {
 		low = height - ngtypes.CommitWindow - 1
 	}
 	for h := low; h < height; h++ {
-		if bucket.Get(commitKey(h, hash)) != nil {
+		if v := bucket.Get(commitKey(h, hash)); v != nil && bytes.Equal(v, from[:]) {
 			return true
 		}
 	}
 	return false
 }
 
-// CommitOnChain reports whether a commitment hash is already recorded on chain
-// as of the next block `next`. The commit relay uses it to stop re-submitting a
-// commitment once it has landed, so it is never double-included.
-func CommitOnChain(txn *bbolt.Tx, hash []byte, next uint64) bool {
-	return commitHashPending(txn, hash, next)
+// CommitOnChain reports whether the committer's own commitment (from, hash) is
+// already recorded on chain as of the next block `next`. The commit relay uses
+// it to stop re-submitting a commitment once it has landed, so it is never
+// double-included.
+func CommitOnChain(txn *bbolt.Tx, from ngtypes.Address, hash []byte, next uint64) bool {
+	return commitFromPending(txn, from, hash, next)
 }
 
 // spentKey is the consumption-journal key: revealHeightLE(8) ‖ Hash(32).
