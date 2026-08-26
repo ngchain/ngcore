@@ -29,7 +29,7 @@ func newInternalTestChain(t *testing.T) *Chain {
 	return Init(db, ngtypes.ZERONET, store, state)
 }
 
-func sealChildBlock(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) *ngtypes.FullBlock {
+func sealChildBlock(t *testing.T, chain *Chain, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -46,6 +46,7 @@ func sealChildBlock(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Priv
 	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
 		t.Fatal(err)
 	}
+	sealInternalStateRoot(t, chain, block)
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
@@ -75,7 +76,7 @@ func TestApplyBlockDropsStaleReorgLogs(t *testing.T) {
 
 	miner, _ := ngtypes.GenerateKey()
 	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
-	b1 := sealChildBlock(t, genesis, miner)
+	b1 := sealChildBlock(t, chain, genesis, miner)
 	if err := chain.ApplyBlock(b1); err != nil {
 		t.Fatalf("apply b1: %v", err)
 	}

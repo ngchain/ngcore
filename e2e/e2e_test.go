@@ -162,12 +162,14 @@ func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) 
 	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
 		t.Fatal(err)
 	}
+	sealStateRoot(t, block)
 
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
+			registerBuilt(block)
 			return block
 		}
 	}
@@ -327,12 +329,15 @@ func mineOnAll(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 	// folded into the pow preimage consistently — exactly what peers re-validate.
 	block.BlockHeader.WitnessRoot = ngtypes.CalcWitnessRoot(block.Txs, block.Commits)
 
+	sealStateRoot(t, block)
+
 	var lastErr error
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
 		if lastErr = block.CheckError(); lastErr == nil {
+			registerBuilt(block)
 			return block
 		}
 	}

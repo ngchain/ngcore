@@ -34,6 +34,73 @@ func newTestChain(t *testing.T) *blockchain.Chain {
 	return blockchain.Init(db, ngtypes.ZERONET, store, state)
 }
 
+// sealTestStateRoot sets an unsealing test block's post-state StateRoot so the
+// sealed block passes the apply-time CheckStateRoot (the header now commits to
+// this root in the pow preimage). The builders don't have the chain the block
+// will apply to — and a side block's root is relative to its OWN fork point —
+// so the ancestry is tracked in-memory: every builder registers the blocks it
+// produces (see registerBuilt), and this walks parent -> genesis through that
+// registry, replays it into a throwaway state, and dry-applies. Call AFTER
+// ToUnsealing and BEFORE ToSealed.
+func sealTestStateRoot(t *testing.T, block *ngtypes.FullBlock) {
+	t.Helper()
+	block.BlockHeader.StateRoot = testStateRootReplay(t, block)
+}
+
+// builtBlocks indexes every test-built block by its FINAL (sealed) hash so an
+// ancestry walk works even before the block lands in any chain store, and
+// across sibling branches. Register a block only after ToSealed — the nonce is
+// part of the header hash, so a pre-seal registration would key the wrong hash.
+var builtBlocks = map[string]*ngtypes.FullBlock{}
+
+func registerBuilt(b *ngtypes.FullBlock) { builtBlocks[string(b.GetHash())] = b }
+
+// testStateRootReplay reconstructs the parent's state (genesis then the
+// registered ancestry of block) in a throwaway db and returns the root block
+// would produce. A block whose parent is genesis needs no registry.
+func testStateRootReplay(t *testing.T, block *ngtypes.FullBlock) []byte {
+	t.Helper()
+
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+
+	// walk parent -> genesis through the in-memory registry
+	var ancestry []*ngtypes.FullBlock
+	prev := block.GetPrevHash()
+	for !bytes.Equal(prev, genesis.GetHash()) {
+		p, ok := builtBlocks[string(prev)]
+		if !ok {
+			t.Fatalf("sealTestStateRoot: ancestor %x not registered (build parents first)", prev)
+		}
+		ancestry = append([]*ngtypes.FullBlock{p}, ancestry...)
+		prev = p.GetPrevHash()
+	}
+
+	sdb, err := bbolt.Open(filepath.Join(t.TempDir(), "scratch-root.db"), 0o600, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sdb.Close() }()
+	storage.InitDB(sdb)
+	scratch := ngstate.InitStateFromGenesis(sdb, ngtypes.ZERONET)
+
+	if err := scratch.Update(func(txn *bbolt.Tx) error {
+		for _, b := range ancestry {
+			if err := scratch.Upgrade(txn, b); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("sealTestStateRoot: ancestry replay: %v", err)
+	}
+
+	root, err := ngstate.DryApplyRoot(scratch, block)
+	if err != nil {
+		t.Fatalf("sealTestStateRoot: dry apply: %v", err)
+	}
+	return root
+}
+
 // mineBlock builds and seals a valid ZERONET block on the parent, paying
 // the block reward to the miner key. ZERONET's minimum difficulty is 1,
 // so sealing succeeds within a few nonce attempts
@@ -66,12 +133,14 @@ func mineBlockReward(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Pri
 	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
 		t.Fatal(err)
 	}
+	sealTestStateRoot(t, block)
 
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
+			registerBuilt(block)
 			return block
 		}
 	}
@@ -100,12 +169,14 @@ func mineBlockAt(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
 		t.Fatal(err)
 	}
+	sealTestStateRoot(t, block)
 
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
+			registerBuilt(block)
 			return block
 		}
 	}

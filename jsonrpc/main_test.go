@@ -239,26 +239,13 @@ func bs58Key(key *ngtypes.PrivateKey) string {
 func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 	t.Helper()
 
-	var work struct {
-		WorkID uint64 `json:"id"`
-		Block  string `json:"block"`
-		Txs    string `json:"txs"`
-	}
-	decodeInto(t, node.mustCall(t, "ng_getWork", nil), &work)
+	// getWork is now gen-aware: build the miner's signed generate for the next
+	// height and hand it over, so the daemon folds it in and seals the
+	// post-state StateRoot into the preimage before returning the template.
+	var height uint64
+	decodeInto(t, node.mustCall(t, "ng_getLatestBlockHeight", nil), &height)
+	height++
 
-	var block ngtypes.FullBlock
-	if err := utils.HexRLPDecode(work.Block, &block); err != nil {
-		t.Fatal(err)
-	}
-	var txs []*ngtypes.FullTx
-	if err := utils.HexRLPDecode(work.Txs, &txs); err != nil {
-		t.Fatal(err)
-	}
-
-	height := block.GetHeight()
-	// the miner writes its address into the header before sealing (part of
-	// the pow preimage); submitWork restores it from the generate recipient
-	block.SetCoinbase(ngtypes.NewAddress(miner))
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),
 		ngtypes.GetBlockReward(height),
@@ -267,22 +254,21 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 		t.Fatal(err)
 	}
 
-	if err := block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, txs...)); err != nil {
+	var work struct {
+		WorkID uint64 `json:"id"`
+		Block  string `json:"block"`
+		Txs    string `json:"txs"`
+	}
+	decodeInto(t, node.mustCall(t, "ng_getWork", map[string]any{
+		"gen": utils.HexRLPEncode(genTx),
+	}), &work)
+
+	// the returned block is fully assembled (gen folded, StateRoot sealed);
+	// grind a nonce over it and submit only the nonce
+	var block ngtypes.FullBlock
+	if err := utils.HexRLPDecode(work.Block, &block); err != nil {
 		t.Fatal(err)
 	}
-	// ToUnsealing computes the witness root over the txs in INSERTION order
-	// (gen first) but stores x.Txs hash-sorted (NewTxTrie sorts in place);
-	// CheckError recomputes the root over the sorted x.Txs, so recompute it here
-	// to match — otherwise a block whose reveal tx sorts before the generate is
-	// rejected as witness-invalid.
-	block.BlockHeader.WitnessRoot = ngtypes.CalcWitnessRoot(block.Txs, block.Commits)
-
-	// ng_submitWork rebuilds the block from the raw template (gen first) and does
-	// NOT recompute the witness root, so it only round-trips when the generate
-	// already sorts first. When a packed reveal sorts ahead of it, land the fully
-	// sealed block directly via MinedNewBlock (the same import path submitWork
-	// ends in) so the recomputed witness root survives.
-	genSortsFirst := len(block.Txs) == 0 || bytes.Equal(block.Txs[0].GetHash(), genTx.GetHash())
 
 	for n := uint64(0); n < 1_000_000; n++ {
 		nonce := utils.PackUint64LE(n)
@@ -290,15 +276,10 @@ func mineViaRPC(t *testing.T, node *rpcNode, miner *ngtypes.PrivateKey) {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
-			if genSortsFirst {
-				node.mustCall(t, "ng_submitWork", map[string]any{
-					"id":    work.WorkID,
-					"nonce": hex.EncodeToString(nonce),
-					"gen":   utils.HexRLPEncode(genTx),
-				})
-			} else if err := node.pow.MinedNewBlock(&block); err != nil {
-				t.Fatalf("MinedNewBlock: %v", err)
-			}
+			node.mustCall(t, "ng_submitWork", map[string]any{
+				"id":    work.WorkID,
+				"nonce": hex.EncodeToString(nonce),
+			})
 			return
 		}
 	}

@@ -75,12 +75,14 @@ func mineWithTxs(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Private
 	if err := block.ToUnsealing(append([]*ngtypes.FullTx{genTx}, txs...)); err != nil {
 		t.Fatal(err)
 	}
+	sealStateRoot(t, block)
 
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
+			registerBuilt(block)
 			return block
 		}
 	}

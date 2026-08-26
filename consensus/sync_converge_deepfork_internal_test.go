@@ -1,17 +1,29 @@
 package consensus
 
 import (
+	"bytes"
 	"math/big"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"go.etcd.io/bbolt"
+
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
 
+// deepForkBuilt indexes test-built blocks by their sealed hash so sealAtTime
+// can walk a block's ancestry and reproduce its committed StateRoot.
+var deepForkBuilt = map[string]*ngtypes.FullBlock{}
+
 // sealAtTime builds+seals a ZERONET block on parent with an explicit
 // (backdated) timestamp, so a test can build a chain without tripping the 15s
-// future-drift wall that fast GetBlockTemplate mining hits.
+// future-drift wall that fast GetBlockTemplate mining hits. It also seals the
+// post-state StateRoot into the header (now part of the pow preimage) by
+// replaying the block's ancestry into a throwaway state.
 func sealAtTime(t *testing.T, parent *ngtypes.FullBlock, key *ngtypes.PrivateKey, blockTime uint64) *ngtypes.FullBlock {
 	t.Helper()
 	h := parent.GetHeight() + 1
@@ -26,16 +38,62 @@ func sealAtTime(t *testing.T, parent *ngtypes.FullBlock, key *ngtypes.PrivateKey
 	if err := b.ToUnsealing([]*ngtypes.FullTx{gen}); err != nil {
 		t.Fatal(err)
 	}
+	b.BlockHeader.StateRoot = deepForkStateRoot(t, b)
+
 	for n := uint64(0); n < 2_000_000; n++ {
 		if err := b.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
 		if b.CheckError() == nil {
+			deepForkBuilt[string(b.GetHash())] = b
 			return b
 		}
 	}
 	t.Fatal("failed to seal")
 	return nil
+}
+
+// deepForkStateRoot replays the block's ancestry (genesis then the registered
+// parent chain) into a throwaway state and returns the root block produces.
+func deepForkStateRoot(t *testing.T, block *ngtypes.FullBlock) []byte {
+	t.Helper()
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+
+	var ancestry []*ngtypes.FullBlock
+	prev := block.GetPrevHash()
+	for !bytes.Equal(prev, genesis.GetHash()) {
+		p, ok := deepForkBuilt[string(prev)]
+		if !ok {
+			t.Fatalf("sealAtTime: ancestor %x not registered", prev)
+		}
+		ancestry = append([]*ngtypes.FullBlock{p}, ancestry...)
+		prev = p.GetPrevHash()
+	}
+
+	sdb, err := bbolt.Open(filepath.Join(t.TempDir(), "scratch-root.db"), 0o600, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sdb.Close() }()
+	storage.InitDB(sdb)
+	scratch := ngstate.InitStateFromGenesis(sdb, ngtypes.ZERONET)
+
+	if err := scratch.Update(func(txn *bbolt.Tx) error {
+		for _, b := range ancestry {
+			if err := scratch.Upgrade(txn, b); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("sealAtTime: ancestry replay: %v", err)
+	}
+
+	root, err := ngstate.DryApplyRoot(scratch, block)
+	if err != nil {
+		t.Fatalf("sealAtTime: dry apply: %v", err)
+	}
+	return root
 }
 
 // TestDoConvergingDeepFork reproduces (and fixes) the production failure: a

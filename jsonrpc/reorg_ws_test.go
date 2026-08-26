@@ -1,15 +1,20 @@
 package jsonrpc_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/c0mm4nd/rlp"
+	"go.etcd.io/bbolt"
 
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
+	"github.com/ngchain/ngcore/storage"
 	"github.com/ngchain/ngcore/utils"
 )
 
@@ -18,14 +23,16 @@ import (
 // an arbitrary fork point. Its timestamp follows the parent by one second —
 // competing blocks are mined in-process, so they must stay within the
 // future-drift tolerance.
-func sealBlockOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, extra ...*ngtypes.FullTx) *ngtypes.FullBlock {
-	return sealBlockOnAll(t, parent, miner, nil, extra...)
+func sealBlockOn(t *testing.T, node *rpcNode, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, extra ...*ngtypes.FullTx) *ngtypes.FullBlock {
+	return sealBlockOnAll(t, node, parent, miner, nil, extra...)
 }
 
 // sealBlockOnAll is sealBlockOn with blind commitments packed in too. The
 // commitments must be attached before ToUnsealing, which folds them into the
-// content root alongside the txs.
-func sealBlockOnAll(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, commits []*ngtypes.Commitment, extra ...*ngtypes.FullTx) *ngtypes.FullBlock {
+// content root alongside the txs. It seals the branch-correct post-state
+// StateRoot into the header (now part of the pow preimage) by replaying the
+// block's ancestry — including reveals/commits — from the node's block store.
+func sealBlockOnAll(t *testing.T, node *rpcNode, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey, commits []*ngtypes.Commitment, extra ...*ngtypes.FullTx) *ngtypes.FullBlock {
 	t.Helper()
 
 	height := parent.GetHeight() + 1
@@ -51,6 +58,8 @@ func sealBlockOnAll(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Priv
 	// witness-invalid.
 	block.BlockHeader.WitnessRoot = ngtypes.CalcWitnessRoot(block.Txs, block.Commits)
 
+	block.BlockHeader.StateRoot = branchStateRoot(t, node, block)
+
 	var last error
 	for n := uint64(0); n < 2_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
@@ -63,6 +72,53 @@ func sealBlockOnAll(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.Priv
 	t.Fatalf("failed to seal a competing ZERONET block@%d (diff=%s): last err %v",
 		height, diff, last)
 	return nil
+}
+
+// branchStateRoot replays the block's ancestry (genesis then every ancestor,
+// walked from the node's block store — side blocks included) into a throwaway
+// state and returns the root block produces. Reveals resolve against the
+// commitments recorded by the replayed ancestors, so a branch carrying a reveal
+// gets the correct branch-relative root.
+func branchStateRoot(t *testing.T, node *rpcNode, block *ngtypes.FullBlock) []byte {
+	t.Helper()
+	genesis := ngtypes.GetGenesisBlock(ngtypes.ZERONET)
+
+	var ancestry []*ngtypes.FullBlock
+	prev := block.GetPrevHash()
+	for !bytes.Equal(prev, genesis.GetHash()) {
+		b, err := node.pow.Chain.GetBlockByHash(prev)
+		if err != nil {
+			t.Fatalf("branchStateRoot: ancestor %x not in store: %v", prev, err)
+		}
+		fb := b.(*ngtypes.FullBlock)
+		ancestry = append([]*ngtypes.FullBlock{fb}, ancestry...)
+		prev = fb.GetPrevHash()
+	}
+
+	sdb, err := bbolt.Open(filepath.Join(t.TempDir(), "scratch-root.db"), 0o600, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sdb.Close() }()
+	storage.InitDB(sdb)
+	scratch := ngstate.InitStateFromGenesis(sdb, ngtypes.ZERONET)
+
+	if err := scratch.Update(func(txn *bbolt.Tx) error {
+		for _, b := range ancestry {
+			if err := scratch.Upgrade(txn, b); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("branchStateRoot: ancestry replay: %v", err)
+	}
+
+	root, err := ngstate.DryApplyRoot(scratch, block)
+	if err != nil {
+		t.Fatalf("branchStateRoot: dry apply: %v", err)
+	}
+	return root
 }
 
 // TestRPCWebSocketLogsRemovedOnReorg drives both sides of the logs
@@ -187,15 +243,15 @@ func TestRPCWebSocketLogsRemovedOnReorg(t *testing.T) {
 	// the new tip), b2 is the empty tip that out-works the canonical two-block
 	// commit+reveal, forcing the reorg
 	miner2, _ := ngtypes.GenerateKey()
-	b0 := sealBlockOnAll(t, forkParent, miner2, []*ngtypes.Commitment{commit})
+	b0 := sealBlockOnAll(t, node, forkParent, miner2, []*ngtypes.Commitment{commit})
 	if err := node.pow.Chain.ApplyBlock(b0); err != nil {
 		t.Fatalf("apply competing b0: %v", err)
 	}
-	b1 := sealBlockOn(t, b0, miner2, &transactTx)
+	b1 := sealBlockOn(t, node, b0, miner2, &transactTx)
 	if err := node.pow.Chain.ApplyBlock(b1); err != nil {
 		t.Fatalf("apply competing b1: %v", err)
 	}
-	b2 := sealBlockOn(t, b1, miner2)
+	b2 := sealBlockOn(t, node, b1, miner2)
 	if err := node.pow.Chain.ApplyBlock(b2); err != nil {
 		t.Fatalf("apply competing b2: %v", err)
 	}

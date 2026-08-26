@@ -73,12 +73,14 @@ func mineBlock(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 	if err := block.ToUnsealing([]*ngtypes.FullTx{genTx}); err != nil {
 		t.Fatal(err)
 	}
+	sealStateRoot(t, block)
 
 	for n := uint64(0); n < 1_000_000; n++ {
 		if err := block.ToSealed(utils.PackUint64LE(n)); err != nil {
 			t.Fatal(err)
 		}
 		if block.CheckError() == nil {
+			registerBuilt(block)
 			return block
 		}
 	}
