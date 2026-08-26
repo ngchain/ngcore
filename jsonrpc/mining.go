@@ -18,34 +18,71 @@ import (
 
 var workPool = workpool.GetWorkerPool()
 
+// GetWorkParams carries the miner's OWN signed generate tx. The post-state
+// StateRoot is folded into the pow preimage and depends on the block's
+// contents including this generate, so getWork must fold it in and seal the
+// root BEFORE returning — the miner can no longer append its generate after
+// the fact and still carry a correct root.
+type GetWorkParams struct {
+	GenTx string `json:"gen"`
+}
+
+// GetWorkReply hands the miner a FULLY-ASSEMBLED unsealing block (generate
+// folded in, StateRoot sealed) — it needs only a nonce. Txs is kept as an
+// empty list for wire-compat but is no longer needed to reconstruct.
 type GetWorkReply struct {
 	WorkID uint64 `json:"id"`
 	Block  string `json:"block"`
 	Txs    string `json:"txs"`
 }
 
-// getWorkFunc provides a free style interface for miner client getting latest block mining work
+// getWorkFunc provides a free style interface for miner client getting latest
+// block mining work. It requires the miner's signed generate so the returned
+// template already carries the correct post-state StateRoot in its preimage.
 func (s *Server) getWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
-	block, txs := s.pow.GetBareBlockTemplateWithTxs()
+	var params GetWorkParams
+	if msg.Params != nil {
+		if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
+			log.Error(err)
+			return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+		}
+	}
+
+	var genTx ngtypes.FullTx
+	if err := utils.HexRLPDecode(params.GenTx, &genTx); err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
+	block, err := s.pow.AssembleWork(&genTx)
+	if err != nil {
+		log.Error(err)
+		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
+	}
+
 	id := uint64(time.Now().UnixNano())
 	work := &GetWorkReply{
 		WorkID: id,
 		Block:  utils.HexRLPEncode(block),
-		Txs:    utils.HexRLPEncode(txs),
+		Txs:    utils.HexRLPEncode([]*ngtypes.FullTx{}),
 	}
 
-	workPool.Put(strconv.FormatUint(work.WorkID, 10), work)
+	// stash the assembled block itself: submitWork only needs to seal a nonce
+	workPool.Put(strconv.FormatUint(work.WorkID, 10), block)
 
 	return reply(msg, work)
 }
 
+// SubmitWorkParams carries only the found nonce for a stored work id: the
+// block (with its generate and StateRoot) was fully assembled at getWork time.
 type SubmitWorkParams struct {
 	WorkID uint64 `json:"id"`
 	Nonce  string `json:"nonce"`
-	GenTx  string `json:"gen"`
 }
 
-// submitWorkFunc
+// submitWorkFunc seals the stored, fully-assembled block with the found nonce
+// and imports it. It no longer reconstructs the block from parts — the root
+// was sealed at getWork time, so a re-assembly here could only diverge.
 func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	var params SubmitWorkParams
 
@@ -55,13 +92,11 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	originReply, err := workPool.Get(strconv.FormatUint(params.WorkID, 10))
+	stored, err := workPool.Get(strconv.FormatUint(params.WorkID, 10))
 	if err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
-
-	reply := originReply.(*GetWorkReply)
 
 	nonce, err := hex.DecodeString(params.Nonce)
 	if err != nil {
@@ -69,37 +104,13 @@ func (s *Server) submitWorkFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	var genTx ngtypes.FullTx
-	err = utils.HexRLPDecode(params.GenTx, &genTx)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
+	// clone the stored block so a re-submit under the same work id starts from
+	// the unsealed template rather than a previously-sealed one
+	tmpl := stored.(*ngtypes.FullBlock)
+	block := *tmpl
+	hdr := *tmpl.BlockHeader
+	block.BlockHeader = &hdr
 
-	var block ngtypes.FullBlock
-	var txs []*ngtypes.FullTx
-
-	err = utils.HexRLPDecode(reply.Block, &block)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-	err = utils.HexRLPDecode(reply.Txs, &txs)
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
-
-	// the miner sealed over its own coinbase (part of the pow preimage); the
-	// template carried none, so restore it from the submitted generate's
-	// recipient before reconstructing, or the nonce will not verify
-	block.SetCoinbase(genTx.To)
-
-	err = block.ToUnsealing(append([]*ngtypes.FullTx{&genTx}, txs...))
-	if err != nil {
-		log.Error(err)
-		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
-	}
 	err = block.ToSealed(nonce)
 	if err != nil {
 		log.Error(err)

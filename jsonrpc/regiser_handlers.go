@@ -65,6 +65,10 @@ func registerHTTPHandler(s *Server) {
 	// list a contract's callable exports (its ABI)
 	s.reg("ng_getContractExports", s.requireSynced(s.getContractExportsFunc))
 	s.reg("ng_getBalanceByAddress", s.requireSynced(s.getBalanceByAddressFunc))
+	// consensus-state commitment: the tip root, and a Merkle inclusion/absence
+	// proof of one leaf that statetrie.Verify accepts against the root
+	s.reg("ng_getStateRoot", s.requireSynced(s.getStateRootFunc))
+	s.reg("ng_getStateProof", s.requireSynced(s.getStateProofFunc))
 	// fork-chain sources: getHead + getAddressState back LAZY rpc forking,
 	// getSheet the eager one-shot export
 	s.reg("ng_getHead", s.requireSynced(s.getHeadFunc))
