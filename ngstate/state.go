@@ -73,6 +73,15 @@ func InitStateFromGenesis(db *bbolt.DB, network ngtypes.Network) *State {
 		},
 	}
 	err := state.Update(func(txn *bbolt.Tx) error {
+		// idempotent across restarts: a populated balance bucket means the db
+		// was already seeded and the genesis block already applied. Re-running
+		// initFromSheet + Upgrade(genesis) would credit GenesisAddress the
+		// reward a second time (and, with the commitment now folded into the
+		// header, that double-credit would fork the genesis hash). Skip.
+		if k, _ := txn.Bucket(storage.Addr2BalBucketName).Cursor().First(); k != nil {
+			return nil
+		}
+
 		err := initFromSheet(txn, ngtypes.GetGenesisSheet(network))
 		if err != nil {
 			return err
@@ -154,7 +163,12 @@ func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) err
 		}
 	}
 
-	return initFromSheet(txn, sheet)
+	if err := initFromSheet(txn, sheet); err != nil {
+		return err
+	}
+	// initFromSheet writes the buckets directly (not via the trie-aware
+	// helpers), so rebuild the commitment from the fresh plain state
+	return RebuildTrie(txn)
 }
 
 // RebuildFromBlockStore works for doing converge and remove all
@@ -191,6 +205,11 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 	if err != nil {
 		return err
 	}
+	// reset the commitment to the seeded plain state; the block replay below
+	// then maintains it incrementally through the trie-aware Upgrade path
+	if err := RebuildTrie(txn); err != nil {
+		return err
+	}
 
 	blockBucket := txn.Bucket(storage.BlockBucketName)
 	latestHeight, err := ngblocks.GetLatestHeight(blockBucket)
@@ -215,6 +234,10 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 
 		if err := state.Upgrade(txn, b); err != nil {
 			return err
+		}
+		// the replayed block must reproduce its committed post-state root
+		if err := CheckStateRoot(txn, b.BlockHeader.StateRoot); err != nil {
+			return errors.Wrapf(err, "replayed block@%d", h)
 		}
 	}
 
@@ -315,6 +338,11 @@ func (state *State) ApplyBlocksTxn(txn *bbolt.Tx, blocks []*ngtypes.FullBlock) e
 		}
 		if err := state.Upgrade(txn, b); err != nil {
 			return err
+		}
+		// a reorg branch block must reproduce its committed post-state root,
+		// or the whole switch txn aborts and the old chain stays
+		if err := CheckStateRoot(txn, b.BlockHeader.StateRoot); err != nil {
+			return errors.Wrapf(err, "branch block@%d", b.GetHeight())
 		}
 	}
 

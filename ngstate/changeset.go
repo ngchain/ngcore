@@ -199,8 +199,10 @@ func changesetCovers(txn *bbolt.Tx, h uint64) bool {
 
 // revertDomain restores every address mutated at height h in one state
 // domain to its pre-image, then drops that height's changeset and index
-// entries. present -> Put the old value, absent -> Delete
-func revertDomain(txn *bbolt.Tx, csName, stateName, histName []byte, h uint64) {
+// entries. present -> Put the old value, absent -> Delete. The restored write
+// is mirrored into the state commitment via the given trie updater, so a reorg
+// unwind keeps the trie consistent with the plain state.
+func revertDomain(txn *bbolt.Tx, csName, stateName, histName []byte, h uint64, mirror func(addr ngtypes.Address, val []byte, present bool)) {
 	csb := txn.Bucket(csName)
 	stateB := txn.Bucket(stateName)
 	prefix := utils.PackUint64LE(h)
@@ -222,10 +224,14 @@ func revertDomain(txn *bbolt.Tx, csName, stateName, histName []byte, h uint64) {
 	}
 
 	for _, e := range entries {
-		if val, present := splitPreimage(e.tagged); present {
+		val, present := splitPreimage(e.tagged)
+		if present {
 			_ = stateB.Put(e.addr[:], val)
 		} else {
 			_ = stateB.Delete(e.addr[:])
+		}
+		if mirror != nil {
+			mirror(e.addr, val, present)
 		}
 		if histName != nil {
 			_ = txn.Bucket(histName).Delete(histKey(e.addr, h))
@@ -236,11 +242,34 @@ func revertDomain(txn *bbolt.Tx, csName, stateName, histName []byte, h uint64) {
 
 // unwindHeightTxn reverts every state change applied at height h
 func unwindHeightTxn(txn *bbolt.Tx, h uint64) {
-	revertDomain(txn, storage.BalChangeSetBucketName, storage.Addr2BalBucketName, storage.BalHistBucketName, h)
-	revertDomain(txn, storage.ContractChangeSetBucketName, storage.ContractBucketName, storage.ContractHistBucketName, h)
+	revertDomain(txn, storage.BalChangeSetBucketName, storage.Addr2BalBucketName, storage.BalHistBucketName, h,
+		func(addr ngtypes.Address, val []byte, present bool) {
+			// a restored balance is raw big-endian bytes; absent (or an empty
+			// zero-balance blob) collapses to an absent leaf
+			if !present {
+				trieSetBalance(txn, addr, nil)
+				return
+			}
+			trieSetBalance(txn, addr, new(big.Int).SetBytes(val))
+		})
+	revertDomain(txn, storage.ContractChangeSetBucketName, storage.ContractBucketName, storage.ContractHistBucketName, h,
+		func(addr ngtypes.Address, val []byte, present bool) {
+			if !present {
+				trieSetContract(txn, addr, nil)
+				return
+			}
+			trieSetContract(txn, addr, val)
+		})
 	// the key registry is append-only: a recorded reveal means the entry
 	// did not exist before, so unwinding just drops it (no history index)
-	revertDomain(txn, storage.KeyChangeSetBucketName, storage.KeyRegistryBucketName, nil, h)
+	revertDomain(txn, storage.KeyChangeSetBucketName, storage.KeyRegistryBucketName, nil, h,
+		func(addr ngtypes.Address, val []byte, present bool) {
+			if !present {
+				trieSetKey(txn, addr, nil)
+				return
+			}
+			trieSetKey(txn, addr, val)
+		})
 	// commit store, two directions: drop the commitments RECORDED at h, and
 	// re-put the commitments CONSUMED by reveals at h — their own recording
 	// block may stay canonical below the fork point, so re-applying the branch

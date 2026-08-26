@@ -51,7 +51,13 @@ func commitKey(height uint64, hash []byte) []byte {
 
 // putCommit records a commitment at the given height: heightLE‖Hash -> From.
 func putCommit(txn *bbolt.Tx, height uint64, hash []byte, from ngtypes.Address) error {
-	return txn.Bucket(storage.CommitBucketName).Put(commitKey(height, hash), from[:])
+	key := commitKey(height, hash)
+	if err := txn.Bucket(storage.CommitBucketName).Put(key, from[:]); err != nil {
+		return err
+	}
+	// mirror the pending commitment into the state commitment
+	trieSetCommit(txn, key, from[:])
+	return nil
 }
 
 // findCommit looks up an UNREVEALED commitment by (From, Hash) that was
@@ -78,7 +84,13 @@ func findCommit(txn *bbolt.Tx, from ngtypes.Address, hash []byte, revealHeight u
 
 // consumeCommit deletes a matched commitment (a reveal spends it).
 func consumeCommit(txn *bbolt.Tx, height uint64, hash []byte) error {
-	return txn.Bucket(storage.CommitBucketName).Delete(commitKey(height, hash))
+	key := commitKey(height, hash)
+	if err := txn.Bucket(storage.CommitBucketName).Delete(key); err != nil {
+		return err
+	}
+	// drop the pending-commitment leaf from the state commitment
+	trieSetCommit(txn, key, nil)
+	return nil
 }
 
 // commitFromPending reports whether the SAME committer (from) already has a
@@ -181,6 +193,8 @@ func deleteCommitsAtHeight(txn *bbolt.Tx, h uint64) {
 	}
 	for _, k := range keys {
 		_ = bucket.Delete(k)
+		// this IS the mempool:commit bucket, so drop its trie leaf too
+		trieSetCommit(txn, k, nil)
 	}
 }
 
@@ -194,13 +208,17 @@ func pruneCommits(txn *bbolt.Tx, tip uint64) {
 		return
 	}
 	cutoff := tip - ngtypes.CommitWindow // delete heights strictly below this
-	pruneHeightBucketBelow(txn, storage.CommitBucketName, cutoff)
-	pruneHeightBucketBelow(txn, storage.CommitSpentBucketName, cutoff)
+	// only the mempool:commit bucket is in the state commitment; its prune
+	// must drop the matching trie leaves, the spent-journal prune must not
+	pruneHeightBucketBelow(txn, storage.CommitBucketName, cutoff, true)
+	pruneHeightBucketBelow(txn, storage.CommitSpentBucketName, cutoff, false)
 }
 
 // pruneHeightBucketBelow deletes every entry of a height-major bucket whose
-// leading heightLE(8) is below cutoff.
-func pruneHeightBucketBelow(txn *bbolt.Tx, name []byte, cutoff uint64) {
+// leading heightLE(8) is below cutoff. inTrie tells whether this bucket backs
+// the state commitment (the mempool:commit bucket does, the spent journal does
+// NOT), so the trie leaf is dropped for exactly the committed bucket.
+func pruneHeightBucketBelow(txn *bbolt.Tx, name []byte, cutoff uint64, inTrie bool) {
 	bucket := txn.Bucket(name)
 	if bucket == nil {
 		return
@@ -218,5 +236,8 @@ func pruneHeightBucketBelow(txn *bbolt.Tx, name []byte, cutoff uint64) {
 	}
 	for _, k := range keys {
 		_ = bucket.Delete(k)
+		if inTrie {
+			trieSetCommit(txn, k, nil)
+		}
 	}
 }

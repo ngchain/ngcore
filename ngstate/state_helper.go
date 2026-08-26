@@ -100,6 +100,9 @@ store:
 		return errors.Wrap(err, "cannot set contract slot")
 	}
 
+	// keep the state commitment in sync: the leaf hashes the exact stored blob
+	trieSetContract(txn, account.Owner, raw)
+
 	return nil
 }
 
@@ -113,7 +116,12 @@ func delContract(txn *bbolt.Tx, rec *changeset, addr ngtypes.Address) error {
 		}
 	}
 
-	return bucket.Delete(addr[:])
+	if err := bucket.Delete(addr[:]); err != nil {
+		return err
+	}
+	// drop the contract leaf from the commitment
+	trieSetContract(txn, addr, nil)
+	return nil
 }
 
 // the code bucket entry is refcount(8 LE) ‖ wasm: one physical copy of
@@ -194,6 +202,9 @@ func setBalance(txn *bbolt.Tx, rec *changeset, addr ngtypes.Address, balance *bi
 		return errors.Wrapf(err, "failed to set balance")
 	}
 
+	// keep the state commitment in sync (zero balance -> absent leaf)
+	trieSetBalance(txn, addr, balance)
+
 	return nil
 }
 
@@ -232,5 +243,10 @@ func registerPubKey(txn *bbolt.Tx, rec *changeset, tx *ngtypes.FullTx) error {
 	rec.recordKey(txn, addr) // first reveal: record so a reorg can drop it
 
 	entry := append([]byte{byte(scheme)}, pubKey...)
-	return bucket.Put(addr[:], entry)
+	if err := bucket.Put(addr[:], entry); err != nil {
+		return err
+	}
+	// mirror the append-only key registry into the commitment
+	trieSetKey(txn, addr, entry)
+	return nil
 }

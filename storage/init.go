@@ -78,6 +78,14 @@ var (
 	BalHistBucketName = []byte("hist:bal")
 	// ContractHistBucketName: key = addr(32) ‖ heightLE(8) -> ∅
 	ContractHistBucketName = []byte("hist:contract")
+
+	// StateTrieBucketName backs the consensus state commitment: the
+	// non-default nodes of the BLAKE3 SMT-256 over the four committed
+	// domains (addr:bal, addr:key, addr:contract, mempool:commit), keyed
+	// by statetrie's depth(2B BE)‖path. Kept in lock-step with those
+	// buckets at every state write choke point, so its Root is the block's
+	// post-state StateRoot. Not itself part of the commitment.
+	StateTrieBucketName = []byte("state:trie")
 )
 
 var (
@@ -97,6 +105,7 @@ func InitDB(db *bbolt.DB) {
 			SnapshotBucketName, ReceiptBucketName,
 			BalChangeSetBucketName, ContractChangeSetBucketName, KeyChangeSetBucketName,
 			BalHistBucketName, ContractHistBucketName,
+			StateTrieBucketName,
 		} {
 			if _, err := txn.CreateBucketIfNotExists(name); err != nil {
 				return err
