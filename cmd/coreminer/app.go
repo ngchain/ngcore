@@ -70,7 +70,7 @@ var mining cli.ActionFunc = func(context *cli.Context) error {
 	go func() {
 		for {
 			job := <-foundCh
-			ok := client.SubmitWork(job.WorkID, job.Nonce, job.GenTx)
+			ok := client.SubmitWork(job.WorkID, job.Nonce)
 			if ok {
 				timeCh.Reset(du)
 				job := client.GetWork()
