@@ -47,6 +47,13 @@ var p2pTCPPortFlag = &cli.IntFlag{
 	Value: defaultTCPP2PPort,
 }
 
+var noDandelionFlag = &cli.BoolFlag{
+	Name: "no-dandelion",
+	Usage: "Disable Dandelion++ stem/fluff propagation: locally-submitted " +
+		"txs and commitments flood the network immediately, giving up " +
+		"network-origin privacy",
+}
+
 var rpcHostFlag = &cli.StringFlag{
 	Name:  "rpc-host",
 	Usage: "Host address for JSON RPC",
@@ -203,6 +210,7 @@ var action = func(c *cli.Context) error {
 		Port:                        p2pTCPPort,
 		DisableDiscovery:            network == ngtypes.ZERONET,
 		DisableConnectingBootstraps: isBootstrapNode || network == ngtypes.ZERONET,
+		DisableDandelion:            c.Bool(noDandelionFlag.Name),
 	})
 	localNode.GoServe()
 

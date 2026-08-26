@@ -21,7 +21,12 @@ func (pool *TxPool) PutNewTxFromLocal(tx *ngtypes.FullTx) (err error) {
 		return err
 	}
 
-	err = pool.localNode.BroadcastTx(tx)
+	// propagate through the dandelion router (stem phase first for
+	// network-origin privacy; plain flood when dandelion is disabled).
+	// The tx stays in OUR pool either way, so the local miner can still
+	// include it — NOTE: a miner-wallet mining its own stem-phase tx into
+	// a block reveals it early and weakens its own anonymity; accepted
+	err = pool.localNode.RouteTx(tx)
 	if err != nil {
 		return err
 	}
@@ -49,7 +54,10 @@ func (pool *TxPool) PutNewCommitmentFromLocal(commit *ngtypes.Commitment) (err e
 		return err
 	}
 
-	return pool.localNode.BroadcastCommitment(commit)
+	// dandelion stem/fluff, mirroring PutNewTxFromLocal: the commitment is
+	// what a first-spy adversary correlates with the origin IP, so it gets
+	// the same network-origin privacy as the reveal
+	return pool.localNode.RouteCommitment(commit)
 }
 
 // PutNewCommitmentFromRemote pools a commitment received over p2p.
