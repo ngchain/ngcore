@@ -68,11 +68,13 @@ go build -o ngcore ./cmd/ngcore
 
 ## Docs
 
-- **[paper.ngchain.org](https://paper.ngchain.org)** — the protocol
-  specification (consensus, state, transactions, the private mempool, the
-  contract VM, account abstraction, and a security/threat-model section)
-- [docs/rpc.md](docs/rpc.md) — the JSON-RPC method reference (node + fork
-  tool); the source of truth is the registry in `jsonrpc/`
+Everything lives at **[paper.ngchain.org](https://paper.ngchain.org)**:
+
+- the **[specification](https://paper.ngchain.org/spec/)** — consensus, state,
+  transactions, the private mempool, the contract VM, account abstraction, and a
+  security/threat-model section;
+- the **[JSON-RPC reference](https://paper.ngchain.org/rpc/)** — node + fork-tool
+  methods (the source of truth for the method set is the registry in `jsonrpc/`).
 
 ## Status
 
