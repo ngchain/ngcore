@@ -30,6 +30,10 @@ var (
 	ErrCommitExpired = errors.New("commitment is older than the reveal window")
 	// ErrCommitUnaffordable occurs when a committer cannot pay its commit fee
 	ErrCommitUnaffordable = errors.New("committer cannot afford the commit fee")
+	// ErrCommitDuplicate occurs when a commitment's hash is already recorded
+	// (unspent, in-window) on chain: a commitment is single-inclusion, so it
+	// cannot be re-heighted and double-charged
+	ErrCommitDuplicate = errors.New("commitment hash is already on chain")
 	// ErrSaltTooShort occurs when a reveal's salt is below MinSaltSize, which
 	// would leave a guessable-content commitment open to a preimage grind
 	ErrSaltTooShort = errors.New("reveal salt is shorter than the minimum entropy")

@@ -60,6 +60,39 @@ func TestSigningHashHeightFlexibility(t *testing.T) {
 	}
 }
 
+// TestCommitmentSigningHashHeightFlexibility pins the commitment counterpart:
+// a commitment signs its height-independent SigningHash, so one signature stays
+// valid as the node relays the commitment to a later block. MLDSA44 (a full,
+// non-recovery envelope) makes Verify decisive.
+func TestCommitmentSigningHashHeightFlexibility(t *testing.T) {
+	key, err := GenerateSchemeKey(SchemeMLDSA44)
+	if err != nil {
+		t.Fatal(err)
+	}
+	from := NewAddress(key)
+
+	hash := make([]byte, HashSize)
+	hash[0] = 0x7c
+	c := NewCommitment(ZERONET, 5, hash, big.NewInt(100))
+	if err := c.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	if !bytesEqual(c.SigningHash(), c.SigningHash()) { // stable
+		t.Fatal("signing hash must be deterministic")
+	}
+
+	// the SAME signature must verify at every height the commitment is relayed to
+	for _, h := range []uint64{5, 6, 7, 8, 42} {
+		c.Height = h
+		if err := c.Verify(nil); err != nil {
+			t.Fatalf("commitment must verify after retarget to height %d: %v", h, err)
+		}
+		if f, _ := c.From(); !f.Equals(from) {
+			t.Fatalf("From changed after retarget to height %d", h)
+		}
+	}
+}
+
 func bytesEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false

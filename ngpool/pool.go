@@ -34,12 +34,13 @@ type TxPool struct {
 	// ride the same block as the reveal of a prior one)
 	commitMap map[ngtypes.Address]*ngtypes.Commitment
 
-	// revealQueue holds signed reveals the node RELAYS on the sender's
-	// behalf: unlike txMap (deprecated on every tip), these survive tip
-	// movements and are re-submitted — retargeted to the new next height,
-	// no re-signing thanks to the height-independent effect-tx SigningHash —
-	// until the reveal lands or its commit window closes. This is the node
-	// half of the fire-and-forget commit-reveal flow. Keyed by From.
+	// commitQueue and revealQueue hold the two halves the node RELAYS on the
+	// sender's behalf: unlike txMap/commitMap (deprecated on every tip), these
+	// survive tip movements and are re-submitted — retargeted to the new next
+	// height, no re-signing thanks to the height-independent SigningHash — until
+	// each half lands or its window closes. Together they make the whole
+	// commit-reveal flow fire-and-forget. Both keyed by From.
+	commitQueue map[ngtypes.Address]*queuedCommit
 	revealQueue map[ngtypes.Address]*queuedReveal
 
 	// MaxSize caps the pool; when full, a new tx must outbid the
@@ -70,6 +71,7 @@ func Init(db *bbolt.DB, chain *blockchain.Chain, localNode *ngp2p.LocalNode) *Tx
 		db:        db,
 		txMap:       make(map[ngtypes.Address]*ngtypes.FullTx),
 		commitMap:   make(map[ngtypes.Address]*ngtypes.Commitment),
+		commitQueue: make(map[ngtypes.Address]*queuedCommit),
 		revealQueue: make(map[ngtypes.Address]*queuedReveal),
 
 		MaxSize:       DefaultPoolSize,

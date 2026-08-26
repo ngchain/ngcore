@@ -160,8 +160,9 @@ func (s *Server) sendPrivateTxFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonR
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}
 
-	// gossip the blind commitment first, then queue the reveal to relay
-	if err := s.pow.Pool.PutNewCommitmentFromLocal(&commit); err != nil {
+	// relay BOTH halves: the node re-submits the commitment until it lands, then
+	// the reveal until it lands — the wallet may go offline after this one call
+	if err := s.pow.Pool.RelayCommit(&commit); err != nil {
 		log.Error(err)
 		return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 	}

@@ -67,6 +67,25 @@ func (c *Commitment) GetUnsignedHash() []byte {
 	return utils.Hash256(raw)
 }
 
+// SigningHash is the digest the committer signs. Like a reveal's SigningHash it
+// EXCLUDES both Sign and Height, so one signature stays valid at whatever height
+// the commitment is finally packed at — a node may relay a commitment to a later
+// block (if it missed its target) without a fresh signature. Height cannot be
+// abused: a block requires each commitment's Height to equal its own, the reveal
+// window is measured relative to wherever the commitment lands, and a commitment
+// hash may be recorded on chain only once, so it cannot be double-charged.
+func (c *Commitment) SigningHash() []byte {
+	sign, height := c.Sign, c.Height
+	c.Sign, c.Height = nil, 0
+	raw, err := rlp.EncodeToBytes(c)
+	if err != nil {
+		panic(err)
+	}
+
+	c.Sign, c.Height = sign, height
+	return utils.Hash256(raw)
+}
+
 // envelope splits Sign into the scheme, public key (resolving the compact
 // form through the registry) and the signature, EXACTLY like FullTx.envelope.
 func (c *Commitment) envelope(lookup PubKeyResolver) (scheme SigScheme, pubKey, sig []byte, err error) {
@@ -92,7 +111,7 @@ func (c *Commitment) envelope(lookup PubKeyResolver) (scheme SigScheme, pubKey, 
 		if !HasRecovery(scheme) || len(body) != sigLen {
 			return 0, nil, nil, errors.Wrapf(ErrCommitSignInvalid, "recover envelope is %d bytes", len(c.Sign))
 		}
-		pubKey = RecoverPubKey(scheme, c.GetUnsignedHash(), body)
+		pubKey = RecoverPubKey(scheme, c.SigningHash(), body)
 		if pubKey == nil {
 			return 0, nil, nil, errors.Wrap(ErrCommitSignInvalid, "public key recovery failed")
 		}
@@ -156,7 +175,7 @@ func (c *Commitment) From() (Address, error) {
 		if !HasRecovery(scheme) || len(body) != sigLen {
 			return Address{}, ErrCommitUnsigned
 		}
-		pubKey := RecoverPubKey(scheme, c.GetUnsignedHash(), body)
+		pubKey := RecoverPubKey(scheme, c.SigningHash(), body)
 		if pubKey == nil {
 			return Address{}, ErrCommitUnsigned
 		}
@@ -172,7 +191,7 @@ func (c *Commitment) From() (Address, error) {
 // full form (which also registers the key on chain) otherwise.
 func (c *Commitment) Signature(privateKey *PrivateKey) error {
 	c.Sign = nil
-	hash := c.GetUnsignedHash()
+	hash := c.SigningHash()
 
 	sig, err := privateKey.SignHash(hash)
 	if err != nil {
@@ -209,7 +228,7 @@ func (c *Commitment) Verify(lookup PubKeyResolver) error {
 		return err
 	}
 
-	if !VerifyHashSig(scheme, pubKey, c.GetUnsignedHash(), sig) {
+	if !VerifyHashSig(scheme, pubKey, c.SigningHash(), sig) {
 		return ErrCommitSignInvalid
 	}
 

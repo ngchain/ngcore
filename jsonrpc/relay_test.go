@@ -140,6 +140,87 @@ func TestRelayRejectsForgedReveal(t *testing.T) {
 	}
 }
 
+// TestPrivateTxCommitRelayRecovers proves the COMMIT half is fire-and-forget
+// too: if the commitment misses its target block, the node re-relays it on the
+// next tip until it lands, then the reveal follows — the wallet re-submits
+// nothing. A pool Reset (leaving the relay queues intact) reproduces exactly
+// what a block mined without the pending commit does.
+func TestPrivateTxCommitRelayRecovers(t *testing.T) {
+	node := newRPCNode(t)
+
+	key, err := ngtypes.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mineViaRPC(t, node, key) // fund the sender @1
+
+	var to ngtypes.Address
+	to[0] = 0x43
+
+	var unsigned string
+	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
+		"to": to.BS58(), "value": "1", "fee": "0.001",
+	}), &unsigned)
+
+	raw, err := hex.DecodeString(unsigned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reveal ngtypes.FullTx
+	if err := rlp.DecodeBytes(raw, &reveal); err != nil {
+		t.Fatal(err)
+	}
+	reveal.Salt = []byte("commit-relay-salt-0123456789")
+	if err := reveal.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+
+	tip := node.pow.Chain.GetLatestBlockHeight()
+	buf := append(append([]byte{}, reveal.UnheightedHash()...), reveal.Salt...)
+	commit := ngtypes.NewCommitment(ngtypes.ZERONET, tip+1, utils.Hash256(buf), big.NewInt(100_000_000_000_000))
+	if err := commit.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+	commitRaw, err := rlp.EncodeToBytes(commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	revealRaw, err := rlp.EncodeToBytes(&reveal)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	node.mustCall(t, "ng_sendPrivateTx", map[string]any{
+		"rawCommitment": hex.EncodeToString(commitRaw),
+		"rawReveal":     hex.EncodeToString(revealRaw),
+	})
+
+	// simulate the commitment MISSING its target block: clear the live pool but
+	// leave the relay queues (what a block mined without the commit produces)
+	node.pow.Pool.Reset()
+
+	// mine a block WITHOUT the commit; the tip move drives the commit relay to
+	// re-submit the missed commitment
+	mineViaRPC(t, node, key)
+	if !waitFor(2*time.Second, func() bool { return len(node.pow.Pool.ListCommitments()) > 0 }) {
+		t.Fatal("commit relay never re-submitted the missed commitment")
+	}
+
+	// mine the commit, then the reveal relay admits the reveal, then mine it
+	mineViaRPC(t, node, key)
+	if !waitFor(2*time.Second, func() bool { return len(node.pow.Pool.List()) > 0 }) {
+		t.Fatal("reveal relay never admitted the reveal after the commit landed")
+	}
+	mineViaRPC(t, node, key)
+
+	var bal struct{ TotalBalance string }
+	decodeInto(t, node.mustCall(t, "ng_getBalanceByAddress",
+		map[string]any{"address": to.BS58()}), &bal)
+	if want := ngtypes.NG.String(); bal.TotalBalance != want {
+		t.Fatalf("recipient balance = %s, want %s (relayed private tx did not land)", bal.TotalBalance, want)
+	}
+}
+
 // waitFor polls cond until it holds or the timeout elapses
 func waitFor(timeout time.Duration, cond func() bool) bool {
 	deadline := time.Now().Add(timeout)

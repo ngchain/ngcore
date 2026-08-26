@@ -67,6 +67,58 @@ func TestNamespaceShadowingNotArmed(t *testing.T) {
 	}
 }
 
+// TestCommitDuplicateRejected proves the anti-double-charge guard: because a
+// commitment now signs a height-independent digest, an attacker could re-height
+// a gossiped commitment to get it included — and its fee charged — twice. A
+// commitment hash already pending on chain makes any second inclusion invalid,
+// so the committer is charged at most once.
+func TestCommitDuplicateRejected(t *testing.T) {
+	db := newTestDB(t)
+
+	priv, _ := ngtypes.GenerateKey()
+	from := ngtypes.NewAddress(priv)
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		if err := setBalance(txn, nil, from, big.NewInt(1000)); err != nil {
+			return err
+		}
+
+		hash := make([]byte, ngtypes.HashSize)
+		hash[0] = 0xd0
+		// a commitment already recorded at height 5
+		if err := putCommit(txn, 5, hash, from); err != nil {
+			return err
+		}
+
+		// the SAME hash re-heighted to 6 (a re-heighted duplicate) is rejected,
+		// at both the pool gate and — via commitHashPending — the block-apply gate
+		dup := ngtypes.NewCommitment(ngtypes.ZERONET, 6, hash, big.NewInt(100))
+		if err := dup.Signature(priv); err != nil {
+			return err
+		}
+		if err := CheckCommitment(txn, dup, 6); !errors.Is(err, ErrCommitDuplicate) {
+			t.Fatalf("re-heighted duplicate commit: got %v, want ErrCommitDuplicate", err)
+		}
+		if !commitHashPending(txn, hash, 6) {
+			t.Fatal("the pending commitment must be detected as a duplicate")
+		}
+
+		// a DIFFERENT hash is of course fine
+		other := ngtypes.NewCommitment(ngtypes.ZERONET, 6, make([]byte, ngtypes.HashSize), big.NewInt(100))
+		if err := other.Signature(priv); err != nil {
+			return err
+		}
+		if err := CheckCommitment(txn, other, 6); err != nil {
+			t.Fatalf("a distinct commitment must be admissible: %v", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestCommitmentSingleUseNoDoubleSpend proves that height-flexible reveal
 // signatures do NOT enable a double-spend: one commitment funds exactly ONE
 // reveal. After a reveal consumes the commitment, a second reveal of the same

@@ -20,6 +20,12 @@ func CheckCommitment(txn *bbolt.Tx, commit *ngtypes.Commitment, height uint64) e
 		return err
 	}
 
+	// single-inclusion: a commitment hash already pending on chain cannot be
+	// re-heighted and charged again
+	if commitHashPending(txn, commit.Hash, height) {
+		return errors.Wrapf(ErrCommitDuplicate, "%x already pending", commit.Hash)
+	}
+
 	from, err := commit.From()
 	if err != nil {
 		return err
@@ -72,6 +78,38 @@ func findCommit(txn *bbolt.Tx, from ngtypes.Address, hash []byte, revealHeight u
 // consumeCommit deletes a matched commitment (a reveal spends it).
 func consumeCommit(txn *bbolt.Tx, height uint64, hash []byte) error {
 	return txn.Bucket(storage.CommitBucketName).Delete(commitKey(height, hash))
+}
+
+// commitHashPending reports whether a commitment with this hash is already
+// recorded (unspent) on chain at some height below `height`, within the window.
+// It is the cross-block de-duplication guard: a commitment now signs a
+// height-INDEPENDENT digest (so a node may relay it to a later block), which
+// would otherwise let the same signed commitment be re-heighted and re-included
+// at several heights, charging its committer the fee each time. Making a pending
+// duplicate invalid caps every commitment at ONE on-chain inclusion. A
+// commitment consumed by a reveal is gone from the bucket, so re-committing the
+// same content after it was revealed stays allowed.
+func commitHashPending(txn *bbolt.Tx, hash []byte, height uint64) bool {
+	bucket := txn.Bucket(storage.CommitBucketName)
+
+	// scan one past the window so an as-yet-unpruned pending commit is still seen
+	var low uint64
+	if height > ngtypes.CommitWindow+1 {
+		low = height - ngtypes.CommitWindow - 1
+	}
+	for h := low; h < height; h++ {
+		if bucket.Get(commitKey(h, hash)) != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// CommitOnChain reports whether a commitment hash is already recorded on chain
+// as of the next block `next`. The commit relay uses it to stop re-submitting a
+// commitment once it has landed, so it is never double-included.
+func CommitOnChain(txn *bbolt.Tx, hash []byte, next uint64) bool {
+	return commitHashPending(txn, hash, next)
 }
 
 // spentKey is the consumption-journal key: revealHeightLE(8) ‖ Hash(32).
