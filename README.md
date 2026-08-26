@@ -68,13 +68,13 @@ go build -o ngcore ./cmd/ngcore
 
 ## Docs
 
-Everything lives at **[paper.ngchain.org](https://paper.ngchain.org)**:
-
-- the **[specification](https://paper.ngchain.org/spec/)** — consensus, state,
-  transactions, the private mempool, the contract VM, account abstraction, and a
-  security/threat-model section;
-- the **[JSON-RPC reference](https://paper.ngchain.org/rpc/)** — node + fork-tool
-  methods (the source of truth for the method set is the registry in `jsonrpc/`).
+- **[paper.ngchain.org](https://paper.ngchain.org)** — the protocol
+  **specification**: consensus, state, transactions, the private mempool, the
+  contract VM, account abstraction, and a security/threat-model section;
+- **[docs.ngchain.org](https://docs.ngchain.org)** — the **practical docs**:
+  getting started, wallet and contract workflows, and the
+  [JSON-RPC reference](https://docs.ngchain.org/rpc/) (the source of truth for
+  the method set is the registry in `jsonrpc/`).
 
 ## Status
 

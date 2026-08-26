@@ -1,7 +1,7 @@
 // Package jsonrpc is the json-rpc2 server of ngcore.
 //
 // Encoding conventions, identical on every human-facing surface (see
-// paper.ngchain.org/rpc for the method reference):
+// docs.ngchain.org/rpc for the method reference):
 //   - addresses (and keys) are bs58 strings
 //   - all other raw bytes (hashes, code, calldata, RLP payloads) are
 //     lowercase hex, never base64
