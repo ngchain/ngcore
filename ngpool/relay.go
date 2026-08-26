@@ -2,7 +2,9 @@ package ngpool
 
 import (
 	"github.com/pkg/errors"
+	"go.etcd.io/bbolt"
 
+	"github.com/ngchain/ngcore/ngstate"
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
@@ -40,6 +42,24 @@ func (pool *TxPool) RelayReveal(reveal *ngtypes.FullTx) error {
 	if len(reveal.Salt) < ngtypes.MinSaltSize {
 		return errors.Errorf("reveal salt is %d bytes, need >= %d", len(reveal.Salt), ngtypes.MinSaltSize)
 	}
+
+	// gate the reveal up front (signature, content rules, and that From can
+	// afford it) so a forged or unfunded reveal cannot squat a queue slot until
+	// its window lapses — the commit-reveal check is intentionally skipped,
+	// since the commitment need not be on chain yet. An effect tx signs its
+	// height-independent SigningHash, so a probe height sidesteps Verify's
+	// genesis (height 0) short-circuit without changing the digest; the shared
+	// reveal is untouched.
+	probe := *reveal
+	if probe.Height == 0 {
+		probe.Height = 1
+	}
+	if err := pool.db.View(func(txn *bbolt.Tx) error {
+		return ngstate.CheckRevealExceptCommitment(txn, &probe)
+	}); err != nil {
+		return errors.Wrap(err, "reveal is not admissible")
+	}
+
 	from, err := reveal.From()
 	if err != nil {
 		return err

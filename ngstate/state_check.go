@@ -106,6 +106,34 @@ func checkBlockGenerates(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 	return nil
 }
 
+// CheckRevealExceptCommitment runs every admission check an effect tx (reveal)
+// must pass EXCEPT the commit-reveal gate: the signature (resolving compact
+// envelopes through the on-chain registry), the extra-size bound, the
+// type-specific content rules, and that the sender can AFFORD the expenditure.
+// The pool uses it at relay-enqueue time — when the reveal's commitment is not
+// yet on chain, so full CheckTx would fail on checkReveal — to reject a forged
+// or unfunded reveal before it can squat a relay-queue slot. The affordability
+// check matters because a recover-envelope signature always "verifies" (it
+// recovers whatever key signed it), so only the unfunded derived From exposes a
+// forged reveal. No state is mutated.
+func CheckRevealExceptCommitment(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
+	if !tx.IsSigned() {
+		return ngtypes.ErrTxSignInvalid
+	}
+	if len(tx.Extra) > ngtypes.TxMaxExtraSize {
+		return ngtypes.ErrTxExtraExcess
+	}
+
+	switch tx.Type {
+	case ngtypes.TransactTx:
+		return checkTransaction(txn, tx)
+	case ngtypes.DeployTx:
+		return checkDeploy(txn, tx)
+	default:
+		return ngtypes.ErrTxTypeInvalid
+	}
+}
+
 // CheckTx will check the requirements for one tx (except generate tx)
 func CheckTx(txn *bbolt.Tx, tx *ngtypes.FullTx) error {
 	// check tx is signed

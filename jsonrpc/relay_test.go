@@ -93,6 +93,53 @@ func TestPrivateTxRelay(t *testing.T) {
 	}
 }
 
+// TestRelayRejectsForgedReveal proves the enqueue guard: a reveal whose
+// signature is tampered is rejected outright, so a forged reveal cannot squat
+// a relay-queue slot until its window lapses.
+func TestRelayRejectsForgedReveal(t *testing.T) {
+	node := newRPCNode(t)
+
+	key, err := ngtypes.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mineViaRPC(t, node, key) // fund the sender @1
+
+	var to ngtypes.Address
+	to[0] = 0x42
+
+	var unsigned string
+	decodeInto(t, node.mustCall(t, "ng_genTransaction", map[string]any{
+		"to": to.BS58(), "value": "1", "fee": "0.001",
+	}), &unsigned)
+
+	raw, err := hex.DecodeString(unsigned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reveal ngtypes.FullTx
+	if err := rlp.DecodeBytes(raw, &reveal); err != nil {
+		t.Fatal(err)
+	}
+	reveal.Salt = []byte("relay-mempool-salt-0123456789")
+	if err := reveal.Signature(key); err != nil {
+		t.Fatal(err)
+	}
+
+	// corrupt a signature-body byte (past the envelope tag+scheme): a
+	// recover envelope then either fails recovery or recovers a different,
+	// UNFUNDED From — the enqueue gate rejects both
+	reveal.Sign[10] ^= 0xff
+
+	forged, err := rlp.EncodeToBytes(&reveal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, rpcErr := node.call(t, "ng_sendReveal", map[string]any{"rawTx": hex.EncodeToString(forged)}); rpcErr == nil {
+		t.Fatal("relay must reject a reveal with a forged signature")
+	}
+}
+
 // waitFor polls cond until it holds or the timeout elapses
 func waitFor(timeout time.Duration, cond func() bool) bool {
 	deadline := time.Now().Add(timeout)

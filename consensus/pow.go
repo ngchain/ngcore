@@ -272,7 +272,10 @@ func (pow *PoWork) MinedNewBlock(block *ngtypes.FullBlock) error {
 	hash := block.GetHash()
 	log.Warnf("mined a new block: %x@%d", hash, block.GetHeight())
 
-	pow.Pool.Reset()
+	// the pool is deprecated and reveals re-relayed by chain.OnTipChanged,
+	// which ApplyBlock already fired if this block moved the tip — so no
+	// explicit Reset here (which would also wrongly drop the pool after
+	// mining a mere side block)
 
 	err = pow.LocalNode.BroadcastBlock(block)
 	if err != nil {
