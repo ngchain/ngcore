@@ -89,5 +89,24 @@ func checkBlockTarget(block, prevBlock *ngtypes.FullBlock) error {
 			block.GetHeight(), actualDiff, correctDiff)
 	}
 
+	// burn-only base fee (ForkFeeMarket): the header's BaseFee must equal the
+	// consensus-computed NextBaseFee from the parent, exactly like the
+	// difficulty match. This holds BOTH pre- and post-fork — pre-fork
+	// NextBaseFee returns MinBaseFee, so pre-fork blocks must carry MinBaseFee
+	// (which they do by default). Parent is available here; genesis is exempt
+	// (never reaches checkBlockTarget).
+	correctBaseFee := ngtypes.NextBaseFee(
+		block.BlockHeader.Network,
+		prevBlock.GetHeight(),
+		new(big.Int).SetBytes(prevBlock.BlockHeader.BaseFee),
+		ngtypes.BlockUsedBytes(prevBlock),
+	)
+	blockBaseFee := new(big.Int).SetBytes(block.BlockHeader.BaseFee)
+	if blockBaseFee.Cmp(correctBaseFee) != 0 {
+		return errors.Wrapf(ngtypes.ErrBlockBaseFeeInvalid,
+			"wrong base fee for block@%d, base fee in block: %s shall be %s",
+			block.GetHeight(), blockBaseFee, correctBaseFee)
+	}
+
 	return nil
 }
