@@ -7,6 +7,28 @@ import (
 
 var big2 = big.NewInt(2)
 
+// targetTimeAt returns the difficulty-retarget target block time in force on
+// network net at the given block height. Today it is the TargetTime constant
+// at every height on every network — the ActiveFork is ForkGenesis for all
+// heights (nothing else is scheduled), so retargeting is UNCHANGED.
+//
+// FORK INTEGRATION POINT: this is where a future fork that changes the target
+// block time plugs in, without touching the header format or the retarget
+// math. A maintainer schedules the fork in forkSchedule (ngtypes/forks.go),
+// then branches here on ActiveFork/IsForkActive, e.g.
+//
+//	if IsForkActive(net, ForkFasterBlocks, height) { return newTargetTime }
+//	return TargetTime
+//
+// Keep it pure: it must depend only on (net, height).
+func targetTimeAt(net Network, height uint64) time.Duration {
+	switch ActiveFork(net, height) {
+	// case ForkFasterBlocks: return newTargetTime // future fork edits here
+	default: // ForkGenesis — the current ruleset, active from genesis
+		return TargetTime
+	}
+}
+
 // MinimumDiffOf returns the minimum pow difficulty of the network.
 // ZERONET is the local regression network, where any nonce should work,
 // so its blocks stay instantly minable
@@ -37,7 +59,9 @@ func GetNextDiff(blockHeight uint64, blockTime uint64, parentBlock *FullBlock) *
 	// hashrate. Millisecond timestamps let d fall on either side of the
 	// multi-second target, so a faster-than-target block RAISES difficulty
 	// and the retarget actually tracks hashpower.
-	target := int64(TargetTime / time.Millisecond)
+	// targetTimeAt is fork-aware but returns TargetTime for every height today,
+	// so this is exactly the previous `int64(TargetTime / time.Millisecond)`.
+	target := int64(targetTimeAt(parentBlock.BlockHeader.Network, blockHeight) / time.Millisecond)
 	if target < 1 {
 		target = 1
 	}
