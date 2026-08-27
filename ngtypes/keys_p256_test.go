@@ -88,3 +88,33 @@ func TestVerifyP256(t *testing.T) {
 		t.Fatal("P-256 must not register account-scheme key/sig sizes")
 	}
 }
+
+// TestSchemePartition pins the classical/PQ tag partition: classical schemes
+// (secp256k1, secp256r1) live in 0x00–0x0F and read as non-PQ; the lattice/hash
+// schemes live in 0x10–0xFF and read as PQ; the boundary is SchemePQMin.
+func TestSchemePartition(t *testing.T) {
+	classical := []SigScheme{SchemeSecp256k1, SchemeSecp256r1}
+	pq := []SigScheme{SchemeFNDSA512, SchemeMLDSA44, SchemeSLHDSA128}
+
+	for _, s := range classical {
+		if s >= SchemePQMin {
+			t.Fatalf("classical scheme %#02x is in the PQ range (>= %#02x)", byte(s), byte(SchemePQMin))
+		}
+		if IsPostQuantum(s) {
+			t.Fatalf("IsPostQuantum(%#02x) = true, want false (classical)", byte(s))
+		}
+	}
+	for _, s := range pq {
+		if s < SchemePQMin {
+			t.Fatalf("PQ scheme %#02x is in the classical range (< %#02x)", byte(s), byte(SchemePQMin))
+		}
+		if !IsPostQuantum(s) {
+			t.Fatalf("IsPostQuantum(%#02x) = false, want true (post-quantum)", byte(s))
+		}
+	}
+
+	// the sentinel 0x00 (no signature) is classical, not PQ
+	if IsPostQuantum(SigScheme(0x00)) {
+		t.Fatal("the 0x00 no-signature sentinel must not read as post-quantum")
+	}
+}

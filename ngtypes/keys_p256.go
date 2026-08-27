@@ -20,7 +20,12 @@ import (
 // it contract-opt-in rather than a native account scheme preserves the chain's PQ
 // guarantees: a passkey account is a convenience account that trades PQ safety for
 // onboarding, and that trade is confined to whoever opts into it.
-const SchemeSecp256r1 SigScheme = 0x05
+//
+// Its tag sits in the CLASSICAL range (0x02, right after secp256k1) — P-256 is a
+// classical curve — so IsPostQuantum reports false for it. The classical range
+// placement is orthogonal to its contract-only status: VerifyHashSig still does
+// not handle it, so it can never sign a transaction.
+const SchemeSecp256r1 SigScheme = 0x02
 
 // verifyP256 verifies a raw ECDSA-P256 signature over a 32-byte digest.
 //

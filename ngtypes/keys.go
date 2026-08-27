@@ -34,17 +34,42 @@ import (
 // replaced by aggregate proofs without touching history commitments.
 type SigScheme byte
 
+// The scheme tag is partitioned by family so the byte is self-describing:
+//
+//	0x00–0x0F  CLASSICAL (non-post-quantum). 0x00 is the reserved "no
+//	           signature" sentinel (the genesis generate tx and any unsigned
+//	           tx registers no key), so named classical schemes start at 0x01.
+//	0x10–0xFF  POST-QUANTUM.
+//
+// A verifier can tell a PQ signature from a classical one from the tag alone
+// (IsPostQuantum), with no per-scheme table, and either family can grow without
+// renumbering the other. secp256r1 (P-256) is classical (0x02, in keys_p256.go),
+// though it is exposed to contracts only, never as an account scheme.
 const (
-	SchemeSecp256k1 SigScheme = 0x01
-	SchemeFNDSA512  SigScheme = 0x02
-	SchemeMLDSA44   SigScheme = 0x03
-	SchemeSLHDSA128 SigScheme = 0x04
+	SchemeSecp256k1 SigScheme = 0x01 // classical
+
+	SchemeFNDSA512  SigScheme = 0x10 // post-quantum
+	SchemeMLDSA44   SigScheme = 0x11 // post-quantum
+	SchemeSLHDSA128 SigScheme = 0x12 // post-quantum
 
 	// SchemeDefault is what GenerateKey hands out: the classical
 	// scheme, exactly like ethereum today — quantum migration is a
 	// wallet choice away, not a hard fork away
 	SchemeDefault = SchemeSecp256k1
 )
+
+// SchemePQMin is the first post-quantum scheme tag: a tag < SchemePQMin is
+// classical (0x00–0x0F), a tag >= SchemePQMin is post-quantum (0x10–0xFF).
+const SchemePQMin SigScheme = 0x10
+
+// IsPostQuantum reports whether a scheme tag is in the post-quantum range. It is
+// a pure check on the tag partition, so it holds for any future PQ scheme without
+// editing this function. An unknown tag in the PQ range reads as PQ — the safe
+// default for an unrecognized high tag is "treat as post-quantum", never
+// "downgrade to classical".
+func IsPostQuantum(scheme SigScheme) bool {
+	return scheme >= SchemePQMin
+}
 
 // HasRecovery reports whether the scheme supports public key recovery
 // from the signature, letting the envelope omit key AND address
