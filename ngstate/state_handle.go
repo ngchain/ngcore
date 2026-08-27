@@ -250,6 +250,16 @@ func (state *State) handleDeploy(txn *bbolt.Tx, tx *ngtypes.FullTx, blockTime ui
 		if err := releaseContractDeps(txn, state.cs, slot); err != nil {
 			return err
 		}
+		// storage deposit (ForkStateRent): refund the whole locked deposit
+		// (DepositPerByte * Σ non-reserved kv bytes) from the escrow back to the
+		// contract's balance before the slot goes away. Recomputed purely from
+		// the stored bytes (no running total). Reorg-safe via state.cs. Pre-fork
+		// this is a no-op — nothing was ever locked.
+		if ngtypes.IsForkActive(state.Network, ngtypes.ForkStateRent, tx.Height) {
+			if err := refundContractDeposit(txn, state.cs, from, slot.Context); err != nil {
+				return err
+			}
+		}
 		return delContract(txn, state.cs, from)
 	}
 

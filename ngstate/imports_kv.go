@@ -107,6 +107,30 @@ func initKVImports(vm *VM) error {
 
 			value := make([]byte, len(val))
 			copy(value, val)
+
+			// storage deposit (ForkStateRent): the deposit a contract owes is a
+			// pure function of the bytes it stores, so a write only moves the
+			// DELTA. Grow -> lock the added bytes' bond from the contract's own
+			// balance into the escrow; shrink -> refund the removed bytes' bond.
+			// Charged AFTER the reserved-key trap and gas charge, BEFORE the
+			// Set. Pre-fork this whole block is skipped: gas-only, exactly as
+			// before. The move is journaled, so a later trap rolls it back.
+			if ngtypes.IsForkActive(vm.caller.Network, ngtypes.ForkStateRent, vm.caller.Height) {
+				ctx := vmContext(vm)
+				old := 0
+				if ctx.Has(string(key)) { // present (even with an empty value) owes key+value
+					old = len(key) + len(ctx.Get(string(key)))
+				}
+				newSize := len(key) + len(value)
+				if delta := newSize - old; delta > 0 {
+					if err := vm.lockDeposit(depositFor(delta)); err != nil {
+						panic(err) // insufficient balance for storage deposit -> soft-fail
+					}
+				} else if delta < 0 {
+					vm.refundDeposit(depositFor(-delta))
+				}
+			}
+
 			vmContext(vm).Set(string(key), value)
 
 			return 1
@@ -213,6 +237,18 @@ func initKVImports(vm *VM) error {
 			if isReservedKey(string(key)) {
 				// a reserved-key delete is an authoring bug: trap loudly
 				panic(errors.Errorf("kv.del on reserved key %q", key))
+			}
+
+			// storage deposit (ForkStateRent): deleting an entry frees its
+			// whole bond back to the contract's balance from the escrow. An
+			// absent key frees nothing. Journaled -> rolls back with a trap.
+			// Pre-fork this is skipped: gas-only, exactly as before.
+			if ngtypes.IsForkActive(vm.caller.Network, ngtypes.ForkStateRent, vm.caller.Height) {
+				ctx := vmContext(vm)
+				if ctx.Has(string(key)) {
+					freed := len(key) + len(ctx.Get(string(key)))
+					vm.refundDeposit(depositFor(freed))
+				}
 			}
 
 			vmContext(vm).Del(string(key))

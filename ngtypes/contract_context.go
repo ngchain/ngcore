@@ -91,6 +91,20 @@ func (ctx *ContractContext) Get(key string) []byte {
 	return ctx.valMap[key]
 }
 
+// Has reports whether the key is present, distinguishing an absent key from a
+// key stored with an empty value (both make Get return nil). The storage-deposit
+// accounting needs this: an entry with an empty value still owes the bond on its
+// key bytes, whereas an absent key owes nothing.
+func (ctx *ContractContext) Has(key string) bool {
+	ctx.mu.RLock()
+	defer ctx.mu.RUnlock()
+
+	ctx.ensureInit()
+
+	_, ok := ctx.valMap[key]
+	return ok
+}
+
 // Clone returns a deep copy of the context
 func (ctx *ContractContext) Clone() *ContractContext {
 	ctx.mu.RLock()
