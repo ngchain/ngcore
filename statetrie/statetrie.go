@@ -52,8 +52,8 @@ const (
 	// contract bucket stores it (code is referenced via its CodeHash, so
 	// code dedup does not affect the commitment)
 	DomainContract byte = 0x03
-	// DomainCommit is RESERVED for a pending-commitment domain; no such
-	// consensus bucket exists in this tree of the codebase
+	// DomainCommit commits the pending private-mempool commitments:
+	// LE₈(height)‖Hash -> From (the mempool:commit bucket key/value)
 	DomainCommit byte = 0x04
 )
 
