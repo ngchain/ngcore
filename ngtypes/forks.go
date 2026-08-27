@@ -27,8 +27,8 @@ const (
 	// consensus-computed per-byte BaseFee is carried in the header, and every
 	// non-generate tx must pay Fee >= BaseFee * len(rlp(tx)). The whole fee is
 	// still fully burned (no tip, no coinbase change) — this only prices
-	// congestion and floors the fee, preserving deflation. Scheduled at
-	// FeeMarketForkHeight on ZERONET and TESTNET; NoFork on MAINNET.
+	// congestion and floors the fee, preserving deflation. Active from genesis
+	// (FeeMarketForkHeight == 0) on ZERONET and TESTNET; NoFork on MAINNET.
 	ForkFeeMarket Fork = 1
 
 	// ForkStateRent activates the refundable storage DEPOSIT (a bond, not
@@ -39,25 +39,22 @@ const (
 	// is REFUNDED to the contract's balance. Supply is conserved (the escrow
 	// holds the locked funds), and deletion is positively incentivized. The
 	// deposit is a pure function of the bytes currently stored — no running
-	// total is persisted. Scheduled at StateRentForkHeight on ZERONET and
-	// TESTNET (ABOVE the fee-market fork); NoFork on MAINNET.
+	// total is persisted. Active from genesis (StateRentForkHeight == 0) on
+	// ZERONET and TESTNET, co-active with the fee market; NoFork on MAINNET.
 	ForkStateRent Fork = 2
 )
 
 // FeeMarketForkHeight is the activation height of ForkFeeMarket on the dev
-// networks (ZERONET, TESTNET). Kept small so tests can cross the boundary
-// cheaply. MAINNET leaves the fork unscheduled (NoFork).
-const FeeMarketForkHeight uint64 = 8
+// networks (ZERONET, TESTNET). It is 0, so the fee market is active from
+// genesis — every block, including genesis, prices congestion and floors the
+// per-byte fee. MAINNET leaves the fork unscheduled (NoFork).
+const FeeMarketForkHeight uint64 = 0
 
 // StateRentForkHeight is the activation height of ForkStateRent on the dev
-// networks (ZERONET, TESTNET). It sits ABOVE FeeMarketForkHeight and, crucially,
-// above every height any existing contract test writes kv at (the e2e verb-relay
-// test upgrades and runs a kv-writing contract up to height 15/17). Those tests
-// deploy from a mining address that carries a real balance and assert an EXACT
-// fee ledger, so keeping them PRE-fork is what pins this height: the green suite
-// is the forcing function. 32 leaves comfortable margin over the fee-market fork
-// (8) and the deepest contract-writing e2e chain (~17). MAINNET leaves it NoFork.
-const StateRentForkHeight uint64 = 32
+// networks (ZERONET, TESTNET). It is 0, so the storage deposit is active from
+// genesis, co-active with the fee market (no staged ordering between them any
+// more). MAINNET leaves it NoFork.
+const StateRentForkHeight uint64 = 0
 
 // NoFork is the "never active" sentinel activation height: a fork whose
 // ForkHeight is NoFork is disabled, since no block height can be >= MaxUint64.
