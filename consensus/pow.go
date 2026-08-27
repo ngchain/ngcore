@@ -3,6 +3,7 @@ package consensus
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	logging "github.com/ngchain/zap-log"
@@ -97,6 +98,19 @@ func templateBlockTime(parent *ngtypes.FullBlock) uint64 {
 	return blockTime
 }
 
+// nextBaseFeeBytes computes the child block's burn-only base fee (ForkFeeMarket)
+// from its parent, as minimal big-endian bytes ready to drop into the header.
+// Pre-fork it is MinBaseFee. It is part of the pow preimage, so a template must
+// set it before sealing.
+func (pow *PoWork) nextBaseFeeBytes(parent *ngtypes.FullBlock) []byte {
+	return ngtypes.NextBaseFee(
+		pow.Network,
+		parent.GetHeight(),
+		new(big.Int).SetBytes(parent.BlockHeader.BaseFee),
+		ngtypes.BlockUsedBytes(parent),
+	).Bytes()
+}
+
 // GetBlockTemplate is a generator of new block. But the generated block has no nonce.
 func (pow *PoWork) GetBlockTemplate(privateKey *ngtypes.PrivateKey) ngtypes.Block {
 	currentBlock := pow.Chain.GetLatestBlock()
@@ -115,6 +129,8 @@ func (pow *PoWork) GetBlockTemplate(privateKey *ngtypes.PrivateKey) ngtypes.Bloc
 		currentBlockHash,
 		newDiff,
 	)
+	// seal the child's base fee into the header before pow (it is in the preimage)
+	newBlock.BlockHeader.BaseFee = pow.nextBaseFeeBytes(currentBlock.(*ngtypes.FullBlock))
 
 	// GHOST: reference recent orphaned blocks so their work counts toward
 	// this chain (folds uncle difficulty into fork choice) and pays their
@@ -178,6 +194,8 @@ func (pow *PoWork) GetBareBlockTemplateWithTxs() (bareBlock *ngtypes.FullBlock, 
 		currentBlockHash,
 		newDiff,
 	)
+	// seal the child's base fee into the header before pow (it is in the preimage)
+	bareBlock.BlockHeader.BaseFee = pow.nextBaseFeeBytes(currentBlock.(*ngtypes.FullBlock))
 
 	// GHOST: attach recent orphans as uncles before the miner seals, and
 	// prepend the (unsigned) uncle-reward generates to the tx pack so the
