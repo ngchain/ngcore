@@ -151,6 +151,12 @@ func mineOn(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKey) 
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
 	block.SetCoinbase(ngtypes.NewAddress(miner))
+	// carry the consensus base fee (ForkFeeMarket) the chain layer re-checks
+	block.BlockHeader.BaseFee = ngtypes.NextBaseFee(
+		ngtypes.ZERONET, parent.GetHeight(),
+		new(big.Int).SetBytes(parent.BlockHeader.BaseFee),
+		ngtypes.BlockUsedBytes(parent),
+	).Bytes()
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),
@@ -306,6 +312,13 @@ func mineOnAll(t *testing.T, parent *ngtypes.FullBlock, miner *ngtypes.PrivateKe
 	block := ngtypes.NewBareBlock(ngtypes.ZERONET, height, blockTime, parent.GetHash(),
 		ngtypes.GetNextDiff(height, blockTime, parent))
 	block.SetCoinbase(ngtypes.NewAddress(miner))
+	// carry the consensus base fee (ForkFeeMarket) the chain layer re-checks;
+	// pre-fork this is MinBaseFee (== the default), post-fork it tracks fullness
+	block.BlockHeader.BaseFee = ngtypes.NextBaseFee(
+		ngtypes.ZERONET, parent.GetHeight(),
+		new(big.Int).SetBytes(parent.BlockHeader.BaseFee),
+		ngtypes.BlockUsedBytes(parent),
+	).Bytes()
 
 	genTx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.GenerateTx, height,
 		ngtypes.NewAddress(miner),
@@ -364,11 +377,14 @@ func revealTx(t *testing.T, tx *ngtypes.FullTx, key *ngtypes.PrivateKey) *ngtype
 // commitFor builds and signs the blind commitment for a reveal tx, to be
 // packed at commitHeight (which must be strictly earlier than the tx's own
 // reveal height). The commitment hash is blake3(tx.UnheightedHash() ‖ Salt).
-func commitFor(t *testing.T, tx *ngtypes.FullTx, key *ngtypes.PrivateKey, commitHeight uint64) *ngtypes.Commitment {
+func commitFor(t *testing.T, tx *ngtypes.FullTx, key *ngtypes.PrivateKey, commitHeight uint64, fee *big.Int) *ngtypes.Commitment {
 	t.Helper()
 
+	if fee == nil {
+		fee = big.NewInt(0)
+	}
 	hash := utils.Hash256(append(tx.UnheightedHash(), tx.Salt...))
-	commit := ngtypes.NewCommitment(ngtypes.ZERONET, commitHeight, hash, big.NewInt(0))
+	commit := ngtypes.NewCommitment(ngtypes.ZERONET, commitHeight, hash, fee)
 	if err := commit.Signature(key); err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +413,7 @@ func TestTxPropagation(t *testing.T) {
 	dest[0] = 0xee
 	tx := revealTx(t, ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 4,
 		dest, big.NewInt(10), big.NewInt(1), nil, nil), key)
-	commit := commitFor(t, tx, key, 3)
+	commit := commitFor(t, tx, key, 3, nil)
 
 	// mine the commit-carrying block on A; both nodes record it at height 3,
 	// strictly before the reveal
@@ -598,7 +614,7 @@ func TestContractLifecycle(t *testing.T) {
 		commitHeight := nodeA.chain.GetLatestBlockHeight() + 1
 		revealHeight := commitHeight + 1
 		tx := revealTx(t, build(revealHeight), key)
-		commit := commitFor(t, tx, key, commitHeight)
+		commit := commitFor(t, tx, key, commitHeight, nil)
 		mineNext([]*ngtypes.Commitment{commit})
 		return mineNext(nil, tx)
 	}
@@ -770,6 +786,12 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 	// carries the full envelope (registering the key); every later one
 	// uses the compact form, saving the public key bytes
 	keyOnChain := false
+	// feeMarketFee is a per-tx/-commit fee that clears the burn-only base-fee
+	// floor once ForkFeeMarket is active (MinBaseFee * ample byte headroom); it
+	// is negligible NG and keeps this cross-fork test admissible post-fork,
+	// while pre-fork blocks accept it just the same.
+	feeMarketFee := new(big.Int).Mul(ngtypes.MinBaseFee, big.NewInt(4096))
+
 	relay := func(build func(height uint64) *ngtypes.FullTx) *ngtypes.FullTx {
 		t.Helper()
 
@@ -778,7 +800,11 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		// one higher (strictly later, the anti-same-block-reaction rule).
 		commitHeight := nodeA.chain.GetLatestBlockHeight() + 1
 		revealHeight := commitHeight + 1
-		tx := revealTx(t, build(revealHeight), deployer)
+		built := build(revealHeight)
+		// pay the base fee so the reveal is admissible once the fork activates;
+		// the whole fee is still burned by the chain's chargeFrom
+		built.Fee = new(big.Int).Set(feeMarketFee)
+		tx := revealTx(t, built, deployer)
 		if keyOnChain {
 			// revealTx already full-signed it; re-sign compact once the key is
 			// registered on chain, re-carrying the same Salt
@@ -798,8 +824,9 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		}
 
 		// first, land the blind commitment: B mines it at commitHeight and A
-		// converges, so the reveal is admissible into A's pool
-		commit := commitFor(t, tx, deployer, commitHeight)
+		// converges, so the reveal is admissible into A's pool. The commit pays
+		// the base fee too so it clears the pool floor once the fork activates.
+		commit := commitFor(t, tx, deployer, commitHeight, feeMarketFee)
 		cTip := nodeB.chain.GetLatestBlock().(*ngtypes.FullBlock)
 		cb := mineOnAll(t, cTip, minerB, []*ngtypes.Commitment{commit})
 		if err := nodeB.pow.MinedNewBlock(cb); err != nil {
@@ -974,10 +1001,15 @@ func TestAllTxVerbsViaNetwork(t *testing.T) {
 		}
 	})
 
-	// the exact fee ledger: 3 rewards in, 1 NG paid away; the 2 NG to
-	// the own contract was a self-transfer, and every tx fee was zero
+	// the exact fee ledger: 3 rewards in, 1 NG paid away; the 2 NG to the own
+	// contract was a self-transfer. Every relay now pays feeMarketFee on BOTH
+	// its reveal tx and its blind commitment (7 relays => 14 fees), all fully
+	// BURNED by the chain — so subtract them to check the burn is real.
 	want := new(big.Int).Mul(ngtypes.GetBlockReward(1), big.NewInt(3))
 	want.Sub(want, oneNG)
+	const relayCount = 7
+	totalBurned := new(big.Int).Mul(feeMarketFee, big.NewInt(2*relayCount))
+	want.Sub(want, totalBurned)
 	bothNodes(func(name string, node *testNode) {
 		got, _ := node.chain.State.GetTotalBalanceByAddress(addr)
 		if got.Cmp(want) != 0 {

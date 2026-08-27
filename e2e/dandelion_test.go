@@ -46,7 +46,7 @@ func TestDandelionStemLiveness(t *testing.T) {
 	dest[0] = 0xdd
 	tx := revealTx(t, ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 4,
 		dest, big.NewInt(10), big.NewInt(1), nil, nil), key)
-	commit := commitFor(t, tx, key, 3)
+	commit := commitFor(t, tx, key, 3, nil)
 
 	// submit the commitment locally on A: it stems away instead of
 	// flooding, and must still surface in C's pool (liveness)
