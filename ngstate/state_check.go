@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/c0mm4nd/rlp"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 
@@ -38,6 +39,37 @@ func CheckBlockTxs(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 		if err := CheckTx(txn, tx); err != nil {
 			return err
 		}
+		// burn-only base fee (ForkFeeMarket): once the fork is active, every
+		// non-generate tx must pay Fee >= block.BaseFee * len(rlp(tx)). The fee
+		// is still fully burned by chargeFrom — this only raises the minimum.
+		// Pre-fork this is not enforced (unchanged behavior). Gated on the
+		// block's height + network so non-block CheckTx callers are unaffected.
+		if err := checkTxBaseFee(block, tx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// checkTxBaseFee enforces the post-fork per-tx burn-only base-fee minimum:
+// Fee >= block.BaseFee * len(rlp(tx)). It is a no-op before ForkFeeMarket is
+// active at the block's height. Only reachable for non-generate txs.
+func checkTxBaseFee(block *ngtypes.FullBlock, tx *ngtypes.FullTx) error {
+	if !ngtypes.IsForkActive(block.BlockHeader.Network, ngtypes.ForkFeeMarket, block.GetHeight()) {
+		return nil
+	}
+
+	raw, err := rlp.EncodeToBytes(tx)
+	if err != nil {
+		return err
+	}
+	baseFee := new(big.Int).SetBytes(block.BlockHeader.BaseFee)
+	minFee := new(big.Int).Mul(baseFee, big.NewInt(int64(len(raw))))
+	if tx.Fee.Cmp(minFee) < 0 {
+		return errors.Wrapf(ngtypes.ErrTxFeeBelowBaseFee,
+			"tx fee %s < base-fee minimum %s (baseFee %s * %d bytes) at height %d",
+			tx.Fee, minFee, baseFee, len(raw), block.GetHeight())
 	}
 
 	return nil
