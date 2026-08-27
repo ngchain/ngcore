@@ -100,21 +100,54 @@ type suggestFeeReply struct {
 	// MinFeePerByte is this node's relay-policy floor, decimal raw units
 	// per wire byte ("" when the floor is disabled)
 	MinFeePerByte string `json:"minFeePerByte"`
-	// MinFee, present when rawTx was given, is minFeePerByte * len(rawTx)
-	// — the least fee that tx must carry to be relayed
+	// BaseFee is the consensus per-byte burn-only base fee the NEXT block will
+	// carry (NextBaseFee from the chain tip), decimal raw units per wire byte.
+	// Post-fork a tx must pay Fee >= BaseFee * len(rlp(tx)); the whole fee is
+	// burned. Pre-fork this equals MinBaseFee.
+	BaseFee string `json:"baseFee"`
+	// MinFee, present when rawTx was given, is the least fee that tx must carry
+	// to be both relayed AND accepted next block: max(minFeePerByte, baseFee) *
+	// len(rawTx)
 	MinFee string `json:"minFee,omitempty"`
 }
 
-// suggestFeeFunc exposes the local relay fee floor so a wallet can price a
-// tx before signing. The floor scales with the tx's wire size
+// suggestFeeFunc exposes the relay fee floor AND the next-block consensus base
+// fee so a wallet can price a tx before signing. Both scale with the tx's wire
+// size; the least admissible fee is max(minFeePerByte, baseFee) * bytes.
 func (s *Server) suggestFeeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcMessage {
 	perByte := s.pow.Pool.MinFeePerByte
 	if perByte == nil {
 		perByte = big.NewInt(0)
 	}
-	out := suggestFeeReply{MinFeePerByte: perByte.String()}
 
-	// params are optional: no body just returns the per-byte rate
+	// the base fee the next block will carry, derived from the current tip, and
+	// whether it is a HARD admission floor yet (only once the fork is active)
+	baseFee := new(big.Int).Set(ngtypes.MinBaseFee)
+	baseFeeEnforced := false
+	if tip, ok := s.pow.Chain.GetLatestBlock().(*ngtypes.FullBlock); ok && tip != nil {
+		baseFee = ngtypes.NextBaseFee(
+			tip.BlockHeader.Network,
+			tip.GetHeight(),
+			new(big.Int).SetBytes(tip.BlockHeader.BaseFee),
+			ngtypes.BlockUsedBytes(tip),
+		)
+		baseFeeEnforced = ngtypes.IsForkActive(
+			tip.BlockHeader.Network, ngtypes.ForkFeeMarket, tip.GetHeight()+1)
+	}
+
+	// the effective per-byte floor a tx must clear to be relayed AND accepted:
+	// max(relay policy, base fee) once the fork is active, else the relay policy
+	floorPerByte := perByte
+	if baseFeeEnforced && baseFee.Cmp(floorPerByte) > 0 {
+		floorPerByte = baseFee
+	}
+
+	out := suggestFeeReply{
+		MinFeePerByte: perByte.String(),
+		BaseFee:       baseFee.String(),
+	}
+
+	// params are optional: no body just returns the per-byte rates
 	if msg.Params != nil {
 		var params suggestFeeParams
 		if err := utils.JSON.Unmarshal(*msg.Params, &params); err != nil {
@@ -127,7 +160,7 @@ func (s *Server) suggestFeeFunc(msg *jsonrpc2.JsonRpcMessage) *jsonrpc2.JsonRpcM
 				log.Error(err)
 				return jsonrpc2.NewJsonRpcError(msg.ID, jsonrpc2.NewError(0, err))
 			}
-			out.MinFee = new(big.Int).Mul(perByte, big.NewInt(int64(len(raw)))).String()
+			out.MinFee = new(big.Int).Mul(floorPerByte, big.NewInt(int64(len(raw)))).String()
 		}
 	}
 
