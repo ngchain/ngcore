@@ -13,6 +13,7 @@ const (
 	gasHashBase    = 100
 	gasHashPerByte = 1
 	gasSigVerify   = 3000
+	gasRandom      = 200 // read the 32-byte beacon seed (a single-leaf lookup)
 )
 
 // initCryptoImports binds the crypto module, giving contracts the
@@ -98,6 +99,30 @@ func initCryptoImports(vm *VM) error {
 
 			addr := ngtypes.AddressOfPubKey(ngtypes.SigScheme(scheme), pubKey)
 			l, err := cp(ins, out, addr[:])
+			if err != nil {
+				vm.logger.Error(err)
+				return 0
+			}
+
+			return l
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	// random(out) writes the 32-byte native randomness beacon seed to out. It is
+	// the PARENT block's finalized RANDAO seed (bias-resistant: folded from
+	// commit-reveal salts committed blocks earlier), the SAME value for every call
+	// in a block — so a contract MUST domain-separate it (hash it together with
+	// its own unique data, e.g. a per-draw nonce or the caller address) to derive
+	// independent draws. Before the beacon fork / at the first post-genesis block
+	// it is 32 zero bytes: a well-defined, stable seed.
+	err = vm.linker.DefineAdvancedFunc("crypto", "random", func(ins *wasman.Instance) interface{} {
+		return func(out uint32) uint32 {
+			vm.charge(gasRandom)
+
+			l, err := cp(ins, out, getBeacon(vm.txn))
 			if err != nil {
 				vm.logger.Error(err)
 				return 0

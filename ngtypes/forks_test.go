@@ -97,16 +97,16 @@ func TestIsForkActiveBoundary(t *testing.T) {
 	}
 }
 
-// ActiveFork on the dev networks returns the HIGHEST active fork. With both
-// ForkFeeMarket and ForkStateRent active from genesis (height 0), that is
-// ForkStateRent at every height — there is no window where ForkFeeMarket is the
-// top ruleset any more. MAINNET stays ForkGenesis at every height (neither
-// later fork is scheduled there).
+// ActiveFork on the dev networks returns the HIGHEST active fork. With
+// ForkFeeMarket, ForkStateRent and ForkRandomBeacon all active from genesis
+// (height 0), that is ForkRandomBeacon at every height — there is no window where
+// an earlier fork is the top ruleset any more. MAINNET stays ForkGenesis at every
+// height (none of the later forks is scheduled there).
 func TestActiveForkFeeMarket(t *testing.T) {
 	for _, net := range []Network{ZERONET, TESTNET} {
 		for _, h := range []uint64{0, 1, 100, 200_000, math.MaxUint64} {
-			if got := ActiveFork(net, h); got != ForkStateRent {
-				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkStateRent", net, h, got)
+			if got := ActiveFork(net, h); got != ForkRandomBeacon {
+				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkRandomBeacon", net, h, got)
 			}
 		}
 	}

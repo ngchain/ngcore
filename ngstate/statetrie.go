@@ -110,6 +110,20 @@ func trieSetCommit(txn *bbolt.Tx, bucketKey []byte, from []byte) {
 	_ = statetrie.Update(newNodeStore(txn), path, vh)
 }
 
+// trieSetBeacon mirrors the single native-randomness-beacon leaf into the trie
+// (statetrie DomainBeacon at the fixed BeaconStateKey). A nil seed deletes it —
+// a reorg unwinding the first post-genesis block back to genesis.
+func trieSetBeacon(txn *bbolt.Tx, seed []byte) {
+	path := statetrie.LeafPath(statetrie.DomainBeacon, ngtypes.BeaconStateKey)
+	var vh []byte
+	if seed == nil {
+		vh = statetrie.ZeroHash()
+	} else {
+		vh = statetrie.ValueHash(seed)
+	}
+	_ = statetrie.Update(newNodeStore(txn), path, vh)
+}
+
 // StateRoot returns the current consensus-state commitment root of the txn.
 func StateRoot(txn *bbolt.Tx) []byte {
 	return statetrie.Root(newNodeStore(txn))
@@ -183,6 +197,16 @@ func RebuildTrie(txn *bbolt.Tx) error {
 		}
 	}
 
+	// native randomness beacon (single leaf)
+	if b := txn.Bucket(storage.BeaconBucketName); b != nil {
+		if v := b.Get(ngtypes.BeaconStateKey); v != nil {
+			path := statetrie.LeafPath(statetrie.DomainBeacon, ngtypes.BeaconStateKey)
+			if err := statetrie.Update(store, path, statetrie.ValueHash(v)); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -241,6 +265,9 @@ func stateDomain(domain string) (tag byte, bucket []byte, err error) {
 		return statetrie.DomainContract, storage.ContractBucketName, nil
 	case "commit":
 		return statetrie.DomainCommit, storage.CommitBucketName, nil
+	case "beacon":
+		// single leaf; the caller passes ngtypes.BeaconStateKey as rawKey
+		return statetrie.DomainBeacon, storage.BeaconBucketName, nil
 	default:
 		return 0, nil, errors.Wrapf(ErrUnknownStateDomain, "%q", domain)
 	}

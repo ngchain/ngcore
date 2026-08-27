@@ -121,6 +121,25 @@ func (cs *changeset) recordKey(txn *bbolt.Tx, addr ngtypes.Address) {
 	_ = csb.Put(k, []byte{preimageAbsent})
 }
 
+// recordBeacon captures the current beacon seed as the pre-image at this height,
+// once. The beacon is a single global value (not per-address), so it gets its own
+// height-keyed changeset rather than a csKey(height, addr) row. No-op on nil.
+func (cs *changeset) recordBeacon(txn *bbolt.Tx) {
+	if cs == nil {
+		return
+	}
+	csb := txn.Bucket(storage.BeaconChangeSetBucketName)
+	if csb == nil {
+		return
+	}
+	k := utils.PackUint64LE(cs.height)
+	if csb.Get(k) != nil {
+		return // already captured this height
+	}
+	old := txn.Bucket(storage.BeaconBucketName).Get(ngtypes.BeaconStateKey)
+	_ = csb.Put(k, taggedPreimage(old))
+}
+
 // firstChangeHeightAfter finds the smallest height > target at which addr
 // changed, using the addr-major history index. The pre-image recorded at
 // that height is the value that held AT target. found=false means addr
@@ -240,6 +259,31 @@ func revertDomain(txn *bbolt.Tx, csName, stateName, histName []byte, h uint64, m
 	}
 }
 
+// revertBeacon restores the beacon seed to its pre-image at height h from the
+// beacon changeset, mirrors it into the trie, and drops the changeset row.
+// present -> Put the old seed, absent (the first post-genesis block, unwound
+// back to a beacon-free genesis) -> Delete the leaf.
+func revertBeacon(txn *bbolt.Tx, h uint64) {
+	csb := txn.Bucket(storage.BeaconChangeSetBucketName)
+	if csb == nil {
+		return
+	}
+	k := utils.PackUint64LE(h)
+	tagged := csb.Get(k)
+	if tagged == nil {
+		return
+	}
+	bb := txn.Bucket(storage.BeaconBucketName)
+	if val, present := splitPreimage(tagged); present {
+		_ = bb.Put(ngtypes.BeaconStateKey, val)
+		trieSetBeacon(txn, val)
+	} else {
+		_ = bb.Delete(ngtypes.BeaconStateKey)
+		trieSetBeacon(txn, nil)
+	}
+	_ = csb.Delete(k)
+}
+
 // unwindHeightTxn reverts every state change applied at height h
 func unwindHeightTxn(txn *bbolt.Tx, h uint64) {
 	revertDomain(txn, storage.BalChangeSetBucketName, storage.Addr2BalBucketName, storage.BalHistBucketName, h,
@@ -276,4 +320,6 @@ func unwindHeightTxn(txn *bbolt.Tx, h uint64) {
 	// would not otherwise restore them
 	deleteCommitsAtHeight(txn, h)
 	restoreConsumedAtHeight(txn, h)
+	// native randomness beacon: single global value, its own height changeset
+	revertBeacon(txn, h)
 }

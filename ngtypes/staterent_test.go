@@ -41,14 +41,14 @@ func TestForkStateRentSchedule(t *testing.T) {
 	}
 }
 
-// ActiveFork returns ForkStateRent — the highest scheduled fork — at every
-// height on the dev networks, since both later forks are active from genesis.
+// ActiveFork returns ForkRandomBeacon — the highest scheduled fork — at every
+// height on the dev networks, since every later fork is active from genesis.
 // MAINNET never reaches ForkStateRent (it is NoFork there).
 func TestActiveForkStateRent(t *testing.T) {
 	for _, net := range []Network{ZERONET, TESTNET} {
 		for _, h := range []uint64{0, 1, StateRentForkHeight, StateRentForkHeight + 1, 200_000, math.MaxUint64} {
-			if got := ActiveFork(net, h); got != ForkStateRent {
-				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkStateRent", net, h, got)
+			if got := ActiveFork(net, h); got != ForkRandomBeacon {
+				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkRandomBeacon", net, h, got)
 			}
 		}
 	}

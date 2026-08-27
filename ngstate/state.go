@@ -127,6 +127,16 @@ func initFromSheet(txn *bbolt.Tx, sheet *ngtypes.Sheet) error {
 		}
 	}
 
+	// restore the native randomness beacon seed so a snapshot-synced node
+	// reproduces the identical StateRoot (the beacon is a committed leaf).
+	// Absent on pre-beacon / genesis sheets — leave the bucket empty then, so
+	// the seed reads as the zero seed exactly as it does on a replaying node.
+	if len(sheet.Beacon) != 0 {
+		if err := txn.Bucket(storage.BeaconBucketName).Put(ngtypes.BeaconStateKey, sheet.Beacon); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -147,6 +157,9 @@ func (state *State) RebuildFromSheetTxn(txn *bbolt.Tx, sheet *ngtypes.Sheet) err
 		storage.CodeBucketName,
 		storage.KeyRegistryBucketName,
 		storage.CommitBucketName, storage.CommitSpentBucketName,
+		// the beacon is re-seeded from the sheet below (initFromSheet), so drop
+		// any stale seed/changeset from the pre-snapshot chain first
+		storage.BeaconBucketName, storage.BeaconChangeSetBucketName,
 		// the sheet jumps the state to its height with NO changesets below
 		// it; drop any stale changeset/index entries from the pre-snapshot
 		// chain so the coverage-based read guard treats sub-sheet heights as
@@ -187,6 +200,9 @@ func (state *State) RebuildFromBlockStoreTxn(txn *bbolt.Tx) error {
 		storage.KeyRegistryBucketName,
 		storage.CommitBucketName, storage.CommitSpentBucketName,
 		storage.ReceiptBucketName, // receipts regenerate with the replay
+		// the beacon regenerates too: the replay re-applies every block through
+		// Upgrade, which re-accumulates the seed from genesis forward
+		storage.BeaconBucketName, storage.BeaconChangeSetBucketName,
 		// changesets/indices regenerate too: the replay re-applies every
 		// block through Upgrade, which re-records them from scratch
 		storage.BalChangeSetBucketName, storage.ContractChangeSetBucketName,
@@ -368,6 +384,12 @@ func (state *State) Upgrade(txn *bbolt.Tx, block *ngtypes.FullBlock) error {
 	if err != nil {
 		return err
 	}
+
+	// fold this block's revealed salts into the native randomness beacon (post
+	// ForkRandomBeacon, height > 0). Done AFTER HandleTxs so the seed contracts
+	// read during this block is the PARENT's — the producer cannot grind the
+	// value its own block yields. No-op before the fork / at genesis.
+	updateBeacon(txn, state.cs, block)
 
 	// drop commitments unrevealed past the reveal window: the committer
 	// forfeited its commit fee at commit time

@@ -80,12 +80,23 @@ var (
 	ContractHistBucketName = []byte("hist:contract")
 
 	// StateTrieBucketName backs the consensus state commitment: the
-	// non-default nodes of the BLAKE3 SMT-256 over the four committed
-	// domains (addr:bal, addr:key, addr:contract, mempool:commit), keyed
+	// non-default nodes of the BLAKE3 SMT-256 over the committed domains
+	// (addr:bal, addr:key, addr:contract, mempool:commit, state:beacon), keyed
 	// by statetrie's depth(2B BE)‖path. Kept in lock-step with those
 	// buckets at every state write choke point, so its Root is the block's
 	// post-state StateRoot. Not itself part of the commitment.
 	StateTrieBucketName = []byte("state:trie")
+
+	// BeaconBucketName holds the native randomness beacon as a SINGLE entry
+	// (BeaconStateKey -> the 32-byte accumulated RANDAO seed). Committed under
+	// statetrie's DomainBeacon, so it is part of the StateRoot and a light
+	// client can prove the seed. Advanced once per post-genesis block from the
+	// block's revealed commit-reveal salts (see ngstate.updateBeacon).
+	BeaconBucketName = []byte("state:beacon")
+	// BeaconChangeSetBucketName: key = heightLE(8) -> tagged old beacon seed.
+	// The beacon is a single global value (not per-address), so it gets its own
+	// height-keyed pre-image changeset for reorg unwind. Archive-only.
+	BeaconChangeSetBucketName = []byte("cs:beacon")
 )
 
 var (
@@ -106,6 +117,7 @@ func InitDB(db *bbolt.DB) {
 			BalChangeSetBucketName, ContractChangeSetBucketName, KeyChangeSetBucketName,
 			BalHistBucketName, ContractHistBucketName,
 			StateTrieBucketName,
+			BeaconBucketName, BeaconChangeSetBucketName,
 		} {
 			if _, err := txn.CreateBucketIfNotExists(name); err != nil {
 				return err

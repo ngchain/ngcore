@@ -147,7 +147,15 @@ func DumpSheetAt(network ngtypes.Network, txn *bbolt.Tx, height uint64, blockHas
 		keys = append(keys, row)
 	}
 
-	return ngtypes.NewSheet(network, height, blockHash, balances, contracts, keys), nil
+	sheet := ngtypes.NewSheet(network, height, blockHash, balances, contracts, keys)
+	// carry the native randomness beacon seed so the snapshot reproduces the
+	// identical StateRoot; nil (left off the sheet) before the beacon fork
+	if b := txn.Bucket(storage.BeaconBucketName); b != nil {
+		if v := b.Get(ngtypes.BeaconStateKey); v != nil {
+			sheet.Beacon = append([]byte{}, v...)
+		}
+	}
+	return sheet, nil
 }
 
 // GenerateSnapshotTxn captures the current state as the sheet of the

@@ -55,6 +55,11 @@ const (
 	// DomainCommit commits the pending private-mempool commitments:
 	// LE₈(height)‖Hash -> From (the mempool:commit bucket key/value)
 	DomainCommit byte = 0x04
+	// DomainBeacon commits the native randomness beacon: a SINGLE leaf at a
+	// fixed key -> the 32-byte accumulated RANDAO seed. It is absent at and
+	// before genesis (the beacon skips height 0) and appears once the beacon
+	// fork is active, so it never perturbs the genesis post-state root.
+	DomainBeacon byte = 0x05
 )
 
 // node-hash domain separation

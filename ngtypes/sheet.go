@@ -10,6 +10,12 @@ type Sheet struct {
 	// pubkey): snapshot-synced nodes must resolve compact envelopes
 	// exactly like replaying nodes do
 	Keys []*RegisteredKey
+
+	// Beacon carries the native randomness beacon seed as of Height, so a
+	// snapshot-synced node reproduces the identical StateRoot (the beacon is a
+	// committed leaf). Empty before the beacon fork / at genesis. Optional so
+	// pre-beacon sheets encode/decode byte-identically.
+	Beacon []byte `rlp:"optional"`
 }
 
 // RegisteredKey is one key-registry row inside a sheet
