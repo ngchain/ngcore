@@ -46,7 +46,12 @@ func initCryptoImports(vm *VM) error {
 	}
 
 	// verify(scheme, pk_ptr, pk_len, hash_ptr, sig_ptr, sig_len) -> i32
-	// checks one signature over a 32-byte digest under the scheme
+	// checks one signature over a 32-byte digest under the scheme. The scheme
+	// menu is VerifyContractSig's: the four native account schemes plus
+	// SchemeSecp256r1 (P-256), which is exposed to contracts here yet is never a
+	// valid tx-signing scheme — it is the primitive an app-layer passkey /
+	// WebAuthn account (a ng:validate hook) verifies its assertion with, since
+	// doing P-256 in pure wasm is far too costly.
 	err = vm.linker.DefineAdvancedFunc("crypto", "verify", func(ins *wasman.Instance) interface{} {
 		return func(scheme, pkPtr, pkLen, hashPtr, sigPtr, sigLen uint32) uint32 {
 			vm.charge(gasSigVerify)
@@ -67,7 +72,7 @@ func initCryptoImports(vm *VM) error {
 				return 0
 			}
 
-			if ngtypes.VerifyHashSig(ngtypes.SigScheme(scheme), pubKey, hash, sig) {
+			if ngtypes.VerifyContractSig(ngtypes.SigScheme(scheme), pubKey, hash, sig) {
 				return 1
 			}
 
