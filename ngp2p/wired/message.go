@@ -34,6 +34,10 @@ func (mt MsgType) String() string {
 		return "StemTxMsg"
 	case StemCommitMsg:
 		return "StemCommitMsg"
+	case GetProofMsg:
+		return "GetProofMsg"
+	case ProofMsg:
+		return "ProofMsg"
 	default:
 		return fmt.Sprintf("UnknownMsg: %d", mt)
 	}
@@ -52,6 +56,15 @@ const (
 const (
 	StemTxMsg MsgType = iota + 0x20
 	StemCommitMsg
+)
+
+// Light-client state-proof request/response: a light node asks a full node
+// for a self-contained Merkle proof of one state leaf, then verifies it
+// against a block header's StateRoot it already trusts (trustless state
+// query, no RPC trust). GetProof is a request; Proof is the signed reply.
+const (
+	GetProofMsg MsgType = iota + 0x22
+	ProofMsg
 )
 
 type ChainType uint8

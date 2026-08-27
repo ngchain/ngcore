@@ -90,6 +90,8 @@ func (w *Wired) handleStream(stream network.Stream) {
 		w.onStemTx(stream, &msg)
 	case StemCommitMsg:
 		w.onStemCommit(stream, &msg)
+	case GetProofMsg:
+		w.onGetProof(stream, &msg)
 	default:
 		w.sendReject(msg.Header.ID, stream, ErrMsgTypeInvalid)
 	}
