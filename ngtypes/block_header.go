@@ -41,7 +41,15 @@ type BlockHeader struct {
 	// every node re-derives and checks it on apply. 32 bytes on every block
 	// including genesis.
 	StateRoot []byte // 32
-	Nonce     []byte `rlp:"tail"` // 8
+	// BaseFee is the consensus-computed per-byte burn-only base fee
+	// (ForkFeeMarket): minimal big-endian, <=32 bytes. Present FROM GENESIS —
+	// genesis and every pre-fork block carry MinBaseFee, so the field/preimage
+	// layout is uniform at all heights. Post-fork it updates EIP-1559-style
+	// (see NextBaseFee) and every non-generate tx must pay Fee >= BaseFee*bytes.
+	// Folded into the pow preimage exactly like Difficulty (reverse(be), right-
+	// padded to 32).
+	BaseFee []byte // <=32
+	Nonce   []byte `rlp:"tail"` // 8
 }
 
 // GetPoWRawHeader builds the fixed-size pow preimage from the header
@@ -49,8 +57,8 @@ type BlockHeader struct {
 func (x *BlockHeader) GetPoWRawHeader(nonce []byte) []byte {
 	// Network(1) + Height(8) + Timestamp(8) + PrevBlockHash(32) +
 	// TxTrieHash(32) + WitnessRoot(32) + Difficulty(32) + Coinbase(32) +
-	// UnclesHash(32) + StateRoot(32) + Nonce(8) = 249
-	raw := make([]byte, 249)
+	// UnclesHash(32) + StateRoot(32) + BaseFee(32) + Nonce(8) = 281
+	raw := make([]byte, 281)
 
 	raw[0] = byte(x.Network)
 	binary.LittleEndian.PutUint64(raw[1:], x.Height)
@@ -62,11 +70,12 @@ func (x *BlockHeader) GetPoWRawHeader(nonce []byte) []byte {
 	copy(raw[145:177], x.Coinbase)
 	copy(raw[177:209], x.UnclesHash)
 	copy(raw[209:241], x.StateRoot)
+	copy(raw[241:273], utils.ReverseBytes(x.BaseFee)) // uint256, like Difficulty
 
 	if nonce == nil {
-		copy(raw[241:249], x.Nonce)
+		copy(raw[273:281], x.Nonce)
 	} else {
-		copy(raw[241:249], nonce)
+		copy(raw[273:281], nonce)
 	}
 
 	return raw
@@ -134,6 +143,9 @@ func (x *BlockHeader) checkStandaloneError() error {
 	if len(x.Difficulty) == 0 || len(x.Difficulty) > DiffSize {
 		return errors.New("uncle header has a malformed difficulty")
 	}
+	if len(x.BaseFee) > DiffSize {
+		return errors.New("uncle header has a malformed base fee")
+	}
 	if len(x.Nonce) != NonceSize {
 		return errors.New("uncle header nonce length is incorrect")
 	}
@@ -188,6 +200,9 @@ func (x *BlockHeader) Equals(other merkletree.Content) (bool, error) {
 		return false, nil
 	}
 	if !bytes.Equal(x.StateRoot, header.StateRoot) {
+		return false, nil
+	}
+	if !bytes.Equal(x.BaseFee, header.BaseFee) {
 		return false, nil
 	}
 	if !bytes.Equal(x.Nonce, header.Nonce) {

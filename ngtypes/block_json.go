@@ -20,6 +20,7 @@ type jsonBlock struct {
 	StateRoot     string `json:"stateRoot"`
 
 	Difficulty string `json:"difficulty"`
+	BaseFee    string `json:"baseFee"`
 	Nonce      string `json:"nonce"`
 
 	Txs []*FullTx `json:"txs"`
@@ -60,6 +61,7 @@ func (x *FullBlock) MarshalJSON() ([]byte, error) {
 		WitnessRoot:   hex.EncodeToString(x.BlockHeader.WitnessRoot),
 		StateRoot:     hex.EncodeToString(x.BlockHeader.StateRoot),
 		Difficulty:    new(big.Int).SetBytes(x.BlockHeader.Difficulty).String(),
+		BaseFee:       new(big.Int).SetBytes(x.BlockHeader.BaseFee).String(),
 		Nonce:         hex.EncodeToString(x.BlockHeader.Nonce),
 		Txs:           x.Txs,
 
@@ -129,6 +131,15 @@ func (x *FullBlock) UnmarshalJSON(data []byte) error {
 	// preserves the committed post-state root (empty stays zero-length)
 	if len(stateRoot) > 0 {
 		x.BlockHeader.StateRoot = stateRoot
+	}
+
+	// NewBlock defaults BaseFee to MinBaseFee; carry the decoded one so a
+	// round-trip preserves the committed base fee. A zero/blank value decodes
+	// to the empty minimal big-endian (nil), matching a genesis/pre-fork block
+	// that carries MinBaseFee only via the default — so only override when the
+	// decoded value differs from that default.
+	if bigBaseFee, ok := new(big.Int).SetString(b.BaseFee, 10); ok {
+		x.BlockHeader.BaseFee = bigBaseFee.Bytes()
 	}
 
 	// err = x.verifyNonce()

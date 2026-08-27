@@ -54,6 +54,11 @@ var (
 	// root is malformed (wrong length) or, at the state layer, does not
 	// match the root produced by applying the block
 	ErrBlockStateRootInvalid = errors.New("invalid block state root")
+
+	// ErrBlockBaseFeeInvalid rejects a header whose burn-only base fee is
+	// malformed (over 32 bytes) or, at the chain layer, does not equal the
+	// consensus-computed NextBaseFee for its slot
+	ErrBlockBaseFeeInvalid = errors.New("invalid block base fee")
 )
 
 // FullBlock is an implement of Block the base unit of the blockchain and the container of the txs, which
@@ -84,7 +89,11 @@ func NewBlock(network Network, height uint64, timestamp uint64, prevBlockHash, t
 			Coinbase:      make([]byte, AddressSize), // set by SetCoinbase before sealing
 			UnclesHash:    make([]byte, HashSize),    // no uncles until SetUncles
 			StateRoot:     make([]byte, HashSize),    // set to the post-state root before sealing
-			Nonce:         nonce,
+			// BaseFee defaults to the floor (MinBaseFee); genesis and every
+			// pre-fork block carry exactly this. Mining sets the correct
+			// NextBaseFee before sealing; the chain layer re-checks it.
+			BaseFee: MinBaseFee.Bytes(),
+			Nonce:   nonce,
 		},
 		Txs: txs,
 	}
@@ -392,6 +401,14 @@ func (x *FullBlock) CheckError() error {
 	// check the chain layer runs after State.Upgrade
 	if len(x.BlockHeader.StateRoot) != HashSize {
 		return errors.Wrapf(ErrBlockStateRootInvalid, "block@%d's StateRoot length is incorrect", x.BlockHeader.Height)
+	}
+
+	// the base fee is a <=32-byte minimal big-endian uint (like Difficulty).
+	// Its CORRECTNESS (== NextBaseFee) is a chain-context check where the parent
+	// is available; here only the format bound is enforced (context-free).
+	if len(x.BlockHeader.BaseFee) > DiffSize {
+		return errors.Wrapf(ErrBlockBaseFeeInvalid, "block@%d's BaseFee length %d exceeds %d",
+			x.BlockHeader.Height, len(x.BlockHeader.BaseFee), DiffSize)
 	}
 
 	if len(x.Uncles) > MaxUncles {

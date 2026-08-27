@@ -20,16 +20,33 @@ func TestForkGenesisAlwaysActive(t *testing.T) {
 	}
 }
 
-// ForkNext is the not-yet-scheduled placeholder: NoFork height, never active.
-func TestForkNextNeverActive(t *testing.T) {
-	for _, net := range AvailableNetworks {
-		if got := ForkHeight(net, ForkNext); got != NoFork {
-			t.Fatalf("ForkHeight(%s, ForkNext) = %d, want NoFork(%d)", net, got, uint64(NoFork))
+// ForkFeeMarket is scheduled at FeeMarketForkHeight on the dev networks
+// (ZERONET, TESTNET) and NoFork on MAINNET: inactive strictly below the
+// activation height, active at and above it.
+func TestForkFeeMarketSchedule(t *testing.T) {
+	// dev networks: scheduled at FeeMarketForkHeight
+	for _, net := range []Network{ZERONET, TESTNET} {
+		if got := ForkHeight(net, ForkFeeMarket); got != FeeMarketForkHeight {
+			t.Fatalf("ForkHeight(%s, ForkFeeMarket) = %d, want %d", net, got, FeeMarketForkHeight)
 		}
-		for _, h := range []uint64{0, 1, 100, math.MaxUint64 - 1} {
-			if IsForkActive(net, ForkNext, h) {
-				t.Fatalf("IsForkActive(%s, ForkNext, %d) = true, want false", net, h)
-			}
+		if IsForkActive(net, ForkFeeMarket, FeeMarketForkHeight-1) {
+			t.Fatalf("ForkFeeMarket must be inactive at height %d on %s", FeeMarketForkHeight-1, net)
+		}
+		if !IsForkActive(net, ForkFeeMarket, FeeMarketForkHeight) {
+			t.Fatalf("ForkFeeMarket must be active at height %d on %s", FeeMarketForkHeight, net)
+		}
+		if !IsForkActive(net, ForkFeeMarket, FeeMarketForkHeight+1) {
+			t.Fatalf("ForkFeeMarket must be active above the activation height on %s", net)
+		}
+	}
+
+	// mainnet: unscheduled (NoFork), never active
+	if got := ForkHeight(MAINNET, ForkFeeMarket); got != NoFork {
+		t.Fatalf("ForkHeight(MAINNET, ForkFeeMarket) = %d, want NoFork(%d)", got, uint64(NoFork))
+	}
+	for _, h := range []uint64{0, 1, 100, math.MaxUint64 - 1} {
+		if IsForkActive(MAINNET, ForkFeeMarket, h) {
+			t.Fatalf("IsForkActive(MAINNET, ForkFeeMarket, %d) = true, want false", h)
 		}
 	}
 }
@@ -81,13 +98,22 @@ func TestIsForkActiveBoundary(t *testing.T) {
 	}
 }
 
-// ActiveFork returns ForkGenesis for all heights on all networks today.
-func TestActiveForkIsGenesisToday(t *testing.T) {
-	for _, net := range AvailableNetworks {
-		for _, h := range []uint64{0, 1, 100, 200_000, math.MaxUint64} {
-			if got := ActiveFork(net, h); got != ForkGenesis {
-				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkGenesis", net, h, got)
+// ActiveFork returns ForkGenesis below FeeMarketForkHeight and ForkFeeMarket at
+// or above it on the dev networks; MAINNET stays ForkGenesis at every height.
+func TestActiveForkFeeMarket(t *testing.T) {
+	for _, net := range []Network{ZERONET, TESTNET} {
+		if got := ActiveFork(net, FeeMarketForkHeight-1); got != ForkGenesis {
+			t.Fatalf("ActiveFork(%s, %d) = %d, want ForkGenesis", net, FeeMarketForkHeight-1, got)
+		}
+		for _, h := range []uint64{FeeMarketForkHeight, FeeMarketForkHeight + 1, 200_000, math.MaxUint64} {
+			if got := ActiveFork(net, h); got != ForkFeeMarket {
+				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkFeeMarket", net, h, got)
 			}
+		}
+	}
+	for _, h := range []uint64{0, 1, 100, 200_000, math.MaxUint64} {
+		if got := ActiveFork(MAINNET, h); got != ForkGenesis {
+			t.Fatalf("ActiveFork(MAINNET, %d) = %d, want ForkGenesis", h, got)
 		}
 	}
 }
@@ -95,7 +121,7 @@ func TestActiveForkIsGenesisToday(t *testing.T) {
 // Determinism: same (net, fork, height) => same result, across repeated calls.
 func TestForkHelpersDeterministic(t *testing.T) {
 	for _, net := range AvailableNetworks {
-		for _, f := range []Fork{ForkGenesis, ForkNext} {
+		for _, f := range []Fork{ForkGenesis, ForkFeeMarket} {
 			for _, h := range []uint64{0, 1, 100, math.MaxUint64 - 1} {
 				h0 := ForkHeight(net, f)
 				a0 := IsForkActive(net, f, h)

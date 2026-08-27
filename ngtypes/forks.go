@@ -23,14 +23,19 @@ const (
 	// behavior is unchanged. Do NOT renumber it.
 	ForkGenesis Fork = 0
 
-	// ForkNext is a placeholder for the next, not-yet-scheduled upgrade. It
-	// demonstrates the pattern: it exists in the enum but ForkHeight returns
-	// the NoFork sentinel for it on every network, so IsForkActive is false at
-	// every height until a maintainer schedules a real activation height. When
-	// a concrete upgrade is designed, rename this (or add a new value after it)
-	// and give it a height in forkSchedule below.
-	ForkNext Fork = 1
+	// ForkFeeMarket activates the EIP-1559-style burn-only dynamic base fee: a
+	// consensus-computed per-byte BaseFee is carried in the header, and every
+	// non-generate tx must pay Fee >= BaseFee * len(rlp(tx)). The whole fee is
+	// still fully burned (no tip, no coinbase change) — this only prices
+	// congestion and floors the fee, preserving deflation. Scheduled at
+	// FeeMarketForkHeight on ZERONET and TESTNET; NoFork on MAINNET.
+	ForkFeeMarket Fork = 1
 )
+
+// FeeMarketForkHeight is the activation height of ForkFeeMarket on the dev
+// networks (ZERONET, TESTNET). Kept small so tests can cross the boundary
+// cheaply. MAINNET leaves the fork unscheduled (NoFork).
+const FeeMarketForkHeight uint64 = 8
 
 // NoFork is the "never active" sentinel activation height: a fork whose
 // ForkHeight is NoFork is disabled, since no block height can be >= MaxUint64.
@@ -50,13 +55,13 @@ const NoFork uint64 = math.MaxUint64
 // mutation. It is read on every block validation.
 var forkSchedule = map[Network]map[Fork]uint64{
 	ZERONET: {
-		ForkNext: NoFork, // not scheduled yet
+		ForkFeeMarket: FeeMarketForkHeight,
 	},
 	TESTNET: {
-		ForkNext: NoFork, // not scheduled yet
+		ForkFeeMarket: FeeMarketForkHeight,
 	},
 	MAINNET: {
-		ForkNext: NoFork, // not scheduled yet
+		ForkFeeMarket: NoFork, // not scheduled on mainnet yet
 	},
 }
 
@@ -99,7 +104,7 @@ func IsForkActive(net Network, f Fork, height uint64) bool {
 // as new forks are appended in order.
 func ActiveFork(net Network, height uint64) Fork {
 	active := ForkGenesis
-	for f := ForkGenesis + 1; f <= ForkNext; f++ {
+	for f := ForkGenesis + 1; f <= ForkFeeMarket; f++ {
 		if IsForkActive(net, f, height) {
 			active = f
 		}

@@ -62,6 +62,10 @@ func GetGenesisBlock(network Network) *FullBlock {
 		// the genesis header commits to its own post-state root (folded into
 		// the pow preimage and the block hash), just like every later block
 		genesisBlock.BlockHeader.StateRoot = genesisStateRoot(network)
+		// genesis carries the base-fee floor; every pre-fork block equals this
+		// (NextBaseFee returns MinBaseFee pre-fork), so the chain-layer base-fee
+		// check holds from genesis onward
+		genesisBlock.BlockHeader.BaseFee = MinBaseFee.Bytes()
 		genesisBlock.GetHash()
 	}
 
