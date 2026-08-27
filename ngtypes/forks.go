@@ -30,12 +30,34 @@ const (
 	// congestion and floors the fee, preserving deflation. Scheduled at
 	// FeeMarketForkHeight on ZERONET and TESTNET; NoFork on MAINNET.
 	ForkFeeMarket Fork = 1
+
+	// ForkStateRent activates the refundable storage DEPOSIT (a bond, not
+	// recurring rent): when a contract's on-chain kv grows, a deposit
+	// proportional to the added bytes is LOCKED from the contract's own native
+	// balance into the protocol escrow (StorageDepositEscrow); when the kv
+	// shrinks / a key is deleted / the contract is destroyed, the freed deposit
+	// is REFUNDED to the contract's balance. Supply is conserved (the escrow
+	// holds the locked funds), and deletion is positively incentivized. The
+	// deposit is a pure function of the bytes currently stored — no running
+	// total is persisted. Scheduled at StateRentForkHeight on ZERONET and
+	// TESTNET (ABOVE the fee-market fork); NoFork on MAINNET.
+	ForkStateRent Fork = 2
 )
 
 // FeeMarketForkHeight is the activation height of ForkFeeMarket on the dev
 // networks (ZERONET, TESTNET). Kept small so tests can cross the boundary
 // cheaply. MAINNET leaves the fork unscheduled (NoFork).
 const FeeMarketForkHeight uint64 = 8
+
+// StateRentForkHeight is the activation height of ForkStateRent on the dev
+// networks (ZERONET, TESTNET). It sits ABOVE FeeMarketForkHeight and, crucially,
+// above every height any existing contract test writes kv at (the e2e verb-relay
+// test upgrades and runs a kv-writing contract up to height 15/17). Those tests
+// deploy from a mining address that carries a real balance and assert an EXACT
+// fee ledger, so keeping them PRE-fork is what pins this height: the green suite
+// is the forcing function. 32 leaves comfortable margin over the fee-market fork
+// (8) and the deepest contract-writing e2e chain (~17). MAINNET leaves it NoFork.
+const StateRentForkHeight uint64 = 32
 
 // NoFork is the "never active" sentinel activation height: a fork whose
 // ForkHeight is NoFork is disabled, since no block height can be >= MaxUint64.
@@ -56,12 +78,15 @@ const NoFork uint64 = math.MaxUint64
 var forkSchedule = map[Network]map[Fork]uint64{
 	ZERONET: {
 		ForkFeeMarket: FeeMarketForkHeight,
+		ForkStateRent: StateRentForkHeight,
 	},
 	TESTNET: {
 		ForkFeeMarket: FeeMarketForkHeight,
+		ForkStateRent: StateRentForkHeight,
 	},
 	MAINNET: {
 		ForkFeeMarket: NoFork, // not scheduled on mainnet yet
+		ForkStateRent: NoFork, // not scheduled on mainnet yet
 	},
 }
 
@@ -104,7 +129,7 @@ func IsForkActive(net Network, f Fork, height uint64) bool {
 // as new forks are appended in order.
 func ActiveFork(net Network, height uint64) Fork {
 	active := ForkGenesis
-	for f := ForkGenesis + 1; f <= ForkFeeMarket; f++ {
+	for f := ForkGenesis + 1; f <= ForkStateRent; f++ {
 		if IsForkActive(net, f, height) {
 			active = f
 		}

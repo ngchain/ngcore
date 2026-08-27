@@ -98,14 +98,17 @@ func TestIsForkActiveBoundary(t *testing.T) {
 	}
 }
 
-// ActiveFork returns ForkGenesis below FeeMarketForkHeight and ForkFeeMarket at
-// or above it on the dev networks; MAINNET stays ForkGenesis at every height.
+// ActiveFork returns ForkGenesis below FeeMarketForkHeight and ForkFeeMarket in
+// the window [FeeMarketForkHeight, StateRentForkHeight) on the dev networks
+// (above that ForkStateRent takes over — see TestActiveForkStateRent); MAINNET
+// stays ForkGenesis at every height (neither later fork is scheduled there).
 func TestActiveForkFeeMarket(t *testing.T) {
 	for _, net := range []Network{ZERONET, TESTNET} {
 		if got := ActiveFork(net, FeeMarketForkHeight-1); got != ForkGenesis {
 			t.Fatalf("ActiveFork(%s, %d) = %d, want ForkGenesis", net, FeeMarketForkHeight-1, got)
 		}
-		for _, h := range []uint64{FeeMarketForkHeight, FeeMarketForkHeight + 1, 200_000, math.MaxUint64} {
+		// heights strictly within the fee-market window, below the state-rent fork
+		for _, h := range []uint64{FeeMarketForkHeight, FeeMarketForkHeight + 1, StateRentForkHeight - 1} {
 			if got := ActiveFork(net, h); got != ForkFeeMarket {
 				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkFeeMarket", net, h, got)
 			}
