@@ -85,15 +85,17 @@ func (pool *TxPool) PutCommitment(commit *ngtypes.Commitment) error {
 		return errors.Wrap(err, "malformed commitment, rejected")
 	}
 
-	// relay fee floor: a commitment must clear MinFeePerByte * its wire size,
-	// same policy as a tx. Free/dust commits are the cheap-spam and
-	// commit-many/reveal-one straddle surface, so they are not relayed
-	if pool.MinFeePerByte != nil && pool.MinFeePerByte.Sign() > 0 {
+	// relay fee floor: a commitment must clear the per-byte floor * its wire
+	// size. The floor is max(relay policy, next-block consensus base fee), so
+	// post-fork a commit that the block would reject is never relayed. Free/dust
+	// commits are the cheap-spam and commit-many/reveal-one straddle surface, so
+	// they are not relayed
+	if perByte := pool.effectiveFloorPerByte(); perByte != nil && perByte.Sign() > 0 {
 		raw, err := rlp.EncodeToBytes(commit)
 		if err != nil {
 			return err
 		}
-		floor := new(big.Int).Mul(pool.MinFeePerByte, big.NewInt(int64(len(raw))))
+		floor := new(big.Int).Mul(perByte, big.NewInt(int64(len(raw))))
 		if commit.Fee.Cmp(floor) < 0 {
 			return errors.Wrapf(ErrTxFeeBelowFloor, "commit fee %s < floor %s for %d bytes",
 				commit.Fee, floor, len(raw))
@@ -132,6 +134,42 @@ var (
 	ErrTxFeeBelowFloor = errors.New("tx fee is below the relay fee floor")
 )
 
+// effectiveFloorPerByte is the per-byte fee floor a tx/commit must clear to be
+// admitted for the NEXT block: the max of this node's relay-policy floor
+// (MinFeePerByte, may be nil/zero) and the CONSENSUS base fee the next block
+// will carry (NextBaseFee from the chain tip). Post-fork the pool therefore
+// never packs a tx the block would reject for paying below BaseFee*bytes.
+// Pre-fork NextBaseFee is MinBaseFee (== the default relay floor), so behavior
+// is unchanged. Returns nil when there is no floor at all (relay floor disabled
+// and the tip is somehow unavailable).
+func (pool *TxPool) effectiveFloorPerByte() *big.Int {
+	var floor *big.Int
+	if pool.MinFeePerByte != nil && pool.MinFeePerByte.Sign() > 0 {
+		floor = new(big.Int).Set(pool.MinFeePerByte)
+	}
+
+	// the consensus base fee only becomes a hard admission floor once the fork
+	// is active for the NEXT block; pre-fork the block enforces no per-tx base
+	// fee, so the pool stays on the relay policy alone (unchanged behavior —
+	// tests that disable MinFeePerByte still admit zero-fee txs pre-fork)
+	if tip, ok := pool.chain.GetLatestBlock().(*ngtypes.FullBlock); ok && tip != nil {
+		childHeight := tip.GetHeight() + 1
+		if ngtypes.IsForkActive(tip.BlockHeader.Network, ngtypes.ForkFeeMarket, childHeight) {
+			nextBaseFee := ngtypes.NextBaseFee(
+				tip.BlockHeader.Network,
+				tip.GetHeight(),
+				new(big.Int).SetBytes(tip.BlockHeader.BaseFee),
+				ngtypes.BlockUsedBytes(tip),
+			)
+			if floor == nil || nextBaseFee.Cmp(floor) > 0 {
+				floor = nextBaseFee
+			}
+		}
+	}
+
+	return floor
+}
+
 // PutTx puts txs from network(p2p) or RPC into txpool, should check error before putting.
 func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 	pool.Lock()
@@ -147,14 +185,16 @@ func (pool *TxPool) PutTx(tx *ngtypes.FullTx) error {
 			tx.GetHash(), tx.Height, nextHeight)
 	}
 
-	// the relay fee floor scales with the tx's wire size, so heavy
-	// envelopes pay for the bytes they burden the network with
-	if pool.MinFeePerByte != nil && pool.MinFeePerByte.Sign() > 0 {
+	// the relay fee floor scales with the tx's wire size, so heavy envelopes pay
+	// for the bytes they burden the network with. The floor is max(relay policy,
+	// next-block consensus base fee), so post-fork the pool never admits a tx the
+	// block would reject for paying below BaseFee*bytes
+	if perByte := pool.effectiveFloorPerByte(); perByte != nil && perByte.Sign() > 0 {
 		raw, err := rlp.EncodeToBytes(tx)
 		if err != nil {
 			return err
 		}
-		floor := new(big.Int).Mul(pool.MinFeePerByte, big.NewInt(int64(len(raw))))
+		floor := new(big.Int).Mul(perByte, big.NewInt(int64(len(raw))))
 		if tx.Fee.Cmp(floor) < 0 {
 			return errors.Wrapf(ErrTxFeeBelowFloor, "fee %s < floor %s for %d bytes",
 				tx.Fee, floor, len(raw))
