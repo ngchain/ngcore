@@ -134,7 +134,7 @@ func transactTx(t *testing.T, env *testEnv, height uint64, owner *ngtypes.Privat
 
 	dest := testAddr()
 	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
-		dest, big.NewInt(10), big.NewInt(fee), nil, nil)
+		dest, big.NewInt(10), scaledFee(fee), nil, nil)
 	tx.Salt = poolTestSalt
 	if err := tx.Signature(owner); err != nil {
 		t.Fatal(err)
@@ -150,6 +150,19 @@ func testAddr() ngtypes.Address {
 	var addr ngtypes.Address
 	addr[0] = 0xee
 	return addr
+}
+
+// feeUnit scales the small relative fees these ordering/eviction tests use so
+// every tx clears the consensus base-fee floor (MinBaseFee * len(rlp(tx)) ≈
+// 1.3e12 for a ~130-byte tx) — the fee market is active from genesis now, so the
+// pool's effective floor is at least the next block's base fee even when
+// MinFeePerByte is disabled. 1e13 per unit keeps the fees' ORDER intact while
+// lifting even a 1-unit fee above the floor for any envelope these tests build.
+const feeUnit = int64(10_000_000_000_000) // 1e13
+
+// scaledFee lifts a relative fee onto the base-fee-floor scale.
+func scaledFee(fee int64) *big.Int {
+	return new(big.Int).Mul(big.NewInt(fee), big.NewInt(feeUnit))
 }
 
 func TestPutTxHeightGating(t *testing.T) {
@@ -276,19 +289,25 @@ func TestPoolResetOnTipChange(t *testing.T) {
 }
 
 // TestRelayFeeFloor: the pool prices admission per wire byte; a tx
-// below the floor never relays, one at the floor does
+// below the floor never relays, one at the floor does. The relay policy
+// (MinFeePerByte) is set ABOVE the base-fee floor here so the relay floor is the
+// binding constraint being exercised (both floors are active from genesis now).
 func TestRelayFeeFloor(t *testing.T) {
 	env := newTestEnv(t)
-	env.pool.MinFeePerByte = big.NewInt(1000)
+	// 1e12/byte => ~1.3e14 floor for a ~130-byte tx, comfortably above the
+	// base-fee floor (MinBaseFee 1e10/byte), so this test's relay policy binds.
+	env.pool.MinFeePerByte = big.NewInt(1_000_000_000_000)
 	next := env.chain.GetLatestBlockHeight() + 1
 
+	// scaledFee(1) == 1e13, below the ~1.3e14 relay floor -> rejected
 	cheap := transactTx(t, env, next, env.keyA, 1)
 	if err := env.pool.PutTx(cheap); !errors.Is(err, ngpool.ErrTxFeeBelowFloor) {
 		t.Fatalf("got %v, want ErrTxFeeBelowFloor", err)
 	}
 
-	// pay comfortably above the floor (fee = 1000 * 10KB covers any envelope)
-	rich := transactTx(t, env, next, env.keyA, 10_000_000)
+	// scaledFee(100) == 1e15, above the ~1.3e14 floor yet affordable from the
+	// sender's mined block rewards
+	rich := transactTx(t, env, next, env.keyA, 100)
 	if err := env.pool.PutTx(rich); err != nil {
 		t.Fatalf("floor-clearing tx refused: %v", err)
 	}

@@ -30,60 +30,34 @@ func mineChainTo(t *testing.T, node *testNode, miner *ngtypes.PrivateKey, target
 	}
 }
 
-// crossing the fork boundary: below FeeMarketForkHeight the per-tx base-fee
-// minimum is NOT enforced (a zero-fee reveal lands) and every header carries
-// MinBaseFee; at/above the fork height the header base fee begins updating and
-// a reveal paying below BaseFee*bytes is rejected by the state gate.
+// the fee market is active from genesis (FeeMarketForkHeight == 0), so there is
+// no boundary to cross: every header carries at least MinBaseFee from height 0,
+// and the per-tx base-fee minimum is enforced at every height — a reveal paying
+// below BaseFee*bytes is rejected by the state gate even at a very low height.
 func TestFeeMarketForkBoundary(t *testing.T) {
 	node := newNode(t)
 	miner, _ := ngtypes.GenerateKey()
 
-	// fund the sender and reach one block below the fork boundary
+	// fund the sender by mining a few blocks; every one is already post-fork
 	sender := miner // the miner mines its own funds
-	mineChainTo(t, node, miner, ngtypes.FeeMarketForkHeight-1)
+	mineChainTo(t, node, miner, 3)
 
-	// every header so far carries MinBaseFee (pre-fork NextBaseFee is constant)
+	// the fork is active at every height from genesis on ZERONET
+	if !ngtypes.IsForkActive(ngtypes.ZERONET, ngtypes.ForkFeeMarket, 0) {
+		t.Fatal("expected the fee market active from genesis on ZERONET")
+	}
+
+	// every header carries at least MinBaseFee (the floor) from height 0
 	for h := uint64(0); h <= node.chain.GetLatestBlockHeight(); h++ {
 		b := blockAtHeight(t, node, h)
-		if got := new(big.Int).SetBytes(b.BlockHeader.BaseFee); got.Cmp(ngtypes.MinBaseFee) != 0 {
-			t.Fatalf("pre-fork block@%d BaseFee = %s, want MinBaseFee", h, got)
+		if got := new(big.Int).SetBytes(b.BlockHeader.BaseFee); got.Cmp(ngtypes.MinBaseFee) < 0 {
+			t.Fatalf("block@%d BaseFee = %s, want >= MinBaseFee %s", h, got, ngtypes.MinBaseFee)
 		}
 	}
 
-	// PRE-FORK: a zero-fee reveal is admissible into a block. Build the commit at
-	// the current tip height, reveal one higher — both still below the fork.
-	commitHeight := node.chain.GetLatestBlockHeight() + 1
-	if !ngtypes.IsForkActive(ngtypes.ZERONET, ngtypes.ForkFeeMarket, commitHeight+1) {
-		// good: the reveal height is still pre-fork
-		var payee ngtypes.Address
-		payee[0] = 0x77
-		reveal := revealTx(t, ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, commitHeight+1,
-			payee, big.NewInt(1), big.NewInt(0), nil, nil), sender)
-		commit := commitFor(t, reveal, sender, commitHeight, nil)
-
-		tip := node.chain.GetLatestBlock().(*ngtypes.FullBlock)
-		cb := mineOnAll(t, tip, miner, []*ngtypes.Commitment{commit})
-		if err := node.pow.MinedNewBlock(cb); err != nil {
-			t.Fatalf("mine pre-fork commit block: %v", err)
-		}
-		rb := mineOnTxs(t, cb, miner, reveal)
-		if err := node.pow.MinedNewBlock(rb); err != nil {
-			t.Fatalf("pre-fork zero-fee reveal must be accepted, got: %v", err)
-		}
-		if got, _ := node.chain.State.GetTotalBalanceByAddress(payee); got.Sign() == 0 {
-			t.Fatal("pre-fork zero-fee transfer did not credit the payee")
-		}
-	}
-
-	// advance to the fork height
-	mineChainTo(t, node, miner, ngtypes.FeeMarketForkHeight)
-	if !ngtypes.IsForkActive(ngtypes.ZERONET, ngtypes.ForkFeeMarket, node.chain.GetLatestBlockHeight()) {
-		t.Fatalf("expected the fork active at height %d", node.chain.GetLatestBlockHeight())
-	}
-
-	// POST-FORK: a reveal paying below BaseFee*bytes must be rejected by the
-	// block's tx gate. Build a well-formed reveal with fee 0 and mine it into a
-	// post-fork block; ApplyBlock must reject the block.
+	// A reveal paying below BaseFee*bytes must be rejected by the block's tx gate
+	// at a low (genesis-active) height. Build a well-formed reveal with fee 0 and
+	// mine it into a block; ApplyBlock must reject the block.
 	postCommitHeight := node.chain.GetLatestBlockHeight() + 1
 	postRevealHeight := postCommitHeight + 1 // post-fork
 	var dst ngtypes.Address
@@ -114,7 +88,11 @@ func TestFeeMarketHeaderBaseFeeMismatchRejected(t *testing.T) {
 	node := newNode(t)
 	miner, _ := ngtypes.GenerateKey()
 
-	mineChainTo(t, node, miner, ngtypes.FeeMarketForkHeight)
+	// mine a few blocks so the tampered block's parent is NOT the origin/genesis
+	// (checkBlockTarget — which runs the base-fee match — is skipped when the
+	// parent is the origin). The fork is already active from genesis, so any
+	// non-genesis parent exercises the base-fee equality check.
+	mineChainTo(t, node, miner, 2)
 
 	tip := node.chain.GetLatestBlock().(*ngtypes.FullBlock)
 

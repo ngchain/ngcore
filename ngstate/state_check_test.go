@@ -114,7 +114,9 @@ func TestCheckBlockTxs(t *testing.T) {
 	userAddr := ngtypes.NewAddress(userPriv)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		if err := setBalance(txn, nil, userAddr, big.NewInt(100)); err != nil {
+		// fund enough to afford the base-fee-adequate fee (value + fee) the valid
+		// transact below pays now that the fee market is active from genesis
+		if err := setBalance(txn, nil, userAddr, big.NewInt(1e18)); err != nil {
 			return err
 		}
 
@@ -134,7 +136,9 @@ func TestCheckBlockTxs(t *testing.T) {
 		if err := gen.Signature(minerPriv); err != nil {
 			return err
 		}
-		pay := signedTx(t, userPriv, ngtypes.TransactTx, minerAddr, big.NewInt(1), big.NewInt(1), nil)
+		// fee must clear the genesis base fee (MinBaseFee * len(rlp(tx))); the
+		// fork is active from height 0 now, so 1e15 comfortably covers a ~200B tx
+		pay := signedTx(t, userPriv, ngtypes.TransactTx, minerAddr, big.NewInt(1), big.NewInt(1e15), nil)
 		seedCommit(t, txn, userPriv, pay)
 
 		if err := CheckBlockTxs(txn, blockAt(1, gen, pay)); err != nil {

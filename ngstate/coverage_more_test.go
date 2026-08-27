@@ -305,7 +305,7 @@ func TestHostHappyPaths(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(addr, mustWat(hostHappyWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		// a SIGNED transact tx whose To is the contract itself
 		tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,

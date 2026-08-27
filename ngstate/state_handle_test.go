@@ -192,7 +192,7 @@ func TestRecordRunBrokenReceipt(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(addr, mustWat(kvWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		tx := fakeTransactTx(addr, nil)
 		if err := txn.Bucket(storage.ReceiptBucketName).Put(tx.GetHash(), []byte{0xff}); err != nil {

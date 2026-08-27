@@ -215,11 +215,11 @@ func TestLeverageShowcase(t *testing.T) {
 		}())
 
 		usdt := ngtypes.NewContract(addrA, mustWat(usdtTokenWat), seeded)
-		putContract(t, txn, usdt, 100)
+		putContract(t, txn, usdt, 1e18) // the token owns the ledger kv it writes
 		dex := ngtypes.NewContract(addrB, mustWat(dexWatFor(addrA)), nil)
 		putContract(t, txn, dex, 1000) // the dex pool holds native NG
 		lending := ngtypes.NewContract(addrC, mustWat(lendingWatFor(addrA)), nil)
-		putContract(t, txn, lending, 100)
+		putContract(t, txn, lending, 1e18) // the lending pool owns the debt-book kv it writes
 		leverage := ngtypes.NewContract(addrD, mustWat(strategyWatFor(addrA, addrB, addrC)), nil)
 		putContract(t, txn, leverage, 100)
 

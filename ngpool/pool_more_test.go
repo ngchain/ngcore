@@ -25,7 +25,7 @@ func transactTxV(t *testing.T, env *testEnv, height uint64, owner *ngtypes.Priva
 	t.Helper()
 
 	tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
-		testAddr(), big.NewInt(value), big.NewInt(fee), nil, nil)
+		testAddr(), big.NewInt(value), scaledFee(fee), nil, nil)
 	tx.Salt = poolTestSalt
 	if err := tx.Signature(owner); err != nil {
 		t.Fatal(err)
@@ -92,17 +92,20 @@ func TestPutTxRejectsMalformed(t *testing.T) {
 	env := newTestEnv(t)
 	next := env.chain.GetLatestBlockHeight() + 1
 
-	// unsigned tx must never enter the pool
+	// unsigned tx must never enter the pool. Pay an adequate fee so it clears the
+	// base-fee floor (the pool's cheap stateless gate) and reaches the signature
+	// check — the floor now preempts a sub-floor fee before signature validation.
 	unsigned := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, next,
-		testAddr(), big.NewInt(10), big.NewInt(1), nil, nil)
+		testAddr(), big.NewInt(10), scaledFee(1), nil, nil)
 	if err := env.pool.PutTx(unsigned); !errors.Is(err, ngtypes.ErrTxSignInvalid) {
 		t.Fatalf("unsigned tx: got %v, want ErrTxSignInvalid", err)
 	}
 
 	// a signed tx spending beyond the balance must be rejected (its reveal
-	// commitment is seeded so it reaches the balance check, not the reveal gate)
+	// commitment is seeded so it reaches the balance check, not the reveal gate).
+	// An adequate fee keeps the balance insufficiency the binding rejection.
 	tooRich := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, next,
-		testAddr(), new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1), nil, nil)
+		testAddr(), new(big.Int).Lsh(big.NewInt(1), 128), scaledFee(1), nil, nil)
 	tooRich.Salt = poolTestSalt
 	if err := tooRich.Signature(env.keyA); err != nil {
 		t.Fatal(err)

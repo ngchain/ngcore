@@ -145,7 +145,7 @@ func TestVMKVSet(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(kvWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
@@ -500,7 +500,7 @@ func TestContractModuleDeps(t *testing.T) {
 		if err := setBalance(txn, nil, dexAddr, big.NewInt(100)); err != nil {
 			return err
 		}
-		if err := setBalance(txn, nil, levAddr, big.NewInt(100)); err != nil {
+		if err := setBalance(txn, nil, levAddr, big.NewInt(1e18)); err != nil {
 			return err
 		}
 
@@ -656,7 +656,7 @@ func TestServiceToken(t *testing.T) {
 
 	err := db.Update(func(txn *bbolt.Tx) error {
 		token := ngtypes.NewContract(tokenAddr, mustWat(tokenWat), nil)
-		putContract(t, txn, token, 100)
+		putContract(t, txn, token, 1e18)
 		user := ngtypes.NewContract(userAddr, mustWat(tokenUserWatFor(tokenAddr, userAddr, dest)), nil)
 		putContract(t, txn, user, 100)
 
@@ -737,7 +737,7 @@ func TestVMU256(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(u256Wat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
@@ -803,7 +803,7 @@ func TestVMTxContext(t *testing.T) {
 		owner := testAddr(0xaa)
 		acc := ngtypes.NewContract(owner, mustWat(txCtxWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		// the tx pays 77 to the contract's address (msg.value)
 		tx := fakeTransactTx(owner, big.NewInt(77))
@@ -898,7 +898,7 @@ func TestVMKVScan(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(kvScanWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
@@ -994,11 +994,11 @@ func TestServiceBigValues(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		vault := ngtypes.NewContract(vaultAddr, mustWat(bigVaultWat), nil)
 		vault.SetActive(true)
-		putContract(t, txn, vault, 0)
+		putContract(t, txn, vault, 1e18)
 
 		caller := ngtypes.NewContract(callerAddr, mustWat(bigCallerWatFor(vaultAddr)), nil)
 		caller.SetActive(true)
-		putContract(t, txn, caller, 0)
+		putContract(t, txn, caller, 1e18)
 
 		vm, err := NewVM(txn, caller, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
@@ -1055,7 +1055,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(emitAddr, mustWat(emitWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		tx := fakeTransactTx(ngtypes.Address{}, nil)
 		state.runContract(txn, emitAddr, tx, VMEntryOnTx, 1, nil)
@@ -1088,7 +1088,7 @@ func TestReceiptsAndEvents(t *testing.T) {
 		// a failing contract records the failure and drops its events
 		bad := ngtypes.NewContract(badAddr, mustWat(burnWat), nil)
 		bad.SetActive(true)
-		putContract(t, txn, bad, 0)
+		putContract(t, txn, bad, 1e18)
 
 		badTx := fakeTransactTx(badAddr, big.NewInt(0))
 		state.runContract(txn, badAddr, badTx, VMEntryOnTx, 1, nil)
@@ -1121,7 +1121,7 @@ func TestGasPricingTiers(t *testing.T) {
 		err := db.Update(func(txn *bbolt.Tx) error {
 			acc := ngtypes.NewContract(testAddr(0xaa), mustWat(wat), nil)
 			acc.SetActive(true)
-			putContract(t, txn, acc, 100)
+			putContract(t, txn, acc, 1e18)
 
 			vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 			if err != nil {
@@ -1169,7 +1169,7 @@ func TestVMDryRun(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(testAddr(0xaa), mustWat(kvWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(ngtypes.Address{}, nil), 1)
 		if err != nil {
@@ -1324,7 +1324,7 @@ func TestCallDataDispatch(t *testing.T) {
 		err := db.Update(func(txn *bbolt.Tx) error {
 			acc := ngtypes.NewContract(addr, mustWat(multiEntryWat), nil)
 			acc.SetActive(true)
-			putContract(t, txn, acc, 0)
+			putContract(t, txn, acc, 1e18)
 
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
 				addr, big.NewInt(0), big.NewInt(0), extra, nil)
@@ -1518,7 +1518,7 @@ func TestBlockGasBudget(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		acc := ngtypes.NewContract(burner, mustWat(burnWat), nil)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 1e18)
 
 		tx := fakeTransactTx(burner, nil)
 
@@ -1670,7 +1670,7 @@ func TestCryptoHostFuncs(t *testing.T) {
 		err := db.Update(func(txn *bbolt.Tx) error {
 			acc := ngtypes.NewContract(contractAddr, mustWat(cryptoWat), nil)
 			acc.SetActive(true)
-			putContract(t, txn, acc, 0)
+			putContract(t, txn, acc, 1e18)
 
 			tx := ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 1,
 				contractAddr, nil, nil, ngtypes.EncodeCallData("ng:main", args), nil)
@@ -1827,10 +1827,10 @@ func TestDynamicServiceCall(t *testing.T) {
 	err := db.Update(func(txn *bbolt.Tx) error {
 		b := ngtypes.NewContract(callee, mustWat(calleeWat), nil)
 		b.SetActive(true)
-		putContract(t, txn, b, 0)
+		putContract(t, txn, b, 1e18)
 		a := ngtypes.NewContract(caller, mustWat(callerWat), nil)
 		a.SetActive(true)
-		putContract(t, txn, a, 0)
+		putContract(t, txn, a, 1e18)
 
 		// A runs via Run(main) directly, so its get_extra is the raw
 		// extra: the 32-byte target address

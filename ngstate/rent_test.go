@@ -9,11 +9,23 @@ import (
 	"github.com/ngchain/ngcore/ngtypes"
 )
 
-// rentTx builds a ZERONET transact tx locked to the given height, so the kv
-// host's ForkStateRent gate (keyed on vm.caller.{Network,Height}) sees it as
-// post-fork when height >= StateRentForkHeight and pre-fork below it.
+// rentTx builds a ZERONET transact tx locked to the given height. State rent is
+// active from genesis on ZERONET (StateRentForkHeight == 0), so the kv host's
+// ForkStateRent gate (keyed on vm.caller.{Network,Height}) sees any ZERONET tx
+// as POST-fork at every height.
 func rentTx(height uint64) *ngtypes.FullTx {
 	return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, height,
+		ngtypes.Address{}, nil, big.NewInt(0), nil, nil)
+}
+
+// preRentTx builds a MAINNET transact tx. MAINNET leaves ForkStateRent
+// unscheduled (NoFork), so the gate is NEVER active there — this is how the
+// suite still exercises "pre-fork" storage semantics (kv touches no balances /
+// escrow, _rent stays absent) now that ZERONET is post-fork from genesis. The
+// escrow address and DepositPerByte are network-independent, so a MAINNET run
+// interoperates with the same escrow/contract balances a ZERONET run uses.
+func preRentTx(height uint64) *ngtypes.FullTx {
+	return ngtypes.NewTx(ngtypes.MAINNET, ngtypes.TransactTx, height,
 		ngtypes.Address{}, nil, big.NewInt(0), nil, nil)
 }
 
@@ -268,9 +280,9 @@ func TestRentUnfundedSoftFails(t *testing.T) {
 	}
 }
 
-// TestRentPreForkUnchanged: BELOW StateRentForkHeight, kv.set/del touch no
-// balances and no escrow — byte-for-byte the old behavior (an unfunded
-// contract still writes fine).
+// TestRentPreForkUnchanged: where ForkStateRent is INACTIVE (a MAINNET tx, which
+// leaves the fork NoFork), kv.set/del touch no balances and no escrow —
+// byte-for-byte the old behavior (an unfunded contract still writes fine).
 func TestRentPreForkUnchanged(t *testing.T) {
 	db := newTestDB(t)
 	addr := testAddr(0xa5)
@@ -280,8 +292,8 @@ func TestRentPreForkUnchanged(t *testing.T) {
 		acc.SetActive(true)
 		putContract(t, txn, acc, 0) // unfunded
 
-		// pre-fork height: below the activation
-		if err := runVM(t, txn, acc, rentTx(postForkHeight-1)); err != nil {
+		// fork inactive (MAINNET / NoFork): the deposit logic is skipped
+		if err := runVM(t, txn, acc, preRentTx(postForkHeight)); err != nil {
 			t.Fatalf("pre-fork kv.set run failed: %v", err)
 		}
 
@@ -399,8 +411,9 @@ func TestRentCrossForkDelRefundsZero(t *testing.T) {
 			return err
 		}
 
-		// write the entry BELOW the fork: no deposit locked, _rent absent
-		runSource(t, txn, pre, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight-1))
+		// write the entry with the fork INACTIVE (MAINNET/NoFork): no deposit
+		// locked, _rent absent
+		runSource(t, txn, pre, mustWat(kvSetWatKV(key, val)), preRentTx(postForkHeight))
 		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Sign() != 0 {
 			t.Fatalf("pre-fork set escrow = %s, want 0 (nothing locked)", got)
 		}
@@ -479,7 +492,7 @@ func TestRentNoCrossContractDrain(t *testing.T) {
 		if err := setBalance(txn, nil, b, bFund); err != nil {
 			return err
 		}
-		runSource(t, txn, b, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight-1))
+		runSource(t, txn, b, mustWat(kvSetWatKV(key, val)), preRentTx(postForkHeight))
 
 		// B deletes its pre-fork entry post-fork: gets 0, A's escrow untouched
 		runSource(t, txn, b, mustWat(kvDelWat(key)), rentTx(postForkHeight))
@@ -492,7 +505,7 @@ func TestRentNoCrossContractDrain(t *testing.T) {
 
 		// B re-writes the pre-fork entry (still _rent 0) and destroys post-fork:
 		// its stored _rent is absent, so destroy refunds 0 — escrow still holds A.
-		runSource(t, txn, b, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight-1))
+		runSource(t, txn, b, mustWat(kvSetWatKV(key, val)), preRentTx(postForkHeight))
 		slotB, err := getContract(txn, b)
 		if err != nil {
 			return err

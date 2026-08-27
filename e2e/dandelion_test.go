@@ -41,12 +41,16 @@ func TestDandelionStemLiveness(t *testing.T) {
 	b2 := mineAndSubmit(t, nodeA, key)
 	waitTip(t, nodeC, b2.GetHash(), 10*time.Second)
 
-	// the reveal (locked to height 4) and its blind commitment (height 3)
+	// the reveal (locked to height 4) and its blind commitment (height 3). The
+	// fee market is active from genesis, so both the reveal and its commitment
+	// must clear the relay floor (== the next block's base fee, MinBaseFee *
+	// bytes) to be pool-admissible; MinBaseFee*4096 covers both envelopes.
 	var dest ngtypes.Address
 	dest[0] = 0xdd
+	feeMarketFee := new(big.Int).Mul(ngtypes.MinBaseFee, big.NewInt(4096))
 	tx := revealTx(t, ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 4,
-		dest, big.NewInt(10), big.NewInt(1), nil, nil), key)
-	commit := commitFor(t, tx, key, 3, nil)
+		dest, big.NewInt(10), feeMarketFee, nil, nil), key)
+	commit := commitFor(t, tx, key, 3, feeMarketFee)
 
 	// submit the commitment locally on A: it stems away instead of
 	// flooding, and must still surface in C's pool (liveness)

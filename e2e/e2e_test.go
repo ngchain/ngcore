@@ -408,11 +408,14 @@ func TestTxPropagation(t *testing.T) {
 	waitTip(t, nodeB, b2.GetHash(), 10*time.Second)
 
 	// build the transact reveal (locked to its reveal height 4) and its blind
-	// commitment, packed one block earlier at height 3
+	// commitment, packed one block earlier at height 3. The fee market is active
+	// from genesis, so the reveal must clear the base-fee floor (MinBaseFee *
+	// bytes) to be pool-admissible; MinBaseFee*4096 covers any envelope here.
 	var dest ngtypes.Address
 	dest[0] = 0xee
+	feeMarketFee := new(big.Int).Mul(ngtypes.MinBaseFee, big.NewInt(4096))
 	tx := revealTx(t, ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, 4,
-		dest, big.NewInt(10), big.NewInt(1), nil, nil), key)
+		dest, big.NewInt(10), feeMarketFee, nil, nil), key)
 	commit := commitFor(t, tx, key, 3, nil)
 
 	// mine the commit-carrying block on A; both nodes record it at height 3,
@@ -595,6 +598,13 @@ func TestContractLifecycle(t *testing.T) {
 	key, _ := ngtypes.GenerateKey()
 	addr := ngtypes.NewAddress(key)
 
+	// the fee market is active from genesis, so every non-generate tx mined into a
+	// block must clear MinBaseFee * len(rlp(tx)); MinBaseFee*4096 covers the
+	// deploy/transact envelopes here. The contract at addr also writes kv, so the
+	// deployer's own address (which is the contract account) must keep enough
+	// native balance for the state-rent deposit — the two mined block rewards do.
+	feeMarketFee := new(big.Int).Mul(ngtypes.MinBaseFee, big.NewInt(4096))
+
 	// mineNext mines a block on A's current tip carrying the given commits and
 	// txs, and waits for B to converge onto it
 	mineNext := func(commits []*ngtypes.Commitment, txs ...*ngtypes.FullTx) *ngtypes.FullBlock {
@@ -628,13 +638,13 @@ func TestContractLifecycle(t *testing.T) {
 	rawExtra := ngtypes.EncodeCommitCode(mustWat(contractWat))
 	commitReveal(func(h uint64) *ngtypes.FullTx {
 		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.DeployTx, h,
-			ngtypes.Address{}, nil, big.NewInt(1), rawExtra, nil)
+			ngtypes.Address{}, nil, feeMarketFee, rawExtra, nil)
 	})
 
 	// trigger: a transact tx to the contract account runs `main`
 	commitReveal(func(h uint64) *ngtypes.FullTx {
 		return ngtypes.NewTx(ngtypes.ZERONET, ngtypes.TransactTx, h,
-			addr, big.NewInt(1), big.NewInt(1), nil, nil)
+			addr, big.NewInt(1), feeMarketFee, nil, nil)
 	})
 
 	// both nodes hold the identical contract state written by the vm

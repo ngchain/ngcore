@@ -20,23 +20,22 @@ func TestForkGenesisAlwaysActive(t *testing.T) {
 	}
 }
 
-// ForkFeeMarket is scheduled at FeeMarketForkHeight on the dev networks
-// (ZERONET, TESTNET) and NoFork on MAINNET: inactive strictly below the
-// activation height, active at and above it.
+// ForkFeeMarket is scheduled at genesis (FeeMarketForkHeight == 0) on the dev
+// networks (ZERONET, TESTNET) and NoFork on MAINNET: active at every height on
+// the dev networks (there is no below-genesis), never active on MAINNET.
 func TestForkFeeMarketSchedule(t *testing.T) {
-	// dev networks: scheduled at FeeMarketForkHeight
+	// dev networks: active from genesis
 	for _, net := range []Network{ZERONET, TESTNET} {
 		if got := ForkHeight(net, ForkFeeMarket); got != FeeMarketForkHeight {
 			t.Fatalf("ForkHeight(%s, ForkFeeMarket) = %d, want %d", net, got, FeeMarketForkHeight)
 		}
-		if IsForkActive(net, ForkFeeMarket, FeeMarketForkHeight-1) {
-			t.Fatalf("ForkFeeMarket must be inactive at height %d on %s", FeeMarketForkHeight-1, net)
+		if FeeMarketForkHeight != 0 {
+			t.Fatalf("FeeMarketForkHeight = %d, want 0 (active from genesis)", FeeMarketForkHeight)
 		}
-		if !IsForkActive(net, ForkFeeMarket, FeeMarketForkHeight) {
-			t.Fatalf("ForkFeeMarket must be active at height %d on %s", FeeMarketForkHeight, net)
-		}
-		if !IsForkActive(net, ForkFeeMarket, FeeMarketForkHeight+1) {
-			t.Fatalf("ForkFeeMarket must be active above the activation height on %s", net)
+		for _, h := range []uint64{0, 1, 100, math.MaxUint64 - 1} {
+			if !IsForkActive(net, ForkFeeMarket, h) {
+				t.Fatalf("ForkFeeMarket must be active at height %d on %s", h, net)
+			}
 		}
 	}
 
@@ -98,19 +97,16 @@ func TestIsForkActiveBoundary(t *testing.T) {
 	}
 }
 
-// ActiveFork returns ForkGenesis below FeeMarketForkHeight and ForkFeeMarket in
-// the window [FeeMarketForkHeight, StateRentForkHeight) on the dev networks
-// (above that ForkStateRent takes over — see TestActiveForkStateRent); MAINNET
-// stays ForkGenesis at every height (neither later fork is scheduled there).
+// ActiveFork on the dev networks returns the HIGHEST active fork. With both
+// ForkFeeMarket and ForkStateRent active from genesis (height 0), that is
+// ForkStateRent at every height — there is no window where ForkFeeMarket is the
+// top ruleset any more. MAINNET stays ForkGenesis at every height (neither
+// later fork is scheduled there).
 func TestActiveForkFeeMarket(t *testing.T) {
 	for _, net := range []Network{ZERONET, TESTNET} {
-		if got := ActiveFork(net, FeeMarketForkHeight-1); got != ForkGenesis {
-			t.Fatalf("ActiveFork(%s, %d) = %d, want ForkGenesis", net, FeeMarketForkHeight-1, got)
-		}
-		// heights strictly within the fee-market window, below the state-rent fork
-		for _, h := range []uint64{FeeMarketForkHeight, FeeMarketForkHeight + 1, StateRentForkHeight - 1} {
-			if got := ActiveFork(net, h); got != ForkFeeMarket {
-				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkFeeMarket", net, h, got)
+		for _, h := range []uint64{0, 1, 100, 200_000, math.MaxUint64} {
+			if got := ActiveFork(net, h); got != ForkStateRent {
+				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkStateRent", net, h, got)
 			}
 		}
 	}

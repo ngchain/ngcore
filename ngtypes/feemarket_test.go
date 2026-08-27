@@ -7,19 +7,31 @@ import (
 	"github.com/c0mm4nd/rlp"
 )
 
-// pre-fork children (child height < FeeMarketForkHeight) get the constant floor,
-// never updated, regardless of how full the parent was.
-func TestNextBaseFeePreForkIsFloor(t *testing.T) {
+// With the fee market active from genesis on the dev networks there is no
+// pre-fork window: even the genesis block's child (parentHeight 0 => child
+// height 1) is already POST-fork, so the base fee is DYNAMIC — an over-target
+// parent raises it and an under-target parent lowers it, rather than pinning the
+// floor. Pre-fork "always floor" coverage now lives on MAINNET (NoFork), see
+// TestNextBaseFeeMainnetAlwaysFloor.
+func TestNextBaseFeeDynamicFromGenesisOnDevNets(t *testing.T) {
 	for _, net := range []Network{ZERONET, TESTNET} {
-		// parentHeight+1 stays below the activation height
-		for _, parentHeight := range []uint64{0, 1, FeeMarketForkHeight - 2} {
-			for _, used := range []uint64{0, BaseFeeTargetBytes, MaxBlockBytes} {
-				got := NextBaseFee(net, parentHeight, big.NewInt(9e18), used)
-				if got.Cmp(MinBaseFee) != 0 {
-					t.Fatalf("pre-fork NextBaseFee(%s, parent=%d, used=%d) = %s, want MinBaseFee %s",
-						net, parentHeight, used, got, MinBaseFee)
-				}
-			}
+		// genesis's child is already post-fork on the dev networks
+		if !IsForkActive(net, ForkFeeMarket, 1) {
+			t.Fatalf("%s: fee market must be active at child height 1 (genesis's child)", net)
+		}
+		parent := big.NewInt(1_000_000_000_000)
+		// over-target parent => strictly higher than parent (dynamic, not pinned)
+		up := NextBaseFee(net, 0, parent, uint64(MaxBlockBytes))
+		if up.Cmp(parent) <= 0 {
+			t.Fatalf("%s: genesis-child over-target NextBaseFee = %s, want > parent %s (dynamic)", net, up, parent)
+		}
+		// under-target parent => strictly lower (but never below the floor)
+		down := NextBaseFee(net, 0, parent, 0)
+		if down.Cmp(parent) >= 0 {
+			t.Fatalf("%s: genesis-child under-target NextBaseFee = %s, want < parent %s (dynamic)", net, down, parent)
+		}
+		if down.Cmp(MinBaseFee) < 0 {
+			t.Fatalf("%s: genesis-child under-target NextBaseFee = %s, want >= MinBaseFee %s", net, down, MinBaseFee)
 		}
 	}
 }

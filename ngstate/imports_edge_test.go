@@ -199,9 +199,20 @@ func TestHostGuardRails(t *testing.T) {
 	addr := testAddr(0xe1)
 
 	err := db.Update(func(txn *bbolt.Tx) error {
-		acc := ngtypes.NewContract(addr, mustWat(hostEdgeWat), nil)
+		// Pre-seed the two verdict keys ("bad"/"sum") with 1-byte values so
+		// the probe's final kv.set writes are in-place (delta 0) and lock no
+		// storage deposit. Only the fresh "zz" write grows the kv, owing
+		// exactly 3*DepositPerByte (key(2)+value(1)). Fund EXACTLY that: after
+		// the "zz" set locks it into escrow the contract's spendable balance
+		// is 0, so the "broke: sending 1 must fail" transfer probe returns 0
+		// and the must-be-zero verdict ("sum") holds — while the verdict
+		// writes themselves still succeed (they no longer owe a deposit).
+		seeded := ngtypes.NewContractContext()
+		seeded.Set("bad", []byte{0})
+		seeded.Set("sum", []byte{0})
+		acc := ngtypes.NewContract(addr, mustWat(hostEdgeWat), seeded)
 		acc.SetActive(true)
-		putContract(t, txn, acc, 0)
+		putContract(t, txn, acc, 3e12)
 
 		vm, err := NewVM(txn, acc, fakeTransactTx(addr, nil), 1)
 		if err != nil {
@@ -260,7 +271,7 @@ func TestKVReservedKeyTraps(t *testing.T) {
 		err := db.Update(func(txn *bbolt.Tx) error {
 			acc := ngtypes.NewContract(addr, mustWat(watSrc), nil)
 			acc.SetActive(true)
-			putContract(t, txn, acc, 0)
+			putContract(t, txn, acc, 7000000000000)
 
 			vm, err := NewVM(txn, acc, fakeTransactTx(addr, nil), 1)
 			if err != nil {

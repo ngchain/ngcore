@@ -6,26 +6,27 @@ import (
 	"testing"
 )
 
-// ForkStateRent is scheduled at StateRentForkHeight on the dev networks
-// (ZERONET, TESTNET), above the fee-market fork, and NoFork on MAINNET.
+// ForkStateRent is active from genesis (StateRentForkHeight == 0) on the dev
+// networks (ZERONET, TESTNET), co-active with the fee market, and NoFork on
+// MAINNET: active at every height on the dev networks, never active on MAINNET.
 func TestForkStateRentSchedule(t *testing.T) {
-	if StateRentForkHeight <= FeeMarketForkHeight {
-		t.Fatalf("StateRentForkHeight (%d) must sit above FeeMarketForkHeight (%d)",
+	// co-active with the fee market from genesis: same activation height, both 0
+	if StateRentForkHeight != FeeMarketForkHeight {
+		t.Fatalf("StateRentForkHeight (%d) must equal FeeMarketForkHeight (%d): both active from genesis",
 			StateRentForkHeight, FeeMarketForkHeight)
+	}
+	if StateRentForkHeight != 0 {
+		t.Fatalf("StateRentForkHeight = %d, want 0 (active from genesis)", StateRentForkHeight)
 	}
 
 	for _, net := range []Network{ZERONET, TESTNET} {
 		if got := ForkHeight(net, ForkStateRent); got != StateRentForkHeight {
 			t.Fatalf("ForkHeight(%s, ForkStateRent) = %d, want %d", net, got, StateRentForkHeight)
 		}
-		if IsForkActive(net, ForkStateRent, StateRentForkHeight-1) {
-			t.Fatalf("ForkStateRent must be inactive at height %d on %s", StateRentForkHeight-1, net)
-		}
-		if !IsForkActive(net, ForkStateRent, StateRentForkHeight) {
-			t.Fatalf("ForkStateRent must be active at height %d on %s", StateRentForkHeight, net)
-		}
-		if !IsForkActive(net, ForkStateRent, StateRentForkHeight+1) {
-			t.Fatalf("ForkStateRent must be active above the activation height on %s", net)
+		for _, h := range []uint64{0, 1, 100, math.MaxUint64 - 1} {
+			if !IsForkActive(net, ForkStateRent, h) {
+				t.Fatalf("ForkStateRent must be active at height %d on %s", h, net)
+			}
 		}
 	}
 
@@ -33,22 +34,19 @@ func TestForkStateRentSchedule(t *testing.T) {
 	if got := ForkHeight(MAINNET, ForkStateRent); got != NoFork {
 		t.Fatalf("ForkHeight(MAINNET, ForkStateRent) = %d, want NoFork(%d)", got, uint64(NoFork))
 	}
-	for _, h := range []uint64{0, 1, 100, StateRentForkHeight, math.MaxUint64 - 1} {
+	for _, h := range []uint64{0, 1, 100, math.MaxUint64 - 1} {
 		if IsForkActive(MAINNET, ForkStateRent, h) {
 			t.Fatalf("IsForkActive(MAINNET, ForkStateRent, %d) = true, want false", h)
 		}
 	}
 }
 
-// ActiveFork returns ForkStateRent at and above StateRentForkHeight on the dev
-// networks (ForkFeeMarket between the two fork heights), MAINNET stays capped at
-// ForkFeeMarket-or-below (never reaching ForkStateRent since it is NoFork there).
+// ActiveFork returns ForkStateRent — the highest scheduled fork — at every
+// height on the dev networks, since both later forks are active from genesis.
+// MAINNET never reaches ForkStateRent (it is NoFork there).
 func TestActiveForkStateRent(t *testing.T) {
 	for _, net := range []Network{ZERONET, TESTNET} {
-		if got := ActiveFork(net, StateRentForkHeight-1); got != ForkFeeMarket {
-			t.Fatalf("ActiveFork(%s, %d) = %d, want ForkFeeMarket", net, StateRentForkHeight-1, got)
-		}
-		for _, h := range []uint64{StateRentForkHeight, StateRentForkHeight + 1, 200_000, math.MaxUint64} {
+		for _, h := range []uint64{0, 1, StateRentForkHeight, StateRentForkHeight + 1, 200_000, math.MaxUint64} {
 			if got := ActiveFork(net, h); got != ForkStateRent {
 				t.Fatalf("ActiveFork(%s, %d) = %d, want ForkStateRent", net, h, got)
 			}

@@ -12,9 +12,10 @@ import (
 )
 
 // The per-tx burn-only base-fee minimum (ForkFeeMarket) is enforced by
-// CheckBlockTxs only at/after the fork height: a reveal paying below
-// block.BaseFee*bytes is rejected post-fork, while the identical tx is accepted
-// pre-fork (unchanged behavior).
+// CheckBlockTxs from genesis on the dev networks (the fork is active at height
+// 0): a reveal paying below block.BaseFee*bytes is rejected at every height
+// (there is no pre-fork window to be lenient in any more), while a reveal paying
+// at or above the minimum is accepted.
 func TestCheckBlockTxsBaseFeeGate(t *testing.T) {
 	db := newTestDB(t)
 
@@ -70,16 +71,12 @@ func TestCheckBlockTxsBaseFeeGate(t *testing.T) {
 			return err
 		}
 
-		const preHeight = ngtypes.FeeMarketForkHeight - 1
-		const postHeight = ngtypes.FeeMarketForkHeight
+		// The fork is active from genesis, so the lowest height a reveal can sit
+		// at (its commit needs height-1) is already gated. Use height 1.
+		const postHeight = ngtypes.FeeMarketForkHeight + 1
 
-		// PRE-FORK: a zero-fee reveal is accepted (the base-fee gate is inactive)
-		preZero := revealAt(t, txn, preHeight, big.NewInt(0))
-		if err := CheckBlockTxs(txn, blockAt(t, preHeight, preZero)); err != nil {
-			t.Fatalf("pre-fork zero-fee reveal must be accepted, got: %v", err)
-		}
-
-		// POST-FORK: a zero-fee reveal is rejected for paying below the base fee
+		// GENESIS-ACTIVE: a zero-fee reveal is rejected for paying below the base
+		// fee, even at the lowest usable height (there is no lenient pre-fork window)
 		postZero := revealAt(t, txn, postHeight, big.NewInt(0))
 		err := CheckBlockTxs(txn, blockAt(t, postHeight, postZero))
 		if !errors.Is(err, ngtypes.ErrTxFeeBelowBaseFee) {
