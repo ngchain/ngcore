@@ -69,7 +69,7 @@ func updateBeacon(txn *bbolt.Tx, cs *changeset, block *ngtypes.FullBlock) {
 	prev := getBeacon(txn)
 
 	// fold the reveal salts (bias-resistant, pre-committed entropy), in tx order
-	saltAcc := make([]byte, 0)
+	var saltAcc []byte
 	for _, tx := range block.Txs {
 		if len(tx.Salt) != 0 {
 			saltAcc = append(saltAcc, tx.Salt...)

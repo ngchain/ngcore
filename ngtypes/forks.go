@@ -141,14 +141,16 @@ func IsForkActive(net Network, f Fork, height uint64) bool {
 }
 
 // ActiveFork returns the highest fork active at the given height on net — the
-// "current ruleset" at that block. Today it returns ForkGenesis for every
-// height on every network (nothing else is scheduled). It walks the ordered
-// fork values upward, stopping at the first inactive one, so it stays correct
-// as new forks are appended in order.
+// "current ruleset" at that block. It derives the candidate set from
+// forkSchedule[net] itself and returns the numerically-highest active one
+// (ForkGenesis is the always-active floor). Reading the schedule rather than a
+// hardcoded upper bound keeps fork-adding a genuinely one-line change (add the
+// schedule entry) and drops any assumption that forks are densely numbered or
+// ordered by height. Taking the max makes it independent of map iteration order.
 func ActiveFork(net Network, height uint64) Fork {
 	active := ForkGenesis
-	for f := ForkGenesis + 1; f <= ForkRandomBeacon; f++ {
-		if IsForkActive(net, f, height) {
+	for f := range forkSchedule[net] {
+		if f > active && IsForkActive(net, f, height) {
 			active = f
 		}
 	}

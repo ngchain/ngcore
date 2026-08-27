@@ -55,73 +55,59 @@ func (s *bboltNodeStore) Delete(key []byte) error { return s.bucket.Delete(key) 
 
 // --- per-domain leaf updates: called from the state write choke points ---
 
+// trieSetLeaf mirrors one state write into the commitment: it sets the leaf at
+// (domain, key) to ValueHash(value), or DELETES it (ZeroHash) when value is
+// empty. It single-sources the "empty ⇒ absent leaf" rule every domain relies
+// on — the same rule StateProof and RebuildTrie encode — so the tree can never
+// drift between the incremental and from-scratch roots. All the typed trieSet*
+// wrappers below funnel through it.
+func trieSetLeaf(txn *bbolt.Tx, domain byte, key, value []byte) {
+	path := statetrie.LeafPath(domain, key)
+	var vh []byte
+	if len(value) == 0 {
+		vh = statetrie.ZeroHash()
+	} else {
+		vh = statetrie.ValueHash(value)
+	}
+	_ = statetrie.Update(newNodeStore(txn), path, vh)
+}
+
 // trieSetBalance mirrors an addr:bal write into the trie. A zero balance is
 // an absent leaf (statetrie deletes it), matching "balance 0 == absent".
 func trieSetBalance(txn *bbolt.Tx, addr ngtypes.Address, balance *big.Int) {
-	path := statetrie.LeafPath(statetrie.DomainBalance, addr[:])
-	var vh []byte
-	if balance == nil || balance.Sign() == 0 {
-		vh = statetrie.ZeroHash()
-	} else {
-		vh = statetrie.ValueHash(balance.Bytes())
+	var val []byte
+	if balance != nil && balance.Sign() != 0 {
+		val = balance.Bytes()
 	}
-	_ = statetrie.Update(newNodeStore(txn), path, vh)
+	trieSetLeaf(txn, statetrie.DomainBalance, addr[:], val)
 }
 
 // trieSetKey mirrors an addr:key write. entry is scheme‖pubkey; nil deletes
 // (a reorg dropping a first-reveal). The registry is append-only in normal
 // operation, so this is only ever an insert or an unwind-delete.
 func trieSetKey(txn *bbolt.Tx, addr ngtypes.Address, entry []byte) {
-	path := statetrie.LeafPath(statetrie.DomainKey, addr[:])
-	var vh []byte
-	if entry == nil {
-		vh = statetrie.ZeroHash()
-	} else {
-		vh = statetrie.ValueHash(entry)
-	}
-	_ = statetrie.Update(newNodeStore(txn), path, vh)
+	trieSetLeaf(txn, statetrie.DomainKey, addr[:], entry)
 }
 
 // trieSetContract mirrors an addr:contract write. storedRLP is the exact
 // rlp(storedContract) blob the bucket holds (code referenced by hash, so the
 // code-dedup bucket never touches the commitment); nil deletes the slot.
 func trieSetContract(txn *bbolt.Tx, addr ngtypes.Address, storedRLP []byte) {
-	path := statetrie.LeafPath(statetrie.DomainContract, addr[:])
-	var vh []byte
-	if storedRLP == nil {
-		vh = statetrie.ZeroHash()
-	} else {
-		vh = statetrie.ValueHash(storedRLP)
-	}
-	_ = statetrie.Update(newNodeStore(txn), path, vh)
+	trieSetLeaf(txn, statetrie.DomainContract, addr[:], storedRLP)
 }
 
 // trieSetCommit mirrors a mempool:commit write. The raw key is the full
 // bucket key heightLE(8)‖Hash(32); from is the committer address, nil deletes
 // (a reveal consuming it, a height-undo, or a prune).
 func trieSetCommit(txn *bbolt.Tx, bucketKey []byte, from []byte) {
-	path := statetrie.LeafPath(statetrie.DomainCommit, bucketKey)
-	var vh []byte
-	if from == nil {
-		vh = statetrie.ZeroHash()
-	} else {
-		vh = statetrie.ValueHash(from)
-	}
-	_ = statetrie.Update(newNodeStore(txn), path, vh)
+	trieSetLeaf(txn, statetrie.DomainCommit, bucketKey, from)
 }
 
 // trieSetBeacon mirrors the single native-randomness-beacon leaf into the trie
 // (statetrie DomainBeacon at the fixed BeaconStateKey). A nil seed deletes it —
 // a reorg unwinding the first post-genesis block back to genesis.
 func trieSetBeacon(txn *bbolt.Tx, seed []byte) {
-	path := statetrie.LeafPath(statetrie.DomainBeacon, ngtypes.BeaconStateKey)
-	var vh []byte
-	if seed == nil {
-		vh = statetrie.ZeroHash()
-	} else {
-		vh = statetrie.ValueHash(seed)
-	}
-	_ = statetrie.Update(newNodeStore(txn), path, vh)
+	trieSetLeaf(txn, statetrie.DomainBeacon, ngtypes.BeaconStateKey, seed)
 }
 
 // StateRoot returns the current consensus-state commitment root of the txn.
