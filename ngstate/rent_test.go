@@ -62,6 +62,20 @@ func kvSetThenDelWat(key, val string) string {
 `
 }
 
+// kvDelWat deletes a single key (embedded as data), so a test can run a
+// standalone delete at a chosen height — independent of the set that created it.
+func kvDelWat(key string) string {
+	kb := watBytes([]byte(key))
+	return `
+(module
+  (import "kv" "del" (func $del (param i32 i32) (result i32)))
+  (memory 1)
+  (data (i32.const 0) "` + kb + `")
+  (func (export "ng:main")
+    (drop (call $del (i32.const 0) (i32.const ` + itoa(len(key)) + `)))))
+`
+}
+
 func itoa(n int) string {
 	return big.NewInt(int64(n)).String()
 }
@@ -337,6 +351,181 @@ func TestRentDestroyRefunds(t *testing.T) {
 		// supply conserved: the whole deposit is back on the address
 		if got := getBalance(txn, addr); got.Cmp(fund) != 0 {
 			t.Fatalf("contract balance after destroy = %s, want %s (deposit fully refunded)", got, fund)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// runSource swaps the SOURCE on an existing slot (preserving its Context) and
+// runs main at the tx's height, so a test can drive several ops — potentially
+// straddling the fork — against one persistent kv entry.
+func runSource(t *testing.T, txn *bbolt.Tx, addr ngtypes.Address, source []byte, tx *ngtypes.FullTx) {
+	t.Helper()
+	slot, err := getContract(txn, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slot.Source = source
+	if err := setContract(txn, nil, slot); err != nil {
+		t.Fatal(err)
+	}
+	slot, _ = getContract(txn, addr)
+	if err := runVM(t, txn, slot, tx); err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+}
+
+// TestRentCrossForkDelRefundsZero pins the fix: an entry WRITTEN pre-fork locked
+// nothing (_rent stays 0), so DELETING it post-fork must refund nothing — the
+// contract's balance and the escrow are both untouched by the del. Without the
+// _rent bound, depositFor(freed) would pay a refund the contract never funded,
+// minting from (and draining) the escrow. A fully post-fork entry, by contrast,
+// refunds in full.
+func TestRentCrossForkDelRefundsZero(t *testing.T) {
+	db := newTestDB(t)
+	const key, val = "key", "val" // 6 bytes
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		// --- pre-fork write, post-fork delete: refund must be ZERO ---
+		pre := testAddr(0xb1)
+		fund := new(big.Int).Set(ngtypes.NG)
+		acc := ngtypes.NewContract(pre, mustWat(kvSetWatKV(key, val)), nil)
+		acc.SetActive(true)
+		putContract(t, txn, acc, 0)
+		if err := setBalance(txn, nil, pre, fund); err != nil {
+			return err
+		}
+
+		// write the entry BELOW the fork: no deposit locked, _rent absent
+		runSource(t, txn, pre, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight-1))
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Sign() != 0 {
+			t.Fatalf("pre-fork set escrow = %s, want 0 (nothing locked)", got)
+		}
+		if got := getBalance(txn, pre); got.Cmp(fund) != 0 {
+			t.Fatalf("pre-fork set balance = %s, want %s (untouched)", got, fund)
+		}
+
+		// delete the SAME entry ABOVE the fork: _rent is 0, so refund is 0
+		runSource(t, txn, pre, mustWat(kvDelWat(key)), rentTx(postForkHeight))
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Sign() != 0 {
+			t.Fatalf("post-fork del of pre-fork entry: escrow = %s, want 0 (no phantom refund)", got)
+		}
+		if got := getBalance(txn, pre); got.Cmp(fund) != 0 {
+			t.Fatalf("post-fork del of pre-fork entry: balance = %s, want %s (no phantom refund)", got, fund)
+		}
+
+		// --- fully post-fork: set locks, del refunds in full ---
+		post := testAddr(0xb2)
+		acc2 := ngtypes.NewContract(post, mustWat(kvSetWatKV(key, val)), nil)
+		acc2.SetActive(true)
+		putContract(t, txn, acc2, 0)
+		if err := setBalance(txn, nil, post, fund); err != nil {
+			return err
+		}
+		runSource(t, txn, post, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight))
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Cmp(depBytes(6)) != 0 {
+			t.Fatalf("post-fork set escrow = %s, want %s", got, depBytes(6))
+		}
+		runSource(t, txn, post, mustWat(kvDelWat(key)), rentTx(postForkHeight))
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Sign() != 0 {
+			t.Fatalf("post-fork del escrow = %s, want 0 (fully refunded)", got)
+		}
+		if got := getBalance(txn, post); got.Cmp(fund) != 0 {
+			t.Fatalf("post-fork del balance = %s, want %s (fully refunded)", got, fund)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestRentNoCrossContractDrain pins the theft vector closed: contract A locks a
+// real deposit post-fork (escrow > 0). Contract B, which only ever wrote
+// pre-fork data (locking nothing), tries to del AND destroy post-fork. B must
+// receive ZERO both ways, and A's bond in the escrow must be untouched — A can
+// still be refunded its full amount on its own destroy.
+func TestRentNoCrossContractDrain(t *testing.T) {
+	db := newTestDB(t)
+	state := &State{Network: ngtypes.ZERONET}
+	const key, val = "key", "val" // 6 bytes
+
+	err := db.Update(func(txn *bbolt.Tx) error {
+		fund := new(big.Int).Set(ngtypes.NG)
+
+		// A locks a real deposit post-fork
+		a := testAddr(0xc1)
+		accA := ngtypes.NewContract(a, mustWat(kvSetWatKV(key, val)), nil)
+		accA.SetActive(true)
+		putContract(t, txn, accA, 0)
+		if err := setBalance(txn, nil, a, fund); err != nil {
+			return err
+		}
+		runSource(t, txn, a, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight))
+		lockedA := depBytes(6)
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Cmp(lockedA) != 0 {
+			t.Fatalf("escrow after A locks = %s, want %s", got, lockedA)
+		}
+
+		// B only ever wrote PRE-fork data — it locked nothing
+		b := testAddr(0xc2)
+		accB := ngtypes.NewContract(b, mustWat(kvSetWatKV(key, val)), nil)
+		accB.SetActive(true)
+		putContract(t, txn, accB, 0)
+		bFund := new(big.Int).Set(ngtypes.NG)
+		if err := setBalance(txn, nil, b, bFund); err != nil {
+			return err
+		}
+		runSource(t, txn, b, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight-1))
+
+		// B deletes its pre-fork entry post-fork: gets 0, A's escrow untouched
+		runSource(t, txn, b, mustWat(kvDelWat(key)), rentTx(postForkHeight))
+		if got := getBalance(txn, b); got.Cmp(bFund) != 0 {
+			t.Fatalf("B balance after cross-fork del = %s, want %s (no drain)", got, bFund)
+		}
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Cmp(lockedA) != 0 {
+			t.Fatalf("escrow after B's del = %s, want %s (A's bond intact)", got, lockedA)
+		}
+
+		// B re-writes the pre-fork entry (still _rent 0) and destroys post-fork:
+		// its stored _rent is absent, so destroy refunds 0 — escrow still holds A.
+		runSource(t, txn, b, mustWat(kvSetWatKV(key, val)), rentTx(postForkHeight-1))
+		slotB, err := getContract(txn, b)
+		if err != nil {
+			return err
+		}
+		if err := refundContractDeposit(txn, state.cs, b, slotB.Context); err != nil {
+			return err
+		}
+		if err := delContract(txn, state.cs, b); err != nil {
+			return err
+		}
+		if got := getBalance(txn, b); got.Cmp(bFund) != 0 {
+			t.Fatalf("B balance after destroy = %s, want %s (no drain on destroy)", got, bFund)
+		}
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Cmp(lockedA) != 0 {
+			t.Fatalf("escrow after B destroy = %s, want %s (A's bond intact)", got, lockedA)
+		}
+
+		// A can still be refunded its FULL bond on its own destroy
+		slotA, err := getContract(txn, a)
+		if err != nil {
+			return err
+		}
+		if err := refundContractDeposit(txn, state.cs, a, slotA.Context); err != nil {
+			return err
+		}
+		if err := delContract(txn, state.cs, a); err != nil {
+			return err
+		}
+		if got := getBalance(txn, ngtypes.StorageDepositEscrow); got.Sign() != 0 {
+			t.Fatalf("escrow after A destroy = %s, want 0 (A refunded in full)", got)
+		}
+		if got := getBalance(txn, a); got.Cmp(fund) != 0 {
+			t.Fatalf("A balance after destroy = %s, want %s (full refund)", got, fund)
 		}
 		return nil
 	})
